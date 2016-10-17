@@ -32,15 +32,21 @@ RUN apt-get update && \
 	apt-get autoremove && \
 	apt-get autoclean && \
 	apt-get -y install nginx-full && \
-	apt-get -y install build-essential python-dev libxml2-dev python-pip unzip wget supervisor ucf net-tools && \
-	pip install setuptools --no-use-wheel --upgrade && \
+	apt-get -y install build-essential python-dev libxml2-dev python-pip unzip wget supervisor ucf net-tools git && \
+	pip install setuptools --no-use-wheel --upgrade && \	
 	PIPPATH=`which pip` && \
 	$PIPPATH install --upgrade uwsgi && \
-	$PIPPATH install pycrypto && \
 	apt-get clean && \
 	mkdir /etc/nginx/conf.d/web2py
 
 RUN mkdir /home/www-data/web2py
+
+# Install smc specific packages
+RUN apt-get -y install python-ldap python-crypto
+	#PIPPATH=`which pip` && \
+	#$PIPPATH install pycrypto
+	#$PIPPATH install python-ldap && \
+	
 
 # copy nginx config files from repo
 ADD gzip_static.conf /etc/nginx/conf.d/web2py/gzip_static.conf
@@ -77,15 +83,22 @@ RUN wget http://web2py.com/examples/static/web2py_src.zip && \
 	mv handlers/wsgihandler.py ./wsgihandler.py && \
 	chown -R www-data:www-data .
 
-
+#ADD routes.py $W2P_DIR/routes.py
 
 RUN python -c "from gluon.main import save_password; save_password('$PW',80)" && \
 	python -c "from gluon.main import save_password; save_password('$PW',443)"
 
+# Checkout release copy of SMC
+LABEL rebuild=5
+RUN git clone https://github.com/frankyrumple/smc.git $W2P_DIR/applications/smc
+RUN cp -f $W2P_DIR/applications/smc/routes.py $W2P_DIR/routes.py
+
+# Add a first run file so that next time a page is hit db migration happens
+RUN touch $W2P_DIR/applications/smc/.first_run
+
+
 USER root
 
-# Checkout release copy of SMC
-#RUN git ....
 
 VOLUME ["/home/www-data/web2py/applications/smc/cache", "/home/www-data/web2py/applications/smc/databases", "/home/www-data/web2py/applications/smc/errors", "/home/www-data/web2py/applications/smc/private", "/home/www-data/web2py/applications/smc/static/media"]
 EXPOSE 80 443

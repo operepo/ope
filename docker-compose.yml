@@ -18,12 +18,12 @@ services:
         image: ope-dns
         cap_add:
             - NET_ADMIN
-        command: -A /ed.dev/127.0.0.1 # --log-facility=-
+        command: -A /ed.dev/192.168.10.104 # --log-facility=-
         ports:
             - "53:53/tcp"
             - "53:53/udp"
         environment:
-            - IP_ADDR=127.0.0.1
+            - IP_ADDR=192.168.10.104
     ope-gateway:
         build: ./ope-gateway
         image: ope-gateway
