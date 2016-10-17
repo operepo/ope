@@ -1,0 +1,11 @@
+    ope-dns:
+        build: ./ope-dns
+        image: ope-dns
+        cap_add:
+            - NET_ADMIN
+        command: -A /<DOMAIN>/<IP> # --log-facility=-
+        ports:
+            - "53:53/tcp"
+            - "53:53/udp"
+        environment:
+            - IP_ADDR=<IP>

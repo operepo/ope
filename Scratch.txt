@@ -1,0 +1,222 @@
+-- OVERVIEW
+
+This system allows you to prep containers online, then move them to an offline
+location easily. To do this you will need a computer running Docker with access
+to the internet as well as a computer running Docker in the target offline location.
+
+Online Computer  --> Sync to USB Drive --> Sync USB Drive to offline computer
+
+ONLINE COMPUTER
+1) Install containers on a computer with online access
+2) Configure contianers as needed and download files/updates/etc...
+3) Sync containers and data to a portable drive
+OFFLINE COMPUTER
+4) Sync containers and data from portable drive to offline machine
+5) Fire up containers offline and enjoy
+TWO WAY SYNC (OPTIONAL)
+6) If two way sync is supported, you can run the sync script inside
+	to sync from offline system back to portable drive
+7) Run sync FROM portable drive to push back to online system
+8) Repeat as needed....
+
+
+
+-- INSTALL DOCKER - ONLINE and OFFLINE
+
+
+-- CHECKOUT OPE BUILD FILES
+
+
+-- GENERATE COMPOSE FILE
+
+Create a file in each container folder called .enabled then run the rebuild_compose.py script
+to generate a docker-compose script.
+
+-- START DOCKER
+
+In the ope folder, run docker-compose up -d to start the containers.
+
+
+
+---- CHANGE IP
+
+Template with new ip??? ((needed if we add docker A entry?))
+
+---- DNS SETUP
+Add conditional forwarder for .ed domain to IP of docker machine
+Add A entry for docker?
+
+
+---- INSTALL DOCKER SERVICES
+ - WinDocker
+	- Make sure to share!!!
+ - Premade image (in VM or on bare metal)
+	- Setup IP, Route, DNS, IP Forwarding
+	- CHANGE PASSWORD
+
+	
+	
+# Run with docker-compose up -d
+# Scale with docker-compose scale machine=2
+
+# Save
+# -------docker save imgname > imgname.tar
+# docker save -o image.tar imagename
+# Load
+# -------docker load < imgname.tar
+# docker load -i image.tar
+
+# Cleanup old containers
+# docker rm -v $(docker ps -a -q -f status=exited)
+# Cleanup old images
+# docker rmi $(docker images -f "dangling=true" -q)
+# Cleanup old volumes
+# docker volume rm $(docker volume ls -qf dangling=true)
+
+# ----------- Outside setup -----------------
+# Install Docker
+#   - (Win) Enable share
+#   - (Linux) chkconf docker on
+# Create volumes folder (one for each container)
+# checkout docker data (compose file, docker files, use GIT)
+# Launch with docker-compose
+# Indiviual container configs
+#   - kalite - setup new account online and pick videos to sync
+# Save container images to external drive
+# RSync volumes folder to external drive
+
+
+# ----------- Inside setup -----------------
+# Install Docker
+#   - (Win) Enable share
+#   - (Linux) chkconf docker on
+#   - chkconfig sshd on
+#   - Extend volume
+#      - pvresize /dev/vda2
+#   - Change root pw
+#   - change resolve.conf (nameserver 10.1.39.1??)
+# Create volumes folder (one for each container)
+# RSync from external drive
+# Load container images
+# Lauch w docker-compose (docker-compose up -d)
+
+
+
+
+
+      
+      
+  
+  ope-canvas:
+    build: ./ope-canvas
+    image: ope-canvas
+    ports:
+      - "80"
+      - "443"
+    environment:
+      - DOMAIN_NAME=canvas.ed
+    labels:
+      - "traefik.backend=canvas"
+      - "traefik.frontend.rule=Host:canvas.ed"
+    volumes:      TODO
+      - ./volumes/canvas/tmp:/home/huskers/canvas/tmp:rw
+      - ./volumes/canvas/config:/home/huskers/canvas/config:rw
+      - ./volumes/canvas/log:/home/huskers/canvas/log:rw
+      
+
+   
+   
+  ope-postgresql:
+    build: ./ope-postgresql
+    image: ope-postgresql
+    ports:
+      - "???"
+    environment:
+      - POSTGRESQL_RAM=3g ???
+    volumes:      TODO
+      - ./volumes/postgresql/data:/var/lib/postgresql/9.3/main:rw
+      - ./volumes/postgresql/db:/var/lib/redis:rw
+      
+      
+
+#
+#services:
+#  haproxy:
+#       image: haproxy:latest
+#       ports:
+#          - "80:80"
+#          - "443:443"
+#       volumes:
+#          - ${PWD}/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+#       restart: always
+#       networks:
+#          - widgets
+#       logging:
+#        driver: json-file
+#        options:
+#          max-size: "100m"
+#          max-file: "3"
+#          labels: "haproxy"
+#
+#  mariadb:
+#       image: mariadb:latest
+#       volumes:
+#          - /vol/appdata/mariadb:/var/lib/mysql
+#       environment:
+#          - MYSQL_ROOT_PASSWORD=secret-pw
+#       restart: always
+#       networks:
+#          - widgets
+#       logging:
+#         driver: json-file
+#         options:
+#           max-size: "100m"
+#           max-file: "3"
+#           labels: "mariadb"
+#
+#  app_orangella:
+#       image: apache:1.0
+#       restart: always
+#       ports:
+#          - "81:80"
+#       networks:
+#          - widgets
+#       logging:
+#         driver: json-file
+#         options:
+#           max-size: "50m"
+#           max-file: "3"
+#           labels: "app_orangella"
+#
+#networks:
+#  widgets:
+#    driver: bridge
+#    ipam:
+#     config:
+#       - subnet: 172.10.0.0/16
+#         gateway: 172.10.5.254
+#         aux_addresses:
+#          haproxy: 172.10.1.2
+#          mariadb: 172.10.1.3
+#          app_orangella: 172.10.1.4
+
+
+
+Labels can be used on containers to override default behaviour:
+
+traefik.backend=foo: assign the container to foo backend
+traefik.backend.maxconn.amount=10: set a maximum number of connections to the backend. Must be used in conjunction with the below label to take effect.
+traefik.backend.maxconn.extractorfunc=client.ip: set the function to be used against the request to determine what to limit maximum connections to the backend by. Must be used in conjunction with the above label to take effect.
+traefik.backend.loadbalancer.method=drr: override the default wrr load balancer algorithm
+traefik.backend.loadbalancer.sticky=true: enable backend sticky sessions
+traefik.backend.circuitbreaker.expression=NetworkErrorRatio() > 0.5: create a circuit breaker to be used against the backend
+traefik.port=80: register this port. Useful when the container exposes multiples ports.
+traefik.protocol=https: override the default http protocol
+traefik.weight=10: assign this weight to the container
+traefik.enable=false: disable this container in Træfɪk
+traefik.frontend.rule=Host:test.traefik.io: override the default frontend rule (Default: Host:{containerName}.{domain}).
+traefik.frontend.passHostHeader=true: forward client Host header to the backend.
+traefik.frontend.priority=10: override default frontend priority
+traefik.frontend.entryPoints=http,https: assign this frontend to entry points http and https. Overrides defaultEntryPoints.
+traefik.docker.network: Set the docker network to use for connections to this container
+NB: when running inside a container, Træfɪk will need network access through docker network connect <network> <traefik-container>

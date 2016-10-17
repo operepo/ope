@@ -1,0 +1,28 @@
+    ope-smc:
+        build: ./ope-smc
+        image: ope-smc
+        ports:
+            - "80"
+            - "443"
+            #- "8000"
+        labels:
+            - "traefik.backend=smc"
+            - "traefik.frontend.rule=Host:smc.<DOMAIN>, admin.<DOMAIN>, videos.<DOMAIN>, media.<DOMAIN>"
+            - "traefik.port=80"
+            #- "traefik.port=443"
+            #- "traefik.port=8000"
+            - "traefik.frontend.entryPoints=http,https"
+        volumes:
+            - ./volumes/smc/cache:/home/www-data/web2py/applications/smc/cache:rw
+            - ./volumes/smc/databases:/home/www-data/web2py/applications/smc/databases:rw
+            - ./volumes/smc/errors:/home/www-data/web2py/applications/smc/errors:rw
+            - ./volumes/smc/private:/home/www-data/web2py/applications/smc/private:rw
+            - ./volumes/smc/media:/home/www-data/web2py/applications/smc/static/media:rw
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        #environment:
+        #    - NGINX_HOST=gcf.<DOMAIN>
+        #    - NGINX_PORT=80
+        #command: /bin/bash -c "envsubst < /etc/nginx/conf.d/mysite.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+      

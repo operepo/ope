@@ -1,0 +1,15 @@
+    ope-gateway:
+        build: ./ope-gateway
+        image: ope-gateway
+        command: --docker.watch --web --docker --docker.domain=<DOMAIN> --logLevel=DEBUG --entryPoints="Name:https Address::443 TLS:/certs/cert.pem,/certs/key.pem" --entryPoints="Name:http Address::80"
+        #--entryPoints="Name:https Address::443 TLS:/certs/cert.pem,/certs/key.pem" --entryPoints="Name:http Address::80 Redirect.EntryPoint:https"
+        ports:
+            - "80:80"
+            - "8080:8080"
+            - "443:443"
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - /dev/null:/traefik.toml
+            # /certs directory can be mapped if you put your certs in the volumes folder
+            #- ./volumes/gateway/certs:/certs
+
