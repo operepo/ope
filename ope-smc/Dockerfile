@@ -93,10 +93,10 @@ RUN cp -f $W2P_DIR/applications/smc/routes.py $W2P_DIR/routes.py
 
 # Add a first run file so that next time a page is hit db migration happens
 RUN touch $W2P_DIR/applications/smc/.first_run
-# Add shortcut to set_admin_assword.py
-RUN echo '#!/bin/sh\ncd /home/www-data/web2py/applications/smc\npython set_admin_assword.py' > /set_admin_assword
-RUN chmod +x /set_admin_assword
-RUN chmod +x /home/www-data/web2py/applications/smc/set_admin_assword.py
+# Add shortcut to set_admin_password.py
+RUN echo '#!/bin/sh\ncd /home/www-data/web2py/applications/smc\npython set_admin_password.py' > /set_admin_password
+RUN chmod +x /set_admin_password
+RUN chmod +x /home/www-data/web2py/applications/smc/set_admin_password.py
 
 
 USER root
