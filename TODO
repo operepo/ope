@@ -2,6 +2,7 @@
 Set password on SMC container (cleaner way to set initial password?)
 Import smc data from seperate repo
 SMC first run - debug lazy_tables on
+Command line password set - change admin and parameters file
 
 download_volume_data.py - TODO
 
@@ -11,3 +12,4 @@ sync_from_portable_drive.py - TODO
 
 Need canvas, redis, postgresql images
 
+Change permissions on volumes folder (invalid user access?)
