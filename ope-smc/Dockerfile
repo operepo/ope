@@ -8,8 +8,6 @@ FROM ubuntu:trusty
 # Build the smc container and run it with the docker-compose command
 # View the smc website to set your admin password and configure Canvas/AD integration.
 
-#TODO - add user www-data
-
 # To copy to offline server use the setup tool
 
 MAINTAINER Ray Pulsipher <ray@cmagic.biz>
@@ -18,7 +16,7 @@ LABEL Description="Student Management Console - Image for Open Prison Education"
 # env vars
 
 #TODO - change admin password!!!
-ENV PW admin
+ENV PW changeme
 ENV INSTALL_DIR /home/www-data
 ENV W2P_DIR $INSTALL_DIR/web2py
 ENV CERT_PASS web2py
@@ -95,12 +93,16 @@ RUN cp -f $W2P_DIR/applications/smc/routes.py $W2P_DIR/routes.py
 
 # Add a first run file so that next time a page is hit db migration happens
 RUN touch $W2P_DIR/applications/smc/.first_run
+# Add shortcut to set_admin_assword.py
+RUN echo '#!/bin/sh\ncd /home/www-data/web2py/applications/smc\npython set_admin_assword.py' > /set_admin_assword
+RUN chmod +x /set_admin_assword
+RUN chmod +x /home/www-data/web2py/applications/smc/set_admin_assword.py
 
 
 USER root
 
 
-VOLUME ["/home/www-data/web2py/applications/smc/cache", "/home/www-data/web2py/applications/smc/databases", "/home/www-data/web2py/applications/smc/errors", "/home/www-data/web2py/applications/smc/private", "/home/www-data/web2py/applications/smc/static/media"]
+VOLUME ["/home/www-data/web2py/applications/smc/cache", "/home/www-data/web2py/applications/smc/databases", "/home/www-data/web2py/applications/smc/errors", "/home/www-data/web2py/applications/smc/private", "/home/www-data/web2py/applications/smc/static/media", "/home/www-data/web2py/parameters_443.py", "/home/www-data/web2py/parameters_80.py"]
 EXPOSE 80 443
 # 8000
 ENV USER=www-data
