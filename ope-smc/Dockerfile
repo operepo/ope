@@ -89,7 +89,7 @@ RUN python -c "from gluon.main import save_password; save_password('$PW',80)" &&
 	python -c "from gluon.main import save_password; save_password('$PW',443)"
 
 # Checkout release copy of SMC
-LABEL rebuild=5
+LABEL rebuild=6
 RUN git clone https://github.com/frankyrumple/smc.git $W2P_DIR/applications/smc
 RUN cp -f $W2P_DIR/applications/smc/routes.py $W2P_DIR/routes.py
 
