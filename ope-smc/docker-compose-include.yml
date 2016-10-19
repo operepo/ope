@@ -13,11 +13,16 @@
             #- "traefik.port=8000"
             - "traefik.frontend.entryPoints=http,https"
         volumes:
+            # Normal mounts, using smc app included in the container, can leave on during dev
             - ./volumes/smc/cache:/home/www-data/web2py/applications/smc/cache:rw
             - ./volumes/smc/databases:/home/www-data/web2py/applications/smc/databases:rw
             - ./volumes/smc/errors:/home/www-data/web2py/applications/smc/errors:rw
             - ./volumes/smc/private:/home/www-data/web2py/applications/smc/private:rw
             - ./volumes/smc/media:/home/www-data/web2py/applications/smc/static/media:rw
+            #- ./volumes/smc/params/80:/home/www-data/web2py/parameters_80.py:rw
+            #- ./volumes/smc/params/443:/home/www-data/web2py/parameters_443.py:rw
+            # Dev mounts, mount the whole thing from outside the container - turn this off for production servers
+            - ./volumes/smc/src:/home/www-data/web2py/applications/smc:rw
         depends_on:
             - ope-gateway
             - ope-dns
