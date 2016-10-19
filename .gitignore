@@ -1,4 +1,7 @@
 
+# Ignore env files
+.env
+
 images/
 volumes/
 *.pyc

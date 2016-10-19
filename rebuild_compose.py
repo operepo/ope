@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import os
 import socket
+import shutil
 
 # Rebuild the docker-compose file
 
@@ -66,8 +67,8 @@ def processFolder(cwd=""):
 	
 
 	return ret
-	
-	
+
+
 	
 #print "Current IP: " + getIP()
 
@@ -89,9 +90,36 @@ replacement_values["<DOMAIN>"] = domain
 print "Using " + domain + "..."
 
 
-
-# Loop through the folders and find containers with .enabled files.
 pwd = os.getcwd()
+
+# Make sure the .env file exists
+env_file = os.path.join(pwd, ".env")
+if (os.path.isfile(env_file) != True):
+	# Try to copy the .env.template file
+	if (os.path.isfile(os.path.join(pwd, ".env.template")) == True):
+		print "\n\t\t\tNew environment file - change values in .env file\n"
+		shutil.copy(".env.template", ".env")
+	else:
+		print "No env file found! Create a .env file to store your settings"
+
+if (os.path.isfile(env_file) == True):
+	# Replace template tags with values from the replacement_values array
+	
+	# Read the current file in
+	env_f = open(env_file, "r")
+	lines = env_f.read()
+	env_f.close()
+
+	# Replace the values
+	for key in replacement_values:
+		lines = lines.replace(key, replacement_values[key])
+	
+	# Save the finished env file
+	env_f = open(env_file, "w")
+	env_f.write(lines)
+	env_f.close()
+		
+# Loop through the folders and find containers with .enabled files.
 for folder in os.listdir("."):
 	dc_out += processFolder(os.path.join(pwd, folder))
 

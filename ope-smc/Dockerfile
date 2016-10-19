@@ -16,7 +16,9 @@ LABEL Description="Student Management Console - Image for Open Prison Education"
 # env vars
 
 #TODO - change admin password!!!
-ENV PW changeme
+# Should be passed by compose file to override defaults
+ENV IT_PW changeme
+ENV OFFICE_PW changeme
 ENV INSTALL_DIR /home/www-data
 ENV W2P_DIR $INSTALL_DIR/web2py
 ENV CERT_PASS web2py
@@ -83,26 +85,31 @@ RUN wget http://web2py.com/examples/static/web2py_src.zip && \
 
 #ADD routes.py $W2P_DIR/routes.py
 
-RUN python -c "from gluon.main import save_password; save_password('$PW',80)" && \
-	python -c "from gluon.main import save_password; save_password('$PW',443)"
+LABEL rebuild=8
+
+RUN python -c "from gluon.main import save_password; save_password('$IT_PW',80)" && \
+	python -c "from gluon.main import save_password; save_password('$IT_PW',443)"
 
 # Checkout release copy of SMC
-LABEL rebuild=6
 RUN git clone https://github.com/frankyrumple/smc.git $W2P_DIR/applications/smc
 RUN cp -f $W2P_DIR/applications/smc/routes.py $W2P_DIR/routes.py
 
 # Add a first run file so that next time a page is hit db migration happens
 RUN touch $W2P_DIR/applications/smc/.first_run
-# Add shortcut to set_admin_password.py
-RUN echo '#!/bin/sh\ncd /home/www-data/web2py/applications/smc\npython set_admin_password.py' > /set_admin_password
-RUN chmod +x /set_admin_password
-RUN chmod +x /home/www-data/web2py/applications/smc/set_admin_password.py
 
 
 USER root
 
+# Add shortcut to set_admin_password.py
+RUN echo '#!/bin/sh\ncd /home/www-data/web2py/applications/smc\npython set_admin_password.py' > /bin/set_admin_password
+RUN chmod +x /bin/set_admin_password
+RUN chmod +x /home/www-data/web2py/applications/smc/set_admin_password.py
 
-VOLUME ["/home/www-data/web2py/applications/smc/cache", "/home/www-data/web2py/applications/smc/databases", "/home/www-data/web2py/applications/smc/errors", "/home/www-data/web2py/applications/smc/private", "/home/www-data/web2py/applications/smc/static/media", "/home/www-data/web2py/parameters_443.py", "/home/www-data/web2py/parameters_80.py"]
+
+
+VOLUME ["/home/www-data/web2py/applications/smc/cache", "/home/www-data/web2py/applications/smc/databases", "/home/www-data/web2py/applications/smc/errors", "/home/www-data/web2py/applications/smc/private", "/home/www-data/web2py/applications/smc/static/media"] 
+# can't have files as volumes, run the set_admin_password tool
+#, "/home/www-data/web2py/parameters_443.py", "/home/www-data/web2py/parameters_80.py"]
 EXPOSE 80 443
 # 8000
 ENV USER=www-data

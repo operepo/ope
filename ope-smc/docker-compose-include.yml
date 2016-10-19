@@ -22,11 +22,14 @@
             #- ./volumes/smc/params/80:/home/www-data/web2py/parameters_80.py:rw
             #- ./volumes/smc/params/443:/home/www-data/web2py/parameters_443.py:rw
             # Dev mounts, mount the whole thing from outside the container - turn this off for production servers
-            - ./volumes/smc/src:/home/www-data/web2py/applications/smc:rw
+            #- ./volumes/smc/src:/home/www-data/web2py/applications/smc:rw
         depends_on:
             - ope-gateway
             - ope-dns
-        #environment:
+        env_file: .env
+        environment:
+            - IT_PW=${IT_PW}
+            - OFFICE_PW=${OFFICE_PW}
         #    - NGINX_HOST=gcf.<DOMAIN>
         #    - NGINX_PORT=80
         #command: /bin/bash -c "envsubst < /etc/nginx/conf.d/mysite.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
