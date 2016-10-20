@@ -18,8 +18,8 @@ server {
         ###
         
         location / {
-            #uwsgi_pass      127.0.0.1:9001;
-            uwsgi_pass      unix:///tmp/web2py.socket;
+            uwsgi_pass      127.0.0.1:9001;
+            #uwsgi_pass      unix:///tmp/web2py.socket;
             include         uwsgi_params;
             uwsgi_param     UWSGI_SCHEME $scheme;
             uwsgi_param     SERVER_SOFTWARE    nginx/$nginx_version;
@@ -27,8 +27,10 @@ server {
             # include /etc/nginx/conf.d/web2py/gzip.conf;
             ### end gzip section
             ### remove the comments if you use uploads (max 10 MB)
-            #client_max_body_size 10m;
+            client_max_body_size 1000M;
             ###
+			uwsgi_read_timeout 600s;
+			uwsgi_send_timeout 600s;
         }
 }
 server {
@@ -43,8 +45,8 @@ server {
         ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
         keepalive_timeout    70;
         location / {
-            #uwsgi_pass      127.0.0.1:9001;
-            uwsgi_pass      unix:///tmp/web2py.socket;
+            uwsgi_pass      127.0.0.1:9001;
+            #uwsgi_pass      unix:///tmp/web2py.socket;
             include         uwsgi_params;
             uwsgi_param     UWSGI_SCHEME $scheme;
             uwsgi_param     SERVER_SOFTWARE    nginx/$nginx_version;
@@ -52,8 +54,10 @@ server {
             # include /etc/nginx/conf.d/web2py/gzip.conf;
             ### end gzip section
             ### remove the comments if you want to enable uploads (max 10 MB)
-            #client_max_body_size 10m;
+            client_max_body_size 1000M;
             ###
+			uwsgi_read_timeout 600s;
+			uwsgi_send_timeout 600s;
         }
         ###to enable correct use of response.static_version
         location ~* ^/(\w+)/static(?:/_[\d]+\.[\d]+\.[\d]+)?/(.*)$ {

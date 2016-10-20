@@ -19,10 +19,11 @@
             - ./volumes/smc/errors:/home/www-data/web2py/applications/smc/errors:rw
             - ./volumes/smc/private:/home/www-data/web2py/applications/smc/private:rw
             - ./volumes/smc/media:/home/www-data/web2py/applications/smc/static/media:rw
+            - ./volumes/smc/uploads:/home/www-data/web2py/applications/smc/uploads:rw
             #- ./volumes/smc/params/80:/home/www-data/web2py/parameters_80.py:rw
             #- ./volumes/smc/params/443:/home/www-data/web2py/parameters_443.py:rw
             # Dev mounts, mount the whole thing from outside the container - turn this off for production servers
-            #- ./volumes/smc/src:/home/www-data/web2py/applications/smc:rw
+            - ./volumes/smc/src:/home/www-data/web2py/applications/smc:rw
         depends_on:
             - ope-gateway
             - ope-dns

@@ -1,4 +1,5 @@
-FROM ubuntu:trusty
+FROM ubuntu:16.10
+#FROM ubuntu:trusty
 # Original build from thehipbot/docker-web2py
 #
 # ope-smc - Student Mangement Console - import/enrollment/videos offline image
@@ -31,8 +32,7 @@ USER root
 RUN apt-get update && \
 	apt-get autoremove && \
 	apt-get autoclean && \
-	apt-get -y install nginx-full && \
-	apt-get -y install build-essential python-dev libxml2-dev python-pip unzip wget supervisor ucf net-tools git && \
+	apt-get -y install nginx-full ca-certificates nginx nano gettext-base build-essential python-dev libxml2-dev python-pip unzip wget supervisor ucf net-tools git uwsgi unzip && \
 	pip install setuptools --no-use-wheel --upgrade && \	
 	PIPPATH=`which pip` && \
 	$PIPPATH install --upgrade uwsgi && \
@@ -47,6 +47,7 @@ RUN apt-get -y install python-ldap python-crypto
 	#$PIPPATH install pycrypto
 	#$PIPPATH install python-ldap && \
 	
+LABEL rebuild=14
 
 # copy nginx config files from repo
 ADD gzip_static.conf /etc/nginx/conf.d/web2py/gzip_static.conf
@@ -60,9 +61,9 @@ RUN ln -s /etc/nginx/sites-available/web2py /etc/nginx/sites-enabled/web2py && \
 	openssl genrsa -passout pass:$CERT_PASS 1024 > web2py.key && \
 	chmod 400 web2py.key && \
 	openssl req -new -x509 -nodes -sha1 -days 1780 -subj "/C=US/ST=Washington/L=Port Angeles/O=OpenPrisonEducation/CN=smc.ed" -key web2py.key > web2py.crt && \
-	openssl x509 -noout -fingerprint -text < web2py.crt > web2py.info && \
-	mkdir /etc/uwsgi && \
-	mkdir /var/log/uwsgi
+	openssl x509 -noout -fingerprint -text < web2py.crt > web2py.info
+#	mkdir /etc/uwsgi && \
+#	mkdir /var/log/uwsgi
 
 # copy Emperor config files from repo
 ADD web2py.ini /etc/uwsgi/web2py.ini
@@ -85,7 +86,7 @@ RUN wget http://web2py.com/examples/static/web2py_src.zip && \
 
 #ADD routes.py $W2P_DIR/routes.py
 
-LABEL rebuild=8
+
 
 RUN python -c "from gluon.main import save_password; save_password('$IT_PW',80)" && \
 	python -c "from gluon.main import save_password; save_password('$IT_PW',443)"
@@ -100,6 +101,8 @@ RUN touch $W2P_DIR/applications/smc/.first_run
 
 USER root
 
+RUN chown -R www-data:www-data $W2P_DIR
+
 # Add shortcut to set_admin_password.py
 RUN echo '#!/bin/sh\ncd /home/www-data/web2py/applications/smc\npython set_admin_password.py' > /bin/set_admin_password
 RUN chmod +x /bin/set_admin_password
@@ -107,7 +110,7 @@ RUN chmod +x /home/www-data/web2py/applications/smc/set_admin_password.py
 
 
 
-VOLUME ["/home/www-data/web2py/applications/smc/cache", "/home/www-data/web2py/applications/smc/databases", "/home/www-data/web2py/applications/smc/errors", "/home/www-data/web2py/applications/smc/private", "/home/www-data/web2py/applications/smc/static/media"] 
+VOLUME ["/home/www-data/web2py/applications/smc/cache", "/home/www-data/web2py/applications/smc/databases", "/home/www-data/web2py/applications/smc/errors", "/home/www-data/web2py/applications/smc/private", "/home/www-data/web2py/applications/smc/static/media", "/home/www-data/web2py/applications/smc/static/uploads"] 
 # can't have files as volumes, run the set_admin_password tool
 #, "/home/www-data/web2py/parameters_443.py", "/home/www-data/web2py/parameters_80.py"]
 EXPOSE 80 443
