@@ -1,0 +1,34 @@
+test:
+  adapter: postgresql
+  encoding: utf8
+  database: postgres
+  host: postgresql
+  port: 5432
+  username: postgres
+  password: "$IT_PW"
+  timeout: 5000
+
+login: &login
+  adapter: postgresql
+  encoding: utf8
+  timeout: 5000
+  username: "postgres"
+  password: "$IT_PW"
+
+development:
+  <<: *login
+  database: postgres
+  host: postgresql
+  port: 5432
+  queue:
+    <<: *login
+    database: postgres
+
+production:
+  <<: *login
+  database: postgres
+  host: postgresql
+  port: 5432
+  queue:
+    <<: *login
+    database: postgres

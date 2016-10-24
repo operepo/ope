@@ -1,6 +1,7 @@
     ope-kalite:
         build: ./ope-kalite
         image: ope-kalite
+        container_name: ope-kalite
         ports:
             - "8008"
         labels:
@@ -13,4 +14,6 @@
         depends_on:
             - ope-gateway
             - ope-dns
+        environment:
+            - VIRTUAL_HOST=kalite.<DOMAIN>,khan.<DOMAIN>
        

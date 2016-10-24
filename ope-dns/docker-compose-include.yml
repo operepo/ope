@@ -1,6 +1,7 @@
     ope-dns:
         build: ./ope-dns
         image: ope-dns
+        container_name: ope-dns
         cap_add:
             - NET_ADMIN
         command: -A /<DOMAIN>/<IP> # --log-facility=-

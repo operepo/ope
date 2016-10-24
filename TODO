@@ -1,8 +1,8 @@
 
-Set password on SMC container (cleaner way to set initial password?)
-Import smc data from seperate repo
-SMC first run - debug lazy_tables on
-Command line password set - change admin and parameters file
+Done - on startup from cmd env Set password on SMC container (cleaner way to set initial password?)
+Done - Import smc data from seperate repo
+Done ? - SMC first run - debug lazy_tables on
+Done - called on startup Command line password set - change admin and parameters file
 
 download_volume_data.py - TODO
 

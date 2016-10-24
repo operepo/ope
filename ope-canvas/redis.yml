@@ -1,0 +1,8 @@
+test:
+  servers:
+    - "redis://redis"
+  database: 1
+
+development:
+  servers:
+    - "redis://redis"

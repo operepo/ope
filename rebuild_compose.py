@@ -19,6 +19,8 @@ dc_out = """##### Open Prison Education - Docker Environment #####
 # START OF docker-compose.yml
 version: '2'
 
+volumes:
+    pg_data:
 services:
 
 """

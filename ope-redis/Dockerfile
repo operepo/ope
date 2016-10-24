@@ -11,8 +11,4 @@ FROM redis:alpine
 MAINTAINER Ray Pulsipher <ray@cmagic.biz>
 LABEL Description="Redis container used by canvas - Image for Open Prison Education" Vendor="openprisoneducation.com" Version="0.1"
 
-VOLUME /data
-WORKDIR /data
-ENTRYPOINT ["docker-entrypoint.sh"]
-EXPOSE 6379
-CMD [ "redis-server" ]
+VOLUME ["/data"]
