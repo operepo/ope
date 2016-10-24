@@ -59,6 +59,7 @@ COPY cache_store.yml config/cache_store.yml
 COPY development-local.rb config/environments/development-local.rb
 COPY outgoing_mail.yml config/outgoing_mail.yml
 
+# TODO - Make this run on first startup of container
 RUN for config in amazon_s3 delayed_jobs domain file_store security external_migration \
        ; do cp config/$config.yml.example config/$config.yml \
        ; done
@@ -77,8 +78,8 @@ COPY dbinit.sh /opt/canvas/dbinit.sh
 COPY start.sh /opt/canvas/start.sh
 RUN chmod 755 /opt/canvas/*.sh	
 	
-# TODO - init to remote db
-# RUN sudo service postgresql start && /opt/canvas/dbinit.sh
+# TODO - init to remote db RUN THIS on first startup of container, not during build
+# RUN /opt/canvas/dbinit.sh
 
 RUN chown -R canvasuser: /opt/canvas
 

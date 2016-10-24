@@ -18,6 +18,8 @@
             - IT_PW=${IT_PW}
             - OFFICE_PW=${OFFICE_PW}
             - VIRTUAL_HOST=canvas.<DOMAIN>
+            - ADMIN_EMAIL=${ADMIN_EMAIL}
+            - LMS_ACCOUNT_NAME=${LMS_ACCOUNT_NAME}
             #- VIRTUAL_PORT=3000
             # Share the default cert on the gateway
             - CERT_NAME=default
