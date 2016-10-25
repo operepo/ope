@@ -47,7 +47,7 @@ if (choice == "y"):
         print stdout
 
 # Ensure bare git repos
-stdin, stdout, stderr = ssh.exec_command("cd " + ope_path + "; docker load -i images/" fname)
+stdin, stdout, stderr = ssh.exec_command("cd " + ope_path + "; if [-d repos/ope.git] ")
 
     
 sftp.close()
