@@ -23,8 +23,8 @@ services:
             - "3000"
         volumes:
             # Normal mounts
-            - ./volumes/canvas/canvas-lms/files:/file TODO :rw
-            
+            - ./volumes/canvas/tmp:/opt/canvas/canvas-lms/tmp:rw
+            - ./volumes/canvas/log:/opt/canvas/canvas-lms/log:rw
         depends_on:
             - ope-gateway
             - ope-dns
@@ -35,6 +35,8 @@ services:
             - IT_PW=${IT_PW}
             - OFFICE_PW=${OFFICE_PW}
             - VIRTUAL_HOST=canvas.ed.dev
+            - ADMIN_EMAIL=${ADMIN_EMAIL}
+            - LMS_ACCOUNT_NAME=${LMS_ACCOUNT_NAME}
             #- VIRTUAL_PORT=3000
             # Share the default cert on the gateway
             - CERT_NAME=default

@@ -6,8 +6,8 @@
             - "3000"
         volumes:
             # Normal mounts
-            - ./volumes/canvas/canvas-lms/files:/file TODO :rw
-            
+            - ./volumes/canvas/tmp:/opt/canvas/canvas-lms/tmp:rw
+            - ./volumes/canvas/log:/opt/canvas/canvas-lms/log:rw
         depends_on:
             - ope-gateway
             - ope-dns

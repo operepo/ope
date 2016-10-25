@@ -6,3 +6,10 @@ test:
 development:
   servers:
     - "redis://redis"
+
+    
+production:
+  servers:
+    - "redis://redis"
+
+    

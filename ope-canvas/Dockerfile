@@ -15,7 +15,7 @@ MAINTAINER Ray Pulsipher <ray@cmagic.biz>
 LABEL Description="Canvas LMS by Instructure - Image for Open Prison Education" Vendor="openprisoneducation.com" Version="0.1"
 
 
-ENV RAILS_ENV development
+ENV RAILS_ENV production
 ENV GEM_HOME /opt/canvas/.gems
 
 # add nodejs and recommended ruby repos
@@ -44,25 +44,25 @@ RUN groupadd -r canvasuser -g 433 && \
 
 RUN gem install bundler --version 1.12.5
 
-COPY supervisord.conf /etc/supervisor/supervisord.conf
-#COPY pg_hba.conf /etc/postgresql/9.3/main/pg_hba.conf
-#RUN sed -i "/^#listen_addresses/i listen_addresses='*'" /etc/postgresql/9.3/main/postgresql.conf
+
 
 RUN cd /opt/canvas \
     && git clone https://github.com/instructure/canvas-lms.git
 
 WORKDIR /opt/canvas/canvas-lms
 
+
+RUN for config in amazon_s3 delayed_jobs domain file_store security external_migration \
+       ; do cp config/$config.yml.example config/$config.yml \
+       ; done
+
+LABEL rebuild=3
+
 COPY database.yml config/database.yml
 COPY redis.yml config/redis.yml
 COPY cache_store.yml config/cache_store.yml
 COPY development-local.rb config/environments/development-local.rb
 COPY outgoing_mail.yml config/outgoing_mail.yml
-
-# TODO - Make this run on first startup of container
-RUN for config in amazon_s3 delayed_jobs domain file_store security external_migration \
-       ; do cp config/$config.yml.example config/$config.yml \
-       ; done
 
 RUN $GEM_HOME/bin/bundle install --without="mysql"
 
@@ -73,19 +73,18 @@ RUN npm install --unsafe-perm \
 
 RUN mkdir -p log tmp/pids public/assets public/stylesheets/compiled \
     && touch Gemmfile.lock
-LABEL rebuild=2
+
+COPY supervisord.conf /etc/supervisor/supervisord.conf
+COPY domain.yml.tmpl /opt/canvas/canvas-lms/config/domain.yml.tmpl
 COPY dbinit.sh /opt/canvas/dbinit.sh
 COPY start.sh /opt/canvas/start.sh
 RUN chmod 755 /opt/canvas/*.sh	
-	
-# TODO - init to remote db RUN THIS on first startup of container, not during build
-# RUN /opt/canvas/dbinit.sh
 
 RUN chown -R canvasuser: /opt/canvas
 
-VOLUME ["/opt/canvas/tmp", "/opt/canvas/config", "/opt/canvas/log"]
+VOLUME ["/opt/canvas/canvas-lms/tmp", "/opt/canvas/canvas-lms/log"]
 EXPOSE 3000
-# 80 443  5432(pg) 6369 (redis)
+
 CMD ["/opt/canvas/start.sh"]
 
 
