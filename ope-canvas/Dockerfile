@@ -1,7 +1,9 @@
 FROM ubuntu:16.04
 # ope-canvas - Canvas LMS System
 # Build with docker build -t ope-canvas .
-#TODO - Finish - Canvas install, ruby gems, link to redis, postgresql 
+
+#TODO - Auto disable student collaboration features
+
 #INSTRUCTIONS
 # Build the canvas container and run it with the docker-compose command
 # View the canvas website to set your admin password and configure.
@@ -61,7 +63,7 @@ LABEL rebuild=3
 COPY database.yml config/database.yml
 COPY redis.yml config/redis.yml
 COPY cache_store.yml config/cache_store.yml
-COPY development-local.rb config/environments/development-local.rb
+COPY production-local.rb config/environments/production-local.rb
 COPY outgoing_mail.yml config/outgoing_mail.yml
 
 RUN $GEM_HOME/bin/bundle install --without="mysql"
