@@ -28,6 +28,8 @@ RUN apt-get update \
     && apt-get install -y ruby2.1 ruby2.1-dev supervisor \
         zlib1g-dev libxml2-dev libxslt1-dev libsqlite3-dev postgresql-client libpq5 libpq-dev libxmlsec1-dev curl make g++ git
 
+RUN apt-get install -y dos2unix python-lxml
+		
 RUN curl -sL https://deb.nodesource.com/setup_6.x | bash \
     && apt-get install -y nodejs
 
@@ -75,14 +77,25 @@ RUN npm install --unsafe-perm \
 
 RUN mkdir -p log tmp/pids public/assets public/stylesheets/compiled \
     && touch Gemmfile.lock
-
+LABEL rebuild=5
 COPY supervisord.conf /etc/supervisor/supervisord.conf
 COPY domain.yml.tmpl /opt/canvas/canvas-lms/config/domain.yml.tmpl
 COPY dbinit.sh /opt/canvas/dbinit.sh
 COPY start.sh /opt/canvas/start.sh
 RUN chmod 755 /opt/canvas/*.sh	
 
-RUN chown -R canvasuser: /opt/canvas
+
+RUN dos2unix /opt/canvas/*.sh
+
+RUN mkdir /opt/canvas/canvas-lms/vendor \
+	&& cd /opt/canvas/canvas-lms/vendor \
+	&& git clone https://github.com/instructure/QTIMigrationTool.git QTIMigrationTool \
+	&& chmod +x QTIMigrationTool/migrate.py
+
+
+RUN chown -R canvasuser:canvasuser /opt/canvas \
+	&& mkdir /tmp/attachment_fu \
+	&& chown -R canvasuser:canvasuser /tmp/attachment_fu
 
 VOLUME ["/opt/canvas/canvas-lms/tmp", "/opt/canvas/canvas-lms/log"]
 EXPOSE 3000

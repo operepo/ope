@@ -5,3 +5,4 @@
 images/
 volumes/
 *.pyc
+/docker-compose.yml

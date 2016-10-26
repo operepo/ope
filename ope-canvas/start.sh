@@ -23,6 +23,9 @@ cp config/domain.yml.tmpl config/domain.yml
 sed -i -- "s/<VIRTUAL_HOST>/$VIRTUAL_HOST/g" config/domain.yml
 sed -i -- "s/<IT_PW>/$IT_PW/g" config/database.yml
 
+# This will change, make sure to deal with it
+$GEM_HOME/bin/bundle exec rake db:reset_encryption_key_hash
+
 # TODO - Add check for first run so we don't have to do this each startup
 $GEM_HOME/bin/bundle exec rake db:initial_setup
 
@@ -38,6 +41,7 @@ $GEM_HOME/bin/bundle exec rake db:migrate
 
 # 'crypted_token' value is hmac sha1 of 'canvas-docker' using default config/security.yml encryption_key value as secret
 #psql -U canvas -d canvas_development -c "INSERT INTO access_tokens (created_at, crypted_token, developer_key_id, purpose, token_hint, updated_at, user_id) SELECT now(), '4bb5b288bb301d3d4a691ebff686fc67ad49daa8', dk.id, 'canvas-docker', '', now(), 1 FROM developer_keys dk where dk.email = 'canvas@example.edu';"
+
 
 # Make sure this is all owned by the correct user
 chown -R canvasuser:canvasuser /opt/canvas/canvas-lms
