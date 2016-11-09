@@ -13,3 +13,6 @@ sync_from_portable_drive.py - TODO
 Need canvas, redis, postgresql images
 
 Change permissions on volumes folder (invalid user access?)
+
+Canvas - setup initial plugins and settings
+ - turn off email between students, 

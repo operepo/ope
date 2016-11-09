@@ -21,6 +21,7 @@ version: '2'
 
 volumes:
     pg_data:
+    coco_mongo:
 services:
 
 """
