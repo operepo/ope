@@ -1,0 +1,14 @@
+
+# Template for volumes - A template file for specifying docker manage volumes for this container
+#
+# RENAME this file to volumes-include.yml and place in each container folder that needs a volume.
+#
+# Volume specified will be placed in the proper location in the docker-compose.yml
+# file when rebuilt
+#
+# e.g. you add ope-volume: 
+# Will be translated to this in the final compose file
+#	volumes:
+#		ope-volume:
+
+ope_volume:

@@ -16,3 +16,5 @@ Change permissions on volumes folder (invalid user access?)
 
 Canvas - setup initial plugins and settings
  - turn off email between students, 
+ 
+VOLUMES - fix cleanup_images.py to NOT delete volumes we want to keep

@@ -19,15 +19,17 @@ dc_out = """##### Open Prison Education - Docker Environment #####
 # START OF docker-compose.yml
 version: '2'
 
-volumes:
-    pg_data:
-    coco_mongo:
+<VOLUMES>
+
 services:
 
 """
 
 # A list of values to substitute in the docker-compose.yml file
-replacement_values = { '<DOMAIN>': '', '<IP>': ''}
+replacement_values = { '<DOMAIN>': '', '<IP>': '', "<VOLUMES>": ''}
+
+# A list of volumes that need to be specified in the volumes section
+volume_list = []
 
 
 # Find the local/public ip of the machine
@@ -44,6 +46,8 @@ def getIP():
     return IP
 
 def processFolder(cwd=""):
+    global volume_list
+    
     ret = ""
     if (os.path.isdir(cwd) != True):
         #print "Not a folder, skipping..."
@@ -71,6 +75,32 @@ def processFolder(cwd=""):
     # Make sure to add some line feeds to the end in case the this has tabs on
     # the current line which messes up the yml format
     ret += "\n\n"
+    
+    # See if we need to import volumes
+    vol_import = os.path.join(cwd, "volumes-include.yml")
+    if (os.path.isfile(vol_import) != True):
+        #print "\t\tNo volumes file."
+        return ret
+    
+    print "\tProcessing volume file: " + vol_import
+    
+    try:
+        f = open(vol_import, "r")
+        lines = f.readlines()
+        for line in lines:
+            line = line.strip()
+            # Strip off comments
+            i = line.find("#")
+            if (i > -1):
+                line = line[0:i]
+            line = line.strip()
+            if (line != ""):
+                print "\t===> Volume Found: " + line
+                volume_list.append(line)
+        f.close()
+    except:
+        print "\t\tError reading " + vol_import
+    
     return ret
 
 
@@ -127,6 +157,13 @@ if (os.path.isfile(env_file) == True):
 # Loop through the folders and find containers with .enabled files.
 for folder in os.listdir("."):
     dc_out += processFolder(os.path.join(pwd, folder))
+
+# Use the volume_list to create a value for replacement
+if (len(volume_list) > 0):
+    v = "volumes:\n"
+    for vol in volume_list:
+        v += "\t" + vol + "\n"
+    replacement_values["<VOLUMES>"] = v
 
 # Replace instances of template tags with values from the replacement_values array
 for key in replacement_values:
