@@ -14,7 +14,9 @@ def processFolder(cwd=""):
 	
 	dname = os.path.basename(cwd)
 	if (dname.startswith("ope-")):
-		print "Processing Image " + dname
+        print "\t============================================"
+		print "\tProcessing Image " + dname
+        print "\t============================================"
 		os.system("docker load -i " + cwd)
 	
 	

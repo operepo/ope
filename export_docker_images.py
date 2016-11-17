@@ -17,7 +17,9 @@ def processFolder(cwd=""):
 		return ret
 	
 	dname = os.path.basename(cwd)
-	print "Processing Image " + dname
+    print "\t============================================"
+	print "\tProcessing Image " + dname
+    print "\t============================================"
 	os.system("docker save -o images/" + dname + ".tar " + dname)
 	
 	

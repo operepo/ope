@@ -17,6 +17,7 @@ Change permissions on volumes folder (invalid user access?)
 Canvas - setup initial plugins and settings
  - turn off email between students, 
  
+VOLUMES - fix cleanup_images.py to NOT delete volumes we want to keep
  
  
 
@@ -36,3 +37,7 @@ Once building is complete, run: docker-compose up -d
 If DNS/etc is setup properly go to: http://jsbin.dev    (may take a minute before you can view it, it will be compiling the node stuff on startup)
 Data should be saved in a sub folder of ope called volumes (e.g. user dbs, etc...)
 I need to do work on automating this more and sync the data/images to a USB drive. Work in progress... With docker you can use the python scripts to export/import the built images so you can take them to an offline server.
+
+
+
+
