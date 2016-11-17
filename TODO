@@ -16,3 +16,23 @@ Change permissions on volumes folder (invalid user access?)
 
 Canvas - setup initial plugins and settings
  - turn off email between students, 
+ 
+ 
+ 
+
+Host Machine Requirements
+Docker installed  ---   https://susestudio.com/a/P08rUy/ope-docker - This is a linux that can be installed in a VM (vmware player or virtual box) or bare metal to run docker if you don't have a machine that is ready to run docker already.
+Git
+Python 2.7.?
+Clone - https://github.com/frankyrumple/ope
+
+Steps
+Checkout ope project with Git to a machine that can run docker (windows is fine if you have the docker for win packages installed)
+Make sure .enabled files exist in the folders for the containers you want (you will need gateway and dns)
+Run: python rebuild_compose.py   (should auto detect IP and ask you what domain to use - I have everything using .ed - khan.ed, smc.ed, jsbin.ed....)
+Set a DNS forwarder to forward all ed domains to the IP of the docker machine (In Active directory, add a conditional forwarder)
+From the ope folder run: docker-compose build
+Once building is complete, run: docker-compose up -d
+If DNS/etc is setup properly go to: http://jsbin.dev    (may take a minute before you can view it, it will be compiling the node stuff on startup)
+Data should be saved in a sub folder of ope called volumes (e.g. user dbs, etc...)
+I need to do work on automating this more and sync the data/images to a USB drive. Work in progress... With docker you can use the python scripts to export/import the built images so you can take them to an offline server.
