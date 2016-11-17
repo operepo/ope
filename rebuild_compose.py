@@ -162,7 +162,7 @@ for folder in os.listdir("."):
 if (len(volume_list) > 0):
     v = "volumes:\n"
     for vol in volume_list:
-        v += "\t" + vol + "\n"
+        v += "    " + vol + "\n"
     replacement_values["<VOLUMES>"] = v
 
 # Replace instances of template tags with values from the replacement_values array
