@@ -1,7 +1,7 @@
 test:
   adapter: postgresql
   encoding: utf8
-  database: postgres
+  database: canvas_production
   host: postgresql
   port: 5432
   username: postgres
@@ -17,18 +17,18 @@ login: &login
 
 development:
   <<: *login
-  database: postgres
+  database: canvas_production
   host: postgresql
   port: 5432
   queue:
     <<: *login
-    database: postgres
+    database: canvas_queue_production
 
 production:
   <<: *login
-  database: postgres
+  database: canvas_production
   host: postgresql
   port: 5432
   queue:
     <<: *login
-    database: postgres
+    database: canvas_queue_production

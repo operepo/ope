@@ -7,11 +7,25 @@ sed -i "s/SMTP_PORT/${SMTP_PORT-25}/" /opt/canvas/canvas-lms/config/outgoing_mai
 sed -i "s/SMTP_USER/${SMTP_USER-}/" /opt/canvas/canvas-lms/config/outgoing_mail.yml
 sed -i "s/SMTP_PASS/${SMTP_PASS-}/" /opt/canvas/canvas-lms/config/outgoing_mail.yml
 
-# Use the user already setup on the psql server
-#sudo -u postgres $POSTGRES_BIN/createuser --superuser canvas
-#sudo -u postgres $POSTGRES_BIN/createdb -E UTF-8 -T template0 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8 --owner canvas canvas_$RAILS_ENV
-#sudo -u postgres $POSTGRES_BIN/createdb -E UTF-8 -T template0 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8 --owner canvas canvas_queue_$RAILS_ENV
+# Make sure the initial database is setup for canvas
+export PGPASSWORD=$IT_PW;
 
+# Make sure the database has a chance to come online
+db_online=0
+until [ $db_online -eq 1 ]
+do
+	echo "Checking database connection..."
+	sleep 3
+	db_online=1  # Gets set back to 0 if the db connection fails
+	psql -U postgres -h postgresql -tc "select 1" | grep -q 1 || db_online=0
+done
+
+
+#createuser --superuser canvas
+psql -U postgres -h postgresql -tc "select 1 from pg_database where datname='canvas_$RAILS_ENV'" | grep -q 1 || createdb -U postgres -h postgresql -E UTF-8 -T template0 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8 --owner postgres canvas_$RAILS_ENV
+psql -U postgres -h postgresql -tc "select 1 from pg_database where datname='canvas_queue'" | grep -q 1 || createdb -U postgres -h postgresql -E UTF-8 -T template0 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8 --owner postgres canvas_queue
+
+# Make sure canvas is init
 export CANVAS_LMS_ADMIN_EMAIL=$ADMIN_EMAIL
 export CANVAS_LMS_ADMIN_PASSWORD=$IT_PW
 export CANVAS_LMS_ACCOUNT_NAME=$LMS_ACCOUNT_NAME
@@ -23,15 +37,21 @@ cp config/domain.yml.tmpl config/domain.yml
 sed -i -- "s/<VIRTUAL_HOST>/$VIRTUAL_HOST/g" config/domain.yml
 sed -i -- "s/<IT_PW>/$IT_PW/g" config/database.yml
 
+# Change the shard ID so that we can use that space to sync servers
+sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000_000/g" /opt/canvas/.gems/gems/switchman-1.8.0/app/models/switchman/shard_internal.rb
+ #IDS_PER_SHARD = 10_000_000_000_000
+ #IDS_PER_SHARD =  1_000_000_000_000_000_000
+                 #   30_578_000_000_000_005
+
 # This will change, make sure to deal with it
 $GEM_HOME/bin/bundle exec rake db:reset_encryption_key_hash
 
-# TODO - Add check for first run so we don't have to do this each startup
-$GEM_HOME/bin/bundle exec rake db:initial_setup
+# Generate the initial db if a table called versions doesn't already exist
+psql -d canvas_$RAILS_ENV -U postgres -h postgresql -tc "select 1 from pg_tables where tablename='versions'" | grep -q 1 || $GEM_HOME/bin/bundle exec rake db:initial_setup
 
-$GEM_HOME/bin/bundle exec rake canvas:compile_assets
+# Setup auditing, sequence range, db migrate and compile assets if needed
+$GEM_HOME/bin/bundle exec rake ope:startup
 
-$GEM_HOME/bin/bundle exec rake db:migrate
 
 # This is run by supervisord 
 #$GEM_HOME/bin/bundle exec rails server

@@ -1,4 +1,4 @@
-FROM mysql:latest
+FROM mysql:5.6
 
 
 # ope-mysql - Mysql database server used by various containers
@@ -14,6 +14,8 @@ FROM mysql:latest
 MAINTAINER Ray Pulsipher <ray@cmagic.biz>
 LABEL Description="mysql offline database - Image for Open Prison Education" Vendor="openprisoneducation.com" Version="0.1"
 
+LABEL rebuild=1
+#COPY ope.cnf /etc/mysql/mysql.conf.d/ope.cnf
 
-#VOLUME ["/var/lib/mysql"]
+VOLUME ["/var/lib/mysql"]
 EXPOSE 3306
