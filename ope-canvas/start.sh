@@ -42,6 +42,10 @@ sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000_000/g" /opt/canvas/.gems/g
  #IDS_PER_SHARD = 10_000_000_000_000
  #IDS_PER_SHARD =  1_000_000_000_000_000_000
                  #   30_578_000_000_000_005
+				 
+# Need to adjust the partitions values for version tables - tables aren't created when they should be with very large ids
+sed -i -- "s/5_000_000/1_000_000_000_000_000_000/g" /opt/canvas/canvas-lms/config/initializers/simply_versioned.rb
+# Constraint gets altered during ope:startup
 
 # This will change, make sure to deal with it
 $GEM_HOME/bin/bundle exec rake db:reset_encryption_key_hash

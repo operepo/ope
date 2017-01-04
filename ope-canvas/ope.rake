@@ -369,8 +369,18 @@ SQLSTRING
 	  end
 	end
 	puts "--> Finished setting sequence range to #{rangestart}"
+	
+	# Make sure to change the constraint on the version tables so they don't blow up with big ids
+	begin
+		ActiveRecord::Base.connection.exec_query("alter table versions_0 drop constraint versions_0_versionable_id_check;")
+	rescue
+	end
+	begin
+		ActiveRecord::Base.connection.exec_query("alter table versions_1 drop constraint versions_1_versionable_id_check;")
+	rescue
+	end
   end
-  
+    
 end
 
 
