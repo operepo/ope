@@ -1,4 +1,6 @@
 
+- ADD START_BOOT -> FINISH_BOOT status file for each container so we can see when things like canvas are actually online and ready
+
 Done - on startup from cmd env Set password on SMC container (cleaner way to set initial password?)
 Done - Import smc data from seperate repo
 Done ? - SMC first run - debug lazy_tables on
@@ -18,8 +20,8 @@ Canvas - setup initial plugins and settings
  - turn off email between students, 
  
 VOLUMES - fix cleanup_images.py to NOT delete volumes we want to keep
- 
- 
+
+
 
 Host Machine Requirements
 Docker installed  ---   https://susestudio.com/a/P08rUy/ope-docker - This is a linux that can be installed in a VM (vmware player or virtual box) or bare metal to run docker if you don't have a machine that is ready to run docker already.
@@ -41,3 +43,15 @@ I need to do work on automating this more and sync the data/images to a USB driv
 
 
 
+********CANVAS - Equation Images Not Showing - How to install codecogs and map it internally?
+equation_images_controller - catching this and proxying to codecogs.com - 
+https://pencol.instructure.com/equation_images/%255Cfrac%257B1%257D%257B8%257D
+http://latex.codecogs.com/gif.latex?%5CDelta%5COmega
+
+codecogs.equation_image_link  - how to set this in ruby settings???
+SQL --  insert into settings (name, value) values ('codecogs.equation_image_link', 'http://broken.link.com');
+
+CANVAS
+404 - missing?
+
+https://cdn.mathjax.org/mathjax/2.1-latest/MathJax.js?config=TeX-AMS_HTML.js&_=1485206720072
