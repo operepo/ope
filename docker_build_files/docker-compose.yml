@@ -159,7 +159,6 @@ services:
             - CERT_NAME=default
             - VIRTUAL_PROTO=https
             #- HTTPS_METHOD=noredirect
-            - CANVAS_DEV_KEY=${CANVAS_DEV_KEY}
         links:
             - ope-postgresql:postgresql
             # Send canvas connections through the gateway

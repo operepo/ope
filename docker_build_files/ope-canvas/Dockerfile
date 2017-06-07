@@ -44,7 +44,7 @@ RUN $GEM_HOME/bin/bundle exec rake canvas:compile_assets --trace
 USER docker
 
 
-LABEL rebuild=20
+LABEL rebuild=21
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml

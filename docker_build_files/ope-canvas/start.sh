@@ -3,12 +3,6 @@ set -e
 
 APP_DIR=/usr/src/app
 
-sed -i "s/EMAIL_DELIVERY_METHOD/${EMAIL_DELIVERY_METHOD-test}/" $APP_DIR/config/outgoing_mail.yml
-sed -i "s/SMTP_ADDRESS/${SMTP_ADDRESS-localhost}/" $APP_DIR/config/outgoing_mail.yml
-sed -i "s/SMTP_PORT/${SMTP_PORT-25}/" $APP_DIR/config/outgoing_mail.yml
-sed -i "s/SMTP_USER/${SMTP_USER-}/" $APP_DIR/config/outgoing_mail.yml
-sed -i "s/SMTP_PASS/${SMTP_PASS-}/" $APP_DIR/config/outgoing_mail.yml
-
 # Make sure the initial database is setup for canvas
 export PGPASSWORD=$IT_PW;
 
@@ -34,6 +28,12 @@ export CANVAS_LMS_ACCOUNT_NAME=$LMS_ACCOUNT_NAME
 export CANVAS_LMS_STATS_COLLECTION="opt_out"
 
 cd $APP_DIR
+
+sed -i "s/EMAIL_DELIVERY_METHOD/${EMAIL_DELIVERY_METHOD-test}/" config/outgoing_mail.yml
+sed -i "s/SMTP_ADDRESS/${SMTP_ADDRESS-localhost}/" config/outgoing_mail.yml
+sed -i "s/SMTP_PORT/${SMTP_PORT-25}/" config/outgoing_mail.yml
+sed -i "s/SMTP_USER/${SMTP_USER-}/" config/outgoing_mail.yml
+sed -i "s/SMTP_PASS/${SMTP_PASS-}/" config/outgoing_mail.yml
 
 cp config/domain.yml.tmpl config/domain.yml
 sed -i -- "s/<VIRTUAL_HOST>/$VIRTUAL_HOST/g" config/domain.yml
