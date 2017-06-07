@@ -1,0 +1,31 @@
+    ope-canvas:
+        build: ./ope-canvas
+        image: operepo/ope-canvas
+        container_name: ope-canvas
+        ports:
+            - "3000"
+        volumes:
+            # Normal mounts
+            - ../volumes/canvas/tmp:/usr/src/app/tmp:rw
+            - ../volumes/canvas/log:/usr/src/app/log:rw
+        depends_on:
+            - ope-gateway
+            - ope-dns
+            - ope-redis
+            - ope-postgresql
+        env_file: .env
+        environment:
+            - IT_PW=${IT_PW}
+            - OFFICE_PW=${OFFICE_PW}
+            - VIRTUAL_HOST=canvas.<DOMAIN>
+            - ADMIN_EMAIL=${ADMIN_EMAIL}
+            - LMS_ACCOUNT_NAME=${LMS_ACCOUNT_NAME}
+            - CANVAS_SECRET=${CANVAS_SECRET}
+            - VIRTUAL_PORT=3000
+            # Share the default cert on the gateway
+            - CERT_NAME=default
+            - VIRTUAL_PROTO=http
+            #- HTTPS_METHOD=noredirect
+        links:
+            - ope-postgresql:postgresql
+            - ope-redis:redis

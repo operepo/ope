@@ -1,0 +1,25 @@
+    ope-wamap:
+        build: ./ope-wamap
+        image: operepo/ope-wamap
+        container_name: ope-wamap
+        ports:
+            - "80"
+        labels:
+            - "name=wamap"
+        volumes:
+            - ../volumes/wamap/files:/usr/share/nginx/html:rw
+        depends_on:
+            - ope-gateway
+            - ope-dns
+            - ope-mysql
+        env_file: .env
+        environment:
+            - VIRTUAL_HOST=wamap.<DOMAIN>
+            - IT_PW=${IT_PW}
+            - OFFICE_PW=${OFFICE_PW}
+            - ADMIN_EMAIL=${ADMIN_EMAIL}
+            - LMS_ACCOUNT_NAME=${LMS_ACCOUNT_NAME}
+            #- VIRTUAL_PROTO=http
+            #- VIRTUAL_PORT=9000
+        links:
+            - ope-mysql:mysql

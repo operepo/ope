@@ -1,0 +1,20 @@
+    ope-kalite:
+        build: ./ope-kalite
+        image: operepo/ope-kalite
+        container_name: ope-kalite
+        ports:
+            - "8008"
+        labels:
+            - "traefik.backend=kalite"
+            - "traefik.frontend.rule=Host:kalite.<DOMAIN>, khan.<DOMAIN>"
+            - "traefik.port=8008"
+            - "traefik.frontend.entryPoints=http"
+        volumes:
+            - ../volumes/kalite:/root/.kalite:rw
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        env_file: .env
+        environment:
+            - VIRTUAL_HOST=kalite.<DOMAIN>,khan.<DOMAIN>
+       

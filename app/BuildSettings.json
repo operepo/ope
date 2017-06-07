@@ -1,0 +1,10 @@
+[
+  {
+    "type": "string",
+    "title": "Build Folder",
+    "desc": "Location of folder to build in",
+    "section": "Build Settings",
+    "key": "build_folder"
+  }
+
+]

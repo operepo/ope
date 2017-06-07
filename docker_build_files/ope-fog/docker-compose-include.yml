@@ -1,0 +1,36 @@
+    ope-fog:
+        build: ./ope-fog
+        image: operepo/ope-fog
+        container_name: ope-fog
+        ports:
+            - "80"
+            - "443"
+            - "212:212/udp"
+            - "9098:9098"
+            - "21:21"
+            - "69:69/udp"
+            - "8099:8099"
+            - "2049:2049"
+            - "2049:2049/udp"
+            - "111:111/udp"
+            - "111:111"
+            - "4045:4045/udp"
+            - "4045:4045"
+            - "34463:34463"
+            - "34463:34463/udp"
+            
+        labels:
+            - fogproject="Open Source PC Imaging Server"
+        volumes:
+            - ../volumes/fog/images:/images:rw
+            - ../volumes/fog/tftpboot:/tftpboot:rw
+            - ../volumes/fog/opt/fog:/opt/fog:rw
+            - ../volumes/mysql/data:/var/lib/mysql:rw
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        env_file: .env
+        environment:
+            - VIRTUAL_HOST=fog.<DOMAIN>,fogserver,fogserver.<DOMAIN>
+            - PUBLIC_IP=${PUBLIC_IP}
+        

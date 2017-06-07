@@ -1,0 +1,85 @@
+--------------------------------------
+ERROR: Can't change dir to clamavdb
+--------------------------------------
+Current working dir is C:\Users\student\Desktop\git_projects\ope\client_tools\bin\ClamAV-x64\clamavdb
+Max retries == 3
+ClamAV update process started at Wed May 03 10:59:53 2017
+Using IPv6 aware code
+Querying current.cvd.clamav.net
+TTL: 1186
+Software version from DNS: 0.99.2
+Retrieving http://database.clamav.net/main.cvd
+Trying to download http://database.clamav.net/main.cvd (IP: 69.163.100.14)
+nonblock_recv: giving up due to excessive bogus loops
+WARNING: getfile: Error while reading database from database.clamav.net (IP: 69.163.100.14): No such file or directory
+WARNING: Can't download main.cvd from database.clamav.net
+Querying main.0.82.0.1.45A3640E.ping.clamav.net
+Can't query main.0.82.0.1.45A3640E.ping.clamav.net
+Trying again in 5 secs...
+ClamAV update process started at Wed May 03 11:00:28 2017
+Using IPv6 aware code
+Querying current.cvd.clamav.net
+TTL: 1151
+Software version from DNS: 0.99.2
+Retrieving http://database.clamav.net/main.cvd
+Trying to download http://database.clamav.net/main.cvd (IP: 194.8.197.22)
+nonblock_recv: recv timing out (30 secs)
+WARNING: getfile: Error while reading database from database.clamav.net (IP: 194.8.197.22): No such file or directory
+WARNING: Can't download main.cvd from database.clamav.net
+Querying main.0.82.0.1.C208C516.ping.clamav.net
+Can't query main.0.82.0.1.C208C516.ping.clamav.net
+Trying again in 5 secs...
+ClamAV update process started at Wed May 03 11:01:03 2017
+Using IPv6 aware code
+Querying current.cvd.clamav.net
+TTL: 1115
+Software version from DNS: 0.99.2
+Retrieving http://database.clamav.net/main.cvd
+Trying to download http://database.clamav.net/main.cvd (IP: 64.22.33.90)
+nonblock_recv: giving up due to excessive bogus loops
+ERROR: getfile: Error while reading database from database.clamav.net (IP: 64.22.33.90): No such file or directory
+ERROR: Can't download main.cvd from database.clamav.net
+Querying main.0.82.0.1.4016215A.ping.clamav.net
+Can't query main.0.82.0.1.4016215A.ping.clamav.net
+Giving up on database.clamav.net...
+Update failed. Your network may be down or none of the mirrors listed in C:\Users\student\Desktop\git_projects\ope\client_tools\bin\ClamAV-x64\freshclam.conf is working. Check http://www.clamav.net/doc/mirrors-faq.html for possible reasons.
+--------------------------------------
+Current working dir is C:\Users\student\Desktop\git_projects\ope\client_tools\bin\ClamAV-x64\clamavdb
+Max retries == 3
+ClamAV update process started at Wed May 03 11:11:38 2017
+Using IPv6 aware code
+Querying current.cvd.clamav.net
+TTL: 481
+Software version from DNS: 0.99.2
+Retrieving http://database.clamav.net/main.cvd
+Trying to download http://database.clamav.net/main.cvd (IP: 194.186.47.19)
+Downloading main.cvd [100%]
+Loading signatures from main.cvd
+Properly loaded 4218792 signatures from new main.cvd
+main.cvd updated (version: 57, sigs: 4218790, f-level: 60, builder: amishhammer)
+Querying main.57.82.1.1.C2BA2F13.ping.clamav.net
+Can't query main.57.82.1.1.C2BA2F13.ping.clamav.net
+Retrieving http://database.clamav.net/daily.cvd
+Trying to download http://database.clamav.net/daily.cvd (IP: 194.186.47.19)
+Downloading daily.cvd [100%]
+Loading signatures from daily.cvd
+Properly loaded 2063646 signatures from new daily.cvd
+daily.cvd updated (version: 23353, sigs: 2063644, f-level: 63, builder: neo)
+Querying daily.23353.82.1.1.C2BA2F13.ping.clamav.net
+Can't query daily.23353.82.1.1.C2BA2F13.ping.clamav.net
+Retrieving http://database.clamav.net/bytecode.cvd
+Trying to download http://database.clamav.net/bytecode.cvd (IP: 194.186.47.19)
+Downloading bytecode.cvd [100%]
+Loading signatures from bytecode.cvd
+Properly loaded 58 signatures from new bytecode.cvd
+bytecode.cvd updated (version: 297, sigs: 58, f-level: 63, builder: anvilleg)
+Querying bytecode.297.82.1.1.C2BA2F13.ping.clamav.net
+Can't query bytecode.297.82.1.1.C2BA2F13.ping.clamav.net
+Database updated (6282492 signatures) from database.clamav.net (IP: 194.186.47.19)
+--------------------------------------
+ClamAV update process started at Wed May 03 16:53:24 2017
+main.cvd is up to date (version: 57, sigs: 4218790, f-level: 60, builder: amishhammer)
+Downloading daily.cvd [100%]
+daily.cvd updated (version: 23354, sigs: 2063541, f-level: 63, builder: neo)
+bytecode.cvd is up to date (version: 297, sigs: 58, f-level: 63, builder: anvilleg)
+Database updated (6282389 signatures) from clamav.ed.dev (IP: 127.0.0.1)

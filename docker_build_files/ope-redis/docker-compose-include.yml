@@ -1,0 +1,12 @@
+    ope-redis:
+        build: ./ope-redis
+        image: operepo/ope-redis
+        container_name: ope-redis
+        ports:
+            - "6379:6379"
+        volumes:
+            - ../volumes/redis/data:/data:rw
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        env_file: .env

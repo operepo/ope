@@ -1,0 +1,22 @@
+    ope-gcf:
+        build: ./ope-gcf
+        image: operepo/ope-gcf
+        container_name: ope-gcf
+        ports:
+            - "80"
+        labels:
+            - "traefik.backend=gcf"
+            - "traefik.frontend.rule=Host:gcf.<DOMAIN>, gcflearnfree.org, gcflearnfree.<DOMAIN>"
+            - "traefik.port=80"
+            - "traefik.frontend.entryPoints=http"
+        volumes:
+            - ../volumes/gcf/www:/usr/share/nginx/html:ro
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        env_file: .env
+        environment:
+            - VIRTUAL_HOST=gcf.<DOMAIN>,gcflearnfree.org,gcflearnfree.<DOMAIN>
+        #    - NGINX_HOST=gcf.<DOMAIN>
+        #    - NGINX_PORT=80
+        #command: /bin/bash -c "envsubst < /etc/nginx/conf.d/mysite.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"

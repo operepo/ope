@@ -1,0 +1,13 @@
+    ope-dns:
+        build: ./ope-dns
+        image: operepo/ope-dns
+        container_name: ope-dns
+        cap_add:
+            - NET_ADMIN
+        command: -A /<DOMAIN>/<IP> # --log-facility=-
+        ports:
+            - "53:53/tcp"
+            - "53:53/udp"
+        env_file: .env
+        environment:
+            - IP_ADDR=<IP>

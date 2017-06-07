@@ -1,0 +1,55 @@
+
+
+<MainWindow>:
+    BoxLayout:
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Sync Tool'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+                ActionLabel:
+                    id: label1
+                    text: "Label"
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+
+        Button:
+            text: 'Build Servers'
+
+        Button:
+            text: 'Sync To USB Drive'
+
+        Button:
+            text: 'Sync to Development Server'
+
+        Button:
+            text: 'Sync to Production Server'
+
+        ScrollView:
+            size_hint: (1, .2)
+            text: ''
+            id: log_console
+            Label:
+                size_hint_y: None  # turn off auto height
+                # text_size: self.size
+                text_size: self.width, None  # Fit text width, but wrap forever
+                height: self.texture_size[1]  # Draw height
+                markup: True
+                text: log_console.text
+                valign: 'top'
+
+
+<SettingPassword>:
+    PasswordLabel:
+        text: (lambda x: '*'*x)(len(root.value)) if root.value else ''
+        pos: root.pos
+        font_size: '15sp'

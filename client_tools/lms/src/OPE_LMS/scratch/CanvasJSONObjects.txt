@@ -1,0 +1,344 @@
+https://canvas.pencollege.net/api/v1/accounts/self/users
+
+[{"id":232,"name":"","sortable_name":"","short_name":"","sis_user_id":"s721871","sis_login_id":"s721871","login_id":"s721871"},{"id":223,"name":"","sortable_name":"","short_name":"","sis_user_id":"s831747","sis_login_id":"s831747","login_id":"s831747"},{"id":228,"name":"","sortable_name":"","short_name":"","sis_user_id":"s785221","sis_login_id":"s785221","login_id":"s785221"},{"id":225,"name":"","sortable_name":"","short_name":"","sis_user_id":"s793198","sis_login_id":"s793198","login_id":"s793198"},{"id":220,"name":"","sortable_name":"","short_name":"","sis_user_id":"s358107","sis_login_id":"s358107","login_id":"s358107"},{"id":222,"name":"","sortable_name":"","short_name":"","sis_user_id":"s947511","sis_login_id":"s947511","login_id":"s947511"},{"id":227,"name":"","sortable_name":"","short_name":"","sis_user_id":"s726826","sis_login_id":"s726826","login_id":"s726826"},{"id":221,"name":"","sortable_name":"","short_name":"","sis_user_id":"s822195","sis_login_id":"s822195","login_id":"s822195"},{"id":234,"name":"","sortable_name":"","short_name":"","sis_user_id":"s814576","sis_login_id":"s814576","login_id":"s814576"},{"id":233,"name":"","sortable_name":"","short_name":"","sis_user_id":"s786904","sis_login_id":"s786904","login_id":"s786904"}]
+
+
+https://canvas.pencollege.net/api/v1/accounts/self/courses
+
+[{"account_id":3,"course_code":"Test","default_view":"feed","id":1,"name":"Test Course","start_at":null,"end_at":null,"public_syllabus":false,"calendar":{"ics":"https://canvas.pencollege.net/feeds/calendars/course_F8JxYXLv93XzmLox0x3wZVJFzkZBeqSmG6B6axcA.ics"},"sis_course_id":null,"hide_final_grades":false,"workflow_state":"unpublished"},{"account_id":3,"course_code":"ACCT215","default_view":"modules","id":2,"name":"Quickbooks Pro","start_at":"2013-03-29T00:00:00-07:00","end_at":null,"public_syllabus":false,"calendar":{"ics":"https://canvas.pencollege.net/feeds/calendars/course_v8YPdcsiu0HOGYmRJil0SdJKtH1ND1PF08oC0Lje.ics"},"sis_course_id":"ACCT215","hide_final_grades":false,"workflow_state":"available"},{"account_id":3,"course_code":"101010","default_view":"feed","id":5,"name":"Test Import","start_at":null,"end_at":null,"public_syllabus":false,"calendar":{"ics":"https://canvas.pencollege.net/feeds/calendars/course_LT1wZseIiW66PCMpC08atZi1wHWhubb2EYRr2g6G.ics"},"sis_course_id":null,"hide_final_grades":false,"workflow_state":"unpublished"},{"account_id":3,"course_code":"Payroll","default_view":"modules","id":6,"name":"Payroll \u0026 Taxes","start_at":"2014-03-18T15:10:07-07:00","end_at":null,"public_syllabus":false,"calendar":{"ics":"https://canvas.pencollege.net/feeds/calendars/course_7Ciz82aepkFwGWhFc7i1OxO9KFj5kTE798Bzd5My.ics"},"sis_course_id":"PAYROLL","hide_final_grades":false,"workflow_state":"available"},{"account_id":3,"course_code":"GEDMath","default_view":"modules","id":8,"name":"GED - Math","start_at":null,"end_at":null,"public_syllabus":false,"calendar":{"ics":"https://canvas.pencollege.net/feeds/calendars/course_oy9UdhJqBEgF3HVKUEqhWutkEGDTIHQ01qIa7Gv6.ics"},"sis_course_id":"GEDMATH","hide_final_grades":false,"workflow_state":"unpublished"},{"account_id":3,"course_code":"GEDRW","default_view":"feed","id":9,"name":"GED - Reading/Writing","start_at":null,"end_at":null,"public_syllabus":false,"calendar":{"ics":"https://canvas.pencollege.net/feeds/calendars/course_3WQDGhHajmCboyc1w4GQagVYzrrxedA3bKOD3SGB.ics"},"sis_course_id":"GEDRW","hide_final_grades":false,"workflow_state":"unpublished"},{"account_id":3,"course_code":"GEDSCI","default_view":"feed","id":10,"name":"GED - Science","start_at":null,"end_at":null,"public_syllabus":false,"calendar":{"ics":"https://canvas.pencollege.net/feeds/calendars/course_JgFRq3UtUNbqSQdsq1plLcG82VdtLgehC8d4GQBL.ics"},"sis_course_id":"GEDSCI","hide_final_grades":false,"workflow_state":"unpublished"},{"account_id":3,"course_code":"GEDSCO","default_view":"feed","id":11,"name":"GED - Social Studies","start_at":null,"end_at":null,"public_syllabus":false,"calendar":{"ics":"https://canvas.pencollege.net/feeds/calendars/course_atTbOxppmp7rq7zBRTpbnVkQy5BXeVz4onKbvryP.ics"},"sis_course_id":"GEDSCO","hide_final_grades":false,"workflow_state":"unpublished"},{"account_id":3,"course_code":"PhippsABE","default_view":"feed","id":12,"name":"ABE/GED","start_at":null,"end_at":null,"public_syllabus":false,"calendar":{"ics":"https://canvas.pencollege.net/feeds/calendars/course_PBsGmPBeLUqkG0eLESVdIwndsIOCRXwiaXSleeia.ics"},"sis_course_id":"PHIPPSABE","hide_final_grades":false,"workflow_state":"unpublished"},{"account_id":3,"course_code":"GED","default_view":"feed","id":13,"name":"GED Tests","start_at":null,"end_at":null,"public_syllabus":false,"calendar":{"ics":"https://canvas.pencollege.net/feeds/calendars/course_Aqco7sCh1JmRIH5RlWbk0tywIBVuKcEWLne4T1qV.ics"},"sis_course_id":"GED","hide_final_grades":false,"workflow_state":"unpublished"}]
+
+
+https://canvas.pencollege.net/api/v1/courses/2/modules
+
+[{"id":17,"name":"Getting Started","position":1,"unlock_at":null,"require_sequential_progress":false,"prerequisite_module_ids":[],"published":true},{"id":1,"name":"Chapter 1: Introduction to QuickBooks Pro and Company Files","position":2,"unlock_at":null,"require_sequential_progress":true,"prerequisite_module_ids":[17],"published":true},{"id":2,"name":"Chapter 2: Sales and Receivables: Service Business","position":3,"unlock_at":null,"require_sequential_progress":true,"prerequisite_module_ids":[1],"published":true},{"id":4,"name":"Chapter 3: Payables and Purchases: Service Business","position":4,"unlock_at":null,"require_sequential_progress":false,"prerequisite_module_ids":[2],"published":true},{"id":5,"name":"Chapter 4: General Accounting and End-of-Period Procedures: Service","position":5,"unlock_at":null,"require_sequential_progress":false,"prerequisite_module_ids":[4],"published":true},{"id":15,"name":"At Your Service Project 1 (pg. 280)","position":6,"unlock_at":null,"require_sequential_progress":false,"prerequisite_module_ids":[5],"published":true},{"id":6,"name":"Chapter 5: Sales and Receivables: Merchandising Business","position":7,"unlock_at":null,"require_sequential_progress":false,"prerequisite_module_ids":[15],"published":true},{"id":8,"name":"Chapter 6: Payables and Purchases: Merchandising Business","position":8,"unlock_at":null,"require_sequential_progress":false,"prerequisite_module_ids":[6],"published":true},{"id":9,"name":"Chapter 7: General Accounting and End-of-Period Procedures","position":9,"unlock_at":null,"require_sequential_progress":false,"prerequisite_module_ids":[8],"published":true},{"id":10,"name":"Chapter 8: Payroll","position":11,"unlock_at":null,"require_sequential_progress":false,"prerequisite_module_ids":[9],"published":true}]
+
+
+https://canvas.pencollege.net/api/v1/courses/2/modules/17/items
+
+[{"id":112,"indent":0,"position":1,"title":"Syllabus - Computerized Accounting.docx","type":"File","html_url":"https://canvas.pencollege.net/courses/2/modules/items/112","content_id":1053,"url":"https://canvas.pencollege.net/api/v1/files/1053","published":true},{"id":134,"indent":0,"position":2,"title":"QB's backup download and restore video.mp4","type":"File","html_url":"https://canvas.pencollege.net/courses/2/modules/items/134","content_id":154,"url":"https://canvas.pencollege.net/api/v1/files/154","published":true}]
+
+
+
+https://canvas.pencollege.net/api/v1/users/sis_user_id:s329249/profile
+
+{"id":78,"name":"GORE, LOGAN - (s329249)","short_name":"GORE, LOGAN - (s329249)","sortable_name":"GORE, LOGAN - (s329249)","sis_user_id":"s329249","sis_login_id":"s329249@student.pencollege.net","login_id":"s329249@student.pencollege.net","title":null,"bio":null,"primary_email":"s329249"}
+
+
+
+Step 1:
+We send an initial auth request to canvas w/ an out of band redirect_uri. This will generate an access code that we need to capture.
+https://lms.dev.domain.com/login/oauth2/auth?client_id=10&response_type=code&redirect_uri=urn:ietf:wg:oauth:2.0:oob
+Step 2:
+This will redirect the user to a login page. Once the user logs in using their user/pass they will see a screen stating the application has been authorized for access to their canvas data. The URL bar will contain a code parameter that we need to capture and use in the next step.  In this case the code was...
+
+e6125fa4389520beb17097608785f7e3046a48e39c3ed11759f82f0b57d977305898be35c686ff918775c087872d9e96975d8b9de741924660ab27de2fac80d0
+Step 3:
+Using the access code we can then pass that back to Canvas with the full API credentials to generate the access token for the user.
+curl -i -H "Accept: application/json" -d "client_id=10&redirect_uri=urn:ietf:wg:oauth:2.0:oob&client_secret=apikeygoeshere&code=e6125fa4389520beb17097608785f7e3046a48e39c3ed11759f82f0b57d977305898be35c686ff918775c087872d9e96975d8b9de741924660ab27de2fac80d0"https://lms.dev.domain.com/login/oauth2/token
+HTTP/1.1 200 OK
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Content-Type: application/json; charset=utf-8
+Date: Wed, 25 Jan 2012 00:56:13 GMT
+ETag: "5eb83a92040566cfae389e578b0b48cb"
+Pragma: no-cache
+Server: Apache/2.2.14 (Ubuntu)
+Status: 200
+X-Powered-By: Phusion Passenger (mod_rails/mod_rack) 3.0.11
+X-Request-Context-Id: 4d3a8390-291d-012f-d8ea-1231380d4d68
+X-Runtime: 79
+X-UA-Compatible: IE=edge,chrome=1
+Content-Length: 124
+Connection: keep-alive
+{"user":{"name":"Roman Visintine","id":2},"access_token":"FtDlm909X0xLYPBKD3UofOZ9m1IlPo8RHFKVUy6FMwyQpx4EiavnhVYuCnOkvrzC"}
+Step 4:
+Now that we have the access token we can use that to get student resources.
+curl -i -H "Accept: application/json" -d "access_token=FtDlm909X0xLYPBKD3UofOZ9m1IlPo8RHFKVUy6FMwyQpx4EiavnhVYuCnOkvrzC"https://lms.dev.domain.com/api/v1/courses/26/discussion_topics/46/entries
+HTTP/1.1 201 Created
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Content-Type: application/json; charset=utf-8
+Date: Wed, 25 Jan 2012 01:08:25 GMT
+Pragma: no-cache
+Server: Apache/2.2.14 (Ubuntu)
+Status: 201
+X-Powered-By: Phusion Passenger (mod_rails/mod_rack) 3.0.11
+X-Request-Context-Id: 019d41f0-291f-012f-39b3-1231380d4d68
+X-Runtime: 315
+X-UA-Compatible: IE=edge,chrome=1
+Content-Length: 148
+Connection: keep-alive
+{"id":92,"message":null,"user_id":2,"created_at":"2012-01-24T17:08:25-08:00","updated_at":"2012-01-24T17:08:25-08:00","user_name":"Roman Visintine"}
+
+Hope this helps.
+
+
+
+
+
+
+
+GET /login HTTP/1.1
+Host: canvas.pencollege.net
+Connection: keep-alive
+Cache-Control: max-age=0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.153 Safari/537.36
+Referer: https://canvas.pencollege.net/profile/communication
+Accept-Encoding: gzip,deflate,sdch
+Accept-Language: en-US,en;q=0.8
+Cookie: _normandy_session=ugpbJrDl8UxR8FeIlOMHWA+6LavmULa0mnMHbtAvjhsbPD5JC0499vLUdGZqApY_CtUbZ5zoSAQYdh3JkUppOaq3vy3UHhfJNO6FJ5Jwc9sQjX1kTokA1InZc_aWWuYvjqsxC1i4o5J4fKjlE1-HlfSb9LlfkWQLHmdzfj4ajIC-nrMGNyhPoPs__QHznmZKtpdxPykPLAjSh2CzIck1qYeWwSkInXZ-s6T9e01fmUpqSPqNvL1SxDtHuSkm3X3G55FuYO6kUBaiU9D0lFZ0DWIBH6aptnLZMFWodXPwWDk-pDhuOURow0-4golD0xcyTQ.UKDjwpJy5Mn03dhmJuqr7iWOqmU.U5iY2A
+
+HTTP/1.1 200 OK
+Date: Wed, 11 Jun 2014 17:59:17 GMT
+Server: Apache/2.2.22 (Ubuntu)
+X-Powered-By: Phusion Passenger (mod_rails/mod_rack) 3.0.13
+Pragma: no-cache
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+X-UA-Compatible: IE=edge,chrome=1
+X-Frame-Options: SAMEORIGIN
+X-Runtime: 17
+ETag: "9c0966d373dc48d989d2d508ca4628ac"
+X-Session-Id: 998da30ecb471ad13fa3bbce3ef121bc
+X-Request-Context-Id: 0790f5d0-d3c0-0131-ba66-36ec56bedb62
+Set-Cookie: _normandy_session=u8kDVGfxc1bDLjtcn06Puw.7bUNG_bsIfnpSaWoTGVkDuve5qfqy-3A0zyOSnL8hKnX_s9DZeUbg9HLUYG0nXR_MPkaeJHlnTgraatkwlo7RwH2nIQ-wRs5RPlNtTjC_v21wWlg51G-N7U60rYawHCaNHwB1VzmTBJ5u0SIMb0AqoeOW3lTE1s4960jRrZEIZPkLYjnuz2TXGTwVqyVl7ih3_67JKs9_29BhKonmo5IaA._GFGCuqM7aA6le2N_ruYjr52_l8.U5iY9Q; path=/; HttpOnly
+Status: 200
+Vary: Accept-Encoding
+Content-Encoding: gzip
+Content-Length: 4364
+Keep-Alive: timeout=5, max=100
+Connection: Keep-Alive
+Content-Type: text/html; charset=utf-8
+
+
+POST /login?nonldap=true
+
+POST /login?nonldap=true HTTP/1.1
+Host: canvas.pencollege.net
+Connection: keep-alive
+Content-Length: 222
+Cache-Control: max-age=0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Origin: https://canvas.pencollege.net
+User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.153 Safari/537.36
+Content-Type: application/x-www-form-urlencoded
+Referer: https://canvas.pencollege.net/login
+Accept-Encoding: gzip,deflate,sdch
+Accept-Language: en-US,en;q=0.8
+Cookie: _normandy_session=u8kDVGfxc1bDLjtcn06Puw.7bUNG_bsIfnpSaWoTGVkDuve5qfqy-3A0zyOSnL8hKnX_s9DZeUbg9HLUYG0nXR_MPkaeJHlnTgraatkwlo7RwH2nIQ-wRs5RPlNtTjC_v21wWlg51G-N7U60rYawHCaNHwB1VzmTBJ5u0SIMb0AqoeOW3lTE1s4960jRrZEIZPkLYjnuz2TXGTwVqyVl7ih3_67JKs9_29BhKonmo5IaA._GFGCuqM7aA6le2N_ruYjr52_l8.U5iY9Q
+
+HTTP/1.1 302 Found
+Date: Wed, 11 Jun 2014 18:00:51 GMT
+Server: Apache/2.2.22 (Ubuntu)
+X-Powered-By: Phusion Passenger (mod_rails/mod_rack) 3.0.13
+Pragma: no-cache
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+X-Canvas-User-Id: 2
+X-UA-Compatible: IE=edge,chrome=1
+X-Frame-Options: SAMEORIGIN
+X-Runtime: 211
+X-Request-Context-Id: 3f78de50-d3c0-0131-ba66-36ec56bedb62
+Set-Cookie: _normandy_session=VdS-IxYUMJJ8d4vhdlxISQ+K-b0T5yNEkuNnkHahnf2-ldT75NjsnyaoTyMwNO7bLEau-voy-SsP9kg275hwQWwpFEmXGJ7R_Mz13igzbl1KmNuSJoLYptlDgwEFLKLx0RCZ8QQIg9HaAroH_yrXy6Wa2Y9PpJzfcFwAEzhl-Iq-bpT7mvNqjQIYo13NUfuqGlj05s6VlboQFzeuD6Ha49ZYnxY0enZbwDGa3vXilm8ZXHemwz7Zg64I_wcNS3Rmx_hU7mjPEd72dgSRVWvUv9RjQbzgk7rOkG7o1wJ8fEfZg.WLuDjVwvZ3XOkbUYFDdTfTA02gA.U5iZUw; path=/; HttpOnly
+Location: https://canvas.pencollege.net/?login_success=1
+Status: 302
+Vary: Accept-Encoding
+Content-Encoding: gzip
+Content-Length: 117
+Keep-Alive: timeout=5, max=100
+Connection: Keep-Alive
+Content-Type: text/html; charset=utf-8
+
+
+GET /?login_success=1 HTTP/1.1
+Host: canvas.pencollege.net
+Connection: keep-alive
+Cache-Control: max-age=0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.153 Safari/537.36
+Referer: https://canvas.pencollege.net/login
+Accept-Encoding: gzip,deflate,sdch
+Accept-Language: en-US,en;q=0.8
+Cookie: _normandy_session=VdS-IxYUMJJ8d4vhdlxISQ+K-b0T5yNEkuNnkHahnf2-ldT75NjsnyaoTyMwNO7bLEau-voy-SsP9kg275hwQWwpFEmXGJ7R_Mz13igzbl1KmNuSJoLYptlDgwEFLKLx0RCZ8QQIg9HaAroH_yrXy6Wa2Y9PpJzfcFwAEzhl-Iq-bpT7mvNqjQIYo13NUfuqGlj05s6VlboQFzeuD6Ha49ZYnxY0enZbwDGa3vXilm8ZXHemwz7Zg64I_wcNS3Rmx_hU7mjPEd72dgSRVWvUv9RjQbzgk7rOkG7o1wJ8fEfZg.WLuDjVwvZ3XOkbUYFDdTfTA02gA.U5iZUw
+
+HTTP/1.1 200 OK
+Date: Wed, 11 Jun 2014 18:00:51 GMT
+Server: Apache/2.2.22 (Ubuntu)
+X-Powered-By: Phusion Passenger (mod_rails/mod_rack) 3.0.13
+X-Canvas-User-Id: 2
+Pragma: no-cache
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+X-UA-Compatible: IE=edge,chrome=1
+X-Frame-Options: SAMEORIGIN
+X-Runtime: 74
+ETag: "1d8169adb2024fc00d7c5dab6debd0bf"
+X-Session-Id: 106208f24889b6b321b3fbdb2bf47f63
+X-Request-Context-Id: 3f9aa240-d3c0-0131-ba66-36ec56bedb62
+Set-Cookie: _normandy_session=URWrY2WUtIU7ty1avrrDMQ+1vA4UA-YtBx7um0Nl1c1O3wAGFaAttXv50omlQGh76a69wcnfmYu954v7Ohw5hHKqFHYCdFWvoJCTD1yoU63fMhn279_podTi5EvWqpV9c3uEQiDGtIXsVLolhapYNdO89d3xCAIaSGiFhevG8hgLpHzpSsnFLSzwTzANmuBh75HKtATy341pM_bJmXvm08tVSl1jzhNKMMXWJQfgdy3EXdlHzaZPB9n_1E2lbWHBwJ5ji8Wswg6q8vHqyJWMCcIa4LjSmPJOXsue96m8sqxvRffs29DLBEj2rOMArFP9P-xyyHy0uHJAObfJOkNiRNFLxg-aCij0j6rAPPzq2vjqR2kd5Z5nZUwn_wa0fD-kky42-4ofcm-7r81UmYQlRGM.N0zLNSavAXJko7vAdkff33v0tCA.U5iZUw; path=/; HttpOnly
+Status: 200
+Vary: Accept-Encoding
+Content-Encoding: gzip
+Content-Length: 4469
+Keep-Alive: timeout=5, max=99
+Connection: Keep-Alive
+Content-Type: text/html; charset=utf-8
+
+
+
+/*
+    QString response_string = "";
+    qDebug() << "Response: " << response_string << " Headers: " << web_request->GetAllHeaders();
+    headers["Cookie"] = web_request->GetHeader("Set-Cookie");
+
+    response_string = NetworkCall("https://canvas.pencollege.net/login", "GET", NULL, &headers);
+
+    qDebug() << "Response: " << response_string << " Headers: " << web_request->GetAllHeaders();
+
+    // Need to parse out the authenticity token
+    // <input name="authenticity_token" type="hidden" value="???" />
+
+    QString authenticity_token = "";
+    QString find = "<input name=\"authenticity_token\" type=\"hidden\" value=\"";
+    int pos = 0;
+    int pos_end = 0;
+    pos = response_string.indexOf(find);
+    if (pos > 0)
+    {
+        // Found start, find the end
+        // Add the length to the pos
+        pos += find.length();
+
+        pos_end = response_string.indexOf("\"", pos+1);
+
+        int len = pos_end - pos;
+        authenticity_token = response_string.mid(pos, len);
+
+        qDebug() << "Authenticity token: " << authenticity_token;
+    }
+
+    // Post the login form
+    params.clear();
+    params["nonldap"] = "true";
+    params["authenticity_token"] = authenticity_token;
+    params["redirect_to_ssl"] = "1";
+    params["pseudonym_session[unique_id]"] = user_name;
+    params["pseudonym_session[password]"] = password;
+    params["pseudonym_session[remember_me]"] = "0";
+
+    response_string = NetworkCall("https://canvas.pencollege.net/login", "POST", &params, &headers);
+
+    qDebug() << "Response: " << response_string << " Headers: " << web_request->GetAllHeaders();
+
+
+
+    // Redirects to /login/oauth2/confirm
+
+
+    // Can we jump strait to posting to the accept url?
+    // <form action="/login/oauth2/accept" method="post"><div style="margin:0;padding:0;display:inline"><input name="authenticity_token" type="hidden" value="fKjfxp76ikd2FzniqjEpvdLHCR9/fYUbxmv7rxXR2pE=" /></div>    <div class="button_box">
+    //<a href="/login/oauth2/deny" class="btn">Cancel</a>
+   // <input class="btn btn-primary" name="commit" type="submit" value="Log in" />
+  //</div>
+//</form>
+
+    //
+    // https://canvas.pencollege.net/login/oauth2/confirm
+    //https://canvas.pencollege.net/login/oauth2/auth?code=84a3d5517de6699ae7a76c6ae38d6c720b4a2114fd6e8dfb4a5bd8602faab27e8be2144402ac3a42d9b79a1942f88e3156a0e6cc45458ca811769b2c59c5d906
+    // application/x-www-form-urlencoded
+    // Referer: https://canvas.pencollege.net/login
+    // User-Agent:
+
+    return ret;
+}*/
+
+/*
+    QHash<QString,QString> headers;
+    QHash<QString,QString> params;
+    //headers["Authorization"] = "Bearer " + canvas_access_token;
+
+    // Go to link to get initial code
+    QString resp_string =
+            NetworkCall("https://canvas.pencollege.net/", "GET", NULL, NULL);
+            //NetworkCall("https://canvas.pencollege.net/login/oauth2/auth?client_id=1&response_type=code&redirect_uri=urn:ietf:wg:oauth:2.0:oob",
+            //            "GET", NULL, NULL);
+
+    qDebug() << "Auth " << resp_string << " Headers: " << web_request->GetAllHeaders();
+
+    QString cookie = web_request->GetHeader("Set-Cookie");
+    QString redir = web_request->GetHeader("Location");
+
+    // Add the cookie to the headers
+    headers["Cookie"] =cookie;
+
+    // Add the nonldap=true parameter
+    params["nonldap"] = "true";
+    // Go to the login form
+    resp_string = NetworkCall(redir, "GET", &params, &headers);
+
+    // This should be the login form
+    qDebug() << "Login form: " << resp_string << " Headers: " << web_request->GetAllHeaders();
+
+    // Need to parse out the authenticity token
+    // <input name="authenticity_token" type="hidden" value="???" />
+
+    QString authenticity_token = "";
+    QString find = "<input name=\"authenticity_token\" type=\"hidden\" value=\"";
+    int pos = 0;
+    int pos_end = 0;
+    pos = resp_string.indexOf(find);
+    if (pos > 0)
+    {
+        // Found start, find the end
+        // Add the length to the pos
+        pos += find.length();
+
+        pos_end = resp_string.indexOf("\"", pos+1);
+
+        int len = pos_end - pos;
+        authenticity_token = resp_string.mid(pos, len);
+
+        qDebug() << "Authenticity token: " << authenticity_token;
+    }
+
+    // Ready post for the form
+    params.clear();
+    params["nonldap"] = "true";
+    params["authenticity_token"] = authenticity_token;
+    params["redirect_to_ssl"] = "1";
+    params["pseudonym_session[unique_id]"] = user_name;
+    params["pseudonym_session[password]"] = password;
+    params["pseudonym_session[remember_me]"] = "0";
+
+    resp_string = NetworkCall(redir, "POST", &params, &headers);
+
+    qDebug() << "Login form: " << resp_string << " Headers: " << web_request->GetAllHeaders();
+
+
+
+    return ret;
+
+
+    // Get the code parameter from the resulting page
+    // like this e6125fa4389520beb17097608785f7e3046a48e39c3ed11759f82f0b57d977305898be35c686ff918775c087872d9e96975d8b9de741924660ab27de2fac80d0
+
+    // Mak the next request to get the access_token
+//    curl -i -H "Accept: application/json" -d "client_id=10&redirect_uri=urn:ietf:wg:oauth:2.0:oob&client_secret=apikeygoeshere&code=e6125fa4389520beb17097608785f7e3046a48e39c3ed11759f82f0b57d977305898be35c686ff918775c087872d9e96975d8b9de741924660ab27de2fac80d0"https://lms.dev.domain.com/login/oauth2/token
+//    Content-Type: application/json; charset=utf-8
+//    Status: 200
+//    X-Powered-By: Phusion Passenger (mod_rails/mod_rack) 3.0.11
+//    X-Request-Context-Id: 4d3a8390-291d-012f-d8ea-1231380d4d68
+//    Content-Length: 124
+//    Connection: keep-alive
+//    {"user":{"name":"Roman Visintine","id":2},"access_token":"FtDlm909X0xLYPBKD3UofOZ9m1IlPo8RHFKVUy6FMwyQpx4EiavnhVYuCnOkvrzC"}
+
+
+    // Use access_token for requests from now on
+
+//            Referer: https://canvas.pencollege.net/login
+
+//            target: /login?
+//            Content-Type: application/x-www-form-urlencoded
+//            POST
+
+
+    // Lookup the current user
+    QJsonDocument profileDoc = CanvasAPICall("/api/v1/users/sis_user_id:" + user_name + "/profile");
+
+}*/

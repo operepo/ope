@@ -1,0 +1,15 @@
+    ope-postgresql:
+        build: ./ope-postgresql
+        image: operepo/ope-postgresql
+        container_name: ope-postgresql        
+        ports:
+            - "5432:5432"
+        volumes:
+            - pg_data:/var/lib/postgresql/data:rw
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        env_file: .env
+        environment:
+            - POSTGRES_PASSWORD=${IT_PW}
+        # NOTE: This relies on a docker volume, don't delete pg_data or you will loose information

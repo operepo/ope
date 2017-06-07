@@ -1,0 +1,14 @@
+    ope-clamav:
+        build: ./ope-clamav
+        image: operepo/ope-clamav
+        container_name: ope-clamav
+        ports:
+            - "80"
+        volumes:
+            - ../volumes/clamav/www:/usr/share/nginx/html:rw
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        env_file: .env
+        environment:
+            - VIRTUAL_HOST=clamav.<DOMAIN>

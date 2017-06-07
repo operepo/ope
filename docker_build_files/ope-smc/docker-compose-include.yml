@@ -1,0 +1,36 @@
+    ope-smc:
+        build: ./ope-smc
+        image: operepo/ope-smc
+        container_name: ope-smc
+        ports:
+            - "80"
+            - "443"
+        volumes:
+            # Normal mounts, using smc app included in the container, can leave on during dev
+            - ../volumes/smc/cache:/home/www-data/web2py/applications/smc/cache:rw
+            - ../volumes/smc/databases:/home/www-data/web2py/applications/smc/databases:rw
+            - ../volumes/smc/errors:/home/www-data/web2py/applications/smc/errors:rw
+            - ../volumes/smc/private:/home/www-data/web2py/applications/smc/private:rw
+            - ../volumes/smc/media:/home/www-data/web2py/applications/smc/static/media:rw
+            - ../volumes/smc/uploads:/home/www-data/web2py/applications/smc/uploads:rw
+            # Dev mounts, mount the whole thing from outside the container - turn this off for production servers
+            - ../volumes/smc/src:/home/www-data/web2py/applications/smc:rw
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        env_file: .env
+        environment:
+            - IT_PW=${IT_PW}
+            - OFFICE_PW=${OFFICE_PW}
+            - CANVAS_SECRET=${CANVAS_SECRET}
+            - VIRTUAL_HOST=smc.<DOMAIN>,admin.<DOMAIN>,videos.<DOMAIN>,media.<DOMAIN>
+            - VIRTUAL_PORT=443
+            # Share the default cert on the gateway
+            - CERT_NAME=default
+            - VIRTUAL_PROTO=https
+            #- HTTPS_METHOD=noredirect
+            - CANVAS_DEV_KEY=${CANVAS_DEV_KEY}
+        links:
+            - ope-postgresql:postgresql
+            # Send canvas connections through the gateway
+            - ope-gateway:canvas.<DOMAIN>

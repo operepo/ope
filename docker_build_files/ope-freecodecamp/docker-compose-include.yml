@@ -1,0 +1,22 @@
+    ope-jsbin:
+        build: ./ope-jsbin
+        image: operepo/ope-jsbin
+        container_name: ope-jsbin
+        ports:
+            - "80"
+        volumes:
+            - ../volumes/jsbin/data:/data:rw
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        env_file: .env
+        environment:
+            - PORT=80
+            - JSBIN_CONFIG=/config/jsbin.json
+            - IT_PW=${IT_PW}
+            - OFFICE_PW=${OFFICE_PW}
+            - VIRTUAL_HOST=jsbin.<DOMAIN>
+            #- VIRTUAL_PORT=3000
+            - VIRTUAL_PROTO=http
+        
+        

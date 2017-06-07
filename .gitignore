@@ -1,8 +1,16 @@
 
 # Ignore env files
 .env
+.idea
 
 images/
 volumes/
 *.pyc
 /docker-compose.yml
+
+# Ignore build folders
+client_tools/lms/src/build-*
+
+
+.enabled
+.enabled

@@ -1,0 +1,26 @@
+    ope-codecombat:
+        build: ./ope-codecombat
+        image: operepo/ope-codecombat
+        container_name: ope-codecombat
+        ports:
+            - "3000"
+        volumes:
+            # Normal mounts
+            - coco_mongo:/home/coco/codecombat/mongo:rw
+            - ../volumes/codecombat/data:/home/coco/codecombat/data:rw
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        env_file: .env
+        environment:
+            - IT_PW=${IT_PW}
+            - OFFICE_PW=${OFFICE_PW}
+            - VIRTUAL_HOST=codecombat.<DOMAIN>
+            # Share the default cert on the gateway
+            #- CERT_NAME=default
+            - VIRTUAL_PROTO=http
+            - VIRTUAL_PORT=3000
+            #- HTTPS_METHOD=noredirect
+        #links:
+        #    - ope-postgresql:postgresql
+        #    - ope-redis:redis
