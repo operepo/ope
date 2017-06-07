@@ -15,4 +15,4 @@ client_tools/lms/src/build-*
 .enabled
 
 /client_tools/bin/ClamAV-x64/clamavdb
-/client_tools/bin/ClamAV-x64/clamavdb
+
