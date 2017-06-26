@@ -11,59 +11,32 @@
 # START OF docker-compose.yml
 version: '2'
 
-volumes:
-    pg_data:
 
 
 services:
 
-    ope-canvas:
-        build: ./ope-canvas
-        image: operepo/ope-canvas
-        container_name: ope-canvas
+    ope-rachel:
+        build: ./ope-rachel
+        image: kgonyo/ope-rachel
+        container_name: ope-rachel
         ports:
-            - "3000"
+            - "80"
         volumes:
-            # Normal mounts
-            - ../volumes/canvas/tmp:/usr/src/app/tmp:rw
-            - ../volumes/canvas/log:/usr/src/app/log:rw
+            # Normal mounts, using rachel app included in the container, can leave on during dev
+            - ../volumes/rachel/modules:/var/www/html/modules:rw
         depends_on:
             - ope-gateway
             - ope-dns
-            - ope-redis
-            - ope-postgresql
         env_file: .env
         environment:
             - IT_PW=${IT_PW}
             - OFFICE_PW=${OFFICE_PW}
-            - VIRTUAL_HOST=canvas.ed.dev
-            - ADMIN_EMAIL=${ADMIN_EMAIL}
-            - LMS_ACCOUNT_NAME=${LMS_ACCOUNT_NAME}
-            - CANVAS_SECRET=${CANVAS_SECRET}
-            - VIRTUAL_PORT=3000
+            - VIRTUAL_HOST=rachel.ed
+            - VIRTUAL_PORT=80
             # Share the default cert on the gateway
             - CERT_NAME=default
             - VIRTUAL_PROTO=http
             #- HTTPS_METHOD=noredirect
-        links:
-            - ope-postgresql:postgresql
-            - ope-redis:redis
-
-
-    ope-clamav:
-        build: ./ope-clamav
-        image: operepo/ope-clamav
-        container_name: ope-clamav
-        ports:
-            - "80"
-        volumes:
-            - ../volumes/clamav/www:/usr/share/nginx/html:rw
-        depends_on:
-            - ope-gateway
-            - ope-dns
-        env_file: .env
-        environment:
-            - VIRTUAL_HOST=clamav.ed.dev
 
 
     ope-dns:
@@ -72,46 +45,13 @@ services:
         container_name: ope-dns
         cap_add:
             - NET_ADMIN
-        command: -A /ed.dev/10.1.101.250 # --log-facility=-
+        command: -A /ed/192.168.249.181 # --log-facility=-
         ports:
             - "53:53/tcp"
             - "53:53/udp"
         env_file: .env
         environment:
-            - IP_ADDR=10.1.101.250
-
-
-    ope-gateway:
-        build: ./ope-gateway
-        image: operepo/ope-gateway
-        container_name: ope-gateway
-        #command:
-        ports:
-            - "80:80"
-            #- "8080:8080"
-            - "443:443"
-        volumes:
-            - /var/run/docker.sock:/tmp/docker.sock
-            # /certs directory can be mapped if you put your certs in the volumes folder
-            - ../volumes/gateway/certs:/etc/nginx/certs:rw
-        env_file: .env
-
-
-    ope-postgresql:
-        build: ./ope-postgresql
-        image: operepo/ope-postgresql
-        container_name: ope-postgresql        
-        ports:
-            - "5432:5432"
-        volumes:
-            - pg_data:/var/lib/postgresql/data:rw
-        depends_on:
-            - ope-gateway
-            - ope-dns
-        env_file: .env
-        environment:
-            - POSTGRES_PASSWORD=${IT_PW}
-        # NOTE: This relies on a docker volume, don't delete pg_data or you will loose information
+            - IP_ADDR=192.168.249.181
 
 
     ope-redis:
@@ -128,40 +68,19 @@ services:
         env_file: .env
 
 
-    ope-smc:
-        build: ./ope-smc
-        image: operepo/ope-smc
-        container_name: ope-smc
+    ope-gateway:
+        build: ./ope-gateway
+        image: operepo/ope-gateway
+        container_name: ope-gateway
+        #command:
         ports:
-            - "80"
-            - "443"
+            - "80:80"
+            #- "8080:8080"
+            - "443:443"
         volumes:
-            # Normal mounts, using smc app included in the container, can leave on during dev
-            - ../volumes/smc/cache:/home/www-data/web2py/applications/smc/cache:rw
-            - ../volumes/smc/databases:/home/www-data/web2py/applications/smc/databases:rw
-            - ../volumes/smc/errors:/home/www-data/web2py/applications/smc/errors:rw
-            - ../volumes/smc/private:/home/www-data/web2py/applications/smc/private:rw
-            - ../volumes/smc/media:/home/www-data/web2py/applications/smc/static/media:rw
-            - ../volumes/smc/uploads:/home/www-data/web2py/applications/smc/uploads:rw
-            # Dev mounts, mount the whole thing from outside the container - turn this off for production servers
-            - ../volumes/smc/src:/home/www-data/web2py/applications/smc:rw
-        depends_on:
-            - ope-gateway
-            - ope-dns
+            - /var/run/docker.sock:/tmp/docker.sock
+            # /certs directory can be mapped if you put your certs in the volumes folder
+            - ../volumes/gateway/certs:/etc/nginx/certs:rw
         env_file: .env
-        environment:
-            - IT_PW=${IT_PW}
-            - OFFICE_PW=${OFFICE_PW}
-            - CANVAS_SECRET=${CANVAS_SECRET}
-            - VIRTUAL_HOST=smc.ed.dev,admin.ed.dev,videos.ed.dev,media.ed.dev
-            - VIRTUAL_PORT=443
-            # Share the default cert on the gateway
-            - CERT_NAME=default
-            - VIRTUAL_PROTO=https
-            #- HTTPS_METHOD=noredirect
-        links:
-            - ope-postgresql:postgresql
-            # Send canvas connections through the gateway
-            - ope-gateway:canvas.ed.dev
 
 

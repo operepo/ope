@@ -1,0 +1,22 @@
+    ope-rachel:
+        build: ./ope-rachel
+        image: kgonyo/ope-rachel
+        container_name: ope-rachel
+        ports:
+            - "80"
+        volumes:
+            # Normal mounts, using rachel app included in the container, can leave on during dev
+            - ../volumes/rachel/modules:/var/www/html/modules:rw
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        env_file: .env
+        environment:
+            - IT_PW=${IT_PW}
+            - OFFICE_PW=${OFFICE_PW}
+            - VIRTUAL_HOST=rachel.<DOMAIN>
+            - VIRTUAL_PORT=80
+            # Share the default cert on the gateway
+            - CERT_NAME=default
+            - VIRTUAL_PROTO=http
+            #- HTTPS_METHOD=noredirect
