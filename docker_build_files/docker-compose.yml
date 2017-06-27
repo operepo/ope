@@ -72,14 +72,51 @@ services:
         container_name: ope-dns
         cap_add:
             - NET_ADMIN
-        command: -A /ed.dev/10.1.101.250 # --log-facility=-
+        command: -A /ed.dev/192.168.10.32 # --log-facility=-
         ports:
             - "53:53/tcp"
             - "53:53/udp"
         env_file: .env
         environment:
-            - IP_ADDR=10.1.101.250
+            - IP_ADDR=192.168.10.32
 
+
+    ope-fog:
+        build: ./ope-fog
+        image: operepo/ope-fog
+        container_name: ope-fog
+        ports:
+            - "80"
+            - "443"
+            - "212:212/udp"
+            - "9098:9098"
+            - "21:21"
+            - "69:69"
+            - "69:69/udp"
+            - "8099:8099"
+            - "2049:2049"
+            - "2049:2049/udp"
+            - "111:111/udp"
+            - "111:111"
+            - "4045:4045/udp"
+            - "4045:4045"
+            - "34463:34463"
+            - "34463:34463/udp"
+        labels:
+            - fogproject="Open Source PC Imaging Server"
+        volumes:
+            - ../volumes/fog/images:/images:rw
+            - ../volumes/fog/tftpboot:/tftpboot:rw
+            - ../volumes/fog/opt/fog:/opt/fog:rw
+            - ../volumes/fog/mysql/data:/var/lib/mysql:rw
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        env_file: .env
+        environment:
+            - VIRTUAL_HOST=fog.ed.dev,fogserver,fogserver.ed.dev
+            - PUBLIC_IP=${PUBLIC_IP}
+        
 
     ope-gateway:
         build: ./ope-gateway
@@ -153,6 +190,7 @@ services:
             - IT_PW=${IT_PW}
             - OFFICE_PW=${OFFICE_PW}
             - CANVAS_SECRET=${CANVAS_SECRET}
+            - CANVAS_SERVER=https://canvas.ed.dev
             - VIRTUAL_HOST=smc.ed.dev,admin.ed.dev,videos.ed.dev,media.ed.dev
             - VIRTUAL_PORT=443
             # Share the default cert on the gateway

@@ -14,18 +14,19 @@
 #include <QHash>
 #include <QCryptographicHash>
 
+class APP_DB;
 
 /**
- * @brief The GenericQueryModel class
+ * @brief The GenericTableModel class
  * Used to create generic models for QML controls
  */
-class GenericQueryModel : public QSqlQueryModel {
+class GenericTableModel : public QSqlTableModel {
     Q_OBJECT
 public:
-    explicit GenericQueryModel(QObject *parent);
+    explicit GenericTableModel(APP_DB *parent=0, QString table_name="", QSqlDatabase db = QSqlDatabase());
 
-    void setQuery(const QString &query, const QSqlDatabase &db = QSqlDatabase());
-    void setQuery(const QSqlQuery &query);
+    void setTable(QString tableName);
+
     QVariant data(const QModelIndex &index, int role) const;
     QHash<int, QByteArray> roleNames() const { return m_roleNames; }
 
@@ -48,6 +49,7 @@ class APP_DB : public QObject
 public:
     explicit APP_DB(QQmlApplicationEngine *parent = 0);
 
+    QHash<QString, GenericTableModel *> _tables;
 signals:
 
 public slots:
@@ -61,10 +63,11 @@ public slots:
     // == RESOURCE FUNCTIONS ==
     bool add_resource(QString resource_name, QString resource_url, QString resource_description, int sort_order);
 
+    GenericTableModel *getTable(QString table_name);
 private:
 
     QSqlDatabase _db;
-    QHash<QString, GenericQueryModel *> _tables;
+
 
 };
 

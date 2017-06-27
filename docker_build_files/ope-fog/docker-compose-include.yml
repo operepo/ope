@@ -8,6 +8,7 @@
             - "212:212/udp"
             - "9098:9098"
             - "21:21"
+            - "69:69"
             - "69:69/udp"
             - "8099:8099"
             - "2049:2049"
@@ -18,14 +19,13 @@
             - "4045:4045"
             - "34463:34463"
             - "34463:34463/udp"
-            
         labels:
             - fogproject="Open Source PC Imaging Server"
         volumes:
             - ../volumes/fog/images:/images:rw
             - ../volumes/fog/tftpboot:/tftpboot:rw
             - ../volumes/fog/opt/fog:/opt/fog:rw
-            - ../volumes/mysql/data:/var/lib/mysql:rw
+            - ../volumes/fog/mysql/data:/var/lib/mysql:rw
         depends_on:
             - ope-gateway
             - ope-dns

@@ -1,5 +1,6 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QMessageBox>
 //#include <QtWebView>
 //#include <QtWebEngine/qtwebengineglobal.h>
 
@@ -24,7 +25,14 @@ int main(int argc, char *argv[])
     // -- Setup our app module which deals with QML/C++ integration
     AppModule *appModule = new AppModule(&engine);
 
-    engine.load(QUrl(QLatin1String("qrc:/main.qml")));
+    QString last_arg = QCoreApplication::arguments().last();
+    if (last_arg == "sync" || appModule->hasAppSycnedWithCanvas() != true)
+    {
+        // Need to load the Sync screen
+        engine.load(QUrl(QLatin1String("qrc:/sync.qml")));
+    } else {
+        engine.load(QUrl(QLatin1String("qrc:/main.qml")));
+    }
 
     return app.exec();
 }

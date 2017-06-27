@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 37
+/svn/!svn/ver/558/trunk/winsys/extras
+END
+monitor_directory.py
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/svn/!svn/ver/510/trunk/winsys/extras/monitor_directory.py
+END
+isapi_monitor.py
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/!svn/ver/430/trunk/winsys/extras/isapi_monitor.py
+END
+mailslot_listener.pyw
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/svn/!svn/ver/437/trunk/winsys/extras/mailslot_listener.pyw
+END

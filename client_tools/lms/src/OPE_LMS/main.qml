@@ -11,6 +11,7 @@ ApplicationWindow {
     width: 900
     height: 600
     title: qsTr("OPE - Learning Resource System")
+        
 
     Component.onCompleted: {
         // if first run, open up the first run drawer
@@ -273,7 +274,7 @@ ApplicationWindow {
         anchors.fill: parent
         currentIndex: tabBar.currentIndex
 
-        Page1 {
+        Page {
 
         }
 

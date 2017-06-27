@@ -2,11 +2,21 @@
 
 AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
 {
-    exit_early = true;
+    exit_early = false;
+
+    // Settings
+    //QSettings::setPath(QSettings::IniFormat, QSettings::SystemScope, QCoreApplication::organizationName() + "/" + QCoreApplication::applicationName());
+    _app_settings = new QSettings(QSettings::SystemScope, QCoreApplication::organizationName(), QCoreApplication::applicationName());
+    //_app_settings = new QSettings(parent);
 
     // Mark that we are running
-    _app_settings.setValue("app/running", true);
-    _app_settings.sync();
+    _app_settings->setValue("app/running", true);
+    //_app_settings->setValue("student/canvas_access_token", "123451111");
+    _canvas_access_token = _app_settings->value("student/canvas_access_token", "").toString();
+
+    _app_settings->sync();
+    //qDebug() << "App Settings: " << _app_settings->fileName();
+
 
     // Relax ssl config as we will be running through test certs
     QSslConfiguration sslconf = QSslConfiguration::defaultConfiguration();
@@ -26,19 +36,19 @@ AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
 //    //parent->networkAccessManager = NULL;
 //    //qDebug() << parent->networkAccessManager();
 
-    // Setup the database connection
-    database = new APP_DB(parent);
-    database->init_db();
-
-    //current_user = NULL;
-
-
 
     // Expose this object to the QML engine
+    //qmlRegisterType<EX_Canvas>("com.openprisoneducation.ope", 1, 0, "Canvas");
     parent->rootContext()->setContextProperty("mainWidget", this);
 
+    // Setup the database connection
+    _database = new APP_DB(parent);
+    _database->init_db();
+
+
     // Setup canvas object
-    canvas = new EX_Canvas();
+    _canvas = new EX_Canvas(this, _database, _app_settings);
+    _canvas->SetCanvasAccessToken(_canvas_access_token);
 
     // Start web server
     startServer();
@@ -49,7 +59,9 @@ AppModule::~AppModule()
 {
     // Besure to save settings changes
     if (!exit_early) {
-        _app_settings.sync();
+        _app_settings->setValue("app/running", false);
+        _app_settings->sync();
+        _app_settings->deleteLater();
     }
 
 }
@@ -79,6 +91,17 @@ QString AppModule::dataFolder()
     d.mkpath(d.path());
 
     return d.path();
+}
+
+bool AppModule::isDebug()
+{
+    bool ret = false;
+
+#ifdef QT_DEBUG
+    ret = true;
+#endif
+
+    return ret;
 }
 
 QString AppModule::wwwRoot() {
@@ -137,7 +160,7 @@ void AppModule::serverRequestArrived(CM_HTTPRequest *request,
     {
         qDebug() << "OAuth Response";
 
-        canvas->FinalizeLinkToCanvas(request, response);
+        _canvas->FinalizeLinkToCanvas(request, response);
         return;
     }
 
@@ -172,14 +195,26 @@ void AppModule::serverRequestArrived(CM_HTTPRequest *request,
  */
 bool AppModule::isAppCredentialed()
 {
-    // Check the credentials file
-    QDir d;
-    d.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/");
-    if (QFile::exists(d.path() + "/.credentials")) {
-        return true;
-    } else {
-        return false;
+    // Look for the canvas auth token
+    bool ret = false;
+
+    if (_canvas_access_token.length() > 10)
+    {
+        // If we have a token we should be good
+        ret = true;
     }
+
+    return ret;
+}
+
+bool AppModule::hasAppSycnedWithCanvas()
+{
+    // Check in the settings to see if we have synced yet with canvas
+    bool ret = false;
+
+    ret = _app_settings->value("app/has_synced_with_canvas", false).toBool();
+
+    return ret;
 }
 
 bool AppModule::authenticateUser(QString user_name, QString password){
@@ -289,9 +324,9 @@ void AppModule::syncLMS(QString lms)
 {
     if (lms == "Canvas") {
         // Init Externals
-        canvas->InitTool();
-        canvas->LinkToCanvas("http://localhost:8080/oath/response", "1");
-        //canvas->Sync();
+        _canvas->InitTool();
+        _canvas->LinkToCanvas("http://localhost:8080/oath/response", "1");
+        //_canvas->Sync();
     }
 }
 

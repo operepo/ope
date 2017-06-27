@@ -1,24 +1,876 @@
 #include "ex_canvas.h"
 
-EX_Canvas::EX_Canvas(QObject *parent) :
+EX_Canvas::EX_Canvas(QObject *parent, APP_DB *db, QSettings *app_settings) :
     QObject(parent)
-{    
+{
     canvas_client_id = "1";
     canvas_client_secret = "hVGyxhHAKulUTZwAExbKALBpZaHTGDBkoSS7DpsvRpY1H7yzoMfnI5NLnC6t5A0Q";
-            // Key for huskers user "MHzeKX3jqUejUTjxWK1v3NUCu9gA9AAkEe9LgJiQvzl9WRgCBDAv99OY0iKaLpJg";
     canvas_access_token = "";
-    canvas_server = "https://canvas.pencollege.net";
+    canvas_server = "https://canvas.ed.dev";
+
+    // Store the app db we will use to
+    if (db == NULL) {
+        qDebug() << "ERROR - NO QSqlDatabase object provided in constructor!";
+    }
+    _app_db = db;
+
+    if (app_settings == NULL) {
+        qDebug() << "ERROR - NO QSettings object provided in constructor!";
+    }
+    _app_settings = app_settings;
 
     web_request = new CM_WebRequest(this);
 }
 
-bool EX_Canvas::InitTool()
+bool EX_Canvas::pullStudentInfo()
 {
-    // Sync the course
-//    SyncCourse("CSE101");
+    bool ret =  false;
+    if (_app_db == NULL) {
+       return ret;
+    }
 
-    return true;
+    // Get the courses table
+    GenericTableModel *model = _app_db->getTable("users");
+    if (model == NULL) {
+        // Unable to pull the table, error with database?
+        qDebug() << "ERROR pulling users table!!!";
+        return false;
+    }
+
+    //qDebug() << " Trying to pull canvas student info...";
+
+    // Pull the list of classes from the server
+    QJsonDocument doc = CanvasAPICall("/api/v1/users/self");
+    //qDebug() << doc.toJson();
+
+    // Loop through the users and add them to the database
+    if (doc.isObject())
+    {
+        // JSON Pulled:
+        // {"id":26664700000000083,"name":"Smith, Bob (s777777)",
+        // "sortable_name":"Smith, Bob (s777777)","short_name":"Smith, Bob (s777777)",
+        // "locale":null,"permissions":{"can_update_name":true,"can_update_avatar":false}}
+
+        QJsonObject o = doc.object();
+
+        // Go variant first then convert to long
+        QString id = o["id"].toString("");
+        QString name = o["name"].toString("");
+        QJsonArray permissions = o["permissions"].toArray();
+
+        model->setFilter("id = '" + id + "'"  );
+        model->select();
+        QSqlRecord record;
+        bool is_insert = false;
+        if (model->rowCount() == 1) {
+            // Row exists, update it with current info
+            record = model->record(0);
+            is_insert = false;
+            qDebug() << "Updating student..." << name;
+        } else {
+            // Need to insert a record clear the filter
+            model->setFilter(""); // Clear the filter
+            record = model->record();
+            is_insert = true;
+            qDebug() << "Importing student..." << name;
+        }
+
+
+        record.setValue("id", o["id"].toString(""));
+        record.setValue("name", o["name"].toString(""));
+        record.setValue("sortable_name", o["sortable_name"].toString(""));
+        record.setValue("short_name", o["short_name"].toString(""));
+        record.setValue("locale", o["locale"].toString(""));
+        record.setValue("permissions", QJsonDocument(o["permissions"].toObject()).toJson());
+
+        if(is_insert) {
+            model->insertRecord(-1, record);
+        } else {
+            // Filter should be on so record 0 should still be this record
+            model->setRecord(0, record);
+        }
+        // Write changes to the database
+        ret = model->submitAll();
+        model->setFilter(""); // Clear the filter
+
+        //qDebug() << "Student: " << name << " " << id;
+
+        // Commit the transaction
+        model->database().commit();
+        //qDebug() << model->lastError();
+
+        // Make sure to set the current user id and name in the registry
+        if (_app_settings) {
+            _app_settings->setValue("student/id", o["id"].toString(""));
+            _app_settings->setValue("student/name", o["name"].toString(""));
+            _app_settings->setValue("student/short_name", o["short_name"].toString(""));
+            _app_settings->setValue("student/sortable_name", o["sortable_name"].toString(""));
+
+        }
+
+    }
+
+    return ret;
 }
+
+bool EX_Canvas::pullCourses()
+{
+    bool ret =  false;
+    if (_app_db == NULL) {
+       return ret;
+    }
+
+    // Get the courses table
+    GenericTableModel *model = _app_db->getTable("courses");
+    if (model == NULL) {
+        // Unable to pull the courses table, error with database?
+        qDebug() << "ERROR pulling courses table!!!";
+        return false;
+    }
+
+    //qDebug() << " Trying to pull canvas courses...";
+
+    // Pull the list of classes from the server
+    QJsonDocument doc = CanvasAPICall("/api/v1/courses");
+    //qDebug() << doc.toJson();
+
+    // Loop through the courses and add them to the database
+    if (doc.isArray())
+    {
+        // JSON Pulled:
+        // id":26664700000000082,"name":"Auto Create - CSE100","account_id":1,
+        //"start_at":"2017-06-08T22:29:59Z","grading_standard_id":null,
+        //"is_public":null,"course_code":"CSE100","default_view":"feed",
+        //"root_account_id":1,"enrollment_term_id":1,"end_at":null,
+        //"public_syllabus":false,"public_syllabus_to_auth":false,
+        //"storage_quota_mb":500,"is_public_to_auth_users":false,
+        //"apply_assignment_group_weights":false,
+        //"calendar":{"ics":"https://canvas.ed.dev/feeds/calendars/course_1DH5m9Z2FmnmKo4pvtbTilzvUkr18C0ImOD91YNl.ics"},
+        //"time_zone":"America/Denver","enrollments":[{"type":"student",
+        //"role":"StudentEnrollment","role_id":3,"user_id":26664700000000083,
+        //"enrollment_state":"active"}],"hide_final_grades":false,
+        //"workflow_state":"available","restrict_enrollments_to_course_dates":false}
+
+        QJsonArray arr = doc.array();
+        foreach (QJsonValue val, arr)
+        {
+            QJsonObject o = val.toObject();
+            // Go variant first then convert to long
+            QString course_id = o["id"].toString("");
+            QString course_name = o["name"].toString("");
+            QJsonArray enrollments = o["enrollments"].toArray();
+            bool isStudent = false;
+            ret = true;
+            foreach (QJsonValue enrollmentVal, enrollments)
+            {
+                QJsonObject enrollment = enrollmentVal.toObject();
+                if (enrollment["type"].toString("") == "student") {
+                    isStudent = true;
+
+                    model->setFilter("id = '" + course_id + "'"  );
+                    model->select();
+                    QSqlRecord record;
+                    bool is_insert = false;
+                    if (model->rowCount() == 1) {
+                        // Row exists, update it with current info
+                        record = model->record(0);
+                        is_insert = false;
+                        qDebug() << "\tUpdating course..." << course_id << course_name;
+                    } else {
+                        // Need to insert a record clear the filter
+                        model->setFilter(""); // Clear the filter
+                        record = model->record();
+                        is_insert = true;
+                        qDebug() << "\tImporting course..." << course_id << course_name;
+                    }
+
+
+                    record.setValue("id", o["id"].toString(""));
+                    record.setValue("name", o["name"].toString(""));
+                    record.setValue("account_id", o["account_id"].toString(""));
+                    record.setValue("start_at", o["start_at"].toString(""));
+                    record.setValue("grading_standard_id", o["grading_standard_id"].toString(""));
+                    record.setValue("is_public", o["is_public"].toString(""));
+                    record.setValue("course_code", o["course_code"].toString(""));
+                    record.setValue("default_view", o["default_view"].toString(""));
+                    record.setValue("root_account_id", o["root_account_id"].toString(""));
+                    record.setValue("enrollment_term_id", o["enrollment_term_id"].toString(""));
+                    record.setValue("end_at", o["end_at"].toString(""));
+                    record.setValue("public_syllabus", o["public_syllabus"].toString(""));
+                    record.setValue("public_syllabus_to_auth", o["public_syllabus_to_auth"].toString(""));
+                    record.setValue("storage_quota_mb", o["storage_quota_mb"].toString(""));
+                    record.setValue("is_public_to_auth_users", o["is_public_to_auth_users"].toString(""));
+                    record.setValue("apply_assignment_group_weights", o["apply_assignment_group_weights"].toString(""));
+                    record.setValue("calendar", QJsonDocument(o["calendar"].toObject()).toJson());
+                    record.setValue("time_zone", o["time_zone"].toString(""));
+                    record.setValue("hide_final_grades", o["hide_final_grades"].toString(""));
+                    record.setValue("workflow_state", o["workflow_state"].toString(""));
+                    record.setValue("restrict_enrollments_to_course_dates", o["restrict_enrollments_to_course_dates"].toString(""));
+                    record.setValue("enrollment_type", enrollment["type"].toString(""));
+                    record.setValue("enrollment_role", enrollment["role"].toString(""));
+                    record.setValue("enrollment_role_id", enrollment["role_id"].toString(""));
+                    record.setValue("enrollment_state", enrollment["state"].toString(""));
+                    record.setValue("enrollment_user_id", o["user_id"].toString(""));
+
+                    if(is_insert) {
+                        model->insertRecord(-1, record);
+                    } else {
+                        // Filter should be on so record 0 should still be this record
+                        model->setRecord(0, record);
+                    }
+                    // Write changes to the database
+                    if(!model->submitAll()) { ret = false; }
+                    model->setFilter(""); // Clear the filter
+                }
+            }
+
+            //qDebug() << "Course: " << course_name << " " << course_id << " is student " << isStudent;
+        }
+
+        // Commit the transaction
+        model->database().commit();
+        //qDebug() << model->lastError();
+    }
+
+    return ret;
+}
+
+bool EX_Canvas::pullModules()
+{
+    // Grab modules for each course in the database
+    bool ret = false;
+    if (_app_db == NULL) { return ret; }
+
+    // Get the list of courses for this student
+    GenericTableModel *courses_model = _app_db->getTable("courses");
+    GenericTableModel *model = _app_db->getTable("modules");
+
+    if (courses_model == NULL || model == NULL) {
+        qDebug() << "Unable to get models for courses or modules!";
+        return false;
+    }
+
+    // TODO - All enteries should be for this student, so get them all
+    courses_model->setFilter("");
+    ret = true;
+    for (int i=0; i<courses_model->rowCount(); i++) {
+        // Get modules for this course
+        QSqlRecord course_record = courses_model->record(i);
+        QString course_id = course_record.value("id").toString();
+        //qDebug() << "Retrieving modules for " << course_id;
+        QHash<QString,QString> p;
+        p["per_page"] = "10000"; // Cuts down number of calls significantly
+        QJsonDocument doc = CanvasAPICall("/api/v1/courses/" + course_id + "/modules", "GET", &p);
+
+        if (doc.isArray()) {
+            qDebug() << "\tModules for course:";
+            // Should be an array of modules
+            QJsonArray arr = doc.array();
+            foreach(QJsonValue val, arr) {
+                //qDebug() << "got item...";
+                // This should be a module
+                QJsonObject o = val.toObject();
+
+                QString id = o["id"].toString("");
+                //qDebug() << "Module ID " << id;
+
+                model->setFilter("id = " + id);
+                model->select();
+                QSqlRecord record;
+                bool is_insert = false;
+
+                if (model->rowCount() == 1) {
+                    // Row exists, update with current info
+                    record = model->record(0);
+                    is_insert = false;
+                    qDebug() << "\t\tUpdating module..." << id << o["name"].toString("");
+                } else {
+                    // Need to clear the filter to insert
+                    model->setFilter("");
+                    record = model->record();
+                    is_insert = true;
+                    qDebug() << "\t\tImporting module..." << id << o["name"].toString("");
+                }
+
+                // JSON - list of objects
+                // {"id":26664700000000088,"name":"Module 1","position":1,"unlock_at":null,
+                // "require_sequential_progress":false,"publish_final_grade":false,
+                // "prerequisite_module_ids":[],"published":false,"items_count":0,
+                // "items_url":"https://canvas.ed.dev/api/v1/courses/26664700000000082/modules/26664700000000088/items"}
+
+                record.setValue("id", o["id"].toString(""));
+                record.setValue("name", o["name"].toString(""));
+                record.setValue("position", o["position"].toString(""));
+                record.setValue("unlock_at", o["unlock_at"].toString(""));
+                record.setValue("require_sequential_progress", o["require_sequential_progress"].toString(""));
+                record.setValue("publish_final_grade", o["publish_final_grade"].toString(""));
+                record.setValue("prerequisite_module_ids", QJsonDocument(o["prerequisite_module_ids"].toArray()).toJson());
+                record.setValue("published", o["published"].toString(""));
+                record.setValue("items_count", o["items_count"].toString(""));
+                record.setValue("items_url", o["items_url"].toString(""));
+                record.setValue("course_id", course_id);
+
+               if (is_insert) {
+                   model->insertRecord(-1, record);
+               } else {
+                   // Filter should be set so 0 should be current record
+                   model->setRecord(0, record);
+               }
+               // Write changes
+               if(!model->submitAll()) { ret = false; }
+               model->setFilter(""); // clear the filter
+
+               //qDebug() << "Module " << o["name"].toString("");
+               model->database().commit();
+               //qDebug() << model->lastError();
+
+            }
+        }
+    }
+
+    return ret;
+}
+
+bool EX_Canvas::pullModuleItems()
+{
+    // Grab module items for each module in the database
+    bool ret = false;
+    if (_app_db == NULL) { return ret; }
+
+    // Get the list of modules for this student
+    GenericTableModel *modules_model = _app_db->getTable("modules");
+    GenericTableModel *model = _app_db->getTable("module_items");
+
+    if (modules_model == NULL || model == NULL) {
+        qDebug() << "Unable to get models for modules or module_items!";
+        return false;
+    }
+
+    // Get module items for each module
+    modules_model->setFilter("");
+    ret = true;
+    for (int i=0; i<modules_model->rowCount(); i++) {
+        // Get module_items for this module
+        QSqlRecord module_record = modules_model->record(i);
+        QString module_id = module_record.value("id").toString();
+        QString course_id = module_record.value("course_id").toString();
+        //qDebug() << "Retrieving module_items for " << module_id;
+        QHash<QString,QString> p;
+        p["per_page"] = "10000"; // Cuts down number of calls significantly
+        QJsonDocument doc = CanvasAPICall("/api/v1/courses/" + course_id + "/modules/" + module_id + "/items", "GET", &p );
+
+        if (doc.isArray()) {
+            //qDebug() << "\t\t\tModule items for module:";
+            // Should be an array of module items
+            QJsonArray arr = doc.array();
+            foreach(QJsonValue val, arr) {
+                //qDebug() << "got item...";
+                // This should be a module
+                QJsonObject o = val.toObject();
+
+                QString id = o["id"].toString("");
+                //qDebug() << "Module item ID " << id;
+
+                model->setFilter("id = " + id);
+                model->select();
+                QSqlRecord record;
+                bool is_insert = false;
+
+                if (model->rowCount() == 1) {
+                    // Row exists, update with current info
+                    record = model->record(0);
+                    is_insert = false;
+                    qDebug() << "\t\t\tUpdating module item..." << id << o["title"].toString("");
+                } else {
+                    // Need to clear the filter to insert
+                    model->setFilter("");
+                    record = model->record();
+                    is_insert = true;
+                    qDebug() << "\t\t\tImporting module item..." << id << o["title"].toString("");
+                }
+
+                // JSON - list of objects
+                // {"id":26664700000000088,"title":"Test Page","position":1,
+                // "indent":0,"type":"Page","module_id":26664700000000088,
+                // "html_url":"https://canvas.ed.dev/courses/26664700000000082/modules/items/26664700000000088",
+                // "page_url":"test-page","url":"https://canvas.ed.dev/api/v1/courses/26664700000000082/pages/test-page",
+                // "published":false}
+
+                record.setValue("id", o["id"].toString(""));
+                record.setValue("title", o["title"].toString(""));
+                record.setValue("position", o["position"].toString(""));
+                record.setValue("indent", o["indent"].toString(""));
+                record.setValue("type", o["type"].toString(""));
+                record.setValue("module_id", o["module_id"].toString(""));
+                record.setValue("html_url", o["html_url"].toString(""));
+                record.setValue("page_url", o["page_url"].toString(""));
+                record.setValue("url", o["url"].toString(""));
+                record.setValue("published", o["published"].toString(""));
+
+               if (is_insert) {
+                   model->insertRecord(-1, record);
+               } else {
+                   // Filter should be set so 0 should be current record
+                   model->setRecord(0, record);
+               }
+               // Write changes
+               if (!model->submitAll()) { ret = false; }
+               model->setFilter(""); // clear the filter
+
+               //qDebug() << "Module item " << o["title"].toString("");
+               model->database().commit();
+               //qDebug() << model->lastError();
+
+            }
+        }
+    }
+
+    return ret;
+}
+
+bool EX_Canvas::pullCourseFilesInfo()
+{
+    // Grab a list of files for each course (Non Binaries)
+    bool ret = false;
+    if (_app_db == NULL) { return ret; }
+
+    // Get the list of courses for this student
+    GenericTableModel *courses_model = _app_db->getTable("courses");
+    GenericTableModel *model = _app_db->getTable("files");
+
+    if (courses_model == NULL || model == NULL) {
+        qDebug() << "Unable to get models for courses or files!";
+        return false;
+    }
+
+    // Pull all file info for all courses
+    courses_model->setFilter("");
+    ret = true;
+    for (int i=0; i<courses_model->rowCount(); i++) {
+        // Get modules for this course
+        QSqlRecord course_record = courses_model->record(i);
+        QString course_id = course_record.value("id").toString();
+        //qDebug() << "Retrieving file info for " << course_id;
+        QHash<QString,QString> p;
+        p["per_page"] = "10000"; // Cuts down number of calls significantly
+        QJsonDocument doc = CanvasAPICall("/api/v1/courses/" + course_id + "/files", "GET", &p);
+
+        if (doc.isArray()) {
+            //qDebug() << "\tFile info for course:";
+            // Should be an array of modules
+            QJsonArray arr = doc.array();
+            foreach(QJsonValue val, arr) {
+                //qDebug() << "got item...";
+                // This should be a module
+                QJsonObject o = val.toObject();
+
+                QString id = o["id"].toString("");
+                //qDebug() << "File ID " << id;
+
+                model->setFilter("id = " + id);
+                model->select();
+                QSqlRecord record;
+                bool is_insert = false;
+
+                if (model->rowCount() == 1) {
+                    // Row exists, update with current info
+                    record = model->record(0);
+                    is_insert = false;
+                    qDebug() << "\t\tUpdating file info..." << id << o["display_name"].toString("");
+                } else {
+                    // Need to clear the filter to insert
+                    model->setFilter("");
+                    record = model->record();
+                    is_insert = true;
+                    qDebug() << "\t\tImporting file info..." << id << o["display_name"].toString("");
+
+                    // Set some defaults
+                    record.setValue("pull_file", "");
+                    record.setValue("local_copy_present", "");
+                }
+
+                // JSON - list of objects
+                // {"id":26664700000000097,"folder_id":26664700000000099,
+                // "display_name":"101 uses of the quadratic equation.pdf",
+                // "filename":"101_uses_of_the_quadratic_equation.pdf",
+                // "content-type":"application/pdf",
+                // "url":"https://canvas.ed.dev/files/26664700000000097/download?download_frd=1",
+                // "size":451941,"created_at":"2017-06-21T21:44:11Z",
+                // "updated_at":"2017-06-21T21:44:11Z","unlock_at":null,"locked":false,
+                // "hidden":false,"lock_at":null,"hidden_for_user":false,
+                // "thumbnail_url":null,"modified_at":"2017-06-21T21:44:11Z",
+                // "mime_class":"pdf","media_entry_id":null,"locked_for_user":false}
+
+                record.setValue("id", o["id"].toString(""));
+                record.setValue("folder_id", o["folder_id"].toString(""));
+                record.setValue("display_name", o["display_name"].toString(""));
+                record.setValue("filename", o["filename"].toString(""));
+                record.setValue("content_type", o["content-type"].toString(""));
+                record.setValue("url", o["url"].toString(""));
+                record.setValue("size", o["size"].toString(""));
+                record.setValue("created_at", o["created_at"].toString(""));
+                record.setValue("updated_at", o["updated_at"].toString(""));
+                record.setValue("unlock_at", o["unlock_at"].toString(""));
+                record.setValue("locked", o["locked"].toString(""));
+                record.setValue("hidden", o["hidden"].toString(""));
+                record.setValue("lock_at", o["lock_at"].toString(""));
+                record.setValue("hidden_for_user", o["hidden_for_user"].toString(""));
+                record.setValue("thumbnail_url", o["thumbnail_url"].toString(""));
+                record.setValue("modified_at", o["modified_at"].toString(""));
+                record.setValue("mime_class", o["mime_class"].toString(""));
+                record.setValue("media_entry_id", o["media_entry_id"].toString(""));
+                record.setValue("locked_for_user", o["locked_for_user"].toString(""));
+                record.setValue("course_id", course_id);
+
+
+               if (is_insert) {
+                   model->insertRecord(-1, record);
+               } else {
+                   // Filter should be set so 0 should be current record
+                   model->setRecord(0, record);
+               }
+               // Write changes
+               if (!model->submitAll()) { ret = false; }
+
+               model->setFilter(""); // clear the filter
+
+               //qDebug() << "File info " << o["display_name"].toString("");
+               model->database().commit();
+               //qDebug() << model->lastError();
+
+            }
+        }
+    }
+
+    return ret;
+}
+
+bool EX_Canvas::pullCourseFilesBinaries()
+{
+    // Pull binaries for files that are marked as pull
+    bool ret = false;
+
+
+    return ret;
+}
+
+bool EX_Canvas::pullCoursePages()
+{
+    // Grab a list of pages for each course
+    bool ret = false;
+    if (_app_db == NULL) { return ret; }
+
+    // Get the list of courses for this student
+    GenericTableModel *courses_model = _app_db->getTable("courses");
+    GenericTableModel *model = _app_db->getTable("pages");
+
+    if (courses_model == NULL || model == NULL) {
+        qDebug() << "Unable to get models for courses or pages!";
+        return false;
+    }
+
+    // Pull all pages for all courses
+    courses_model->setFilter("");
+    ret = true;
+    for (int i=0; i<courses_model->rowCount(); i++) {
+        // Get pages for this course
+        QSqlRecord course_record = courses_model->record(i);
+        QString course_id = course_record.value("id").toString();
+        qDebug() << "Retrieving page info for " << course_id;
+        QHash<QString,QString> p;
+        p["per_page"] = "10000"; // Cuts down number of calls significantly
+        QJsonDocument doc = CanvasAPICall("/api/v1/courses/" + course_id + "/pages", "GET", &p);
+
+        if (doc.isArray()) {
+            qDebug() << "\tPages for course:";
+            // Should be an array of pages
+            QJsonArray arr = doc.array();
+            foreach(QJsonValue val, arr) {
+                //qDebug() << "got item...";
+                // This should be a module
+                QJsonObject o = val.toObject();
+
+                QString id = o["page_id"].toString("");
+                QString page_url = o["url"].toString("");
+                QString page_body = "";
+
+                // Need to retrieve each page body individually
+                QJsonDocument page_doc = CanvasAPICall("/api/v1/courses/" + course_id + "/pages/" + page_url, "GET", &p);
+                if (!page_doc.isObject()) {
+                    qDebug() << "ERROR GETTING PAGE BODY - " << course_id << page_url;
+                    page_body = "ERROR GETTING PAGE";
+                } else {
+                    QJsonObject page_object = page_doc.object();
+                    page_body = page_object["body"].toString("");
+                }
+
+                model->setFilter("page_id = " + id);
+                model->select();
+                QSqlRecord record;
+                bool is_insert = false;
+
+                if (model->rowCount() == 1) {
+                    // Row exists, update with current info
+                    record = model->record(0);
+                    is_insert = false;
+                    qDebug() << "\t\tUpdating page..." << id << o["title"].toString("");
+                } else {
+                    // Need to clear the filter to insert
+                    model->setFilter("");
+                    record = model->record();
+                    is_insert = true;
+                    qDebug() << "\t\tImporting file info..." << id << o["title"].toString("");
+                }
+
+                // JSON - list of objects
+                // {"title":"Format of the course","created_at":"2017-06-21T21:44:15Z",
+                // "url":"format-of-the-course","editing_roles":"teachers",
+                // "page_id":26664700000000089,"published":true,"hide_from_students":false,
+                // "front_page":false,
+                // "html_url":"https://canvas.ed.dev/courses/26664700000000090/pages/format-of-the-course",
+                // "updated_at":"2017-06-21T21:44:15Z","locked_for_user":false}
+
+                record.setValue("title", o["title"].toString(""));
+                record.setValue("created_at", o["created_at"].toString(""));
+                record.setValue("url", o["url"].toString(""));
+                record.setValue("editing_roles", o["editing_roles"].toString(""));
+                record.setValue("page_id", o["page_id"].toString(""));
+                record.setValue("published", o["published"].toString(""));
+                record.setValue("hide_from_students", o["hide_from_students"].toString(""));
+                record.setValue("front_page", o["front_page"].toString(""));
+                record.setValue("html_url", o["html_url"].toString(""));
+                record.setValue("updated_at", o["updated_at"].toString(""));
+                record.setValue("locked_for_user", o["locked_for_user"].toString(""));
+                record.setValue("course_id", course_id);
+                record.setValue("body", page_body);
+                record.setValue("lock_info", o["lock_info"].toString(""));
+                record.setValue("lock_explanation", o["lock_explanation"].toString(""));
+
+                if (is_insert) {
+                   model->insertRecord(-1, record);
+                } else {
+                   // Filter should be set so 0 should be current record
+                   model->setRecord(0, record);
+                }
+                // Write changes
+                if (!model->submitAll()) { ret = false; }
+
+                model->setFilter(""); // clear the filter
+
+                //qDebug() << "Page " << o["title"].toString("");
+                model->database().commit();
+                //qDebug() << model->lastError();
+
+            }
+        }
+    }
+
+    return ret;
+}
+
+bool EX_Canvas::pullMessages(QString scope)
+{
+    // Pull the list of conversations, then pull each message in that conversation
+    bool ret = false;
+    if (_app_db == NULL) { return ret; }
+
+    if (_app_settings == NULL) {
+        qDebug() << "No app settings object set!";
+        return ret;
+    }
+
+    QString student_id = _app_settings->value("student/id", "").toString();
+    if (student_id == "") {
+        qDebug() << "No student id set!!";
+        return ret;
+    }
+
+    // Get list of conversations, then pull the list of messages
+    GenericTableModel *conversations_model = _app_db->getTable("conversations");
+    GenericTableModel *messages_model = _app_db->getTable("messages");
+
+    if (conversations_model == NULL || messages_model == NULL) {
+        qDebug() << "Unable to get models for conversations or messages!";
+        return false;
+    }
+
+    QHash<QString,QString> p;
+    p["per_page"] = "10000"; // Cuts down number of calls significantly
+    p["scope"] = scope;
+    QJsonDocument conversations_doc = CanvasAPICall("/api/v1/conversations", "GET", &p);
+    p.remove("scope"); // Remove it so we don't end up using it later
+//qDebug() << "\t\tDOC " << conversations_doc;
+    QSqlRecord record;
+    ret = true;
+    bool is_insert = false;
+
+    // Should be an array of conversations
+    if (conversations_doc.isArray()) {
+        // Should have something like this:
+        // [{"id":26664700000000089,"subject":"Next conversation","workflow_state":"read","last_message":"Hello","last_message_at":"2017-06-22T17:44:09Z","last_authored_message":"Is this getting through?","last_authored_message_at":"2017-06-22T05:24:11Z","message_count":2,"subscribed":true,"private":false,"starred":false,"properties":[],"audience":[1],"audience_contexts":{"courses":{"26664700000000090":["TeacherEnrollment"]},"groups":{}},"avatar_url":"https://canvas.ed.dev/images/messages/avatar-50.png","participants":[{"id":26664700000000083,"name":"Smith, Bob (s777777)"},{"id":1,"name":"admin@ed"}],"visible":true,"context_code":"course_26664700000000090","context_name":"TestMathCourse"},{"id":26664700000000088,"subject":"Email Diag","workflow_state":"read","last_message":"It works!!!","last_message_at":"2017-06-22T05:09:16Z","last_authored_message":"Diag Email.","last_authored_message_at":"2017-06-22T04:59:37Z","message_count":2,"subscribed":true,"private":false,"starred":false,"properties":[],"audience":[1],"audience_contexts":{"courses":{"26664700000000090":["TeacherEnrollment"]},"groups":{}},"avatar_url":"https://canvas.ed.dev/images/messages/avatar-50.png","participants":[{"id":26664700000000083,"name":"Smith, Bob (s777777)"},{"id":1,"name":"admin@ed"}],"visible":true,"context_code":"course_26664700000000090","context_name":"TestMathCourse"}]
+
+        // Just pull the ID, we will pull all the details after
+        // the next call since we we get all that when we pull the message list
+        foreach(QJsonValue val, conversations_doc.array()) {
+            // Convert this conversation to an object
+            QJsonObject o = val.toObject();
+            QString conversations_id = o["id"].toString("");
+            if (conversations_id == "") {
+                qDebug() << "ERROR ERROR - Invalid conversation? " << val.toString();
+                continue;
+            }
+
+            // Make next API call to get list of messages
+            QJsonDocument doc = CanvasAPICall("/api/v1/conversations/" + conversations_id, "GET", &p);
+            // Should come back as an object
+            if (doc.isObject()) {
+                // Now pull info for the conversation and put it in the database
+                o = doc.object();
+
+                // Does this conversation exist?
+                conversations_model->setFilter("id = " + conversations_id);
+                conversations_model->select();
+                if (conversations_model->rowCount() >= 1) {
+                    // Exists
+                    is_insert = false;
+                    record = conversations_model->record(0);
+                    qDebug() << "\tUpdating conversation " << conversations_id;
+                } else {
+                    // New record
+                    conversations_model->setFilter("");
+                    record = conversations_model->record();
+                    is_insert = true;
+                    qDebug() << "\tAdding conversation " << conversations_id;
+                }
+
+                // Set the values
+                record.setValue("id", o["id"].toString(""));
+                record.setValue("subject", o["subject"].toString(""));
+                record.setValue("workflow_state", o["workflow_state"].toString(""));
+                record.setValue("last_message", o["last_message"].toString(""));
+                record.setValue("last_message_at", o["last_message_at"].toString(""));
+                record.setValue("last_authored_message", o["last_authored_message"].toString(""));
+                record.setValue("last_authored_message_at", o["last_authored_message_at"].toString(""));
+                record.setValue("message_count", o["message_count"].toString(""));
+                record.setValue("subscribed", o["subscribed"].toString(""));
+                record.setValue("private", o["private"].toString(""));
+                record.setValue("starred", o["starred"].toString(""));
+                record.setValue("properties", QJsonDocument(o["properties"].toArray()).toJson());
+                record.setValue("audience", QJsonDocument(o["audience"].toArray()).toJson());
+                record.setValue("audience_contexts", QJsonDocument(o["audience_contexts"].toObject()).toJson());
+                record.setValue("avatar_url", o["avatar_url"].toString(""));
+                record.setValue("participants", QJsonDocument(o["participants"].toArray()).toJson());
+                record.setValue("visible", o["visible"].toString(""));
+                record.setValue("context_code", o["context_code"].toString(""));
+                record.setValue("context_name", o["context_name"].toString(""));
+                record.setValue("submissions", QJsonDocument(o["submissions"].toArray()).toJson());
+
+                if (is_insert) {
+                    conversations_model->insertRecord(-1, record);
+                } else {
+                    // Filter should be set still so 0 should be current record
+                    conversations_model->setRecord(0, record);
+                }
+                // Write the changes
+                if (!conversations_model->submitAll()) { ret = false; }
+
+                conversations_model->setFilter(""); // clear the filter
+
+                conversations_model->database().commit();
+
+qDebug() << "Got conversation, going for messages: " << o["messages"];
+                // Now loop through messages and put them in the database
+                QJsonArray messages = o["messages"].toArray();
+                foreach (QJsonValue m, messages) {
+                    // Store this message in the database
+                    QJsonObject mo = m.toObject();
+                    QString m_id = mo["id"].toString("");
+                    if (m_id == "") {
+                        qDebug() << "Invalid message id! " << m.toString();
+                        continue;
+                    }
+                    messages_model->setFilter("id = " + m_id);
+                    messages_model->select();
+                    if (messages_model->rowCount() >= 1) {
+                        // Record exists
+                        is_insert = false;
+                        record = messages_model->record(0);
+                        qDebug() << "\t\tUpdating message " << m_id;
+                    } else {
+                        // New record
+                        is_insert = true;
+                        messages_model->setFilter("");
+                        record = messages_model->record();
+                        qDebug() << "\t\tInserting new message " << m_id;
+                    }
+
+                    // Set the values
+                    record.setValue("id", mo["id"].toString(""));
+                    record.setValue("author_id", mo["author_id"].toString(""));
+                    record.setValue("created_at", mo["created_at"].toString(""));
+                    record.setValue("generated", mo["generated"].toString(""));
+                    record.setValue("body", mo["body"].toString(""));
+                    record.setValue("forwarded_messages", QJsonDocument(mo["forwarded_messages"].toArray()).toJson());
+                    record.setValue("attachments", QJsonDocument(mo["attachments"].toArray()).toJson());
+                    record.setValue("media_comment", mo["media_comment"].toString(""));
+                    record.setValue("participating_user_ids", QJsonDocument(mo["participating_user_ids"].toArray()).toJson());
+                    record.setValue("conversation_id", conversations_id);
+                    if (mo["author_id"].toString("") == student_id) {
+                        record.setValue("scope", "sent");
+                    } else {
+                        record.setValue("scope", "inbox");
+                    }
+
+                    if (is_insert) {
+                        messages_model->insertRecord(-1, record);
+                    } else {
+                        // Filter should be set so 0 is current record
+                        messages_model->setRecord(0, record);
+                    }
+                    // Write changes
+                    if (!messages_model->submitAll()) { ret = false; }
+
+                    messages_model->setFilter(""); //clear filter
+                    messages_model->database().commit();
+                    qDebug() << "ERR: " << messages_model->lastError();
+
+                }
+
+            }
+
+            // Commit any remaining transactions
+            conversations_model->database().commit();
+        }
+    }
+
+    return ret;
+}
+
+bool EX_Canvas::pushAssignments()
+{
+    // Push any submitted assignments back to canvas
+    bool ret = false;
+
+    return ret;
+}
+
+bool EX_Canvas::pushMessages()
+{
+    // Push any messages back to canvas - e.g. message teacher
+    bool ret = false;
+
+
+    return ret;
+}
+
+bool EX_Canvas::pushFiles()
+{
+    // push any submitted files back to canvas - e.g. as message attachments
+    bool ret = false;
+
+    return ret;
+}
+
 
 bool EX_Canvas::LinkToCanvas(QString redirect_url, QString client_id)
 {
@@ -116,179 +968,26 @@ void EX_Canvas::FinalizeLinkToCanvas(CM_HTTPRequest *request, CM_HTTPResponse *r
 }
 
 
-bool EX_Canvas::SyncUser(QString www_root, QString user_name, QString password)
-{
-
-    // Lookup the current user
-    QJsonDocument profileDoc = CanvasAPICall("/api/v1/users/sis_user_id:" + user_name + "/profile");
-    QString user_id = "";
-    if (profileDoc.isObject())
-    {
-        // Got the canvas profile for this user
-        QJsonObject o = profileDoc.object();
-        user_id = QString::number(o["id"].toDouble());
-    }
-    else
-    {
-        qDebug() << "Invalid Canvas User!";
-        return false;
-    }
-
-    // Get the list of classes for this user
-    //QJsonDocument classesDoc = CanvasAPICall();
-
-
-//    // Call the canvas server and get the list of information
-
-//    // Initial Login
-//    QJsonDocument json = CanvasAPICall("/api/v1/accounts/self");
-//    QJsonObject o = json.object();
-//    qDebug() << "Self : " << o["name"];
-//    if (json.isEmpty())
-//    {
-//        // Didn't get anything???
-//        return false;
-//    }
-
-//    // Retrieve and sync the list of users
-//    SyncUserList();
-
-//    SyncClassList();
-
-//    qDebug() << "Calling canvas...";
-//    QHash<QString,QString> p;
-//    p["a"] = "b& c";
-//    QJsonObject json = CanvasAPICall("/api/v1/accounts/self", "GET", &p);
-//    qDebug() << "Users self: " << json["id"];
-
-}
-
-bool EX_Canvas::SyncUserList()
-{
-    bool ret = true;
-
-    QHash<QString,QString> p;
-    p["per_page"] = "10000";
-    QJsonDocument json = CanvasAPICall("/api/v1/accounts/self/users", "GET", &p);
-    //qDebug() << "Json Data: " << json.toJson();
-    if (json.isArray())
-    {        
-        // Should get an array of users
-        QJsonArray arr = json.array();
-        qDebug() << "User List " << arr.count();
-        foreach (QJsonValue val, arr)
-        {
-            QJsonObject o = val.toObject();
-            //qDebug() << "user: " << o["login_id"];
-        }
-    } else {        
-        qDebug() << "Not user list?";
-    }
-
-
-    return ret;
-}
-
-bool EX_Canvas::SyncClassList()
-{
-    bool ret = true;
-
-    QHash<QString,QString> p;
-    p["per_page"] = "10000"; // Cuts down number of calls significantly
-    QJsonDocument json = CanvasAPICall("/api/v1/accounts/self/courses", "GET", &p);
-
-    if (json.isArray())
-    {
-        // Should be an array of classes
-        QJsonArray arr = json.array();
-        qDebug() << "Courses " << arr.count();
-        foreach(QJsonValue val, arr)
-        {
-            QJsonObject o = val.toObject();
-            QString course_id = QString::number(o["id"].toDouble());
-            qDebug() << "Class: " << o["name"] << " " << course_id;
-            SyncModulesList(course_id);
-        }
-    }
-
-    return ret;
-}
-
-bool EX_Canvas::SyncModulesList(QString class_id)
-{
-    bool ret = true;
-//qDebug() << "---Get Modules For Class " << class_id;
-    QHash<QString,QString> p;
-    p["per_page"] = "10000"; // Cuts down number of calls significantly
-    QJsonDocument json = CanvasAPICall("/api/v1/courses/" + class_id + "/modules", "GET", &p);
-
-    if (json.isArray())
-    {
-        // Should be an array of classes
-        QJsonArray arr = json.array();
-        qDebug() << "\tModules " << arr.count();
-        foreach(QJsonValue val, arr)
-        {
-            QJsonObject o = val.toObject();
-            QString module_id = QString::number(o["id"].toDouble());
-            qDebug() << "\tModule: " << o["name"] << " " << module_id;
-            SyncModuleItemsList(class_id, module_id);
-        }
-    }
-
-    return ret;
-}
-
-
-bool EX_Canvas::SyncModuleItemsList(QString class_id, QString module_id)
-{
-    bool ret = true;
-//qDebug() << "---Get Module Items For module " << module_id;
-    QHash<QString,QString> p;
-    p["per_page"] = "10000"; // Cuts down number of calls significantly
-    QJsonDocument json = CanvasAPICall("/api/v1/courses/" + class_id + "/modules/" + module_id + "/items", "GET", &p);
-
-    if (json.isArray())
-    {
-        // Should be an array of classes
-        QJsonArray arr = json.array();
-        qDebug() << "\t\tModule Items " << arr.count();
-        foreach(QJsonValue val, arr)
-        {
-            QJsonObject o = val.toObject();
-            QString module_item_id = QString::number(o["id"].toDouble());
-            qDebug() << "\t\tModule Item: " << o["title"] << " " << module_item_id;
-            //SyncModuleItemsList(module_id);
-        }
-    }
-
-    return ret;
-}
-
-bool EX_Canvas::SyncCourse(QString course_id)
-{
-    //// TODO: Put dummy user into system
-    ///
-
-//    CM_Users *user = CM_Users::CreateUser("Bob");
-//    user->SetPassword("Smith");
-//    user->SaveObjectInfo();
-
-    return true;
-}
-
 QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<QString, QString> *p)
 {
     // Network call will recursivly call the canvas api until it runs out of link headers
     QHash<QString,QString> headers;
     headers["Authorization"] = "Bearer " + canvas_access_token;
-    headers["User-Agent"] = "Tablet LMS";
+    headers["User-Agent"] = "OPE LMS";
 
     QString json = NetworkCall(canvas_server + api_call, method, p, &headers);
 
-    // Convert response to json
+
     //http_reply_data = "{\"default_time_zone\":\"Pacific Time (US \u0026 Canada)\",\"id\":1,\"name\":\"Admin\",\"parent_account_id\":null,\"root_account_id\":null,\"default_storage_quota_mb\":5000,\"default_user_storage_quota_mb\":50}";
-    //qDebug() << "Parsing http data: " << json;
+
+    // Convert big id numbers to strings so they parse correctly
+    // NOTE: qjsondocument converts ints to doubles and ends up loosing presision
+    // find occurences of integer values in json documents and add quotes
+    QRegularExpression regex("(\"\\s*:\\s*)(\\d+)([^\"])|([\\[])(\\d+)|([,])(\\d+)"); //   ":\\s*(\\d+)\\s*,");
+    json = json.replace(regex, "\\1\\4\\6\"\\2\\5\\7\"\\3");  //  :\"\\1\",");
+    //qDebug() << "===================================\nParsing http data: " << json;
+
+    // Convert response to json
     QJsonDocument d(QJsonDocument::fromJson(json.toUtf8()));
 
     return d;
@@ -344,6 +1043,11 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
     }
 
     return ret;
+}
+
+void EX_Canvas::SetCanvasAccessToken(QString token)
+{
+    canvas_access_token = token;
 }
 
 

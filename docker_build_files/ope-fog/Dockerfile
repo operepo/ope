@@ -73,7 +73,7 @@ mkdir /images
 # TODO -
 # Rename folders  /images, /tftpboot, /opt/fog, /var/lib/mysql
 # On startup, copy the contents into the new folder (mouted in the external volume)
-
+LABEL rebuild=5
 # Copy in the startup scripts
 COPY supervisord.conf /etc/supervisor/supervisord.conf
 COPY start.sh /start.sh
@@ -82,7 +82,7 @@ dos2unix /start.sh
 
 VOLUME ["/var/lib/mysql", "/images", "/backup"]
 # VOLUME ["/var/lib/mysql", "/tftpboot", "/images", "/opt/fog"]
-EXPOSE 80 443 212/udp 9098 21 69/udp 8099 2049 2049/udp 111/udp 111 4045/udp 4045 34463/udp 34463
+EXPOSE 80 443 212/udp 9098 21 69 69/udp 8099 2049 2049/udp 111/udp 111 4045/udp 4045 34463/udp 34463
 # ENV USER=foguser
 # TODO - multiple services need to start?
 CMD ["/start.sh"]
