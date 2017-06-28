@@ -7,7 +7,7 @@
 ipaddress='127.0.0.1'
 copybackold='0'
 interface='eth0'
-submask='255.255.252.0'
+submask='255.255.255.0'
 routeraddress='192.168.10.1'
 plainrouter='192.168.10.1'
 dnsaddress='192.168.10.1'

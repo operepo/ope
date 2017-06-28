@@ -1,0 +1,8 @@
+
+# /etc/default/tftpd-hpa
+# FOG Modified version
+TFTP_USERNAME="root"
+TFTP_DIRECTORY="/tftpboot"
+TFTP_ADDRESS=":69"
+TFTP_OPTIONS="-s --port-range 7000:7100"
+

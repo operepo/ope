@@ -38,10 +38,10 @@ RUN apt-get clean
 # RUN cd /fog_1.3.4/bin \
 #	&& ./installfog.sh -Y
 
-LABEL REBUILD = 1
+LABEL REBUILD = 2
 # Load up our settings
 RUN mkdir -p /opt/fog
-COPY .fogsettings /opt/fog/
+COPY .fogsettings /opt/fog
 
 # Update fog settings with the current public ip
 # Try initial build with 127.0.0.1
@@ -55,7 +55,8 @@ git pull;
 
 # Make sure our utility to update things is in place
 COPY update_fog_ip.py /fog_src/bin/
-RUN chmod +x /fog_src/bin/update_fog_ip.py
+RUN chmod +x /fog_src/bin/update_fog_ip.py \
+    && cp /opt/fog/.fogsettings /
 
 
 # Note - this will get run again on docker startup
@@ -70,23 +71,19 @@ RUN cd /fog_src/bin/; \
 RUN mv /images /images_orig; \
 mkdir /images
 
-# TODO -
-# Rename folders  /images, /tftpboot, /opt/fog, /var/lib/mysql
-# On startup, copy the contents into the new folder (mouted in the external volume)
-LABEL rebuild=5
+LABEL rebuild=11
 # Copy in the startup scripts
 COPY supervisord.conf /etc/supervisor/supervisord.conf
 COPY start.sh /start.sh
-RUN chmod +x /start.sh; \
-dos2unix /start.sh
+COPY tftpd-hpa /etc/default/tftpd-hpa
+RUN chmod +x /start.sh \
+    && chmod 644 /etc/default/tftpd-hpa \
+    && dos2unix /start.sh /etc/default/tftpd-hpa
 
 VOLUME ["/var/lib/mysql", "/images", "/backup"]
 # VOLUME ["/var/lib/mysql", "/tftpboot", "/images", "/opt/fog"]
-EXPOSE 80 443 212/udp 9098 21 69 69/udp 8099 2049 2049/udp 111/udp 111 4045/udp 4045 34463/udp 34463
-# ENV USER=foguser
-# TODO - multiple services need to start?
+EXPOSE 7480 7443 212/udp 9098 21 69 69/udp 8099 2049 2049/udp 111/udp 111 4045/udp 4045 34463/udp 34463 7000-7100/udp
 CMD ["/start.sh"]
-#ENTRYPOINT exec bash
 
 
 # Set password to ENV password
