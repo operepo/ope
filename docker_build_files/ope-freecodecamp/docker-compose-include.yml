@@ -1,22 +1,23 @@
-    ope-jsbin:
-        build: ./ope-jsbin
-        image: operepo/ope-jsbin
-        container_name: ope-jsbin
+    ope-freecodecamp:
+        build: ./ope-freecodecamp
+        image: kgonyo/ope-freecodecamp
+        container_name: ope-freecodecamp
         ports:
-            - "80"
-        volumes:
-            - ../volumes/jsbin/data:/data:rw
+            - "3000"
+            - "27017"
+            - "27018"
+            - "27019"
+            - "28017"
         depends_on:
             - ope-gateway
             - ope-dns
         env_file: .env
         environment:
-            - PORT=80
-            - JSBIN_CONFIG=/config/jsbin.json
             - IT_PW=${IT_PW}
             - OFFICE_PW=${OFFICE_PW}
-            - VIRTUAL_HOST=jsbin.<DOMAIN>
-            #- VIRTUAL_PORT=3000
+            - VIRTUAL_HOST=freecodecamp.<DOMAIN>
+            - VIRTUAL_PORT=3000
+            # Share the default cert on the gateway
+            - CERT_NAME=default
             - VIRTUAL_PROTO=http
-        
-        
+            #- HTTPS_METHOD=noredirect
