@@ -12,3 +12,6 @@
             # /certs directory can be mapped if you put your certs in the volumes folder
             - ../volumes/gateway/certs:/etc/nginx/certs:rw
         env_file: .env
+        environment:
+            - DEFAULT_HOST=fog.<DOMAIN>
+

@@ -21,16 +21,25 @@ ENV TERM=xterm
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-LABEL REBULID=12
+LABEL REBULID=13
 RUN apt-get update; \
 apt-get -y upgrade
 
 RUN apt-get install -y wget net-tools nano python-pip python-dev libmysqlclient-dev git \
-apache2 bc build-essential cpp curl g++ gawk gcc gzip htmldoc lftp libapache2-mod-php5 libc6 libcurl3 m4 mysql-client mysql-server net-tools nfs-kernel-server openssh-server php5 php5-cli php5-curl php5-fpm php5-gd php5-json php5-mcrypt php5-mysqlnd php-gettext sysv-rc-conf tar tftpd-hpa tftp-hpa unzip vsftpd wget xinetd zlib1g dos2unix supervisor
+apache2 bc build-essential cpp curl g++ gawk gcc gzip htmldoc lftp libapache2-mod-php5 libc6 libcurl3 \
+m4 mysql-client mysql-server net-tools nfs-kernel-server openssh-server php5 php5-cli php5-curl php5-fpm \ 
+php5-gd php5-json php5-mcrypt php5-mysqlnd php-gettext sysv-rc-conf tar tftpd-hpa tftp-hpa \
+unzip vsftpd wget xinetd zlib1g dos2unix supervisor iptables syslinux
 RUN pip install MySQL-python
 RUN apt-get clean
 
 # RUN dpkg-reconfigure locales
+
+# Get pipework
+COPY pipework /bin/pipework
+RUN chmod +x /bin/pipework
+#RUN wget --no-check-certificate -nv https://raw.github.com/jpetazzo/pipework/master/pipework \
+#    && chmod +x pipework
 
 # Download fog server
 # RUN wget -v -O fog.tar.gz   "https://downloads.sourceforge.net/project/freeghost/FOG/fog_1.3.4/fog_1.3.4.tar.gz?r=https%3A%2F%2Ffogproject.org%2F&ts=1488250317&use_mirror=cytranet"
@@ -71,7 +80,7 @@ RUN cd /fog_src/bin/; \
 RUN mv /images /images_orig; \
 mkdir /images
 
-LABEL rebuild=11
+LABEL rebuild=17
 # Copy in the startup scripts
 COPY supervisord.conf /etc/supervisor/supervisord.conf
 COPY start.sh /start.sh
@@ -82,7 +91,11 @@ RUN chmod +x /start.sh \
 
 VOLUME ["/var/lib/mysql", "/images", "/backup"]
 # VOLUME ["/var/lib/mysql", "/tftpboot", "/images", "/opt/fog"]
-EXPOSE 7480 7443 212/udp 9098 21 69 69/udp 8099 2049 2049/udp 111/udp 111 4045/udp 4045 34463/udp 34463 7000-7100/udp
+#EXPOSE 7480 7443 212/udp 9098 21 69 69/udp 8099 2049 2049/udp 111/udp 111 4045/udp 4045 34463/udp 34463 7000-7100/udp
+EXPOSE 80 443 21 69/udp 7000-7020/udp
+# PORTS web 80, webs 443, ftp 21, tftp 69/udp, nfs 111/tcpudp 2049/tcpudp, nfslock 4045/tcpudp
+# mysql 3306 (don't expose), mountd 20048/tcpudp, cifs 139 139 445, proxy dhcp 4011, dns 53/tcpupd
+# tftp xfer 7000-7020/udp 
 CMD ["/start.sh"]
 
 

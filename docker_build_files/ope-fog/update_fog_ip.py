@@ -60,7 +60,12 @@ def get_lan_ip():
 
 print("Detecting ip...")
 
-ip = get_lan_ip()
+# Check environment variable if it exists
+ip = os.getenv("PUBLIC_IP")
+
+if ip is None:
+    # No environment variable set, try and figure out the current IP
+    ip = get_lan_ip()
 print("Found IP: {0}".format(ip))
 
 
@@ -111,23 +116,32 @@ cur.execute("update globalSettings set settingValue='" + ip + "' where settingKe
 # Update Web Host
 cur = db.cursor()
 cur.execute("update globalSettings set settingValue='" + ip + "' where settingKey='FOG_WEB_HOST'")
+# Update WOL Host
+cur = db.cursor()
+cur.execute("update globalSettings set settingValue='" + ip + "' where settingKey='FOG_WOL_HOST'")
 # Update storage IP
 cur = db.cursor()
 cur.execute("update nfsGroupMembers set ngmHostname='" + ip + "' where ngmMemberName='DefaultMember'")
 
 db.close()
 
+# Fix the ip in default.ipxe file
+os.system("/bin/sed -i \"s|http://\([^/]\+\)/|http://" + ip + "/|\" /tftpboot/default.ipxe")
+os.system("/bin/sed -i \"s|http:///|http://" + ip + "/|\" /tftpboot/default.ipxe")
+
+# Fix the ip in the config.class.php file
+os.system("/bin/sed -i \"s|\\\".*\\..*\\..*\\..*\\\"|\\\"" + ip + "\\\"|\" /var/www/fog/lib/fog/config.class.php")
 
 # Run fog installer
-installer_path = "~/trunk/bin"
-installer_file = "installfog.sh"
+#installer_path = "~/trunk/bin"
+#installer_file = "installfog.sh"
 
 print("Running fog installer...")
-cmd = "cd " + installer_path + "; ./" + installer_file + " -y"
-print("CMD: " + cmd)
-os.system(cmd)
+#cmd = "cd " + installer_path + "; ./" + installer_file + " -y"
+#print("CMD: " + cmd)
+#os.system(cmd)
 
 
 # Finished
-print("Finished initializing fog server.")
+print("Finished updating fog server ip.")
 
