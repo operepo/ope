@@ -6,7 +6,10 @@
 images/
 volumes/
 *.pyc
-/docker-compose.yml
+docker_build_files/docker-compose.yml
+docker_build_files/.ip
+docker_build_files/.env
+docker_build_files/.domain
 
 # Ignore build folders
 client_tools/lms/src/build-*

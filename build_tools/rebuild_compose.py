@@ -33,6 +33,12 @@ replacement_values = { '<DOMAIN>': '', '<IP>': '', "<VOLUMES>": '',
 volume_list = []
 
 
+def getComposeFolder():
+    pwd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    pwd = os.path.join(pwd, "docker_build_files")
+    return pwd
+
+
 # Find the local/public ip of the machine
 def getIP():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -45,6 +51,49 @@ def getIP():
     finally:
         s.close()
     return IP
+
+def getSavedIP():
+    # Load the saved IP
+    ip = ""
+    pwd = getComposeFolder()
+    ip_file = os.path.join(pwd, ".ip")
+    try:
+    	f = open(ip_file, "r")
+    	ip = f.read()
+    	f.close()
+    except:
+        print("No saved IP")
+    return ip.strip()
+
+def saveIP(ip):
+    # Save the ip for later
+    # Locate the base folder
+    pwd = getComposeFolder()
+    ip_file = os.path.join(pwd, ".ip")
+    f = open(ip_file, "w")
+    f.write(ip)
+    f.close()
+
+def saveDomain(domain):
+    # Save the domain for later
+    pwd = getComposeFolder()
+    domain_file = os.path.join(pwd, ".domain")
+    f = open(domain_file, "w")
+    f.write(domain)
+    f.close()
+
+def getDomain():
+    # Load saved domain name
+    domain = ""
+    pwd = getComposeFolder()
+    domain_file = os.path.join(pwd, ".domain")
+    try:
+        f = open(domain_file, "r")
+        domain = f.read()
+        f.close()
+    except:
+        print("No saved domain")
+    return domain.strip()
 
 def processFolder(cwd=""):
     global volume_list
@@ -110,20 +159,41 @@ def processFolder(cwd=""):
 
 # Get current IP address
 ip = getIP()
-choice = raw_input("Enter public IP [enter to use " + ip + "]: ")
-choice = choice.strip()
-if (choice != ""):
-    ip = choice
+saved_ip = getSavedIP()
+get_new_ip = False
+if ip != saved_ip and saved_ip != "":
+    # Looks like your ip has changed?
+    print("Possible IP change!!!")
+    print("Saved IP: " + saved_ip + " - Machine IP: " + ip)
+    choice = raw_input("Do you want to continue to use the saved IP? [Enter for Y, N to enter a new IP]: ")
+    if choice.lower() == "n":
+        get_new_ip = True
+    else:
+        # continue with saved ip
+        ip = saved_ip
+
+if saved_ip == "" or get_new_ip == True:
+    choice = raw_input("Enter public IP [enter to use " + ip + "]: ")
+    choice = choice.strip()
+    if (choice != ""):
+        ip = choice
+
 replacement_values["<IP>"] = ip
-print "Using " + ip + "..."
+print "Using IP: " + ip + "..."
+saveIP(ip)
 
 domain = "ed"
-choice = raw_input("Enter domain to use [enter to use " + domain + "]: ")
-choice = choice.strip()
-if (choice != ""):
-    domain = choice
+saved_domain = getDomain()
+if saved_domain == "":
+    choice = raw_input("Enter domain to use [enter to use " + domain + "]: ")
+    choice = choice.strip()
+    if (choice != ""):
+        domain = choice
+else:
+    domain = saved_domain
 replacement_values["<DOMAIN>"] = domain
-print "Using " + domain + "..."
+print "Using domain: " + domain + "..."
+saveDomain(domain)
 
 # Grab current folder, then move back one, then into the docker_build_files folder
 pwd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

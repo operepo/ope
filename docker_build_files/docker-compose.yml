@@ -11,121 +11,9 @@
 # START OF docker-compose.yml
 version: '2'
 
-volumes:
-    pg_data:
 
 
 services:
-
-    ope-canvas:
-        build: ./ope-canvas
-        image: operepo/ope-canvas
-        container_name: ope-canvas
-        ports:
-            - "3000"
-        volumes:
-            # Normal mounts
-            - ../volumes/canvas/tmp:/usr/src/app/tmp:rw
-            - ../volumes/canvas/log:/usr/src/app/log:rw
-        depends_on:
-            - ope-gateway
-            - ope-dns
-            - ope-redis
-            - ope-postgresql
-        env_file: .env
-        environment:
-            - IT_PW=${IT_PW}
-            - OFFICE_PW=${OFFICE_PW}
-            - VIRTUAL_HOST=canvas.ed.dev
-            - ADMIN_EMAIL=${ADMIN_EMAIL}
-            - LMS_ACCOUNT_NAME=${LMS_ACCOUNT_NAME}
-            - CANVAS_SECRET=${CANVAS_SECRET}
-            - VIRTUAL_PORT=3000
-            # Share the default cert on the gateway
-            - CERT_NAME=default
-            - VIRTUAL_PROTO=http
-            #- HTTPS_METHOD=noredirect
-        links:
-            - ope-postgresql:postgresql
-            - ope-redis:redis
-
-
-    ope-clamav:
-        build: ./ope-clamav
-        image: operepo/ope-clamav
-        container_name: ope-clamav
-        ports:
-            - "80"
-        volumes:
-            - ../volumes/clamav/www:/usr/share/nginx/html:rw
-        depends_on:
-            - ope-gateway
-            - ope-dns
-        env_file: .env
-        environment:
-            - VIRTUAL_HOST=clamav.ed.dev
-
-
-    ope-dns:
-        build: ./ope-dns
-        image: operepo/ope-dns
-        container_name: ope-dns
-        cap_add:
-            - NET_ADMIN
-        command: -A /ed.dev/192.168.10.32 # --log-facility=-
-        ports:
-            - "53:53/tcp"
-            - "53:53/udp"
-        env_file: .env
-        environment:
-            - IP_ADDR=192.168.10.32
-
-
-    ope-fog:
-        build: ./ope-fog
-        image: operepo/ope-fog
-        container_name: ope-fog
-        network_mode: host
-        ports:
-            - "7480"
-            - "7443"
-            - "212:212/udp"
-            - "9098:9098"
-            - "21:21"
-            - "69:69/udp"
-            - "8099:8099"
-            - "2049:2049"
-            - "2049:2049/udp"
-            - "111:111/udp"
-            - "111:111"
-            - "4045:4045/udp"
-            - "4045:4045"
-            - "34463:34463"
-            - "34463:34463/udp"
-            - "7000:7100/udp"
-        labels:
-            - fogproject="Open Source PC Imaging Server"
-        volumes:
-            - ../volumes/fog/images:/images:rw
-            - ../volumes/fog/backup:/backup:rw
-            #- ../volumes/fog/tftpboot:/tftpboot:rw
-            #- ../volumes/fog/opt/fog:/opt/fog:rw
-            - ../volumes/fog/mysql/data:/var/lib/mysql:rw
-        depends_on:
-            - ope-gateway
-            - ope-dns
-        env_file: .env
-        environment:
-            - IT_PW=${IT_PW}
-            - OFFICE_PW=${OFFICE_PW}
-            - VIRTUAL_HOST=fog.ed.dev,fogserver,fogserver.ed.dev
-            - PUBLIC_IP=${PUBLIC_IP}
-            - VIRTUAL_PORT=7480
-            # Share the default cert on the gateway
-            - CERT_NAME=default
-            - VIRTUAL_PROTO=http
-            #- HTTPS_METHOD=noredirect
-        
 
     ope-gateway:
         build: ./ope-gateway
@@ -141,56 +29,77 @@ services:
             # /certs directory can be mapped if you put your certs in the volumes folder
             - ../volumes/gateway/certs:/etc/nginx/certs:rw
         env_file: .env
+        environment:
+            - DEFAULT_HOST=fog.ed
 
 
-    ope-postgresql:
-        build: ./ope-postgresql
-        image: operepo/ope-postgresql
-        container_name: ope-postgresql        
+
+    ope-gcf:
+        build: ./ope-gcf
+        image: operepo/ope-gcf
+        container_name: ope-gcf
         ports:
-            - "5432:5432"
+            - "80"
+        labels:
+            - "traefik.backend=gcf"
+            - "traefik.frontend.rule=Host:gcf.ed, gcflearnfree.org, gcflearnfree.ed"
+            - "traefik.port=80"
+            - "traefik.frontend.entryPoints=http"
         volumes:
-            - pg_data:/var/lib/postgresql/data:rw
+            - ../volumes/gcf/www:/usr/share/nginx/html:ro
         depends_on:
             - ope-gateway
             - ope-dns
         env_file: .env
         environment:
-            - POSTGRES_PASSWORD=${IT_PW}
-        # NOTE: This relies on a docker volume, don't delete pg_data or you will loose information
+            - VIRTUAL_HOST=gcf.ed,gcflearnfree.org,gcflearnfree.ed
+        #    - NGINX_HOST=gcf.ed
+        #    - NGINX_PORT=80
+        #command: /bin/bash -c "envsubst < /etc/nginx/conf.d/mysite.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
 
 
-    ope-redis:
-        build: ./ope-redis
-        image: operepo/ope-redis
-        container_name: ope-redis
-        ports:
-            - "6379:6379"
-        volumes:
-            - ../volumes/redis/data:/data:rw
-        depends_on:
-            - ope-gateway
-            - ope-dns
-        env_file: .env
-
-
-    ope-smc:
-        build: ./ope-smc
-        image: operepo/ope-smc
-        container_name: ope-smc
+    ope-fog:
+        build: ./ope-fog
+        image: operepo/ope-fog
+        container_name: ope-fog
+        #network_mode: host
+        privileged: true
+        cap_add:
+            - NET_ADMIN
+            - SYS_ADMIN
+            #- ALL
         ports:
             - "80"
             - "443"
+            #- "212:212/udp"
+            #- "9098:9098"
+            - "20:20"
+            - "21:21"
+            #- "69:69"
+            - "69:69/udp"
+            #- "8099:8099"
+            - "2049:2049"
+            - "2049:2049/udp"
+            - "111:111"
+            - "111:111/udp"
+            - "4045:4045/udp"
+            - "4045:4045"
+            - "34463:34463"
+            - "34463:34463/udp"
+            - "7000-7030:7000-7030/udp"
+            #- "7000-7030:7000-7030"
+            - "43870:43870/udp"
+            - "52764-52769:52764-52769/udp"
+            - "52764-52769:52764-52769"
+            - "52700-52730:52700-52730"
+        labels:
+            - fogproject="Open Source PC Imaging Server"
         volumes:
-            # Normal mounts, using smc app included in the container, can leave on during dev
-            - ../volumes/smc/cache:/home/www-data/web2py/applications/smc/cache:rw
-            - ../volumes/smc/databases:/home/www-data/web2py/applications/smc/databases:rw
-            - ../volumes/smc/errors:/home/www-data/web2py/applications/smc/errors:rw
-            - ../volumes/smc/private:/home/www-data/web2py/applications/smc/private:rw
-            - ../volumes/smc/media:/home/www-data/web2py/applications/smc/static/media:rw
-            - ../volumes/smc/uploads:/home/www-data/web2py/applications/smc/uploads:rw
-            # Dev mounts, mount the whole thing from outside the container - turn this off for production servers
-            - ../volumes/smc/src:/home/www-data/web2py/applications/smc:rw
+            - ../volumes/fog/images:/images:rw
+            - ../volumes/fog/backup:/backup:rw
+            #- ../volumes/fog/tftpboot:/tftpboot:rw
+            #- ../volumes/fog/opt/fog:/opt/fog:rw
+            - ../volumes/fog/mysql/data:/var/lib/mysql:rw
         depends_on:
             - ope-gateway
             - ope-dns
@@ -198,17 +107,28 @@ services:
         environment:
             - IT_PW=${IT_PW}
             - OFFICE_PW=${OFFICE_PW}
-            - CANVAS_SECRET=${CANVAS_SECRET}
-            - CANVAS_SERVER=https://canvas.ed.dev
-            - VIRTUAL_HOST=smc.ed.dev,admin.ed.dev,videos.ed.dev,media.ed.dev
-            - VIRTUAL_PORT=443
+            - VIRTUAL_HOST=fog.ed,fogserver,fogserver.ed
+            - PUBLIC_IP=${PUBLIC_IP}
+            #- VIRTUAL_PORT=7480
             # Share the default cert on the gateway
             - CERT_NAME=default
-            - VIRTUAL_PROTO=https
-            #- HTTPS_METHOD=noredirect
-        links:
-            - ope-postgresql:postgresql
-            # Send canvas connections through the gateway
-            - ope-gateway:canvas.ed.dev
+            #- VIRTUAL_PROTO=http
+            - HTTPS_METHOD=noredirect
+        
+
+
+    ope-dns:
+        build: ./ope-dns
+        image: operepo/ope-dns
+        container_name: ope-dns
+        cap_add:
+            - NET_ADMIN
+        command: -A /ed/172.5.0.10 # --log-facility=-
+        ports:
+            - "53:53/tcp"
+            - "53:53/udp"
+        env_file: .env
+        environment:
+            - IP_ADDR=172.5.0.10
 
 
