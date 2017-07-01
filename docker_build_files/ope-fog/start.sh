@@ -1,14 +1,32 @@
 #!/bin/bash
 set -e
 
+# Make sure the .mntcheck files exist
+mkdir -p /images/dev
+touch /images/.mntcheck
+touch /images/dev/.mntcheck
+
+
+# Start system services so nfs works
+service mountall.sh start
+/etc/init.d/rpcbind start
+/etc/init.d/nfs-common start
+/etc/init.d/nfs-kernel-server start
+
+
+# Make sure images folder is present
+mkdir -p /images/dev
+
 # Set permissions on folders
 chown -R fog:root /images
-chmod -R 770 /images
+chmod -R 777 /images
+chown -R fog:root /tftpboot
+chmod -R 777 /tftpboot
 
 # Enable NAT features to allow tftp through
 iptables -t nat -A POSTROUTING -j MASQUERADE
 
-echo "Waiting for pipework..."
+#echo "Waiting for pipework..."
 #/bin/pipework --wait
 
 # Make sure mysql is setup
@@ -28,19 +46,25 @@ fi
 #sed -i "s/Listen 443/Listen 7443/" /etc/apache2/ports.conf
 
 service mysql start
+service apache2 start
 
+# Make sure the database scheme has been init
+wget --no-check-certificate -qO - --post-data="confirm&fogverified" --no-proxy http://localhost/fog/management/index.php?node=schema
 
-
-cd /fog_src/bin
 # Make sure to update with the current public ip
+cd /fog_src/bin
 python update_fog_ip.py
 
 # Make sure services are all up and ready
-service mysql start
+#service mysql start
 service tftpd-hpa start
-#service vsftpd start
+# Make vsftpd warning not kill startup
+service vsftpd start || true
 service xinetd start
 service apache2 start
+#service rpcbind start
+#service nfs-common start
+#service nfs-kernel-server start
 
 service FOGImageReplicator start
 service FOGImageSize start
@@ -50,9 +74,12 @@ service FOGScheduler start
 service FOGSnapinHash start
 service FOGSnapinReplicator start
 
+# TODO - set fog pw to IT_PW from environment
 
 #/bin/bash -c '. /etc/apache2/envvars; rm -Rf /var/run/apache2/*; /usr/sbin/apache2 -D FOREGROUND'
 
-exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+# Run forever so docker container doesn't quit
+sleep infinity
+#exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
 
 exit;

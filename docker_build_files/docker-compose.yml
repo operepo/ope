@@ -63,29 +63,35 @@ services:
         image: operepo/ope-fog
         container_name: ope-fog
         #network_mode: host
+        privileged: true
         cap_add:
-            #- NET_ADMIN
-            #- SYS_ADMIN
-            - ALL
+            - NET_ADMIN
+            - SYS_ADMIN
+            #- ALL
         ports:
             - "80"
             - "443"
             #- "212:212/udp"
             #- "9098:9098"
+            - "20:20"
             - "21:21"
             #- "69:69"
             - "69:69/udp"
             #- "8099:8099"
-            #- "2049:2049"
-            #- "2049:2049/udp"
-            #- "111:111/udp"
-            #- "111:111"
-            #- "4045:4045/udp"
-            #- "4045:4045"
-            #- "34463:34463"
-            #- "34463:34463/udp"
-            - "7000:7020/udp"
-            #- "7000:7020"
+            - "2049:2049"
+            - "2049:2049/udp"
+            - "111:111"
+            - "111:111/udp"
+            - "4045:4045/udp"
+            - "4045:4045"
+            - "34463:34463"
+            - "34463:34463/udp"
+            - "7000-7030:7000-7030/udp"
+            #- "7000-7030:7000-7030"
+            - "43870:43870/udp"
+            - "52764-52769:52764-52769/udp"
+            - "52764-52769:52764-52769"
+            - "52700-52730:52700-52730"
         labels:
             - fogproject="Open Source PC Imaging Server"
         volumes:
@@ -117,12 +123,12 @@ services:
         container_name: ope-dns
         cap_add:
             - NET_ADMIN
-        command: -A /ed/192.168.10.26 # --log-facility=-
+        command: -A /ed/172.5.0.10 # --log-facility=-
         ports:
             - "53:53/tcp"
             - "53:53/udp"
         env_file: .env
         environment:
-            - IP_ADDR=192.168.10.26
+            - IP_ADDR=172.5.0.10
 
 

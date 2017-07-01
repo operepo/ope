@@ -1,0 +1,3 @@
+
+# Docs on setting nfs to static ports
+https://wiki.debian.org/SecuringNFS
