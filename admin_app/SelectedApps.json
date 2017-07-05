@@ -1,0 +1,130 @@
+[
+  {
+    "type": "bool",
+    "title": "ope-gateway",
+    "desc": "Web gateway, handles routing between apps",
+    "section": "Selected Apps",
+    "key": "ope-gateway",
+    "true": "auto"
+  },
+  {
+    "type": "bool",
+    "title": "ope-dns",
+    "desc": "Responds to DNS queries regarding your app domains (e.g. canvas.ed)",
+    "section": "Selected Apps",
+    "key": "ope-dns",
+    "true": "auto"
+  },
+  {
+    "type": "bool",
+    "title": "ope-clamav",
+    "desc": "Clam Anti-virus app and definitions",
+    "section": "Selected Apps",
+    "key": "ope-clamav",
+    "true": "auto"
+  },
+  {
+    "type": "bool",
+    "title": "ope-redis",
+    "desc": "Memory caching server, used by Canvas and other apps",
+    "section": "Selected Apps",
+    "key": "ope-redis",
+    "true": "auto"
+  },
+  {
+    "type": "bool",
+    "title": "ope-postgresql",
+    "desc": "Postgresql database server, used by Canvas and other apps",
+    "section": "Selected Apps",
+    "key": "ope-postgresql",
+    "true": "auto"
+  },
+  {
+    "type": "bool",
+    "title": "ope-fog",
+    "desc": "Laptop imaging server, holds windows images for deployment",
+    "section": "Selected Apps",
+    "key": "ope-fog",
+    "true": "auto"
+  },
+  {
+    "type": "bool",
+    "title": "ope-canvas",
+    "desc": "Canvas LMS server setup to work offline",
+    "section": "Selected Apps",
+    "key": "ope-canvas",
+    "true": "auto"
+  },
+  {
+    "type": "bool",
+    "title": "ope-smc",
+    "desc": "Student Management Console - import students and integrate with Canvas and other apps",
+    "section": "Selected Apps",
+    "key": "ope-smc",
+    "true": "auto"
+  },
+  {
+    "type": "bool",
+    "title": "ope-coco",
+    "desc": "CodeCombat, learn to code in a game environment by solving puzzles",
+    "section": "Selected Apps",
+    "key": "ope-coco",
+    "true": "auto"
+  },
+  {
+    "type": "bool",
+    "title": "ope-freecodecamp",
+    "desc": "FreeCodeCamp learn to write code through lessons from freecodecamp.com",
+    "section": "Selected Apps",
+    "key": "ope-freecodecamp",
+    "true": "auto"
+  },
+  {
+    "type": "bool",
+    "title": "ope-gcf",
+    "desc": "GCFLearnFree.org - learn basic computer skills",
+    "section": "Selected Apps",
+    "key": "ope-gcf",
+    "true": "auto"
+  },
+  {
+    "type": "bool",
+    "title": "ope-jsbin",
+    "desc": "Web based javascript development tool for learning web and javascript development",
+    "section": "Selected Apps",
+    "key": "ope-jsbin",
+    "true": "auto"
+  },
+  {
+    "type": "bool",
+    "title": "ope-kalite",
+    "desc": "KhanAcademy Lite - learn many different subjects available on Khan Academy",
+    "section": "Selected Apps",
+    "key": "ope-kalite",
+    "true": "auto"
+  },
+  {
+    "type": "bool",
+    "title": "ope-rachel",
+    "desc": "RACHEL web server, import large library of offline resources",
+    "section": "Selected Apps",
+    "key": "ope-rachel",
+    "true": "auto"
+  },
+  {
+    "type": "bool",
+    "title": "ope-stackdump",
+    "desc": "Offline version of StackOverflow filtered for inmate use",
+    "section": "Selected Apps",
+    "key": "ope-stackdump",
+    "true": "auto"
+  },
+  {
+    "type": "bool",
+    "title": "ope-wamap",
+    "desc": "WAMAP.org - math LMS tool with open source curriculum, videos, and exercises ",
+    "section": "Selected Apps",
+    "key": "ope-wamap",
+    "true": "auto"
+  }
+]

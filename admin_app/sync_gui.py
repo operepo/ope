@@ -1,7 +1,9 @@
 import json
 import os
 import sys
+import re
 from os.path import expanduser
+import paramiko
 
 import threading
 import time
@@ -26,8 +28,24 @@ from kivy.config import Config
 from kivy.properties import ListProperty
 from kivy.logger import Logger
 from kivy.lang import Builder
+from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.core.window import Window
 kivy.require('1.9.2')
 
+# Config.set('graphics','borderless',1)
+# Config.set('graphics','resizable',0)
+# Config.set('graphics','position','custom')
+# Config.set('graphics','left',500)
+# Config.set('graphics','top',10)
+
+# Config.set('graphics', 'resizeable', '0')
+# Config.set('graphics', 'borderless', '1')
+# Window.size = (900, 800)
+# Window.borderless = True
+
+
+# Manage multiple screens
+sm = ScreenManager()
 
 MAIN_WINDOW = None
 
@@ -78,6 +96,77 @@ def init_db_schema(db=None):
     # db.close()
 
 
+def markdown_to_bbcode(s):
+    links = {}
+    codes = []
+    def gather_link(m):
+        links[m.group(1)]=m.group(2); return ""
+    def replace_link(m):
+        return "[url=%s]%s[/url]" % (links[m.group(2) or m.group(1)], m.group(1))
+    def gather_code(m):
+        codes.append(m.group(3)); return "[code=%d]" % len(codes)
+    def replace_code(m):
+        return "%s" % codes[int(m.group(1)) - 1]
+
+    def translate(p="%s", g=1):
+        def inline(m):
+            s = m.group(g)
+            s = re.sub(r"(`+)(\s*)(.*?)\2\1", gather_code, s)
+            s = re.sub(r"\[(.*?)\]\[(.*?)\]", replace_link, s)
+            s = re.sub(r"\[(.*?)\]\((.*?)\)", "[url=\\2]\\1[/url]", s)
+            s = re.sub(r"<(https?:\S+)>", "[url=\\1]\\1[/url]", s)
+            s = re.sub(r"\B([*_]{2})\b(.+?)\1\B", "[b]\\2[/b]", s)
+            s = re.sub(r"\B([*_])\b(.+?)\1\B", "[i]\\2[/i]", s)
+            return p % s
+        return inline
+
+    s = re.sub(r"(?m)^\[(.*?)]:\s*(\S+).*$", gather_link, s)
+    s = re.sub(r"(?m)^    (.*)$", "~[code]\\1[/code]", s)
+    s = re.sub(r"(?m)^(\S.*)\n=+\s*$", translate("~[size=24][b]%s[/b][/size]"), s)
+    s = re.sub(r"(?m)^(\S.*)\n-+\s*$", translate("~[size=18][b]%s[/b][/size]"), s)
+    s = re.sub(r"(?m)^#\s+(.*?)\s*#*$", translate("~[size=24][b]%s[/b][/size]"), s)
+    s = re.sub(r"(?m)^##\s+(.*?)\s*#*$", translate("~[size=18][b]%s[/b][/size]"), s)
+    s = re.sub(r"(?m)^###\s+(.*?)\s*#*$", translate("~[b]%s[/b]"), s)
+    s = re.sub(r"(?m)^####\s+(.*?)\s*#*$", translate("~[b]%s[/b]"), s)
+    s = re.sub(r"(?m)^> (.*)$", translate("~[quote]%s[/quote]"), s)
+    #s = re.sub(r"(?m)^[-+*]\s+(.*)$", translate("~[list]\n[*]%s\n[/list]"), s)
+    #s = re.sub(r"(?m)^\d+\.\s+(.*)$", translate("~[list=1]\n[*]%s\n[/list]"), s)
+    s = re.sub(r"(?m)^((?!~).*)$", translate(), s)
+    s = re.sub(r"(?m)^~\[", "[", s)
+    s = re.sub(r"\[/code]\n\[code(=.*?)?]", "\n", s)
+    s = re.sub(r"\[/quote]\n\[quote]", "\n", s)
+    s = re.sub(r"\[/list]\n\[list(=1)?]\n", "", s)
+    s = re.sub(r"(?m)\[code=(\d+)]", replace_code, s)
+
+    return s
+
+
+# Main screen
+class StartScreen(Screen):
+    pass
+
+
+# Screen with getting starte info
+class GettingStartedScreen(Screen):
+    pass
+
+
+class VerifySettingsScreen(Screen):
+    pass
+
+
+class PickAppsScreen(Screen):
+    pass
+
+
+class OnlineModeScreen(Screen):
+    pass
+
+
+class OfflineModeScreen(Screen):
+    pass
+
+
 # === Password Box (masked ***) ===
 class PasswordLabel(Label):
     pass
@@ -111,11 +200,11 @@ class SyncOPEApp(App):
     def load_current_settings(self):
         global MAIN_WINDOW
 
-
     def build(self):
         global MAIN_WINDOW
 
         self.icon = 'logo_icon.png'
+        self.title = "Open Prison Education"
         self.settings_cls = SettingsWithSidebar
         MAIN_WINDOW = MainWindow()
 
@@ -125,10 +214,49 @@ class SyncOPEApp(App):
         # Populate data
         self.populate()
 
-        return MAIN_WINDOW
+        # Add screens for each window we can use
+        sm.add_widget(StartScreen(name="start"))
+        sm.add_widget(GettingStartedScreen(name="getting_started"))
+        sm.add_widget(VerifySettingsScreen(name="verify_settings"))
+        sm.add_widget(PickAppsScreen(name="pick_apps"))
+        sm.add_widget(OnlineModeScreen(name="online_mode"))
+        sm.add_widget(OfflineModeScreen(name="offline_mode"))
+
+        sm.current = "start"
+        return sm  # MAIN_WINDOW
 
     def build_config(self, config):
         # Default settings
+        config.setdefaults("Online Settings",
+                           {'server_ip': '127.0.0.1',
+                            'server_user': 'root',
+                            'server_password': '',
+                            'server_folder': '/ope'})
+        config.setdefaults("Offline Settings",
+                           {'server_ip': '127.0.0.1',
+                            'server_user': 'root',
+                            'server_password': '',
+                            'server_folder': '/ope'})
+        config.setdefaults("Selected Apps",
+                           {'ope-gateway': '1',
+                            'ope-dns': '1',
+                            'ope-clamav': '1',
+                            'ope-redis': '1',
+                            'ope-postgresql': '1',
+                            'ope-fog': '1',
+                            'ope-canvas': '1',
+                            'ope-smc': '1',
+                            'ope-coco': '0',
+                            'ope-freecodecamp': '0',
+                            'ope-gcf': '0',
+                            'ope-jsbin': '0',
+                            'ope-kalite': '0',
+                            'ope-rachel': '0',
+                            'ope-stackdump': '0',
+                            'ope-wamap': '0',
+
+                            })
+
         config.setdefaults("Build Settings",
                            {'build_folder': '~',
                             })
@@ -141,6 +269,11 @@ class SyncOPEApp(App):
     def build_settings(self, settings):
         # Register custom settings type
         settings.register_type('password', SettingPassword)
+
+        settings.add_json_panel('Online Settings', self.config, 'OnlineServerSettings.json')
+        settings.add_json_panel('Offline Settings', self.config, 'OfflineServerSettings.json')
+        # Don't show this in settings AND in selected apps screen
+        # settings.add_json_panel('Selected Apps', self.config, 'SelectedApps.json')
 
         settings.add_json_panel('Source Settings', self.config, 'BuildSettings.json')
         settings.add_json_panel('Transfer Settings', self.config, 'TransferSettings.json')
@@ -172,6 +305,135 @@ class SyncOPEApp(App):
     def populate(self):
         global MAIN_WINDOW
         # Refresh data from database
+
+    def pick_apps(self):
+        # Show the screen to select apps to choose
+        Logger.info("App.click_pick_apps")
+        pass
+
+    def get_file(self, fname):
+        # Load the specified file
+        ret = ""
+        try:
+            f = open(fname, "r")
+            ret = f.read()
+            f.close()
+        except:
+            # On failure just return ""
+            pass
+        # Convert git markdown to bbcode tags
+        ret = markdown_to_bbcode(ret)
+        return ret
+
+    def verify_ope_server(self, status_label):
+        # See if you can connect to the OPE serve and if the .ope_root file is present
+        status_label.text += "starting..."
+        threading.Thread(target=self.verify_ope_server_worker, args=(status_label,)).start()
+
+    def verify_ope_server_worker(self, status_label):
+        ssh_server = self.config.getdefault("Online Settings", "server_ip", "127.0.0.1")
+        ssh_user = self.config.getdefault("Online Settings", "server_user", "root")
+        ssh_pass = self.config.getdefault("Online Settings", "server_password", "")
+        ssh_folder = self.config.getdefault("Online Settings", "server_folder", "/ope")
+
+        status_label.text = "Checking connection..."
+
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        try:
+            ssh.connect(ssh_server, username=ssh_user, password=ssh_pass)
+            stdin, stdout, stderr = ssh.exec_command("ls -lah " + ssh_folder + " | grep .ope_root | wc -l ", get_pty=True)
+            stdin.close()
+            count = stdout.read().strip()
+            if count == "1":
+                status_label.text += "\n\nFound OPE folder - you are ready to go."
+            else:
+                status_label.text += "\n\nERROR - Connection succeeded, but OPE folder not found. "
+                Logger.info("1 means found root: " + str(count))
+
+            ssh.close()
+        except Exception as ex:
+            status_label.text += "\n\nERROR - Unable to connect to OPE server : " + str(ex)
+            Logger.info("Error connecting: " + str(ex))
+
+        # status_label.text += " done."
+
+    def close_app(self):
+        App.get_running_app().stop()
+
+    def set_app_active(self, app_name, value):
+        # Save the status of the app
+        ret = value
+
+        # Always return true for required apps (can't turn them off)
+        if app_name == "ope-dns":
+            ret = "1"
+        elif app_name == "ope-gateway":
+            ret = "1"
+        elif app_name == "ope-clamav":
+            ret = "1"
+        elif app_name == "ope-postgresql":
+            ret = "1"
+        elif app_name == "ope-redis":
+            ret = "1"
+
+        if ret is False:
+            ret = "0"
+        if ret is True:
+            ret = "1"
+
+        Logger.info("Setting app: " + app_name + " " + str(ret))
+        self.config.set("Selected Apps", app_name, ret)
+        self.config.write()
+        return ret
+
+
+    def is_app_active(self, app_name):
+        ret = self.config.getdefault("Selected Apps", app_name, "0")
+
+        # Always return true for required apps
+        if app_name == "ope-dns":
+            ret = "1"
+        elif app_name == "ope-gateway":
+            ret = "1"
+        elif app_name == "ope-clamav":
+            ret = "1"
+        elif app_name == "ope-postgresql":
+            ret = "1"
+        elif app_name == "ope-redis":
+            ret = "1"
+
+        return ret
+
+    def show_settings_panel(self, panel_name):
+        # Make sure settings are visible
+        self.open_settings()
+
+        # Try to find this panel
+        content = self._app_settings.children[0].content
+        menu = self._app_settings.children[0].menu
+
+        curr_p = content.current_panel
+        for p in content.panels:
+            val = content.panels[p]
+            if val.title == panel_name:
+                curr_p = val
+
+        # Set selected item
+        content.current_uid = curr_p.uid
+        # Show selected item in the menu
+        # TODO - This manually finds the button, should be able to bind properly
+        for button in menu.buttons_layout.children:
+            if button.uid != curr_p.uid:
+                button.selected = False
+            else:
+                button.selected = True
+        # Bind the current_uid property to the menu
+        #content.bind(current_uid=menu.on_selected_uid)
+        #menu.bind(selected_uid=self._app_settings.children[0].content.current_uid)
+        #content.current_uid = curr_p.uid
+        #menu.selected_uid = self._app_settings.children[0].content.current_uid
 
 
 if __name__ == "__main__":

@@ -1,0 +1,31 @@
+[
+  {
+    "type": "string",
+    "title": "App Server IP",
+    "desc": "IP address of the OPE server where docker apps run (no host name, dns may not work yet)",
+    "section": "Online Settings",
+    "key": "server_ip"
+  },
+  {
+    "type": "string",
+    "title": "User",
+    "desc": "The user to login with (generally root)",
+    "section": "Online Settings",
+    "key": "server_user"
+  },
+  {
+    "type": "password",
+    "title": "Password",
+    "desc": "The password to login to the server with",
+    "section": "Online Settings",
+    "key": "server_password"
+  },
+  {
+    "type": "string",
+    "title": "Root OPE Folder (/ope)",
+    "desc": "Location on the server where the OPE files are located. Default is /ope",
+    "section": "Online Settings",
+    "key": "server_folder"
+  }
+
+]
