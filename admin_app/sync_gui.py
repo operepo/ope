@@ -588,6 +588,9 @@ class SyncOPEApp(App):
 
     def update_online_server_worker(self, status_label):
 
+        # Get project folder (parent folder)
+        root_path = os.path.dirname(os.path.dirname(__file__))
+
         # Pull current stuff from GIT repo so we have the latest code
         status_label.text += "\n\n[b]Git Pull[/b]\nPulling latest updates from github...\n"
         status_label.text += self.git_pull_local()
@@ -611,9 +614,16 @@ class SyncOPEApp(App):
             stdin.close()
             status_label.text += stdout.read()
 
-            # Make sure ssh keys exist on the drive
+            # Make sure ssh keys exist (saved in home directory in .ssh folder on current computer)
+            bash_path = os.path.join(root_path, "PortableGit/bin/bash.exe")
+            # Run this to generate keys
+            proc = subprocess.Popen(bash_path + " -c 'if [ ! -f ~/.ssh/id_rsa ]; then ssh-keygen -t rsa -f ~/.ssh/id_rsa; fi'", stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+            proc.stdin.write("\n\n")  #  Write 2 line feeds to add empty passphrase
+            proc.stdin.close()
+            status_label.text += proc.stdout.read()
 
             # Add ssh keys to server for easy push/pull later
+
 
             # Push local git repo to server
             status_label.text += "\n\n[b]Pushing repo to server[/b]\n"
