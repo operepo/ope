@@ -14,7 +14,7 @@
             - ../volumes/smc/media:/home/www-data/web2py/applications/smc/static/media:rw
             - ../volumes/smc/uploads:/home/www-data/web2py/applications/smc/uploads:rw
             # Dev mounts, mount the whole thing from outside the container - turn this off for production servers
-            - ../volumes/smc/src:/home/www-data/web2py/applications/smc:rw
+            #- ../volumes/smc/src:/home/www-data/web2py/applications/smc:rw
         depends_on:
             - ope-gateway
             - ope-dns

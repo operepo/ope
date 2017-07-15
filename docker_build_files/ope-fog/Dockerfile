@@ -1,4 +1,5 @@
 FROM debian:jessie
+LABEL rebuild=20
 # ope-fog - Fogproject.org - System imaging server
 # Build with docker build -t ope-fog .
 
