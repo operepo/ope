@@ -19,3 +19,4 @@ client_tools/lms/src/build-*
 
 /client_tools/bin/ClamAV-x64/clamavdb
 
+/admin_app/syncope.ini
