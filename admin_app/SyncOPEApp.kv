@@ -57,6 +57,113 @@
         pos: root.pos
         font_size: '15sp'
 
+<PasswordPopup>:
+    title: 'Enter Password'
+    auto_dismiss: False
+    content: password_popup_content
+    size: (400, 250)
+    size_hint: (None, None)
+    on_open: pw_popup_text.focus = True
+    BoxLayout:
+        orientation: 'vertical'
+        id: password_popup_content
+        TextInput:
+            password: True
+            text: ''
+            pos: root.pos
+            font_size: '15sp'
+            id: pw_popup_text
+            multiline: False
+            on_text_validate:
+                if root.pw_func is not None: root.pw_func(pw_popup_text.text)
+                root.dismiss()
+        Button:
+            text: 'OK'
+            on_release:
+                if root.pw_func is not None: root.pw_func(pw_popup_text.text)
+                root.dismiss()
+        Button:
+            text: "Cancel"
+            on_release: root.dismiss()
+
+
+
+<OnlineUpdateScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Admin Tool - Updating online server'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+
+                ActionButton:
+                    text: "<-- Back"
+                    on_press: root.manager.current="online_mode"
+
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+
+        Button:
+            text: 'Run Update'
+            size_hint_y: .2
+            on_press: app.update_online_server(status_label)
+        Label:
+            text_size: self.width, None
+            size_hint_y: .8
+            valign: "top"
+            padding: (6, 6)
+            markup: True
+            text: 'Click "Run Update" button to start'
+            id: status_label
+
+<OfflineUpdateScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Admin Tool - Verify Server Settings'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+
+                ActionButton:
+                    text: "<-- Back"
+                    on_press: root.manager.current="start"
+
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+
+        Button:
+            text: 'Verify'
+            on_press: app.verify_ope_server(verify_status_label)
+        Label:
+            text: '...'
+            id: verify_status_label
+
+
+
 <VerifySettingsScreen>:
     BoxLayout:
         orientation: 'vertical'
@@ -127,6 +234,9 @@
         Button:
             text: "Offline Mode - Setup or sync with apps on inmate network"
             on_press: root.manager.current="offline_mode"
+        Button:
+            text: "Login test"
+            on_press: root.manager.current="login_screen"
 
         ScrollView:
             size_hint: (1, .2)
@@ -169,19 +279,15 @@
                     on_release: app.close_app()
 
         Button:
-            text: 'Online Server'
+            text: 'Settings - Online Server\nSet IP and login info for your online server'
             on_press: app.show_settings_panel("Online Settings")
 
         Button:
-            text: 'Verify Online Settings'
-            on_press: root.manager.current="verify_settings"
-
-
+            text: 'Install or Update server\nSetup OPE folder and make sure you have the latest updates'
+            on_press: root.manager.current="online_update"
         Button:
-            text: 'Sync'
-
-        Button:
-            text: 'Sync to Production Server'
+            text: 'Sync - Move updates to USB drive\nE.g. app images, curriculum updates...'
+            on_press: root.manager.current="online_sync"
 
 <OfflineModeScreen>:
     BoxLayout:
@@ -453,3 +559,48 @@
                     active: app.is_app_active('ope-wamap')
                     on_active: app.set_app_active('ope-wamap', self.active)
 
+
+<LoginScreen>:
+    BoxLayout
+        id: login_layout
+        orientation: 'vertical'
+        padding: [10,50,10,50]
+        spacing: 50
+
+        Label:
+            text: 'Welcome'
+            font_size: 32
+
+        BoxLayout:
+            orientation: 'vertical'
+
+            Label:
+                text: 'Login'
+                font_size: 18
+                halign: 'left'
+                text_size: root.width-20, 20
+
+            TextInput:
+                id: login
+                multiline:False
+                font_size: 28
+
+        BoxLayout:
+            orientation: 'vertical'
+            Label:
+                text: 'Password'
+                halign: 'left'
+                font_size: 18
+                text_size: root.width-20, 20
+
+            TextInput:
+                id: password
+                multiline:False
+                password:True
+                font_size: 28
+
+        Button:
+            text: 'Connection'
+            font_size: 24
+
+            on_press: root.do_login(login.text, password.text)

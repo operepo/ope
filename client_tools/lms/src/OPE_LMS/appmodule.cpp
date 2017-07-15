@@ -324,7 +324,7 @@ void AppModule::syncLMS(QString lms)
 {
     if (lms == "Canvas") {
         // Init Externals
-        _canvas->InitTool();
+        //_canvas->InitTool();
         _canvas->LinkToCanvas("http://localhost:8080/oath/response", "1");
         //_canvas->Sync();
     }

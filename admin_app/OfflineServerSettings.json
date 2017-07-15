@@ -14,11 +14,12 @@
     "key": "server_user"
   },
   {
-    "type": "password",
+    "type": "button",
     "title": "Password",
-    "desc": "The password to login to the server with",
+    "desc": "Click the button to set the password",
     "section": "Offline Settings",
-    "key": "server_password"
+    "key": "server_password",
+    "buttons": [{"title": "Set Password", "id": "btn_set_password"}]
   },
   {
     "type": "string",
