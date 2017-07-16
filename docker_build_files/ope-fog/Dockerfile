@@ -82,6 +82,10 @@ RUN chmod +x /start.sh \
     && chmod +x /fog_src/bin/update_fog_ip.py \
     && dos2unix /start.sh /etc/default/tftpd-hpa /fog_src/bin/update_fog_ip.py
 
+# Deal with sgdisk uuid error during deploy - Will want to take this out when fixes get pulled into main code 7/15/17
+RUN wget -O /var/www/fog/service/ipxe/init.xz https://fogproject.org/inits/init.xz \
+    && wget -O /var/www/fog/service/ipxe/init_32.xz https://fogproject.org/inits/init_32.xz
+
 VOLUME ["/var/lib/mysql", "/images", "/backup"]
 EXPOSE 80 443 20 21 69/udp 7000-7030/udp 111 111/udp 2049 2049/udp 4045 4045/udp 34464 34463/udp 52764-52769/udp 52764-52768 52700-52730
 CMD ["/start.sh"]

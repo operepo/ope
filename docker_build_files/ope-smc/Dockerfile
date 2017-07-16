@@ -58,7 +58,7 @@ RUN sed -i "s/StartServers          5/StartServers          2/g" /etc/apache2/ap
 RUN sed -i "s/MinSpareServers       5/MinSpareServers       2/g" /etc/apache2/apache2.conf
 RUN sed -i "s/MaxSpareServers      10/MaxSpareServers       5/g" /etc/apache2/apache2.conf
 
-LABEL rebuild=18
+LABEL rebuild=19
 	
 
 
