@@ -19,4 +19,6 @@ client_tools/lms/src/build-*
 
 /client_tools/bin/ClamAV-x64/clamavdb
 
+# Ignore bare repo sub folder
+ope.git
 /admin_app/syncope.ini
