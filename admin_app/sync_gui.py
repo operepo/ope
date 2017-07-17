@@ -61,8 +61,8 @@ MAIN_WINDOW = None
 #                 content=TextInput)
 
 # Find the base folder to store data in - use the home folder
-BASE_FOLDER = os.path.join(expanduser("~"), ".print_app")
-# Make sure the .r2 folder exists
+BASE_FOLDER = os.path.join(expanduser("~"), ".ope")
+# Make sure the .ope folder exists
 if not os.path.exists(BASE_FOLDER):
     os.makedirs(BASE_FOLDER, 0o770)
 
@@ -495,8 +495,11 @@ class SyncOPEApp(App):
 
         return ret
 
-    def git_push_repo(self, ssh_server, ssh_user, ssh_pass, ssh_folder):
+    def git_push_repo(self, ssh_server, ssh_user, ssh_pass, ssh_folder, online=True):
         ret = ""
+        remote_name = "ope_online"
+        if online is not True:
+            remote_name = "ope_offline"
 
         # Get project folder (parent folder)
         root_path = os.path.dirname(os.path.dirname(__file__))
@@ -507,12 +510,34 @@ class SyncOPEApp(App):
         # Set current path
         os.chdir(root_path)
 
-        # Make sure the remote is in place
-        proc = subprocess.Popen(git_path + " remote remove ope_online", stdout=subprocess.PIPE)
+        # Ensure the folder exists, is a repo, and has a sub folder (ope.git) that is a bare repo
+        ret += "\n\n[b]Ensuring git repo setup properly...[/b]\n"
+        stdin, stdout, stderr = ssh.exec_command("mkdir -p " + ssh_folder + "; cd " + ssh_folder + "; git init; mkdir -p ope.git; cd ope.git; git init --bare;", get_pty=True)
+        stdin.close()
+        ret += stdout.read()
+
+        # Make sure the remote is added to local repo
+        proc = subprocess.Popen(git_path + " remote remove " + remote_name, stdout=subprocess.PIPE)
         ret += proc.stdout.read()
-        proc = subprocess.Popen(git_path + " remote add ope_online ssh://" + ssh_user, stdout=subprocess.PIPE)
+        ssh_bare_repo_path = os.path.join(ssh_folder, "ope.git").replace("\\","/")
+        proc = subprocess.Popen(git_path + " remote add " + remote_name + " ssh://" + ssh_user + "@" + ssh_server + ":" + ssh_bare_repo_path, stdout=subprocess.PIPE)
         ret += proc.stdout.read()
-        # Push to the remote
+
+        # Push to the remote server
+        proc = subprocess.Popen(git_path + " " + remote_name + " master", stdout=subprocess.PIPE)
+        ret += proc.stdout.read()
+
+        # Have remote server checkout from the bare repo
+        stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git remote remove local_bare;", get_pty=True)
+        stdin.close()
+        ret += stdout.read()
+        stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git remote add local_bare ope.git;", get_pty=True)
+        stdin.close()
+        ret += stdout.read()
+        stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git pull local_bare;", get_pty=True)
+        stdin.close()
+        ret += stdout.read()
+
         return ret
 
     def enable_apps(self, ssh, ssh_folder):
@@ -557,7 +582,7 @@ class SyncOPEApp(App):
             apps.append("ope-wamap")
 
         # Clear all the enabled files
-        stdin, stdout, stderr = ssh.exec_command("rm -f " + ssh_folder + "/ope-*/.enabled", get_pty=True)
+        stdin, stdout, stderr = ssh.exec_command("rm -f " + ssh_folder + "/docker_build_files/ope-*/.enabled", get_pty=True)
         stdin.close()
         r = stdout.read()
         if len(r) > 0:
@@ -608,21 +633,51 @@ class SyncOPEApp(App):
             # Connect to the server
             ssh.connect(ssh_server, username=ssh_user, password=ssh_pass)
 
-            # Ensure the folder exists, is a repo, and has a sub folder (ope.git) that is a bare repo
-            status_label.text += "\n\n[b]Ensuring git repo setup properly...[/b]\n"
-            stdin, stdout, stderr = ssh.exec_command("mkdir -p " + ssh_folder + "; cd " + ssh_folder + "; git init; mkdir -p ope.git; cd ope.git; git init --bare;", get_pty=True)
-            stdin.close()
-            status_label.text += stdout.read()
-
             # Make sure ssh keys exist (saved in home directory in .ssh folder on current computer)
             bash_path = os.path.join(root_path, "PortableGit/bin/bash.exe")
             # Run this to generate keys
             proc = subprocess.Popen(bash_path + " -c 'if [ ! -f ~/.ssh/id_rsa ]; then ssh-keygen -t rsa -f ~/.ssh/id_rsa; fi'", stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-            proc.stdin.write("\n\n")  #  Write 2 line feeds to add empty passphrase
+            try:
+                proc.stdin.write("\n\n")  #  Write 2 line feeds to add empty passphrase
+            except:
+                # This will fail if it isn't waiting for input, that is ok
+                pass
             proc.stdin.close()
             status_label.text += proc.stdout.read()
 
+            # Make sure remote server has .ssh folder
+            stdin, stdout, stderr = ssh.exec_command("mkdir -p ~/.ssh; chmod 700 ~/.ssh;", get_pty=True)
+            stdin.close()
+            status_label.text += stdout.read()
+
+            # Find the server home folder
+            stdin, stdout, stderr = ssh.exec_command("cd ~; pwd;", get_pty=True)
+            stdin.close()
+            server_home_dir = stdout.read()
+            if server_home_dir is None:
+                server_home_dir = ""
+            server_home_dir = server_home_dir.strip()
+
+
             # Add ssh keys to server for easy push/pull later
+            home_folder = expanduser("~")
+            rsa_pub_path = os.path.join(home_folder, ".ssh", "id_rsa.pub")
+            sftp = ssh.open_sftp()
+            #p = sftp.
+            sftp.put(rsa_pub_path, os.path.join(server_home_dir, ".ssh/id_rsa.pub.ope").replace("\\", "/"))
+            sftp.close()
+            # Make sure we remove old entries
+            stdin, stdout, stderr = ssh.exec_command("awk '{print $3}' ~/.ssh/id_rsa.pub.ope", get_pty=True)
+            stdin.close()
+            remove_host = stdout.read()
+            stdin, stdout, stderr = ssh.exec_command("sed -i '/" + remove_host.strip() + "/d' ~/.ssh/authorized_keys", get_pty=True)
+            stdin.close()
+            status_label.text += stdout.read()
+
+            # Add id_rsa.pub.ope to the authorized_keys file
+            stdin, stdout, stderr = ssh.exec_command("cat ~/.ssh/id_rsa.pub.ope >> ~/.ssh/authorized_keys; chmod 600 ~/.ssh/authorized_keys;", get_pty=True)
+            stdin.close()
+            status_label.text += stdout.read()
 
 
             # Push local git repo to server
