@@ -47,7 +47,7 @@ RUN echo "Settings file permissions on node_modules..." \
 USER docker
 
 
-LABEL rebuild=22
+LABEL rebuild=23
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml
@@ -73,7 +73,7 @@ USER root
 RUN chmod 755 /usr/src/*.sh	\
     && dos2unix /usr/src/*.sh \
     && mkdir /tmp/attachment_fu \
-	&& chown -R docker:docker /tmp/attachment_fu
+	&& chown -R docker:docker /tmp/attachment_fu /usr/src/app/log
 
 RUN echo "Settings file permissions..." \
     && chown -R docker:docker /usr/src/*.sh /usr/src/app/config /usr/src/app/vendor /usr/src/app/lib/tasks/ope.rake

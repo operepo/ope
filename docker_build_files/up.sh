@@ -30,7 +30,8 @@ if [ $build_flag == "b" ]; then
 fi
 
 echo "Bringing up containers..."
-docker-compose up -d
+# Bring up without rebuilding (in case container is out of date it will still start)
+docker-compose up -d --no-build
 
 
 #echo "Bringing up bridge for fog..."
