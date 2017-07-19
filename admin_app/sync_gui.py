@@ -457,7 +457,7 @@ class SyncOPEApp(App):
         ret = markdown_to_bbcode(ret)
         return ret
 
-    def git_pull_local(self):
+    def git_pull_local(self, branch="master"):
         ret = ""
         # Pull the latest git data to the current project folder
 
@@ -483,19 +483,12 @@ class SyncOPEApp(App):
         ret += proc.stdout.read()
 
         # Make sure we have the current stuff
-        proc = subprocess.Popen(git_path + " pull ope_origin master", stdout=subprocess.PIPE)
+        proc = subprocess.Popen(git_path + " pull ope_origin " + branch, stdout=subprocess.PIPE)
         ret += proc.stdout.read()
-
-        # At this point we should have the current stuff locally
-        # Push to remove server
-        # proc = subprocess.Popen(git_path + " remote remove ope_origin", stdout=subprocess.PIPE)
-        # ret += proc.stdout.read()
-        # proc = subprocess.Popen(git_path + " remote add ope_origin https://github.com/operepo/ope.git", stdout=subprocess.PIPE)
-        # ret += proc.stdout.read()
 
         return ret
 
-    def git_push_repo(self, ssh_server, ssh_user, ssh_pass, ssh_folder, online=True):
+    def git_push_repo(self, ssh, ssh_server, ssh_user, ssh_pass, ssh_folder, online=True, branch="master"):
         ret = ""
         remote_name = "ope_online"
         if online is not True:
@@ -516,6 +509,11 @@ class SyncOPEApp(App):
         stdin.close()
         ret += stdout.read()
 
+        # Ensure that local changes are stash/saved so that the pull works later
+        stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git stash;", get_pty=True)
+        stdin.close()
+        ret += stdout.read()
+
         # Make sure the remote is added to local repo
         proc = subprocess.Popen(git_path + " remote remove " + remote_name, stdout=subprocess.PIPE)
         ret += proc.stdout.read()
@@ -524,7 +522,7 @@ class SyncOPEApp(App):
         ret += proc.stdout.read()
 
         # Push to the remote server
-        proc = subprocess.Popen(git_path + " " + remote_name + " master", stdout=subprocess.PIPE)
+        proc = subprocess.Popen(git_path + " push " + remote_name + " " + branch, stdout=subprocess.PIPE)
         ret += proc.stdout.read()
 
         # Have remote server checkout from the bare repo
@@ -534,7 +532,7 @@ class SyncOPEApp(App):
         stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git remote add local_bare ope.git;", get_pty=True)
         stdin.close()
         ret += stdout.read()
-        stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git pull local_bare;", get_pty=True)
+        stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git pull local_bare " + branch + ";", get_pty=True)
         stdin.close()
         ret += stdout.read()
 
@@ -606,12 +604,126 @@ class SyncOPEApp(App):
 
         return ret
 
-    def update_online_server(self, status_label):
+    def generate_local_ssh_key(self, status_label):
+        # Get project folder (parent folder)
+        root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        # Make sure ssh keys exist (saved in home directory in .ssh folder on current computer)
+        bash_path = os.path.join(root_path, "PortableGit/bin/bash.exe")
+        # Run this to generate keys
+        proc = subprocess.Popen(bash_path + " -c 'if [ ! -f ~/.ssh/id_rsa ]; then ssh-keygen -t rsa -f ~/.ssh/id_rsa; fi'", stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+        try:
+            proc.stdin.write("\n\n")  #  Write 2 line feeds to add empty passphrase
+        except:
+            # This will fail if it isn't waiting for input, that is ok
+            pass
+        proc.stdin.close()
+        for line in proc.stdout:
+            status_label.text += line
+        #ret += proc.stdout.read()
+
+    def add_ssh_key_to_authorized_keys(self, ssh):
+        ret = ""
+
+        # Get project folder (parent folder)
+        root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        # Make sure ssh keys exist (saved in home directory in .ssh folder on current computer)
+        bash_path = os.path.join(root_path, "PortableGit/bin/bash.exe")
+
+        # Make sure remote server has .ssh folder
+        stdin, stdout, stderr = ssh.exec_command("mkdir -p ~/.ssh; chmod 700 ~/.ssh;", get_pty=True)
+        stdin.close()
+        ret += stdout.read()
+
+        # Find the server home folder
+        stdin, stdout, stderr = ssh.exec_command("cd ~; pwd;", get_pty=True)
+        stdin.close()
+        server_home_dir = stdout.read()
+        if server_home_dir is None:
+            server_home_dir = ""
+        server_home_dir = server_home_dir.strip()
+
+        # Add ssh keys to server for easy push/pull later
+        home_folder = expanduser("~")
+        rsa_pub_path = os.path.join(home_folder, ".ssh", "id_rsa.pub")
+        sftp = ssh.open_sftp()
+        sftp.put(rsa_pub_path, os.path.join(server_home_dir, ".ssh/id_rsa.pub.ope").replace("\\", "/"))
+        sftp.close()
+        # Make sure we remove old entries
+        stdin, stdout, stderr = ssh.exec_command("awk '{print $3}' ~/.ssh/id_rsa.pub.ope", get_pty=True)
+        stdin.close()
+        remove_host = stdout.read()
+        stdin, stdout, stderr = ssh.exec_command("sed -i '/" + remove_host.strip() + "/d' ~/.ssh/authorized_keys", get_pty=True)
+        stdin.close()
+        ret += stdout.read()
+
+        # Add id_rsa.pub.ope to the authorized_keys file
+        stdin, stdout, stderr = ssh.exec_command("cat ~/.ssh/id_rsa.pub.ope >> ~/.ssh/authorized_keys; chmod 600 ~/.ssh/authorized_keys;", get_pty=True)
+        stdin.close()
+        ret += stdout.read()
+
+        # Last step - make sure that servers key is accepted here so we don't get warnings
+        known_hosts_path = os.path.join(home_folder, ".ssh", "known_hosts" )
+        ssh.save_host_keys(known_hosts_path)
+
+        return ret
+
+    def pull_docker_images(self, ssh, ssh_folder):
+        # Run on the online server - pull the current docker images
+        ret = ""
+
+        # Need to re-run the rebuild_compose.py file
+        rebuild_path = os.path.join(ssh_folder, "build_tools", "rebuild_compose.py").replace("\\", "/")
+        stdin, stdout, stderr = ssh.exec_command("python " + rebuild_path, get_pty=True)
+        stdin.close()
+        ret += stdout.read()
+
+        # Run the rebuild
+        docker_files_path = os.path.join(ssh_folder, "docker_build_files").replace("\\", "/")
+        stdin, stdout, stderr = ssh.exec_command("cd " + docker_files_path + "; docker-compose pull;", get_pty=True)
+        stdin.close()
+        ret += stdout.read()
+
+        return ret
+
+    def save_docker_images(self, ssh, ssh_folder, status_label):
+        # Dump docker images to the app_images folder on the server
+        ret = ""
+
+        save_script = os.path.join(ssh_folder, "sync_tools", "export_docker_images.py").replace("\\", "/")
+        stdin, stdout, stderr = ssh.exec_command("python " + save_script, get_pty=True)
+        stdin.close()
+        for line in stdout:
+            status_label.text += line
+
+        return ret
+
+    def load_docker_images(self, ssh, ssh_folder):
+        # Dump docker images to the app_images folder on the server
+        ret = ""
+
+        load_script = os.path.join(ssh_folder, "sync_tools", "import_docker_images.py").replace("\\", "/")
+        stdin, stdout, stderr = ssh.exec_command("python " + load_script, get_pty=True)
+        stdin.close()
+        ret += stdout.read()
+
+        return ret
+
+    def copy_docker_images_to_usb_drive(self, ssh, ssh_folder):
+        # Copy images from online server to usb drive
+        ret = ""
+
+        # Look at files and digests to see which ones we need to copy
+
+        return ret
+
+    def update_online_server(self, status_label, run_button=None):
+        if run_button is not None:
+            run_button.disabled = True
         # Start a thread to do the work
         status_label.text = "[b]Starting Update[/b]..."
-        threading.Thread(target=self.update_online_server_worker, args=(status_label,)).start()
+        threading.Thread(target=self.update_online_server_worker, args=(status_label, run_button)).start()
 
-    def update_online_server_worker(self, status_label):
+    def update_online_server_worker(self, status_label, run_button=None):
 
         # Get project folder (parent folder)
         root_path = os.path.dirname(os.path.dirname(__file__))
@@ -633,61 +745,32 @@ class SyncOPEApp(App):
             # Connect to the server
             ssh.connect(ssh_server, username=ssh_user, password=ssh_pass)
 
-            # Make sure ssh keys exist (saved in home directory in .ssh folder on current computer)
-            bash_path = os.path.join(root_path, "PortableGit/bin/bash.exe")
-            # Run this to generate keys
-            proc = subprocess.Popen(bash_path + " -c 'if [ ! -f ~/.ssh/id_rsa ]; then ssh-keygen -t rsa -f ~/.ssh/id_rsa; fi'", stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-            try:
-                proc.stdin.write("\n\n")  #  Write 2 line feeds to add empty passphrase
-            except:
-                # This will fail if it isn't waiting for input, that is ok
-                pass
-            proc.stdin.close()
-            status_label.text += proc.stdout.read()
+            # Make sure we have an SSH key to use for logins
+            self.generate_local_ssh_key(status_label)
 
-            # Make sure remote server has .ssh folder
-            stdin, stdout, stderr = ssh.exec_command("mkdir -p ~/.ssh; chmod 700 ~/.ssh;", get_pty=True)
-            stdin.close()
-            status_label.text += stdout.read()
+            # Add our ssh key to the servers list of authorized keys
+            status_label.text += self.add_ssh_key_to_authorized_keys(ssh)
 
-            # Find the server home folder
-            stdin, stdout, stderr = ssh.exec_command("cd ~; pwd;", get_pty=True)
-            stdin.close()
-            server_home_dir = stdout.read()
-            if server_home_dir is None:
-                server_home_dir = ""
-            server_home_dir = server_home_dir.strip()
-
-
-            # Add ssh keys to server for easy push/pull later
-            home_folder = expanduser("~")
-            rsa_pub_path = os.path.join(home_folder, ".ssh", "id_rsa.pub")
-            sftp = ssh.open_sftp()
-            #p = sftp.
-            sftp.put(rsa_pub_path, os.path.join(server_home_dir, ".ssh/id_rsa.pub.ope").replace("\\", "/"))
-            sftp.close()
-            # Make sure we remove old entries
-            stdin, stdout, stderr = ssh.exec_command("awk '{print $3}' ~/.ssh/id_rsa.pub.ope", get_pty=True)
-            stdin.close()
-            remove_host = stdout.read()
-            stdin, stdout, stderr = ssh.exec_command("sed -i '/" + remove_host.strip() + "/d' ~/.ssh/authorized_keys", get_pty=True)
-            stdin.close()
-            status_label.text += stdout.read()
-
-            # Add id_rsa.pub.ope to the authorized_keys file
-            stdin, stdout, stderr = ssh.exec_command("cat ~/.ssh/id_rsa.pub.ope >> ~/.ssh/authorized_keys; chmod 600 ~/.ssh/authorized_keys;", get_pty=True)
-            stdin.close()
-            status_label.text += stdout.read()
-
-
-            # Push local git repo to server
+            # Push local git repo to server - should auto login now
             status_label.text += "\n\n[b]Pushing repo to server[/b]\n"
-            status_label.text += self.git_push_repo(ssh_server, ssh_user, ssh_pass, ssh_folder)
+            status_label.text += self.git_push_repo(ssh, ssh_server, ssh_user, ssh_pass, ssh_folder)
 
             # Set enabled files for apps
             status_label.text += "\n\n[b]Enabling apps[/b]\n"
             status_label.text += self.enable_apps(ssh, ssh_folder)
 
+            # Download the current docker images
+            status_label.text += "\n\n[b]Downloading current apps[/b]\n - downloading around 10Gig the first time...\n"
+            status_label.text += self.pull_docker_images(ssh, ssh_folder)
+
+            # Save the image binary files for syncing
+            status_label.text += "\n\n[b]Save app binaries[/b]\n - will take a few minutes...\n"
+            status_label.text += "\n\n[b]TODO TODO TODO - uncomment save_docker_images...\n\n\n"
+            self.save_docker_images(ssh, ssh_folder, status_label)
+
+            # Download docker images to the USB drive
+            status_label.text += "\n\n[b]Downloading images to USB drive[/b]\n - will take a few minutes...\n"
+            status_label.text += self.copy_docker_images_to_usb_drive(ssh, ssh_folder)
 
 
             # # At this point if folder doesn't exit there is  a problem
@@ -704,6 +787,8 @@ class SyncOPEApp(App):
         except Exception as ex:
             status_label.text += "\n\n[b]SSH ERROR[/b]\n - Unable to connect to OPE server : " + str(ex)
             status_label.text += "\n\n[b]Exiting early!!![/b]"
+            if run_button is not None:
+                run_button.disabled = False
             return False
             # Logger.info("Error connecting: " + str(ex))
 
@@ -718,6 +803,8 @@ class SyncOPEApp(App):
         # - sync rachel
 
         status_label.text += "[b]DONE[/b]"
+        if run_button is not None:
+            run_button.disabled = False
 
         pass
 

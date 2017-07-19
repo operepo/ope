@@ -117,16 +117,21 @@
 
         Button:
             text: 'Run Update'
-            size_hint_y: .2
-            on_press: app.update_online_server(status_label)
-        Label:
-            text_size: self.width, None
-            size_hint_y: .8
-            valign: "top"
-            padding: (6, 6)
-            markup: True
-            text: 'Click "Run Update" button to start'
-            id: status_label
+            size_hint_y: .1
+            on_press: app.update_online_server(status_label, self)
+        ScrollView:
+            size_hint_y: .9
+            id: status_label_sv
+            Label:
+                text_size: self.width, None
+                size_hint_y: None
+                height: self.texture_size[1]
+                valign: "top"
+                padding: (6, 6)
+                markup: True
+                text: 'Click "Run Update" button to start'
+                id: status_label
+                on_text: status_label_sv.scroll_y = 0
 
 <OfflineUpdateScreen>:
     BoxLayout:

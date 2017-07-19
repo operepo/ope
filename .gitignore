@@ -22,3 +22,4 @@ client_tools/lms/src/build-*
 # Ignore bare repo sub folder
 ope.git
 /admin_app/syncope.ini
+/docker_build_files/docker-compose.yml
