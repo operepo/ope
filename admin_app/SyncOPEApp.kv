@@ -164,11 +164,25 @@
                     on_release: app.close_app()
 
         Button:
-            text: 'Verify'
-            on_press: app.verify_ope_server(verify_status_label)
-        Label:
-            text: '...'
-            id: verify_status_label
+            text: 'Run Update'
+            size_hint_y: .1
+            on_press: app.update_offline_server(status_label, self, offline_progress)
+        ScrollView:
+            size_hint_y: .85
+            id: status_label_sv
+            Label:
+                text_size: self.width, None
+                size_hint_y: None
+                height: self.texture_size[1]
+                valign: "top"
+                padding: (6, 6)
+                markup: True
+                text: 'Click "Run Update" button to start'
+                id: status_label
+                on_text: status_label_sv.scroll_y = 0
+        ProgressBar:
+            id: offline_progress
+            size_hint_y: .05
 
 
 
@@ -325,9 +339,14 @@
                     on_release: app.close_app()
 
         Button:
-            text: 'Offline Server'
+            text: 'Settings - Offline Server\nSet IP and login info for your offline server'
             on_press: app.show_settings_panel("Offline Settings")
-
+        Button:
+            text: 'Install or Update server\nSetup OPE folder and make sure you have the latest updates'
+            on_press: root.manager.current="offline_update"
+        Button:
+            text: 'Sync - Move updates from USB drive to server\nE.g. app images, curriculum updates...'
+            on_press: root.manager.current="offline_sync"
 
 <GettingStartedScreen>:
     BoxLayout:
