@@ -488,7 +488,7 @@ class SyncOPEApp(App):
 
         return ret
 
-    def git_push_repo(self, ssh, ssh_server, ssh_user, ssh_pass, ssh_folder, online=True, branch="master"):
+    def git_push_repo(self, ssh, ssh_server, ssh_user, ssh_pass, ssh_folder, status_label, online=True, branch="master", ):
         ret = ""
         remote_name = "ope_online"
         if online is not True:
@@ -507,86 +507,94 @@ class SyncOPEApp(App):
         ret += "\n\n[b]Ensuring git repo setup properly...[/b]\n"
         stdin, stdout, stderr = ssh.exec_command("mkdir -p " + ssh_folder + "; cd " + ssh_folder + "; git init; mkdir -p ope.git; cd ope.git; git init --bare;", get_pty=True)
         stdin.close()
-        ret += stdout.read()
+        for line in stdout:
+            status_label.text += line
 
         # Ensure that local changes are stash/saved so that the pull works later
         stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git stash;", get_pty=True)
         stdin.close()
-        ret += stdout.read()
+        for line in stdout:
+            status_label.text += line
 
         # Make sure the remote is added to local repo
         proc = subprocess.Popen(git_path + " remote remove " + remote_name, stdout=subprocess.PIPE)
-        ret += proc.stdout.read()
+        for line in proc.stdout:
+            status_label.text += line
+
         ssh_bare_repo_path = os.path.join(ssh_folder, "ope.git").replace("\\","/")
         proc = subprocess.Popen(git_path + " remote add " + remote_name + " ssh://" + ssh_user + "@" + ssh_server + ":" + ssh_bare_repo_path, stdout=subprocess.PIPE)
-        ret += proc.stdout.read()
+        for line in proc.stdout:
+            status_label.text += line
 
         # Push to the remote server
         proc = subprocess.Popen(git_path + " push " + remote_name + " " + branch, stdout=subprocess.PIPE)
-        ret += proc.stdout.read()
+        for line in proc.stdout:
+            status_label.text += line
 
         # Have remote server checkout from the bare repo
         stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git remote remove local_bare;", get_pty=True)
         stdin.close()
-        ret += stdout.read()
+        for line in stdout:
+            status_label.text += line
+
         stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git remote add local_bare ope.git;", get_pty=True)
         stdin.close()
-        ret += stdout.read()
+        for line in stdout:
+            status_label.text += line
+
         stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git pull local_bare " + branch + ";", get_pty=True)
         stdin.close()
-        ret += stdout.read()
+        for line in stdout:
+            status_label.text += line
 
         return ret
 
-    def enable_apps(self, ssh, ssh_folder):
-        ret = ""
-        # Make a list of enabled apps
-        ret += "\nEnabling default apps: gateway, dns, clamav, redis, postgresql"
+    def get_enabled_apps(self):
+        # Return a list of enabled apps
+
+        # Start with required apps
         apps = ["ope-gateway", "ope-dns", "ope-clamav", "ope-redis", "ope-postgresql"]
 
         # Check each item to see if it is enabled
         if self.config.getdefault("Selected Apps", "ope-fog", "1") == "1":
-            ret += "\nEnabling fog"
             apps.append("ope-fog")
         if self.config.getdefault("Selected Apps", "ope-canvas", "1") == "1":
-            ret += "\nEnabling canvas"
             apps.append("ope-canvas")
         if self.config.getdefault("Selected Apps", "ope-smc", "1") == "1":
-            ret += "\nEnabling smc"
             apps.append("ope-smc")
         if self.config.getdefault("Selected Apps", "ope-coco", "0") == "1":
-            ret += "\nEnabling code combat"
             apps.append("ope-coco")
         if self.config.getdefault("Selected Apps", "ope-freecodecamp", "0") == "1":
-            ret += "\nEnabling free code camp"
             apps.append("ope-freecodecamp")
         if self.config.getdefault("Selected Apps", "ope-gcf", "0") == "1":
-            ret += "\nEnabling gcf"
             apps.append("ope-gcf")
         if self.config.getdefault("Selected Apps", "ope-jsbin", "0") == "1":
-            ret += "\nEnabling jsbin"
             apps.append("ope-jsbin")
         if self.config.getdefault("Selected Apps", "ope-kalite", "0") == "1":
-            ret += "\nEnabling kalite"
             apps.append("ope-kalite")
         if self.config.getdefault("Selected Apps", "ope-rachel", "0") == "1":
-            ret += "\nEnabling rachel"
             apps.append("ope-rachel")
         if self.config.getdefault("Selected Apps", "ope-stackdump", "0") == "1":
-            ret += "\nEnabling stackdump"
             apps.append("ope-stackdump")
         if self.config.getdefault("Selected Apps", "ope-wamap", "0") == "1":
-            ret += "\nEnabling wamap"
             apps.append("ope-wamap")
+
+        return apps
+
+    def enable_apps(self, ssh, ssh_folder, status_label):
+        ret = ""
+        # Get the list of enabled apps
+        apps = self.get_enabled_apps()
 
         # Clear all the enabled files
         stdin, stdout, stderr = ssh.exec_command("rm -f " + ssh_folder + "/docker_build_files/ope-*/.enabled", get_pty=True)
         stdin.close()
         r = stdout.read()
         if len(r) > 0:
-            ret += "\n" + r
+            status_label.text += "\n" + r
 
         for a in apps:
+            status_label.text += "\n\tEnabling App: " + a
             app_path = os.path.join(ssh_folder, "docker_build_files", a)
             enabled_file = os.path.join(app_path, ".enabled")
             enable_cmd = "mkdir -p " + app_path + "; touch " + enabled_file
@@ -594,14 +602,8 @@ class SyncOPEApp(App):
             stdin.close()
             r = stdout.read()
             if len(r) > 0:
-                ret += "\n" + r
-        ret += "...."
-        # cmd = "cd " + ssh_folder + "/docker_build_files; rm -f ope-*/.enabled; " + enable_cmd
-        # ret += "\n\n[b]CMD:[/b] " + cmd + "\n\n"
-        # stdin, stdout, stderr = ssh.exec_command("ls -l", get_pty=True)
-        # stdin.close()
-        # ret += "\n" + stdout.read()
-
+                status_label.text += "\n" + r
+        status_label.text += "...."
         return ret
 
     def generate_local_ssh_key(self, status_label):
@@ -621,7 +623,7 @@ class SyncOPEApp(App):
             status_label.text += line
         #ret += proc.stdout.read()
 
-    def add_ssh_key_to_authorized_keys(self, ssh):
+    def add_ssh_key_to_authorized_keys(self, ssh, status_label):
         ret = ""
 
         # Get project folder (parent folder)
@@ -632,7 +634,8 @@ class SyncOPEApp(App):
         # Make sure remote server has .ssh folder
         stdin, stdout, stderr = ssh.exec_command("mkdir -p ~/.ssh; chmod 700 ~/.ssh;", get_pty=True)
         stdin.close()
-        ret += stdout.read()
+        for line in stdout:
+            status_label.text += line
 
         # Find the server home folder
         stdin, stdout, stderr = ssh.exec_command("cd ~; pwd;", get_pty=True)
@@ -654,12 +657,15 @@ class SyncOPEApp(App):
         remove_host = stdout.read()
         stdin, stdout, stderr = ssh.exec_command("sed -i '/" + remove_host.strip() + "/d' ~/.ssh/authorized_keys", get_pty=True)
         stdin.close()
-        ret += stdout.read()
+        for line in stdout:
+            status_label.text += line
 
         # Add id_rsa.pub.ope to the authorized_keys file
         stdin, stdout, stderr = ssh.exec_command("cat ~/.ssh/id_rsa.pub.ope >> ~/.ssh/authorized_keys; chmod 600 ~/.ssh/authorized_keys;", get_pty=True)
         stdin.close()
-        ret += stdout.read()
+        for line in stdout:
+            status_label.text += line
+
 
         # Last step - make sure that servers key is accepted here so we don't get warnings
         known_hosts_path = os.path.join(home_folder, ".ssh", "known_hosts" )
@@ -667,7 +673,7 @@ class SyncOPEApp(App):
 
         return ret
 
-    def pull_docker_images(self, ssh, ssh_folder):
+    def pull_docker_images(self, ssh, ssh_folder, status_label):
         # Run on the online server - pull the current docker images
         ret = ""
 
@@ -675,13 +681,15 @@ class SyncOPEApp(App):
         rebuild_path = os.path.join(ssh_folder, "build_tools", "rebuild_compose.py").replace("\\", "/")
         stdin, stdout, stderr = ssh.exec_command("python " + rebuild_path, get_pty=True)
         stdin.close()
-        ret += stdout.read()
+        for line in stdout:
+            status_label.text += line
 
         # Run the rebuild
         docker_files_path = os.path.join(ssh_folder, "docker_build_files").replace("\\", "/")
         stdin, stdout, stderr = ssh.exec_command("cd " + docker_files_path + "; docker-compose pull;", get_pty=True)
         stdin.close()
-        ret += stdout.read()
+        for line in stdout:
+            status_label.text += line
 
         return ret
 
@@ -689,6 +697,7 @@ class SyncOPEApp(App):
         # Dump docker images to the app_images folder on the server
         ret = ""
 
+        # Run the script that is on the server
         save_script = os.path.join(ssh_folder, "sync_tools", "export_docker_images.py").replace("\\", "/")
         stdin, stdout, stderr = ssh.exec_command("python " + save_script, get_pty=True)
         stdin.close()
@@ -708,12 +717,68 @@ class SyncOPEApp(App):
 
         return ret
 
-    def copy_docker_images_to_usb_drive(self, ssh, ssh_folder):
+    def copy_docker_images_to_usb_drive(self, ssh, ssh_folder, status_label):
         # Copy images from online server to usb drive
         ret = ""
 
-        # Look at files and digests to see which ones we need to copy
+        # Ensure the local app_images folder exists
+        try:
+            os.makedirs(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images"))
+        except:
+            # Throws an error if already exists
+            pass
 
+        # Use the list of enabled images
+        apps = self.get_enabled_apps()
+
+        sftp = ssh.open_sftp()
+
+        # Check each app to see if we need to copy it
+        for app in apps:
+            # Download the server digest file
+            online_digest = "."
+            current_digest = "..."
+            remote_digest_file = os.path.join(ssh_folder, "volumes", "app_images", app + ".digest").replace("\\", "/")
+            local_digest_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".digest.online")
+            current_digest_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".digest")
+            remote_image = os.path.join(ssh_folder, "volumes", "app_images", app + ".tar").replace("\\", "/")
+            local_image = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".tar")
+            sftp.get(remote_digest_file, local_digest_file)
+
+            # Read the online digest info
+            try:
+                f = open(local_digest_file, "r")
+                online_digest = f.read().strip()
+                f.close()
+            except:
+                # Unable to read the local digest, just pass
+                pass
+
+            # Read the current digest info
+            try:
+                f = open(current_digest_file, "r")
+                current_digest = f.read().strip()
+                f.close()
+            except:
+                # Unable to read the local digest, just pass
+                pass
+
+            # If digest files don't match, copy the file to the local folder
+            if online_digest != current_digest:
+                status_label.text += "\nCopying App: " + app
+                sftp.get(remote_image, local_image)
+                # Store the current digest
+                try:
+                    f = open(current_digest_file, "w")
+                    f.write(online_digest)
+                    f.close()
+                except:
+                    status_label.text += "Error saving current digest: " + current_digest_file
+            else:
+                status_label.text += "\nApp hasn't changed, skipping: " + app
+            #
+
+        sftp.close()
         return ret
 
     def update_online_server(self, status_label, run_button=None):
@@ -749,39 +814,27 @@ class SyncOPEApp(App):
             self.generate_local_ssh_key(status_label)
 
             # Add our ssh key to the servers list of authorized keys
-            status_label.text += self.add_ssh_key_to_authorized_keys(ssh)
+            self.add_ssh_key_to_authorized_keys(ssh, status_label)
 
             # Push local git repo to server - should auto login now
             status_label.text += "\n\n[b]Pushing repo to server[/b]\n"
-            status_label.text += self.git_push_repo(ssh, ssh_server, ssh_user, ssh_pass, ssh_folder)
+            self.git_push_repo(ssh, ssh_server, ssh_user, ssh_pass, ssh_folder, status_label)
 
             # Set enabled files for apps
             status_label.text += "\n\n[b]Enabling apps[/b]\n"
-            status_label.text += self.enable_apps(ssh, ssh_folder)
+            self.enable_apps(ssh, ssh_folder, status_label)
 
             # Download the current docker images
             status_label.text += "\n\n[b]Downloading current apps[/b]\n - downloading around 10Gig the first time...\n"
-            status_label.text += self.pull_docker_images(ssh, ssh_folder)
+            self.pull_docker_images(ssh, ssh_folder, status_label)
 
             # Save the image binary files for syncing
             status_label.text += "\n\n[b]Save app binaries[/b]\n - will take a few minutes...\n"
-            status_label.text += "\n\n[b]TODO TODO TODO - uncomment save_docker_images...\n\n\n"
             self.save_docker_images(ssh, ssh_folder, status_label)
 
             # Download docker images to the USB drive
             status_label.text += "\n\n[b]Downloading images to USB drive[/b]\n - will take a few minutes...\n"
-            status_label.text += self.copy_docker_images_to_usb_drive(ssh, ssh_folder)
-
-
-            # # At this point if folder doesn't exit there is  a problem
-            # stdin, stdout, stderr = ssh.exec_command("ls -lah " + ssh_folder + " | grep .ope_root | wc -l ", get_pty=True)
-            # stdin.close()
-            # count = stdout.read().strip()
-            # if count == "1":
-            #     status_label.text += "\n\nFound OPE folder - you are ready to go."
-            # else:
-            #     status_label.text += "\n\nERROR - Connection succeeded, but OPE folder not found. "
-            #     # Logger.info("1 means found root: " + str(count))
+            self.copy_docker_images_to_usb_drive(ssh, ssh_folder, status_label)
 
             ssh.close()
         except Exception as ex:
@@ -795,14 +848,14 @@ class SyncOPEApp(App):
 
         # Start syncing volume folders
         # - sync canvas
-
+        # TODO TODO TODO
         # - sync smc
 
         # - sync coco
 
         # - sync rachel
 
-        status_label.text += "[b]DONE[/b]"
+        status_label.text += "\n\n[b]DONE[/b]"
         if run_button is not None:
             run_button.disabled = False
 
