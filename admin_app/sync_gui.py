@@ -73,6 +73,8 @@ fake_migrate_all = False
 fake_migrate = False
 migrate = True
 
+# Progress bar used by threaded apps
+progress_widget = None
 
 # == Database Functions ==
 def connect_db(init_schema=True):
@@ -717,7 +719,11 @@ class SyncOPEApp(App):
 
         return ret
 
-    def copy_docker_images_to_usb_drive(self, ssh, ssh_folder, status_label):
+    def copy_docker_images_to_usb_drive(self, ssh, ssh_folder, status_label, progress_bar):
+        global progress_widget
+
+        progress_widget = progress_bar
+
         # Copy images from online server to usb drive
         ret = ""
 
@@ -735,6 +741,7 @@ class SyncOPEApp(App):
 
         # Check each app to see if we need to copy it
         for app in apps:
+            progress_bar.value = 0
             # Download the server digest file
             online_digest = "."
             current_digest = "..."
@@ -766,7 +773,8 @@ class SyncOPEApp(App):
             # If digest files don't match, copy the file to the local folder
             if online_digest != current_digest:
                 status_label.text += "\nCopying App: " + app
-                sftp.get(remote_image, local_image)
+                sftp.get(remote_image, local_image, callback=self.copy_docker_images_to_usb_drive_progress_callback)
+                Logger.info("Moving on...")
                 # Store the current digest
                 try:
                     f = open(current_digest_file, "w")
@@ -781,14 +789,23 @@ class SyncOPEApp(App):
         sftp.close()
         return ret
 
-    def update_online_server(self, status_label, run_button=None):
+    def copy_docker_images_to_usb_drive_progress_callback(self, transferred, total):
+        global progress_widget
+
+        Logger.info("XFerred: " + str(transferred) + "/" + str(total))
+        if total == 0:
+            progress_widget.value = 0
+        else:
+            progress_widget.value = int(float(transferred) / float(total) * 100)
+
+    def update_online_server(self, status_label, run_button=None, progress_bar=None):
         if run_button is not None:
             run_button.disabled = True
         # Start a thread to do the work
         status_label.text = "[b]Starting Update[/b]..."
-        threading.Thread(target=self.update_online_server_worker, args=(status_label, run_button)).start()
+        threading.Thread(target=self.update_online_server_worker, args=(status_label, run_button, progress_bar)).start()
 
-    def update_online_server_worker(self, status_label, run_button=None):
+    def update_online_server_worker(self, status_label, run_button=None, progress_bar=None):
 
         # Get project folder (parent folder)
         root_path = os.path.dirname(os.path.dirname(__file__))
@@ -810,6 +827,7 @@ class SyncOPEApp(App):
             # Connect to the server
             ssh.connect(ssh_server, username=ssh_user, password=ssh_pass)
 
+
             # Make sure we have an SSH key to use for logins
             self.generate_local_ssh_key(status_label)
 
@@ -819,6 +837,7 @@ class SyncOPEApp(App):
             # Push local git repo to server - should auto login now
             status_label.text += "\n\n[b]Pushing repo to server[/b]\n"
             self.git_push_repo(ssh, ssh_server, ssh_user, ssh_pass, ssh_folder, status_label)
+            progress_bar.value=0
 
             # Set enabled files for apps
             status_label.text += "\n\n[b]Enabling apps[/b]\n"
@@ -827,14 +846,17 @@ class SyncOPEApp(App):
             # Download the current docker images
             status_label.text += "\n\n[b]Downloading current apps[/b]\n - downloading around 10Gig the first time...\n"
             self.pull_docker_images(ssh, ssh_folder, status_label)
+            progress_bar.value=0
 
             # Save the image binary files for syncing
             status_label.text += "\n\n[b]Save app binaries[/b]\n - will take a few minutes...\n"
             self.save_docker_images(ssh, ssh_folder, status_label)
+            progress_bar.value=0
 
             # Download docker images to the USB drive
             status_label.text += "\n\n[b]Downloading images to USB drive[/b]\n - will take a few minutes...\n"
-            self.copy_docker_images_to_usb_drive(ssh, ssh_folder, status_label)
+            self.copy_docker_images_to_usb_drive(ssh, ssh_folder, status_label, progress_bar)
+            progress_bar.value=0
 
             ssh.close()
         except Exception as ex:

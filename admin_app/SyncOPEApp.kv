@@ -118,9 +118,9 @@
         Button:
             text: 'Run Update'
             size_hint_y: .1
-            on_press: app.update_online_server(status_label, self)
+            on_press: app.update_online_server(status_label, self, online_progress)
         ScrollView:
-            size_hint_y: .9
+            size_hint_y: .85
             id: status_label_sv
             Label:
                 text_size: self.width, None
@@ -132,6 +132,9 @@
                 text: 'Click "Run Update" button to start'
                 id: status_label
                 on_text: status_label_sv.scroll_y = 0
+        ProgressBar:
+            id: online_progress
+            size_hint_y: .05
 
 <OfflineUpdateScreen>:
     BoxLayout:
