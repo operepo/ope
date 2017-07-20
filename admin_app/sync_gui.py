@@ -60,8 +60,22 @@ MAIN_WINDOW = None
 #PW_POPUP = Popup(title='Enter Password',
 #                 content=TextInput)
 
+def get_home_folder():
+    # See if HOMEDRIVE is defined
+    home_path = ""
+    if "HOME" in os.environ:
+        home_path = os.environ["HOME"]
+    if "HOMEDRIVE" in os.environ:
+        home_path = os.environ["HOMEDRIVE"]
+
+    if home_path == "":
+        home_path = expanduser("~")
+    if home_path.endswith(":"):
+        home_path += "\\"
+    return home_path
+
 # Find the base folder to store data in - use the home folder
-BASE_FOLDER = os.path.join(expanduser("~"), ".ope")
+BASE_FOLDER = os.path.join(get_home_folder(), ".ope")
 # Make sure the .ope folder exists
 if not os.path.exists(BASE_FOLDER):
     os.makedirs(BASE_FOLDER, 0o770)
@@ -73,6 +87,8 @@ fake_migrate_all = False
 fake_migrate = False
 migrate = True
 
+# Progress bar used by threaded apps
+progress_widget = None
 
 # == Database Functions ==
 def connect_db(init_schema=True):
@@ -646,7 +662,7 @@ class SyncOPEApp(App):
         server_home_dir = server_home_dir.strip()
 
         # Add ssh keys to server for easy push/pull later
-        home_folder = expanduser("~")
+        home_folder = get_home_folder() #  expanduser("~")
         rsa_pub_path = os.path.join(home_folder, ".ssh", "id_rsa.pub")
         sftp = ssh.open_sftp()
         sftp.put(rsa_pub_path, os.path.join(server_home_dir, ".ssh/id_rsa.pub.ope").replace("\\", "/"))
@@ -717,7 +733,11 @@ class SyncOPEApp(App):
 
         return ret
 
-    def copy_docker_images_to_usb_drive(self, ssh, ssh_folder, status_label):
+    def copy_docker_images_to_usb_drive(self, ssh, ssh_folder, status_label, progress_bar):
+        global progress_widget
+
+        progress_widget = progress_bar
+
         # Copy images from online server to usb drive
         ret = ""
 
@@ -735,6 +755,7 @@ class SyncOPEApp(App):
 
         # Check each app to see if we need to copy it
         for app in apps:
+            progress_bar.value = 0
             # Download the server digest file
             online_digest = "."
             current_digest = "..."
@@ -766,7 +787,8 @@ class SyncOPEApp(App):
             # If digest files don't match, copy the file to the local folder
             if online_digest != current_digest:
                 status_label.text += "\nCopying App: " + app
-                sftp.get(remote_image, local_image)
+                sftp.get(remote_image, local_image, callback=self.copy_docker_images_to_usb_drive_progress_callback)
+                Logger.info("Moving on...")
                 # Store the current digest
                 try:
                     f = open(current_digest_file, "w")
@@ -781,14 +803,23 @@ class SyncOPEApp(App):
         sftp.close()
         return ret
 
-    def update_online_server(self, status_label, run_button=None):
+    def copy_docker_images_to_usb_drive_progress_callback(self, transferred, total):
+        global progress_widget
+
+        Logger.info("XFerred: " + str(transferred) + "/" + str(total))
+        if total == 0:
+            progress_widget.value = 0
+        else:
+            progress_widget.value = int(float(transferred) / float(total) * 100)
+
+    def update_online_server(self, status_label, run_button=None, progress_bar=None):
         if run_button is not None:
             run_button.disabled = True
         # Start a thread to do the work
         status_label.text = "[b]Starting Update[/b]..."
-        threading.Thread(target=self.update_online_server_worker, args=(status_label, run_button)).start()
+        threading.Thread(target=self.update_online_server_worker, args=(status_label, run_button, progress_bar)).start()
 
-    def update_online_server_worker(self, status_label, run_button=None):
+    def update_online_server_worker(self, status_label, run_button=None, progress_bar=None):
 
         # Get project folder (parent folder)
         root_path = os.path.dirname(os.path.dirname(__file__))
@@ -810,6 +841,7 @@ class SyncOPEApp(App):
             # Connect to the server
             ssh.connect(ssh_server, username=ssh_user, password=ssh_pass)
 
+
             # Make sure we have an SSH key to use for logins
             self.generate_local_ssh_key(status_label)
 
@@ -818,7 +850,8 @@ class SyncOPEApp(App):
 
             # Push local git repo to server - should auto login now
             status_label.text += "\n\n[b]Pushing repo to server[/b]\n"
-            self.git_push_repo(ssh, ssh_server, ssh_user, ssh_pass, ssh_folder, status_label)
+            self.git_push_repo(ssh, ssh_server, ssh_user, ssh_pass, ssh_folder, status_label, online=True)
+            progress_bar.value=0
 
             # Set enabled files for apps
             status_label.text += "\n\n[b]Enabling apps[/b]\n"
@@ -827,14 +860,17 @@ class SyncOPEApp(App):
             # Download the current docker images
             status_label.text += "\n\n[b]Downloading current apps[/b]\n - downloading around 10Gig the first time...\n"
             self.pull_docker_images(ssh, ssh_folder, status_label)
+            progress_bar.value=0
 
             # Save the image binary files for syncing
             status_label.text += "\n\n[b]Save app binaries[/b]\n - will take a few minutes...\n"
             self.save_docker_images(ssh, ssh_folder, status_label)
+            progress_bar.value=0
 
             # Download docker images to the USB drive
             status_label.text += "\n\n[b]Downloading images to USB drive[/b]\n - will take a few minutes...\n"
-            self.copy_docker_images_to_usb_drive(ssh, ssh_folder, status_label)
+            self.copy_docker_images_to_usb_drive(ssh, ssh_folder, status_label, progress_bar)
+            progress_bar.value=0
 
             ssh.close()
         except Exception as ex:
@@ -860,6 +896,93 @@ class SyncOPEApp(App):
             run_button.disabled = False
 
         pass
+
+    def update_offline_server(self, status_label, run_button=None, progress_bar=None):
+        if run_button is not None:
+            run_button.disabled = True
+        # Start a thread to do the work
+        status_label.text = "[b]Starting Update[/b]..."
+        threading.Thread(target=self.update_offline_server_worker, args=(status_label, run_button, progress_bar)).start()
+
+    def update_offline_server_worker(self, status_label, run_button=None, progress_bar=None):
+
+        # Get project folder (parent folder)
+        root_path = os.path.dirname(os.path.dirname(__file__))
+
+        # Login to the OPE server
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh_server = self.config.getdefault("Offline Settings", "server_ip", "127.0.0.1")
+        ssh_user = self.config.getdefault("Offline Settings", "server_user", "root")
+        ssh_pass = self.get_offline_pw() #  self.config.getdefault("Offline Settings", "server_password", "")
+        ssh_folder = self.config.getdefault("Offline Settings", "server_folder", "/ope")
+        status_label.text += "\n\n[b]SSH Connection[/b]\nConnecting to " + ssh_user + "@" + ssh_server + "..."
+
+        try:
+            # Connect to the server
+            ssh.connect(ssh_server, username=ssh_user, password=ssh_pass)
+
+
+            # Make sure we have an SSH key to use for logins
+            self.generate_local_ssh_key(status_label)
+
+            # Add our ssh key to the servers list of authorized keys
+            self.add_ssh_key_to_authorized_keys(ssh, status_label)
+
+            # Push local git repo to server - should auto login now
+            status_label.text += "\n\n[b]Pushing repo to server[/b]\n"
+            self.git_push_repo(ssh, ssh_server, ssh_user, ssh_pass, ssh_folder, status_label, online=False)
+            progress_bar.value = 0
+
+            # Set enabled files for apps
+            status_label.text += "\n\n[b]Enabling apps[/b]\n"
+            self.enable_apps(ssh, ssh_folder, status_label)
+
+            # Copy images from USB to server
+
+
+            # Import the images into docker
+
+            # Download the current docker images
+            # status_label.text += "\n\n[b]Downloading current apps[/b]\n - downloading around 10Gig the first time...\n"
+            # self.pull_docker_images(ssh, ssh_folder, status_label)
+            # progress_bar.value = 0
+
+            # Save the image binary files for syncing
+            # status_label.text += "\n\n[b]Save app binaries[/b]\n - will take a few minutes...\n"
+            # self.save_docker_images(ssh, ssh_folder, status_label)
+            # progress_bar.value=0
+
+            # Download docker images to the USB drive
+            # status_label.text += "\n\n[b]Downloading images to USB drive[/b]\n - will take a few minutes...\n"
+            # self.copy_docker_images_to_usb_drive(ssh, ssh_folder, status_label, progress_bar)
+            # progress_bar.value=0
+
+            ssh.close()
+        except Exception as ex:
+            status_label.text += "\n\n[b]SSH ERROR[/b]\n - Unable to connect to OPE server : " + str(ex)
+            status_label.text += "\n\n[b]Exiting early!!![/b]"
+            if run_button is not None:
+                run_button.disabled = False
+            return False
+            # Logger.info("Error connecting: " + str(ex))
+
+
+        # Start syncing volume folders
+        # - sync canvas
+        # TODO TODO TODO
+        # - sync smc
+
+        # - sync coco
+
+        # - sync rachel
+
+        status_label.text += "\n\n[b]DONE[/b]"
+        if run_button is not None:
+            run_button.disabled = False
+
+        pass
+
 
     def verify_ope_server(self, status_label):
         # See if you can connect to the OPE serve and if the .ope_root file is present
