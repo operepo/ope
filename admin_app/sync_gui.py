@@ -720,14 +720,15 @@ class SyncOPEApp(App):
 
         return ret
 
-    def load_docker_images(self, ssh, ssh_folder):
+    def load_docker_images(self, ssh, ssh_folder, status_label):
         # Dump docker images to the app_images folder on the server
         ret = ""
 
         load_script = os.path.join(ssh_folder, "sync_tools", "import_docker_images.py").replace("\\", "/")
         stdin, stdout, stderr = ssh.exec_command("python " + load_script, get_pty=True)
         stdin.close()
-        ret += stdout.read()
+        for line in stdout.read():
+            status_label.text += line
 
         return ret
 
