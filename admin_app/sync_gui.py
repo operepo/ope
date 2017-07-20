@@ -40,6 +40,7 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.core.window import Window
 kivy.require('1.9.2')
 
+# Adjust kivy config to change window look/behavior
 # Config.set('graphics','borderless',1)
 # Config.set('graphics','resizable',0)
 # Config.set('graphics','position','custom')
@@ -54,24 +55,12 @@ kivy.require('1.9.2')
 
 # Manage multiple screens
 sm = ScreenManager()
-
+# Keep a reference to the main window
 MAIN_WINDOW = None
 
-#PW_POPUP = Popup(title='Enter Password',
-#                 content=TextInput)
 
 def get_home_folder():
-    # See if HOMEDRIVE is defined
-    home_path = ""
-    if "HOME" in os.environ:
-        home_path = os.environ["HOME"]
-    if "HOMEDRIVE" in os.environ:
-        home_path = os.environ["HOMEDRIVE"]
-
-    if home_path == "":
-        home_path = expanduser("~")
-    if home_path.endswith(":"):
-        home_path += "\\"
+    home_path = expanduser("~")
     return home_path
 
 # Find the base folder to store data in - use the home folder
@@ -89,6 +78,7 @@ migrate = True
 
 # Progress bar used by threaded apps
 progress_widget = None
+
 
 # == Database Functions ==
 def connect_db(init_schema=True):
@@ -126,12 +116,16 @@ def init_db_schema(db=None):
 def markdown_to_bbcode(s):
     links = {}
     codes = []
+
     def gather_link(m):
         links[m.group(1)]=m.group(2); return ""
+
     def replace_link(m):
         return "[url=%s]%s[/url]" % (links[m.group(2) or m.group(1)], m.group(1))
+
     def gather_code(m):
         codes.append(m.group(3)); return "[code=%d]" % len(codes)
+
     def replace_code(m):
         return "%s" % codes[int(m.group(1)) - 1]
 
@@ -156,8 +150,8 @@ def markdown_to_bbcode(s):
     s = re.sub(r"(?m)^###\s+(.*?)\s*#*$", translate("~[b]%s[/b]"), s)
     s = re.sub(r"(?m)^####\s+(.*?)\s*#*$", translate("~[b]%s[/b]"), s)
     s = re.sub(r"(?m)^> (.*)$", translate("~[quote]%s[/quote]"), s)
-    #s = re.sub(r"(?m)^[-+*]\s+(.*)$", translate("~[list]\n[*]%s\n[/list]"), s)
-    #s = re.sub(r"(?m)^\d+\.\s+(.*)$", translate("~[list=1]\n[*]%s\n[/list]"), s)
+    # s = re.sub(r"(?m)^[-+*]\s+(.*)$", translate("~[list]\n[*]%s\n[/list]"), s)
+    # s = re.sub(r"(?m)^\d+\.\s+(.*)$", translate("~[list=1]\n[*]%s\n[/list]"), s)
     s = re.sub(r"(?m)^((?!~).*)$", translate(), s)
     s = re.sub(r"(?m)^~\[", "[", s)
     s = re.sub(r"\[/code]\n\[code(=.*?)?]", "\n", s)
@@ -662,7 +656,11 @@ class SyncOPEApp(App):
         server_home_dir = server_home_dir.strip()
 
         # Add ssh keys to server for easy push/pull later
-        home_folder = get_home_folder() #  expanduser("~")
+        # bash -- cygpath -w ~   to get win version of home directory path
+        proc = subprocess.Popen(bash_path + " -c 'cygpath -w ~'", stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+        proc.stdin.close()
+        home_folder = proc.stdout.read().strip()
+        # home_folder = get_home_folder() #  expanduser("~")
         rsa_pub_path = os.path.join(home_folder, ".ssh", "id_rsa.pub")
         sftp = ssh.open_sftp()
         sftp.put(rsa_pub_path, os.path.join(server_home_dir, ".ssh/id_rsa.pub.ope").replace("\\", "/"))
@@ -788,7 +786,7 @@ class SyncOPEApp(App):
             if online_digest != current_digest:
                 status_label.text += "\nCopying App: " + app
                 sftp.get(remote_image, local_image, callback=self.copy_docker_images_to_usb_drive_progress_callback)
-                Logger.info("Moving on...")
+                # Logger.info("Moving on...")
                 # Store the current digest
                 try:
                     f = open(current_digest_file, "w")
@@ -806,7 +804,96 @@ class SyncOPEApp(App):
     def copy_docker_images_to_usb_drive_progress_callback(self, transferred, total):
         global progress_widget
 
-        Logger.info("XFerred: " + str(transferred) + "/" + str(total))
+        # Logger.info("XFerred: " + str(transferred) + "/" + str(total))
+        if total == 0:
+            progress_widget.value = 0
+        else:
+            progress_widget.value = int(float(transferred) / float(total) * 100)
+
+    def copy_docker_images_from_usb_drive(self, ssh, ssh_folder, status_label, progress_bar):
+        global progress_widget
+
+        progress_widget = progress_bar
+
+        # Copy images from usb drive to the offline server
+        ret = ""
+
+        # Ensure the local app_images folder exists
+        try:
+            os.makedirs(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images"))
+        except:
+            # Throws an error if already exists
+            pass
+
+        # Ensure that server has app_images folder
+        app_images_path = os.path.join(ssh_folder, "volumes", "app_images").replace("\\", "/")
+        stdin, stdout, stderr = ssh.exec_command("mkdir -p " + app_images_path, get_pty=True)
+        stdin.close()
+        ret += stdout.read()
+
+        # Use the list of enabled images
+        apps = self.get_enabled_apps()
+
+        sftp = ssh.open_sftp()
+
+        # Check each app to see if we need to copy it
+        for app in apps:
+            progress_bar.value = 0
+            # Download the server digest file
+            offline_digest = "."
+            current_digest = "..."
+            remote_digest_file = os.path.join(ssh_folder, "volumes", "app_images", app + ".digest").replace("\\", "/")
+            local_digest_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".digest.offline")
+            current_digest_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".digest")
+            remote_image = os.path.join(ssh_folder, "volumes", "app_images", app + ".tar").replace("\\", "/")
+            local_image = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".tar")
+            try:
+                sftp.get(remote_digest_file, local_digest_file)
+            except:
+                # If we can't get this file, its ok, just assume we need to copy
+                pass
+
+            # Read the online digest info
+            try:
+                f = open(local_digest_file, "r")
+                offline_digest = f.read().strip()
+                f.close()
+            except:
+                # Unable to read the local digest, just pass
+                pass
+
+            # Read the current digest info
+            try:
+                f = open(current_digest_file, "r")
+                current_digest = f.read().strip()
+                f.close()
+            except:
+                # Unable to read the local digest, just pass
+                pass
+
+            # If digest files don't match, copy the file to the local folder
+            if offline_digest != current_digest:
+                status_label.text += "\nCopying App: " + app
+                sftp.put(local_image, remote_image, callback=self.copy_docker_images_from_usb_drive_progress_callback)
+                # Logger.info("Moving on...")
+                # Store the current digest
+                try:
+                    f = open(current_digest_file, "w")
+                    f.write(offline_digest)
+                    f.close()
+                except:
+                    status_label.text += "Error saving current digest: " + current_digest_file
+            else:
+                status_label.text += "\nApp hasn't changed, skipping: " + app
+            #
+
+        sftp.close()
+        return ret
+
+    def copy_docker_images_from_usb_drive_progress_callback(self, transferred, total):
+        global progress_widget
+
+        # Logger.info("XFerred: " + str(transferred) + "/" + str(total))
         if total == 0:
             progress_widget.value = 0
         else:
@@ -841,7 +928,6 @@ class SyncOPEApp(App):
             # Connect to the server
             ssh.connect(ssh_server, username=ssh_user, password=ssh_pass)
 
-
             # Make sure we have an SSH key to use for logins
             self.generate_local_ssh_key(status_label)
 
@@ -851,7 +937,7 @@ class SyncOPEApp(App):
             # Push local git repo to server - should auto login now
             status_label.text += "\n\n[b]Pushing repo to server[/b]\n"
             self.git_push_repo(ssh, ssh_server, ssh_user, ssh_pass, ssh_folder, status_label, online=True)
-            progress_bar.value=0
+            progress_bar.value = 0
 
             # Set enabled files for apps
             status_label.text += "\n\n[b]Enabling apps[/b]\n"
@@ -860,17 +946,17 @@ class SyncOPEApp(App):
             # Download the current docker images
             status_label.text += "\n\n[b]Downloading current apps[/b]\n - downloading around 10Gig the first time...\n"
             self.pull_docker_images(ssh, ssh_folder, status_label)
-            progress_bar.value=0
+            progress_bar.value = 0
 
             # Save the image binary files for syncing
             status_label.text += "\n\n[b]Save app binaries[/b]\n - will take a few minutes...\n"
             self.save_docker_images(ssh, ssh_folder, status_label)
-            progress_bar.value=0
+            progress_bar.value = 0
 
             # Download docker images to the USB drive
             status_label.text += "\n\n[b]Downloading images to USB drive[/b]\n - will take a few minutes...\n"
             self.copy_docker_images_to_usb_drive(ssh, ssh_folder, status_label, progress_bar)
-            progress_bar.value=0
+            progress_bar.value = 0
 
             ssh.close()
         except Exception as ex:
@@ -914,14 +1000,13 @@ class SyncOPEApp(App):
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh_server = self.config.getdefault("Offline Settings", "server_ip", "127.0.0.1")
         ssh_user = self.config.getdefault("Offline Settings", "server_user", "root")
-        ssh_pass = self.get_offline_pw() #  self.config.getdefault("Offline Settings", "server_password", "")
+        ssh_pass = self.get_offline_pw()  # self.config.getdefault("Offline Settings", "server_password", "")
         ssh_folder = self.config.getdefault("Offline Settings", "server_folder", "/ope")
         status_label.text += "\n\n[b]SSH Connection[/b]\nConnecting to " + ssh_user + "@" + ssh_server + "..."
 
         try:
             # Connect to the server
             ssh.connect(ssh_server, username=ssh_user, password=ssh_pass)
-
 
             # Make sure we have an SSH key to use for logins
             self.generate_local_ssh_key(status_label)
@@ -939,24 +1024,13 @@ class SyncOPEApp(App):
             self.enable_apps(ssh, ssh_folder, status_label)
 
             # Copy images from USB to server
-
+            status_label.text += "\n\n[b]Downloading images to USB drive[/b]\n - will take a few minutes...\n"
+            self.copy_docker_images_from_usb_drive(ssh, ssh_folder, status_label, progress_bar)
 
             # Import the images into docker
-
-            # Download the current docker images
-            # status_label.text += "\n\n[b]Downloading current apps[/b]\n - downloading around 10Gig the first time...\n"
-            # self.pull_docker_images(ssh, ssh_folder, status_label)
-            # progress_bar.value = 0
-
-            # Save the image binary files for syncing
-            # status_label.text += "\n\n[b]Save app binaries[/b]\n - will take a few minutes...\n"
-            # self.save_docker_images(ssh, ssh_folder, status_label)
-            # progress_bar.value=0
-
-            # Download docker images to the USB drive
-            # status_label.text += "\n\n[b]Downloading images to USB drive[/b]\n - will take a few minutes...\n"
-            # self.copy_docker_images_to_usb_drive(ssh, ssh_folder, status_label, progress_bar)
-            # progress_bar.value=0
+            status_label.text += "\n\n[b]Load app binaries[/b]\n - will take a few minutes...\n"
+            self.load_docker_images(ssh, ssh_folder, status_label)
+            progress_bar.value = 0
 
             ssh.close()
         except Exception as ex:
