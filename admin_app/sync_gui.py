@@ -879,8 +879,8 @@ class SyncOPEApp(App):
                 # Logger.info("Moving on...")
                 # Store the current digest
                 try:
-                    f = open(current_digest_file, "w")
-                    f.write(offline_digest)
+                    f = open(local_digest_file, "w")
+                    f.write(current_digest)
                     f.close()
                 except:
                     status_label.text += "Error saving current digest: " + current_digest_file
