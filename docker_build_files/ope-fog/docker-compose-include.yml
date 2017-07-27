@@ -1,6 +1,6 @@
     ope-fog:
         build: ./ope-fog
-        image: operepo/ope-fog
+        image: operepo/ope-fog:release
         container_name: ope-fog
         #network_mode: host
         privileged: true

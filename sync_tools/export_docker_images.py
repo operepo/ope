@@ -3,6 +3,7 @@ import os
 import subprocess
 
 repo_name = "operepo"
+tag = "release"
 save_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes/app_images")
 
 # Ensure the app_images folder exists
@@ -15,15 +16,15 @@ except:
 
 # Get the digest of the docker image
 def get_app_digest(app_name):
-    global save_path, repo_name
+    global save_path, repo_name, tag
     
-    proc = subprocess.Popen(["/usr/bin/docker", "images", "--digests", repo_name + "/" + app_name], stdout=subprocess.PIPE)
+    proc = subprocess.Popen(["/usr/bin/docker", "images", repo_name + "/" + app_name + ":" + tag], stdout=subprocess.PIPE)
     lines = proc.stdout.readlines()
     ret = "..."
     for line in lines:
         # Go through each line and find the digest for the latest tagged item
         parts = line.split()
-        if parts[0] == repo_name + "/" + app_name and parts[1] == "latest":
+        if parts[0] == repo_name + "/" + app_name and parts[1] == tag:
             #print "\tFound digest: " + parts[2] + " for: " + repo_name + "/" + app_name
             ret = parts[2]
     
@@ -62,7 +63,7 @@ def get_tar_digest(app_name):
     return tar_digest
 
 def save_app(app_name):
-    global save_path, repo_name
+    global save_path, repo_name, tag
     
     img_path = os.path.join(save_path, app_name + ".tar")
     
@@ -75,7 +76,7 @@ def save_app(app_name):
     if app_digest != tar_digest:
         # Save the binary
         print "\tApp modified, exporting with docker save to: " + img_path
-        os.system("docker save -o " + img_path + " " + repo_name + "/" + app_name)
+        os.system("docker save -o " + img_path + " " + repo_name + "/" + app_name + ":" + tag)
         
         # Update the digest
         save_app_digest(app_name, app_digest)

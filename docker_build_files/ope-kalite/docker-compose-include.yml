@@ -1,6 +1,6 @@
     ope-kalite:
         build: ./ope-kalite
-        image: operepo/ope-kalite
+        image: operepo/ope-kalite:release
         container_name: ope-kalite
         ports:
             - "8008"

@@ -1,6 +1,6 @@
     ope-clamav:
         build: ./ope-clamav
-        image: operepo/ope-clamav
+        image: operepo/ope-clamav:release
         container_name: ope-clamav
         ports:
             - "80"

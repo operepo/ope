@@ -1,6 +1,6 @@
     ope-redis:
         build: ./ope-redis
-        image: operepo/ope-redis
+        image: operepo/ope-redis:release
         container_name: ope-redis
         ports:
             - "6379:6379"

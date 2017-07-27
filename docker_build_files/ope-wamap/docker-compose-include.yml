@@ -1,6 +1,6 @@
     ope-wamap:
         build: ./ope-wamap
-        image: operepo/ope-wamap
+        image: operepo/ope-wamap:release
         container_name: ope-wamap
         ports:
             - "80"

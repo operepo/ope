@@ -62,6 +62,10 @@ cd /fog_src; \
 git checkout dev-branch; \
 git pull;
 
+# Copy in the project certs
+COPY snapins/ssl/* /opt/fog/snapins/ssl/
+COPY other/ssl/* /var/www/fog/management/other/ssl/
+
 # Do the install for fog to pull packages
 RUN cd /fog_src/bin/; \
 ./installfog.sh -y
@@ -77,14 +81,20 @@ COPY nfs-kernel-server /etc/default/nfs-kernel-server
 COPY nfs-common /etc/default/nfs-common
 COPY index.html /var/www/html/index.html
 COPY vsftpd.conf /etc/vsftpd.conf
+
+# Setup permissions and ownership as needed
 RUN chmod +x /start.sh \
     && chmod 644 /etc/default/tftpd-hpa \
     && chmod +x /fog_src/bin/update_fog_ip.py \
-    && dos2unix /start.sh /etc/default/tftpd-hpa /fog_src/bin/update_fog_ip.py
+    && dos2unix /start.sh /etc/default/tftpd-hpa /fog_src/bin/update_fog_ip.py \
+    && chown -R www-data:www-data /var/www/fog/management/other/ssl \
+    && chown -R fog:www-data /opt/fog/snapins/ssl
 
 # Deal with sgdisk uuid error during deploy - Will want to take this out when fixes get pulled into main code 7/15/17
-RUN wget -O /var/www/fog/service/ipxe/init.xz https://fogproject.org/inits/init.xz \
-    && wget -O /var/www/fog/service/ipxe/init_32.xz https://fogproject.org/inits/init_32.xz
+#RUN wget -O /var/www/fog/service/ipxe/init.xz https://fogproject.org/inits/init.xz \
+#    && wget -O /var/www/fog/service/ipxe/init_32.xz https://fogproject.org/inits/init_32.xz
+COPY init.xz /var/www/fog/service/ipxe/init.xz
+COPY init_32.xz /var/www/fog/service/ipxe/init_32.xz
 
 VOLUME ["/var/lib/mysql", "/images", "/backup"]
 EXPOSE 80 443 20 21 69/udp 7000-7030/udp 111 111/udp 2049 2049/udp 4045 4045/udp 34464 34463/udp 52764-52769/udp 52764-52768 52700-52730

@@ -1,6 +1,6 @@
     ope-gateway:
         build: ./ope-gateway
-        image: operepo/ope-gateway
+        image: operepo/ope-gateway:release
         container_name: ope-gateway
         #command:
         ports:

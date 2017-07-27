@@ -1,6 +1,6 @@
     ope-jsbin:
         build: ./ope-jsbin
-        image: operepo/ope-jsbin
+        image: operepo/ope-jsbin:release
         container_name: ope-jsbin
         ports:
             - "80"

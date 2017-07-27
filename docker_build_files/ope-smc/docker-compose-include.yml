@@ -1,6 +1,6 @@
     ope-smc:
         build: ./ope-smc
-        image: operepo/ope-smc
+        image: operepo/ope-smc:release
         container_name: ope-smc
         ports:
             - "80"
