@@ -467,20 +467,55 @@ class SyncOPEApp(App):
         ret = markdown_to_bbcode(ret)
         return ret
 
-    def sync_online_volume(self, volume, folder, branch="master"):
+    def sync_online_volume(self, volume, folder, ssh, ssh_folder, status_label, branch="master"):
+        pass
+
+    def sync_offline_volume(self, volume, folder, ssh, ssh_folder, status_label, branch="master"):
         # Sync files on the online server with the USB drive
 
         # Get project folder (parent folder)
-        root_path = os.path.dirname(os.path.dirname(__file__))
+        root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        volumes_path = os.path.join(root_path, "volumes")
+        volume_path = os.path.join(volumes_path, volume)
+        folder_path = os.path.join(volume_path, folder.replace("/", os.pathsep))
 
         # Figure the path for the git app
         git_path = os.path.join(root_path, "PortableGit/bin/git.exe")
 
         # Ensure the folder exists on the USB drive
+        try:
+            os.makedirs(folder_path)
+        except:
+            # will error if folder already exists
+            pass
+
+        # Ensure the folder exists on the server
+        remote_folder_path = os.path.join(ssh_folder, "volumes", volume, folder).replace("\\", "/")
+        stdin, stdout, stderr = ssh.exec_command("mkdir -p " + remote_folder_path, get_pty=True)
+        stdin.close()
+        for line in stdout:
+            status_label.text += line
+
+        status_label.text += "[b]Syncing Volue: [/b]" + volume + "/" + folder
+        sftp = ssh.open_sftp()
+
+        # Copy remote files to the USB drive
+        r_cwd = remote_folder_path
+        for f in sftp.listdir_iter(r_cwd):
+            status_label.text += str(f)
+
+        # Walk the local folder and see if there are files that don't exist that should be copied
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                status_label.text += "Processing " + file
+
+
+
+        sftp.close()
 
         # self.sync_online_volume('canvas', 'tmp/files')
 
-    def git_pull_local(self, branch="master"):
+    def git_pull_local(self, status_label, branch="master"):
         ret = ""
         # Pull the latest git data to the current project folder
 
@@ -507,7 +542,9 @@ class SyncOPEApp(App):
 
         # Make sure we have the current stuff
         proc = subprocess.Popen(git_path + " pull ope_origin " + branch, stdout=subprocess.PIPE)
-        ret += proc.stdout.read()
+        for line in proc.stdout:
+            status_label.text += line
+        #ret += proc.stdout.read()
 
         return ret
 
@@ -617,7 +654,7 @@ class SyncOPEApp(App):
             status_label.text += "\n" + r
 
         for a in apps:
-            status_label.text += "\n\tEnabling App: " + a
+            status_label.text += "\n-- Enabling App: " + a
             app_path = os.path.join(ssh_folder, "docker_build_files", a)
             enabled_file = os.path.join(app_path, ".enabled")
             enable_cmd = "mkdir -p " + app_path + "; touch " + enabled_file
@@ -927,14 +964,14 @@ class SyncOPEApp(App):
 
         # Pull current stuff from GIT repo so we have the latest code
         status_label.text += "\n\n[b]Git Pull[/b]\nPulling latest updates from github...\n"
-        status_label.text += self.git_pull_local()
+        status_label.text += self.git_pull_local(status_label)
 
         # Login to the OPE server
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh_server = self.config.getdefault("Online Settings", "server_ip", "127.0.0.1")
         ssh_user = self.config.getdefault("Online Settings", "server_user", "root")
-        ssh_pass = self.get_online_pw() #  self.config.getdefault("Online Settings", "server_password", "")
+        ssh_pass = self.get_online_pw()  # self.config.getdefault("Online Settings", "server_password", "")
         ssh_folder = self.config.getdefault("Online Settings", "server_folder", "/ope")
         status_label.text += "\n\n[b]SSH Connection[/b]\nConnecting to " + ssh_user + "@" + ssh_server + "..."
 
@@ -972,6 +1009,23 @@ class SyncOPEApp(App):
             self.copy_docker_images_to_usb_drive(ssh, ssh_folder, status_label, progress_bar)
             progress_bar.value = 0
 
+
+            # Start syncing volume folders
+            # - sync canvas files
+            self.sync_online_volume('canvas', 'tmp/files', ssh, ssh_folder, status_label)
+
+            # - sync canvas db
+            #self.sync_online_volume('canvas', 'db/sync')
+
+
+
+            # TODO TODO TODO
+            # - sync smc
+
+            # - sync coco
+
+            # - sync rachel
+
             ssh.close()
         except Exception as ex:
             status_label.text += "\n\n[b]SSH ERROR[/b]\n - Unable to connect to OPE server : " + str(ex)
@@ -980,22 +1034,6 @@ class SyncOPEApp(App):
                 run_button.disabled = False
             return False
             # Logger.info("Error connecting: " + str(ex))
-
-
-        # Start syncing volume folders
-        # - sync canvas files
-        self.sync_online_volume('canvas', 'tmp/files')
-        # - sync canvas db
-        #self.sync_online_volume('canvas', 'db/sync')
-
-
-
-        # TODO TODO TODO
-        # - sync smc
-
-        # - sync coco
-
-        # - sync rachel
 
         status_label.text += "\n\n[b]DONE[/b]"
         if run_button is not None:
@@ -1028,6 +1066,11 @@ class SyncOPEApp(App):
             # Connect to the server
             ssh.connect(ssh_server, username=ssh_user, password=ssh_pass)
 
+            self.sync_offline_volume('canvas', 'tmp/files', ssh, ssh_folder, status_label)
+            status_label.text += "[b]DEBUG DEBUG DEBUB [/b]"
+            ssh.close()
+            return
+
             # Make sure we have an SSH key to use for logins
             self.generate_local_ssh_key(status_label)
 
@@ -1052,6 +1095,16 @@ class SyncOPEApp(App):
             self.load_docker_images(ssh, ssh_folder, status_label)
             progress_bar.value = 0
 
+            # Start syncing volume folders
+            # - sync canvas
+            self.sync_offline_volume('canvas', 'tmp/files', ssh, ssh_folder, status_label)
+            # TODO TODO TODO
+            # - sync smc
+
+            # - sync coco
+
+            # - sync rachel
+
             ssh.close()
         except Exception as ex:
             status_label.text += "\n\n[b]SSH ERROR[/b]\n - Unable to connect to OPE server : " + str(ex)
@@ -1061,15 +1114,6 @@ class SyncOPEApp(App):
             return False
             # Logger.info("Error connecting: " + str(ex))
 
-
-        # Start syncing volume folders
-        # - sync canvas
-        # TODO TODO TODO
-        # - sync smc
-
-        # - sync coco
-
-        # - sync rachel
 
         status_label.text += "\n\n[b]DONE[/b]"
         if run_button is not None:
