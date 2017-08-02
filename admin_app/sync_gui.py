@@ -467,6 +467,19 @@ class SyncOPEApp(App):
         ret = markdown_to_bbcode(ret)
         return ret
 
+    def sync_online_volume(self, volume, folder, branch="master"):
+        # Sync files on the online server with the USB drive
+
+        # Get project folder (parent folder)
+        root_path = os.path.dirname(os.path.dirname(__file__))
+
+        # Figure the path for the git app
+        git_path = os.path.join(root_path, "PortableGit/bin/git.exe")
+
+        # Ensure the folder exists on the USB drive
+
+        # self.sync_online_volume('canvas', 'tmp/files')
+
     def git_pull_local(self, branch="master"):
         ret = ""
         # Pull the latest git data to the current project folder
@@ -970,7 +983,13 @@ class SyncOPEApp(App):
 
 
         # Start syncing volume folders
-        # - sync canvas
+        # - sync canvas files
+        self.sync_online_volume('canvas', 'tmp/files')
+        # - sync canvas db
+        #self.sync_online_volume('canvas', 'db/sync')
+
+
+
         # TODO TODO TODO
         # - sync smc
 
