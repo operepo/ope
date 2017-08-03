@@ -6,6 +6,7 @@ from os.path import expanduser
 import paramiko
 import uuid
 import subprocess
+import stat
 
 from security import Enc
 
@@ -49,6 +50,8 @@ kivy.require('1.9.2')
 
 # Config.set('graphics', 'resizeable', '0')
 # Config.set('graphics', 'borderless', '1')
+# TODO TODO TODO - [CRITICAL] [Clock       ] Warning, too much iteration done before the next frame. Check your code, or increase the Clock.max_iteration attribute
+Config.set('max_iteration')
 # Window.size = (900, 800)
 # Window.borderless = True
 
@@ -467,6 +470,118 @@ class SyncOPEApp(App):
         ret = markdown_to_bbcode(ret)
         return ret
 
+    def copy_callback(self, transferred, total):
+        global progress_widget
+        if progress_widget is None:
+            return
+        # Logger.info("XFerred: " + str(transferred) + "/" + str(total))
+        if total == 0:
+            progress_widget.value = 0
+        else:
+            val = int(float(transferred) / float(total) * 100)
+            if val < 0:
+                val = 0
+            if val > 100:
+                val = 100
+            if val != progress_widget.value:
+                progress_widget.value = val
+
+    def sftp_pull_files(self, remote_path, local_path, sftp, status_label, depth=1):
+        # Recursive Walk through the folder and pull changed files
+        depth_str = " " * depth
+        for f in sftp.listdir_attr(remote_path):
+            if stat.S_ISDIR(f.st_mode):
+                status_label.text += "\n" + depth_str + "Found Dir: " + f.filename
+                n_remote_path = os.path.join(remote_path, f.filename).replace("\\", "/")
+                n_local_path = os.path.join(local_path, f.filename)
+                self.sftp_pull_files(n_remote_path, n_local_path, sftp, status_label, depth+1)
+            elif stat.S_ISREG(f.st_mode):
+                status_label.text += "\n" + depth_str + "Found File: " + f.filename
+                # Try to copy it to the local folder
+                try:
+                    # Make sure the local folder exists
+                    os.makedirs(local_path)
+                except:
+                    # Error if it exits, ignore
+                    pass
+
+                r_file = os.path.join(remote_path, f.filename).replace("\\", "/")
+                l_file = os.path.join(local_path, f.filename)
+
+                # Get the local modified time of the file
+                l_mtime = 0
+                try:
+                    l_stat = os.stat(l_file)
+                    l_mtime = int(l_stat.st_mtime)
+                except:
+                    # If there is an error, go with a 0 for local mtime
+                    pass
+                if f.st_mtime == l_mtime:
+                    status_label.text += "\n" + depth_str + "Files the same - skipping: " + f.filename
+                elif f.st_mtime > l_mtime:
+                    status_label.text += "\n" + depth_str + "Remote file newer, downloading: " + f.filename
+                    sftp.get(r_file, l_file, callback=self.copy_callback)
+                    os.utime(l_file, (f.st_mtime, f.st_mtime))
+                else:
+                    status_label.text += "\n" + depth_str + "local file newer, skipping: " + f.filename
+
+            else:
+                # Non regular file
+                status_label.text += "\n" + depth_str + "NonReg File - skipping: " + f.filename
+
+    def sftp_push_files(self, remote_path, local_path, sftp, status_label, depth=1):
+        # Recursive Walk through the folder and push changed files
+        depth_str = " " * depth
+
+        for item in os.listdir(local_path):
+            l_path = os.path.join(local_path, item)
+            if os.path.isdir(l_path):
+                status_label.text += "\n" + depth_str + "Found Dir: " + item
+                n_remote_path = os.path.join(remote_path, item).replace("\\", "/")
+                n_local_path = os.path.join(local_path, item)
+                # Make sure the directory exists on the remote system
+                sftp.chdir(remote_path)
+                try:
+                    sftp.mkdir(item)
+                except:
+                    # Will fail if directory already exists
+                    pass
+                self.sftp_push_files(n_remote_path, n_local_path, sftp, status_label, depth+1)
+            elif os.path.isfile(l_path):
+                status_label.text += "\n" + depth_str + "Found File: " + item
+                # Try to copy it to the remote folder
+
+                r_file = os.path.join(remote_path, item).replace("\\", "/")
+                l_file = os.path.join(local_path, item)
+
+                # Get the local modified time of the file
+                l_mtime = 0
+                try:
+                    l_stat = os.stat(l_file)
+                    l_mtime = int(l_stat.st_mtime)
+                except:
+                    # If there is an error, go with a 0 for local mtime
+                    pass
+                r_mtime = -1
+                try:
+                    # Get the stats for the remote file
+                    stats = sftp.stat(r_file)
+                    r_mtime = stats.st_mtime
+                except:
+                    pass
+                if r_mtime == l_mtime:
+                    status_label.text += "\n" + depth_str + "Files the same - skipping: " + item
+                elif l_mtime > r_mtime:
+                    status_label.text += "\n" + depth_str + "Local file newer, uploading: " + item
+                    sftp.put(l_file, r_file, callback=self.copy_callback)
+                    sftp.utime(r_file, (l_mtime, l_mtime))
+                else:
+                    status_label.text += "\n" + depth_str + "remote file newer, skipping: " + item
+
+            else:
+                # Non regular file
+                status_label.text += "\n" + depth_str + "NonReg File - skipping: " + item
+
     def sync_online_volume(self, volume, folder, ssh, ssh_folder, status_label, branch="master"):
         pass
 
@@ -477,7 +592,7 @@ class SyncOPEApp(App):
         root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         volumes_path = os.path.join(root_path, "volumes")
         volume_path = os.path.join(volumes_path, volume)
-        folder_path = os.path.join(volume_path, folder.replace("/", os.pathsep))
+        folder_path = os.path.join(volume_path, folder.replace("/", os.sep))
 
         # Figure the path for the git app
         git_path = os.path.join(root_path, "PortableGit/bin/git.exe")
@@ -496,24 +611,18 @@ class SyncOPEApp(App):
         for line in stdout:
             status_label.text += line
 
-        status_label.text += "[b]Syncing Volue: [/b]" + volume + "/" + folder
+        status_label.text += "\n[b]Syncing Volume: [/b]" + volume + "/" + folder
         sftp = ssh.open_sftp()
 
         # Copy remote files to the USB drive
-        r_cwd = remote_folder_path
-        for f in sftp.listdir_iter(r_cwd):
-            status_label.text += str(f)
+        status_label.text += "\nDownloading new files..."
+        self.sftp_pull_files(remote_folder_path, folder_path, sftp, status_label)
 
         # Walk the local folder and see if there are files that don't exist that should be copied
-        for root, dirs, files in os.walk(folder_path):
-            for file in files:
-                status_label.text += "Processing " + file
-
-
+        status_label.text += "\nUploading new files..."
+        self.sftp_push_files(remote_folder_path, folder_path, sftp, status_label)
 
         sftp.close()
-
-        # self.sync_online_volume('canvas', 'tmp/files')
 
     def git_pull_local(self, status_label, branch="master"):
         ret = ""
@@ -943,6 +1052,8 @@ class SyncOPEApp(App):
 
     def copy_docker_images_from_usb_drive_progress_callback(self, transferred, total):
         global progress_widget
+        if progress_widget is None:
+            return
 
         # Logger.info("XFerred: " + str(transferred) + "/" + str(total))
         if total == 0:
@@ -958,6 +1069,8 @@ class SyncOPEApp(App):
         threading.Thread(target=self.update_online_server_worker, args=(status_label, run_button, progress_bar)).start()
 
     def update_online_server_worker(self, status_label, run_button=None, progress_bar=None):
+        global progress_widget
+        progress_widget = progress_bar
 
         # Get project folder (parent folder)
         root_path = os.path.dirname(os.path.dirname(__file__))
@@ -1049,6 +1162,8 @@ class SyncOPEApp(App):
         threading.Thread(target=self.update_offline_server_worker, args=(status_label, run_button, progress_bar)).start()
 
     def update_offline_server_worker(self, status_label, run_button=None, progress_bar=None):
+        global progress_widget
+        progress_widget = progress_bar
 
         # Get project folder (parent folder)
         root_path = os.path.dirname(os.path.dirname(__file__))

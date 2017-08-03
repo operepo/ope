@@ -143,7 +143,7 @@
             pos_hint: { 'top': 1}
             ActionView:
                 ActionPrevious:
-                    title: 'OPE Admin Tool - Verify Server Settings'
+                    title: 'OPE Admin Tool - Updating offline server'
                     with_previous: False
                     app_icon: "logo_icon.png"
                 ActionOverflow:
@@ -154,7 +154,7 @@
 
                 ActionButton:
                     text: "<-- Back"
-                    on_press: root.manager.current="start"
+                    on_press: root.manager.current="offline_mode"
 
                 ActionButton:
                     text: "Settings (F1)"
