@@ -208,11 +208,12 @@ else:
 
 # Make sure the .env file exists
 env_file = os.path.join(pwd, ".env")
+env_template_file = os.path.join(pwd, ".env.template")
 if (os.path.isfile(env_file) != True):
     # Try to copy the .env.template file
     if (os.path.isfile(os.path.join(pwd, ".env.template")) == True):
         print "\n            New environment file - change values in .env file\n"
-        shutil.copy(".env.template", ".env")
+        shutil.copy(env_template_file, env_file)
     else:
         print "No env file found! Create a .env file to store your settings"
 

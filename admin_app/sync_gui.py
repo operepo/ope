@@ -51,7 +51,7 @@ kivy.require('1.9.2')
 # Config.set('graphics', 'resizeable', '0')
 # Config.set('graphics', 'borderless', '1')
 # TODO TODO TODO - [CRITICAL] [Clock       ] Warning, too much iteration done before the next frame. Check your code, or increase the Clock.max_iteration attribute
-Config.set('max_iteration')
+#Config.set('max_iteration')
 # Window.size = (900, 800)
 # Window.borderless = True
 
@@ -853,7 +853,13 @@ class SyncOPEApp(App):
         # Need to re-run the rebuild_compose.py file
         rebuild_path = os.path.join(ssh_folder, "build_tools", "rebuild_compose.py").replace("\\", "/")
         stdin, stdout, stderr = ssh.exec_command("python " + rebuild_path, get_pty=True)
+        try:
+            # Write a couple enters in case this is the first time the script is run
+            stdin.write("\n\n")
+        except:
+            pass
         stdin.close()
+
         for line in stdout:
             status_label.text += line
 
