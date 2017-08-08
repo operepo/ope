@@ -90,6 +90,7 @@
 
 <OnlineUpdateScreen>:
     BoxLayout:
+        padding: [3, 3, 3, 3]
         orientation: 'vertical'
         ActionBar:
             pos_hint: { 'top': 1}
@@ -118,26 +119,37 @@
         Button:
             text: 'Run Update'
             size_hint_y: .1
-            on_press: app.update_online_server(status_label, self, online_progress)
-        ScrollView:
+            on_press: app.update_online_server(status_label_sl, self, online_progress)
+        ScrollLabel:
+            id: status_label_sl
+            text: 'Click "Run Update" button to start'
             size_hint_y: .85
-            id: status_label_sv
-            Label:
-                text_size: self.width, None
-                size_hint_y: None
-                height: self.texture_size[1]
-                valign: "top"
-                padding: (6, 6)
-                markup: True
-                text: 'Click "Run Update" button to start'
-                id: status_label
-                on_text: status_label_sv.scroll_y = 0
+            halign: "left"
+            #size: (300, 300)
+            font_size: 14
+            #font_size: sl_font_size.value
+            markup: True
+            #on_text: self.rv.scroll_y = 0  # in the scrolllable.py class
+#        ScrollView:
+#            size_hint_y: .25
+#            id: status_label_sv
+#            Label:
+#                text_size: self.width, None
+#                size_hint_y: None
+#                height: self.texture_size[1]
+#                valign: "top"
+#                padding: (6, 6)
+#                markup: True
+#                text: 'Click "Run Update" button to start'
+#                id: status_label
+#                on_text: status_label_sv.scroll_y = 0
         ProgressBar:
             id: online_progress
             size_hint_y: .05
 
 <OfflineUpdateScreen>:
     BoxLayout:
+        padding: [3, 3, 3, 3]
         orientation: 'vertical'
         ActionBar:
             pos_hint: { 'top': 1}
@@ -166,20 +178,30 @@
         Button:
             text: 'Run Update'
             size_hint_y: .1
-            on_press: app.update_offline_server(status_label, self, offline_progress)
-        ScrollView:
+            on_press: app.update_offline_server(status_label_sl, self, offline_progress)
+        ScrollLabel:
+            id: status_label_sl
+            text: 'Click "Run Update" button to start'
             size_hint_y: .85
-            id: status_label_sv
-            Label:
-                text_size: self.width, None
-                size_hint_y: None
-                height: self.texture_size[1]
-                valign: "top"
-                padding: (6, 6)
-                markup: True
-                text: 'Click "Run Update" button to start'
-                id: status_label
-                on_text: status_label_sv.scroll_y = 0
+            halign: "left"
+            #size: (300, 300)
+            font_size: 14
+            #font_size: sl_font_size.value
+            markup: True
+            #on_text: self.rv.scroll_y = 0  # in the scrolllable.py class
+#        ScrollView:
+#            size_hint_y: .85
+#            id: status_label_sv
+#            Label:
+#                text_size: self.width, None
+#                size_hint_y: None
+#                height: self.texture_size[1]
+#                valign: "top"
+#                padding: (6, 6)
+#                markup: True
+#                text: 'Click "Run Update" button to start'
+#                id: status_label
+#                on_text: status_label_sv.scroll_y = 0
         ProgressBar:
             id: offline_progress
             size_hint_y: .05

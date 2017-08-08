@@ -65,7 +65,7 @@ def get_tar_digest(app_name):
 def save_app(app_name):
     global save_path, repo_name, tag
     
-    img_path = os.path.join(save_path, app_name + ".tar")
+    img_path = os.path.join(save_path, app_name + ".tar.gz")
     
     
     # Load the last saved tar digest
@@ -76,7 +76,8 @@ def save_app(app_name):
     if app_digest != tar_digest:
         # Save the binary
         print "\tApp modified, exporting with docker save to: " + img_path
-        os.system("docker save -o " + img_path + " " + repo_name + "/" + app_name + ":" + tag)
+        #os.system("docker save -o " + img_path + " " + repo_name + "/" + app_name + ":" + tag)
+        os.system("docker save " + repo_name + "/" + app_name + ":" + tag + " | gzip > " + img_path)
         
         # Update the digest
         save_app_digest(app_name, app_digest)

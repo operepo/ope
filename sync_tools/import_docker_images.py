@@ -64,7 +64,7 @@ def get_tar_digest(app_name):
 def load_app(app_name):
     global save_path, repo_name, tag
     
-    img_path = os.path.join(save_path, app_name + ".tar")
+    img_path = os.path.join(save_path, app_name + ".tar.gz")
     
     
     # Load the last saved tar digest

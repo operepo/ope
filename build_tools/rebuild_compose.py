@@ -273,8 +273,8 @@ for key in replacement_values:
 docker_compose = open(os.path.join(pwd,"docker-compose.yml"), "w")
 docker_compose.write(dc_out)
 docker_compose.close()    
-
-print("\n\nFinished!\n\n    Run commands from docker_build_files folder: {0}\n        To Build (Online Only):     docker-compose build\n        To start:             docker-compose up -d\n        To Stop:             docker-compose down".format(pwd))
+print("\n\nRebuild Compose Complete.")
+#print("\n\n    Run commands from docker_build_files folder: {0}\n        To Build (Online Only):     docker-compose build\n        To start:             docker-compose up -d\n        To Stop:             docker-compose down".format(pwd))
 # Grab all ope- folders and start each one
 
 #pwd = os.getcwd()

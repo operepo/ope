@@ -22,6 +22,7 @@ import kivy
 from kivy.app import App
 from kivy.network.urlrequest import UrlRequest
 from kivy.uix.label import Label
+from scrolllabel import ScrollLabel
 from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.gridlayout import GridLayout
@@ -39,7 +40,7 @@ from kivy.logger import Logger
 from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.core.window import Window
-kivy.require('1.9.2')
+kivy.require('1.10.0')
 
 # Adjust kivy config to change window look/behavior
 # Config.set('graphics','borderless',1)
@@ -51,7 +52,7 @@ kivy.require('1.9.2')
 # Config.set('graphics', 'resizeable', '0')
 # Config.set('graphics', 'borderless', '1')
 # TODO TODO TODO - [CRITICAL] [Clock       ] Warning, too much iteration done before the next frame. Check your code, or increase the Clock.max_iteration attribute
-#Config.set('max_iteration')
+# Clock.max_iteration = 20
 # Window.size = (900, 800)
 # Window.borderless = True
 
@@ -402,8 +403,11 @@ class SyncOPEApp(App):
         settings.register_type('password', SettingPassword)
         settings.register_type('button', SettingButton)
 
-        settings.add_json_panel('Online Settings', self.config, 'OnlineServerSettings.json')
-        settings.add_json_panel('Offline Settings', self.config, 'OfflineServerSettings.json')
+        cwd = os.path.dirname(os.path.abspath(__file__))
+        settings.add_json_panel('Online Settings', self.config,
+                                os.path.join(cwd, 'OnlineServerSettings.json'))
+        settings.add_json_panel('Offline Settings', self.config,
+                                os.path.join(cwd, 'OfflineServerSettings.json'))
 
         # Don't show this in settings AND in selected apps screen
         # settings.add_json_panel('Selected Apps', self.config, 'SelectedApps.json')
@@ -496,7 +500,7 @@ class SyncOPEApp(App):
                 n_local_path = os.path.join(local_path, f.filename)
                 self.sftp_pull_files(n_remote_path, n_local_path, sftp, status_label, depth+1)
             elif stat.S_ISREG(f.st_mode):
-                status_label.text += "\n" + depth_str + "Found File: " + f.filename
+                status_label.text += "\n" + depth_str + "Found File: " + os.path.abspath(f.filename)
                 # Try to copy it to the local folder
                 try:
                     # Make sure the local folder exists
@@ -533,26 +537,35 @@ class SyncOPEApp(App):
         # Recursive Walk through the folder and push changed files
         depth_str = " " * depth
 
+        # Need to decode unicode/mbcs encoded paths
+        enc_local_path = local_path.decode(sys.getfilesystemencoding())
+
         for item in os.listdir(local_path):
-            l_path = os.path.join(local_path, item)
+            enc_item = item
+            try:
+                enc_item = item.decode(sys.getfilesystemencoding())
+            except:
+                # Set it first, then try to decode it, if decode fails use it as is
+                pass
+            l_path = os.path.join(enc_local_path, enc_item)
             if os.path.isdir(l_path):
-                status_label.text += "\n" + depth_str + "Found Dir: " + item
-                n_remote_path = os.path.join(remote_path, item).replace("\\", "/")
-                n_local_path = os.path.join(local_path, item)
+                status_label.text += "\n" + depth_str + "Found Dir: " + enc_item.encode('ascii', 'ignore')
+                n_remote_path = os.path.join(remote_path, enc_item).replace("\\", "/")
+                n_local_path = os.path.join(enc_local_path, enc_item)
                 # Make sure the directory exists on the remote system
                 sftp.chdir(remote_path)
                 try:
-                    sftp.mkdir(item)
+                    sftp.mkdir(enc_item)
                 except:
                     # Will fail if directory already exists
                     pass
                 self.sftp_push_files(n_remote_path, n_local_path, sftp, status_label, depth+1)
             elif os.path.isfile(l_path):
-                status_label.text += "\n" + depth_str + "Found File: " + item
+                status_label.text += "\n" + depth_str + "Found File: " + enc_item.encode('ascii', 'ignore')
                 # Try to copy it to the remote folder
 
-                r_file = os.path.join(remote_path, item).replace("\\", "/")
-                l_file = os.path.join(local_path, item)
+                r_file = os.path.join(remote_path, enc_item).replace("\\", "/")
+                l_file = os.path.join(enc_local_path, enc_item)
 
                 # Get the local modified time of the file
                 l_mtime = 0
@@ -570,22 +583,19 @@ class SyncOPEApp(App):
                 except:
                     pass
                 if r_mtime == l_mtime:
-                    status_label.text += "\n" + depth_str + "Files the same - skipping: " + item
+                    status_label.text += " - Files the same - skipping. "
                 elif l_mtime > r_mtime:
-                    status_label.text += "\n" + depth_str + "Local file newer, uploading: " + item
+                    status_label.text += " - Local file newer, uploading..."
                     sftp.put(l_file, r_file, callback=self.copy_callback)
                     sftp.utime(r_file, (l_mtime, l_mtime))
                 else:
-                    status_label.text += "\n" + depth_str + "remote file newer, skipping: " + item
+                    status_label.text += " - Remote file newer, skipping. "
 
             else:
                 # Non regular file
-                status_label.text += "\n" + depth_str + "NonReg File - skipping: " + item
+                status_label.text += "\n" + depth_str + "NonReg File - skipping: " + enc_item.encode('ascii', 'ignore')
 
-    def sync_online_volume(self, volume, folder, ssh, ssh_folder, status_label, branch="master"):
-        pass
-
-    def sync_offline_volume(self, volume, folder, ssh, ssh_folder, status_label, branch="master"):
+    def sync_volume(self, volume, folder, ssh, ssh_folder, status_label, branch="master"):
         # Sync files on the online server with the USB drive
 
         # Get project folder (parent folder)
@@ -859,7 +869,6 @@ class SyncOPEApp(App):
         except:
             pass
         stdin.close()
-
         for line in stdout:
             status_label.text += line
 
@@ -1067,6 +1076,23 @@ class SyncOPEApp(App):
         else:
             progress_widget.value = int(float(transferred) / float(total) * 100)
 
+    def sync_volumes(self, ssh, ssh_folder, status_label):
+        # Sync volumes of offline OR online server to USB drive
+        # TODO - check enabled apps first
+
+        apps = self.get_enabled_apps()
+        for app in apps:
+            if app == "ope-canvas":
+                # Sync canvas files (student and curriculum files)
+                self.sync_volume('canvas', 'tmp/files', ssh, ssh_folder, status_label)
+                # - sync canvas db (sync db dumps)
+                self.sync_volume('canvas', 'db/sync', ssh, ssh_folder, status_label)
+
+            if app == "ope-smc":
+                # Sync SMC movies
+                self.sync_volume('smc', 'media', ssh, ssh_folder, status_label)
+
+
     def update_online_server(self, status_label, run_button=None, progress_bar=None):
         if run_button is not None:
             run_button.disabled = True
@@ -1128,22 +1154,8 @@ class SyncOPEApp(App):
             self.copy_docker_images_to_usb_drive(ssh, ssh_folder, status_label, progress_bar)
             progress_bar.value = 0
 
-
             # Start syncing volume folders
-            # - sync canvas files
-            self.sync_online_volume('canvas', 'tmp/files', ssh, ssh_folder, status_label)
-
-            # - sync canvas db
-            #self.sync_online_volume('canvas', 'db/sync')
-
-
-
-            # TODO TODO TODO
-            # - sync smc
-
-            # - sync coco
-
-            # - sync rachel
+            self.sync_volumes(ssh, ssh_folder, status_label)
 
             ssh.close()
         except Exception as ex:
@@ -1187,11 +1199,6 @@ class SyncOPEApp(App):
             # Connect to the server
             ssh.connect(ssh_server, username=ssh_user, password=ssh_pass)
 
-            self.sync_offline_volume('canvas', 'tmp/files', ssh, ssh_folder, status_label)
-            status_label.text += "[b]DEBUG DEBUG DEBUB [/b]"
-            ssh.close()
-            return
-
             # Make sure we have an SSH key to use for logins
             self.generate_local_ssh_key(status_label)
 
@@ -1217,14 +1224,7 @@ class SyncOPEApp(App):
             progress_bar.value = 0
 
             # Start syncing volume folders
-            # - sync canvas
-            self.sync_offline_volume('canvas', 'tmp/files', ssh, ssh_folder, status_label)
-            # TODO TODO TODO
-            # - sync smc
-
-            # - sync coco
-
-            # - sync rachel
+            self.sync_volumes(ssh, ssh_folder, status_label)
 
             ssh.close()
         except Exception as ex:
@@ -1234,7 +1234,6 @@ class SyncOPEApp(App):
                 run_button.disabled = False
             return False
             # Logger.info("Error connecting: " + str(ex))
-
 
         status_label.text += "\n\n[b]DONE[/b]"
         if run_button is not None:
