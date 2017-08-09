@@ -1098,6 +1098,14 @@ class SyncOPEApp(App):
                 self.sync_volume('fog', 'share_images', ssh, ssh_folder, status_label)
                 # TODO - trigger image import
 
+            if app == "ope-postgresql":
+                # Dump data so we can import/sync/merge it
+                cmd = "docker-compose exec ope-postgresql bash -c 'mkdir -p /db_backup/canvas/canvas_production'"
+                cmd = "docker-compose exec ope-postgresql bash -c 'pg_dump -d canvas_production -U postgres -f /db_backup/canvas/canvas_production -F d --data-only --blobs --disable-triggers --quote-all-identifiers'"
+
+                self.sync_volume('postgresql', 'canvas', ssh, ssh_folder, status_label)
+                pass
+
 
     def update_online_server(self, status_label, run_button=None, progress_bar=None):
         if run_button is not None:

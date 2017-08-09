@@ -5,3 +5,5 @@ sc config FOGService start=delayed-auto
 net start FOGService
 powercfg /H off
 rem del C:\Windows\Setup\Scripts\SetupComplete.cmd
+delprof2 /q /id:firstboot /i
+NET USER firstboot /DELETE

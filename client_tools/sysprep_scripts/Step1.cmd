@@ -7,7 +7,7 @@ powershell -Command "get-appxpackage *appconnector* | remove-appxpackage"
 powershell -Command "get-appxpackage *appinstaller* | remove-appxpackage"
 powershell -Command "get-appxpackage *communicationsapps* | remove-appxpackage"
 powershell -Command "get-appxpackage *camera* | remove-appxpackage"
-powershell -Command "get-appxpackage *feedback* | remove-appxpackage"
+REM powershell -Command "get-appxpackage *feedback* | remove-appxpackage"
 powershell -Command "get-appxpackage *officehub* | remove-appxpackage"
 powershell -Command "get-appxpackage *getstarted* | remove-appxpackage"
 powershell -Command "get-appxpackage *skypeapp* | remove-appxpackage"
@@ -42,7 +42,7 @@ REM powershell -Command "get-appxpackage *3d* | remove-appxpackage"
 REM powershell -Command "get-appxpackage *soundrecorder* | remove-appxpackage"
 REM powershell -Command "get-appxpackage *holographic* | remove-appxpackage"
 REM  To uninstall Windows Store: (Be very careful!)
-REM powershell -Command "get-appxpackage *windowsstore* | remove-appxpackage"
+powershell -Command "get-appxpackage *windowsstore* | remove-appxpackage"
 
 echo "Disable fast boot..."s
 reg ADD "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power" /v HiberbootEnabled /t REG_DWORD /d 0 /f
@@ -70,7 +70,8 @@ echo "Zero the drive - compression works great on zeroed space (may take several
 c:\apps\sdelete\sdelete -z c:
 
 echo "Running Chkdsk /f..."
-chkdsk /f c:
+rem chkdsk /f c:
+chkntfs /C c:
 
 echo "Time to reboot. Run PatchCleaner before reboot to trim installer folder"
 echo "Enter to reboot now or CTRL+C to cancel..."
