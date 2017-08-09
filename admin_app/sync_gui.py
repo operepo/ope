@@ -1091,6 +1091,12 @@ class SyncOPEApp(App):
             if app == "ope-smc":
                 # Sync SMC movies
                 self.sync_volume('smc', 'media', ssh, ssh_folder, status_label)
+                # TODO - trigger movie import
+
+            if app == "ope-fog":
+                # Sync FOG images
+                self.sync_volume('fog', 'share_images', ssh, ssh_folder, status_label)
+                # TODO - trigger image import
 
 
     def update_online_server(self, status_label, run_button=None, progress_bar=None):
@@ -1159,7 +1165,7 @@ class SyncOPEApp(App):
 
             ssh.close()
         except Exception as ex:
-            status_label.text += "\n\n[b]SSH ERROR[/b]\n - Unable to connect to OPE server : " + str(ex)
+            status_label.text += "\n\n[b]SYNC ERROR[/b]\n - Unable to complete sync: " + str(ex)
             status_label.text += "\n\n[b]Exiting early!!![/b]"
             if run_button is not None:
                 run_button.disabled = False
@@ -1228,7 +1234,7 @@ class SyncOPEApp(App):
 
             ssh.close()
         except Exception as ex:
-            status_label.text += "\n\n[b]SSH ERROR[/b]\n - Unable to connect to OPE server : " + str(ex)
+            status_label.text += "\n\n[b]SYNC ERROR[/b]\n - Unable to complete sync: " + str(ex)
             status_label.text += "\n\n[b]Exiting early!!![/b]"
             if run_button is not None:
                 run_button.disabled = False
