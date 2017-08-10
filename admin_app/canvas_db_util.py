@@ -5,8 +5,21 @@ import sys
 import os
 import getpass
 
+# The minimum ID to grab - anything lower we ignore because it isn't
+# in the valid sequence range (e.g. don't propogate initial data like root account
+min_id = 90000000000
+# Tables to merge
+merge_tables = ["users", "accounts"]
+
+
+def export_table(table, con):
+    # Figure out what parts to export for this table
+
+    # Pull list from logged_actions table
+
 
 def export_canvas_db(db_name="canvas_production", host="canvas.ed", user="postgres", password="changeme", port=5432):
+    global min_id, merge_tables
     # Connect and create a dump
     con = psycopg2.connect(database=db_name, user=user, password=password, host=host, port=port)
 
@@ -19,13 +32,16 @@ def export_canvas_db(db_name="canvas_production", host="canvas.ed", user="postgr
     except:
         pass
 
+    for table in merge_tables:
+        export_table(table, con)
+
 #  select relname from pg_class where relkind='r';
     # relkind - s - ??, t = toast, i = index, r = ??(tables), v = views?
     # Get a list of tables
-    cur = con.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    cur.execute("select version()")
-    ver = cur.fetchone()
-    print ver
+#    cur = con.cursor(cursor_factory=psycopg2.extras.DictCursor)
+#    cur.execute("select version()")
+#    ver = cur.fetchone()
+#    print ver
 
 def import_canvas_db():
     pass
