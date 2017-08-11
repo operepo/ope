@@ -22,6 +22,12 @@ def export_canvas_db(db_name="canvas_production", host="canvas.ed", user="postgr
 #  select relname from pg_class where relkind='r';
     # relkind - s - ??, t = toast, i = index, r = ??(tables), v = views?
     # Get a list of tables
+    sql = """SELECT nspname||'.'||relname AS full_rel_name
+  FROM pg_class, pg_namespace
+ WHERE relnamespace = pg_namespace.oid
+   AND nspname = 'yourschemaname'
+   AND relkind = 'r';"""
+    sql = """select * from pg_tables where schemaname='public';"""
     cur = con.cursor(cursor_factory=psycopg2.extras.DictCursor)
     cur.execute("select version()")
     ver = cur.fetchone()
