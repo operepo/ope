@@ -91,6 +91,7 @@ COMMENT ON COLUMN ope_audit.logged_actions.statement_only IS '''t'' if ope_audit
 CREATE INDEX IF NOT EXISTS logged_actions_relid_idx ON ope_audit.logged_actions(relid);
 CREATE INDEX IF NOT EXISTS logged_actions_action_tstamp_tx_stm_idx ON ope_audit.logged_actions(action_tstamp_stm);
 CREATE INDEX IF NOT EXISTS logged_actions_action_idx ON ope_audit.logged_actions(action);
+CREATE INDEX IF NOT EXISTS logged_actions_table_name_idx ON ope_audit.logged_actions(table_name);
 
 CREATE OR REPLACE FUNCTION ope_audit.if_modified_func() RETURNS TRIGGER AS $body$
 DECLARE
@@ -223,6 +224,18 @@ END;
 $body$
 language 'plpgsql';
 
+CREATE OR REPLACE FUNCTION ope_audit.ope_audit_table_disable(target_table regclass) RETURNS void AS $body$
+DECLARE
+  stm_targets text = 'INSERT OR UPDATE OR DELETE OR TRUNCATE';
+  _q_txt text;
+  _ignored_cols_snip text = '';
+BEGIN
+    EXECUTE 'DROP TRIGGER IF EXISTS ope_audit_trigger_row ON ' || target_table;
+    EXECUTE 'DROP TRIGGER IF EXISTS ope_audit_trigger_stm ON ' || target_table;
+END;
+$body$
+language 'plpgsql';
+
 COMMENT ON FUNCTION ope_audit.ope_audit_table(regclass, boolean, boolean, text[]) IS $body$
 Add auditing support to a table.
 
@@ -248,8 +261,6 @@ $$ LANGUAGE 'sql';
 COMMENT ON FUNCTION ope_audit.ope_audit_table(regclass) IS $body$
 Add ope_auditing support to the given table. Row-level changes will be logged with full client query text. No cols are ignored.
 $body$;
-
-
 	
 	
 SQLSTRING
@@ -259,7 +270,14 @@ SQLSTRING
 	ActiveRecord::Base.connection.tables.each do |table|
 	  puts "Enabling auditing on #{table}"
 	  begin
-		ActiveRecord::Base.connection.execute("select ope_audit.ope_audit_table('#{table}');")
+		# Don't add triggers to certain tables that we don't want to merge
+		# TODO - ruby way to test against an array of table names?
+		if (table != "delayed_jobs" && table != "failed_jobs")
+			ActiveRecord::Base.connection.execute("select ope_audit.ope_audit_table('#{table}');")
+		else
+			# Make sure to remove trigger if it exists
+			ActiveRecord::Base.connection.execute("select ope_audit.ope_audit_table_disable('#{table}');")
+		end
 	  rescue
 		puts "---> Error enabling auditing on #{table}"
 	  end
@@ -368,6 +386,18 @@ SQLSTRING
 		puts "---> Error setting sequence #{rangestart} on table #{table}"
 	  end
 	end
+	
+	# Set the logged_actions table sequence too
+	last_seq = 0
+	seq_row = ActiveRecord::Base.connection.exec_query("select nextval('ope_audit.logged_actions_event_id_seq'::regclass) as nv")
+	seq_row.each do |row|
+		last_seq = row["nv"].to_i
+	end
+	if (last_seq < rangestart || last_seq >= rangestart + 100000000000 )
+		puts "-> Last sequence outside of current range logged_actions_event_id_seq #{last_seq} -> #{rangestart}"
+		ActiveRecord::Base.connection.execute("ALTER SEQUENCE ope_audit.logged_actions_event_id_seq RESTART WITH #{rangestart}")
+	end
+	
 	puts "--> Finished setting sequence range to #{rangestart}"
 	
 	# Make sure to change the constraint on the version tables so they don't blow up with big ids
@@ -383,4 +413,184 @@ SQLSTRING
     
 end
 
+
+
+# TODO TODO TODO TODO
+-- Table: ope_audit.exports
+
+-- DROP TABLE ope_audit.exports;
+
+CREATE TABLE ope_audit.exports
+(
+    id bigint NOT NULL,
+    start_id bigint NOT NULL,
+    end_id bigint NOT NULL,
+    export_time timestamp with time zone NOT NULL,
+    sequence_base bigint NOT NULL,
+    CONSTRAINT "Exports_pkey" PRIMARY KEY (id)
+)
+WITH (
+    OIDS = FALSE
+)
+TABLESPACE pg_default;
+
+ALTER TABLE ope_audit.exports
+    OWNER to postgres;
+COMMENT ON TABLE ope_audit.exports
+    IS 'Keep track of exports';
+	
+	
+
+
+-- Table: ope_audit.import
+
+-- DROP TABLE ope_audit.import;
+
+CREATE TABLE ope_audit.import
+(
+    id bigint NOT NULL,
+    sequence_base bigint NOT NULL,
+    export_id bigint NOT NULL,
+    imported_on timestamp with time zone,
+    CONSTRAINT import_pkey PRIMARY KEY (id)
+)
+WITH (
+    OIDS = FALSE
+)
+TABLESPACE pg_default;
+
+ALTER TABLE ope_audit.import
+    OWNER to postgres;
+	
+	
+	
+-- Table: ope_audit.imported_actions
+
+-- DROP TABLE ope_audit.imported_actions;
+
+CREATE TABLE ope_audit.imported_actions
+(
+    event_id bigint NOT NULL DEFAULT nextval('ope_audit.imported_actions_event_id_seq'::regclass),
+    schema_name text COLLATE pg_catalog."default" NOT NULL,
+    table_name text COLLATE pg_catalog."default" NOT NULL,
+    relid oid NOT NULL,
+    session_user_name text COLLATE pg_catalog."default",
+    action_tstamp_tx timestamp with time zone NOT NULL,
+    action_tstamp_stm timestamp with time zone NOT NULL,
+    action_tstamp_clk timestamp with time zone NOT NULL,
+    transaction_id bigint,
+    application_name text COLLATE pg_catalog."default",
+    client_addr inet,
+    client_port integer,
+    client_query text COLLATE pg_catalog."default",
+    action text COLLATE pg_catalog."default" NOT NULL,
+    row_data jsonb,
+    changed_fields jsonb,
+    statement_only boolean NOT NULL,
+    fk_import bigint NOT NULL,
+    CONSTRAINT imported_actions_pkey PRIMARY KEY (event_id),
+    CONSTRAINT imported_actions_action_check CHECK (action = ANY (ARRAY['I'::text, 'D'::text, 'U'::text, 'T'::text]))
+)
+WITH (
+    OIDS = FALSE
+)
+TABLESPACE pg_default;
+
+ALTER TABLE ope_audit.imported_actions
+    OWNER to postgres;
+
+GRANT ALL ON TABLE ope_audit.imported_actions TO postgres;
+
+COMMENT ON TABLE ope_audit.imported_actions
+    IS 'History of auditable actions on audited tables, from audit.if_modified_func()';
+
+COMMENT ON COLUMN ope_audit.imported_actions.event_id
+    IS 'Unique identifier for each auditable event';
+
+COMMENT ON COLUMN ope_audit.imported_actions.schema_name
+    IS 'Database schema audited table for this event is in';
+
+COMMENT ON COLUMN ope_audit.imported_actions.table_name
+    IS 'Non-schema-qualified table name of table event occured in';
+
+COMMENT ON COLUMN ope_audit.imported_actions.relid
+    IS 'Table OID. Changes with drop/create. Get with ''tablename''::regclass';
+
+COMMENT ON COLUMN ope_audit.imported_actions.session_user_name
+    IS 'Login / session user whose statement caused the audited event';
+
+COMMENT ON COLUMN ope_audit.imported_actions.action_tstamp_tx
+    IS 'Transaction start timestamp for tx in which audited event occurred';
+
+COMMENT ON COLUMN ope_audit.imported_actions.action_tstamp_stm
+    IS 'Statement start timestamp for tx in which audited event occurred';
+
+COMMENT ON COLUMN ope_audit.imported_actions.action_tstamp_clk
+    IS 'Wall clock time at which audited event''s trigger call occurred';
+
+COMMENT ON COLUMN ope_audit.imported_actions.transaction_id
+    IS 'Identifier of transaction that made the change. May wrap, but unique paired with action_tstamp_tx.';
+
+COMMENT ON COLUMN ope_audit.imported_actions.application_name
+    IS 'Application name set when this audit event occurred. Can be changed in-session by client.';
+
+COMMENT ON COLUMN ope_audit.imported_actions.client_addr
+    IS 'IP address of client that issued query. Null for unix domain socket.';
+
+COMMENT ON COLUMN ope_audit.imported_actions.client_port
+    IS 'Remote peer IP port address of client that issued query. Undefined for unix socket.';
+
+COMMENT ON COLUMN ope_audit.imported_actions.client_query
+    IS 'Top-level query that caused this auditable event. May be more than one statement.';
+
+COMMENT ON COLUMN ope_audit.imported_actions.action
+    IS 'Action type; I = insert, D = delete, U = update, T = truncate';
+
+COMMENT ON COLUMN ope_audit.imported_actions.row_data
+    IS 'Record value. Null for statement-level trigger. For INSERT this is the new tuple. For DELETE and UPDATE it is the old tuple.';
+
+COMMENT ON COLUMN ope_audit.imported_actions.changed_fields
+    IS 'New values of fields changed by UPDATE. Null except for row-level UPDATE events.';
+
+COMMENT ON COLUMN ope_audit.imported_actions.statement_only
+    IS '''t'' if ope_audit event is from an FOR EACH STATEMENT trigger, ''f'' for FOR EACH ROW';
+
+-- Index: imported_actions_action_idx
+
+-- DROP INDEX ope_audit.imported_actions_action_idx;
+
+CREATE INDEX imported_actions_action_idx
+    ON ope_audit.imported_actions USING btree
+    (action COLLATE pg_catalog."default")
+    TABLESPACE pg_default;
+
+-- Index: imported_actions_action_tstamp_tx_stm_idx
+
+-- DROP INDEX ope_audit.imported_actions_action_tstamp_tx_stm_idx;
+
+CREATE INDEX imported_actions_action_tstamp_tx_stm_idx
+    ON ope_audit.imported_actions USING btree
+    (action_tstamp_stm)
+    TABLESPACE pg_default;
+
+-- Index: imported_actions_relid_idx
+
+-- DROP INDEX ope_audit.imported_actions_relid_idx;
+
+CREATE INDEX imported_actions_relid_idx
+    ON ope_audit.imported_actions USING btree
+    (relid)
+    TABLESPACE pg_default;
+
+-- Index: imported_actions_table_name_idx
+
+-- DROP INDEX ope_audit.imported_actions_table_name_idx;
+
+CREATE INDEX imported_actions_table_name_idx
+    ON ope_audit.imported_actions USING btree
+    (table_name COLLATE pg_catalog."default")
+    TABLESPACE pg_default;
+	
+	
+	
 

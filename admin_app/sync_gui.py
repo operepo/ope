@@ -1091,6 +1091,20 @@ class SyncOPEApp(App):
             if app == "ope-smc":
                 # Sync SMC movies
                 self.sync_volume('smc', 'media', ssh, ssh_folder, status_label)
+                # TODO - trigger movie import
+
+            if app == "ope-fog":
+                # Sync FOG images
+                self.sync_volume('fog', 'share_images', ssh, ssh_folder, status_label)
+                # TODO - trigger image import
+
+            if app == "ope-postgresql":
+                # Dump data so we can import/sync/merge it
+                cmd = "docker-compose exec ope-postgresql bash -c 'mkdir -p /db_backup/canvas/canvas_production'"
+                cmd = "docker-compose exec ope-postgresql bash -c 'pg_dump -d canvas_production -U postgres -f /db_backup/canvas/canvas_production -F d --data-only --blobs --disable-triggers --quote-all-identifiers'"
+
+                self.sync_volume('postgresql', 'canvas', ssh, ssh_folder, status_label)
+                pass
 
 
     def update_online_server(self, status_label, run_button=None, progress_bar=None):
@@ -1159,7 +1173,7 @@ class SyncOPEApp(App):
 
             ssh.close()
         except Exception as ex:
-            status_label.text += "\n\n[b]SSH ERROR[/b]\n - Unable to connect to OPE server : " + str(ex)
+            status_label.text += "\n\n[b]SYNC ERROR[/b]\n - Unable to complete sync: " + str(ex)
             status_label.text += "\n\n[b]Exiting early!!![/b]"
             if run_button is not None:
                 run_button.disabled = False
@@ -1228,7 +1242,7 @@ class SyncOPEApp(App):
 
             ssh.close()
         except Exception as ex:
-            status_label.text += "\n\n[b]SSH ERROR[/b]\n - Unable to connect to OPE server : " + str(ex)
+            status_label.text += "\n\n[b]SYNC ERROR[/b]\n - Unable to complete sync: " + str(ex)
             status_label.text += "\n\n[b]Exiting early!!![/b]"
             if run_button is not None:
                 run_button.disabled = False
