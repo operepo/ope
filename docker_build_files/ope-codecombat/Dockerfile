@@ -24,26 +24,19 @@ RUN groupadd -r coco -g 921 && \
     adduser --uid 921 --system --gid 921 --home /home/coco coco && \
     adduser coco sudo
 
+RUN apt-get update \
+	&& apt-get install -y curl \
+	&& curl -sL https://deb.nodesource.com/setup_6.x | bash - \
+	&& apt-get install -y nodejs \
+#	&& apt-get install -y npmcurl -sL https://deb.nodesource.com/setup_6.x | bash - \
+#	&& apt-get install -y npm \
+	&& apt-get clean
 RUN \
 	apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927 \
 	&& echo "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-3.2.list \
 	&& apt-get update \
-	&& apt-get -y install vim wget nano make build-essential curl git zlib1g-dev python2.7 libkrb5-dev g++ make supervisor ruby1.9.1 npm mongodb-org dos2unix nodejs-legacy \
+	&& apt-get -y install vim wget nano make build-essential curl git zlib1g-dev python2.7 libkrb5-dev g++ make supervisor ruby ruby-dev mongodb-org dos2unix \
 	&& apt-get clean
-
-# Install nodejs
-#RUN cd /tmp \
-#	&& wget http://nodejs.org/dist/node-latest.tar.gz \
-#	&& tar xvzf node-latest.tar.gz \
-#	&& rm -f node-latest.tar.gz \
-#	&& cd node-v* \
-#	&& ./configure \
-#	&& CXX="g++ -Wno-unused-local-typedefs" make \
-#	&& CXX="g++ -Wno-unused-local-typedefs" make install \
-#	&& cd /tmp \
-#	&& rm -rf /tmp/node-v* \
-#	&& npm -v
-	
 
 RUN mkdir -p /home/coco \
 	&& cd /home/coco \
