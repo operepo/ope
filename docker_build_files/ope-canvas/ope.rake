@@ -268,14 +268,15 @@ SQLSTRING
 	
 	# Audit all tables in the db
 	ActiveRecord::Base.connection.tables.each do |table|
-	  puts "Enabling auditing on #{table}"
 	  begin
 		# Don't add triggers to certain tables that we don't want to merge
 		# TODO - ruby way to test against an array of table names?
 		if (table != "delayed_jobs" && table != "failed_jobs")
+			puts "Enabling auditing on #{table}"
 			ActiveRecord::Base.connection.execute("select ope_audit.ope_audit_table('#{table}');")
 		else
 			# Make sure to remove trigger if it exists
+			puts "Disabling auditing on #{table}"
 			ActiveRecord::Base.connection.execute("select ope_audit.ope_audit_table_disable('#{table}');")
 		end
 	  rescue
