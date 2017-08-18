@@ -8,6 +8,9 @@ import uuid
 import subprocess
 import stat
 
+# Make sure this is here so pyinstaller pulls it in
+import pydal
+
 from security import Enc
 
 import threading
@@ -35,6 +38,7 @@ from kivy.uix.settings import SettingItem
 from kivy.uix.button import Button
 from kivy.config import Config
 Config.set('kivy', 'exit_on_escape', '0')
+Config.set('graphics', 'multisamples', '0')
 from kivy.properties import ListProperty
 from kivy.logger import Logger
 from kivy.lang import Builder

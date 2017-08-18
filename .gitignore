@@ -23,3 +23,5 @@ client_tools/lms/src/build-*
 ope.git
 /admin_app/syncope.ini
 /docker_build_files/docker-compose.yml
+/admin_app/build/SyncApp
+/admin_app/dist/SyncApp
