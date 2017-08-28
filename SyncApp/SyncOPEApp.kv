@@ -1,0 +1,656 @@
+
+
+<MainWindow>:
+    BoxLayout:
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Sync Tool'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+                ActionLabel:
+                    id: label1
+                    text: "Label"
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+
+        Button:
+            text: 'Getting Started'
+            on_press: app.getting_started()
+
+
+        Button:
+            text: 'Pick Apps'
+            on_press: app.pick_apps()
+
+        Button:
+            text: 'Sync'
+
+        ScrollView:
+            size_hint: (1, .2)
+            text: ''
+            id: log_console
+            Label:
+                size_hint_y: None  # turn off auto height
+                # text_size: self.size
+                text_size: self.width, None  # Fit text width, but wrap forever
+                height: self.texture_size[1]  # Draw height
+                markup: True
+                text: log_console.text
+                valign: 'top'
+
+
+<SettingPassword>:
+    PasswordLabel:
+        text: (lambda x: '*'*x)(len(root.value)) if root.value else ''
+        pos: root.pos
+        font_size: '15sp'
+
+<PasswordPopup>:
+    title: 'Enter Password'
+    auto_dismiss: False
+    content: password_popup_content
+    size: (400, 250)
+    size_hint: (None, None)
+    on_open: pw_popup_text.focus = True
+    BoxLayout:
+        orientation: 'vertical'
+        id: password_popup_content
+        TextInput:
+            password: True
+            text: ''
+            pos: root.pos
+            font_size: '15sp'
+            id: pw_popup_text
+            multiline: False
+            on_text_validate:
+                if root.pw_func is not None: root.pw_func(pw_popup_text.text)
+                root.dismiss()
+        Button:
+            text: 'OK'
+            on_release:
+                if root.pw_func is not None: root.pw_func(pw_popup_text.text)
+                root.dismiss()
+        Button:
+            text: "Cancel"
+            on_release: root.dismiss()
+
+
+
+<OnlineUpdateScreen>:
+    BoxLayout:
+        padding: [3, 3, 3, 3]
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Admin Tool - Updating online server'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+
+                ActionButton:
+                    text: "<-- Back"
+                    on_press: root.manager.current="online_mode"
+
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+
+        Button:
+            text: 'Run Update'
+            size_hint_y: .1
+            on_press: app.update_online_server(status_label_sl, self, online_progress)
+        ScrollLabel:
+            id: status_label_sl
+            text: 'Click "Run Update" button to start'
+            size_hint_y: .85
+            halign: "left"
+            #size: (300, 300)
+            font_size: 14
+            #font_size: sl_font_size.value
+            markup: True
+            #on_text: self.rv.scroll_y = 0  # in the scrolllable.py class
+#        ScrollView:
+#            size_hint_y: .25
+#            id: status_label_sv
+#            Label:
+#                text_size: self.width, None
+#                size_hint_y: None
+#                height: self.texture_size[1]
+#                valign: "top"
+#                padding: (6, 6)
+#                markup: True
+#                text: 'Click "Run Update" button to start'
+#                id: status_label
+#                on_text: status_label_sv.scroll_y = 0
+        ProgressBar:
+            id: online_progress
+            size_hint_y: .05
+
+<OfflineUpdateScreen>:
+    BoxLayout:
+        padding: [3, 3, 3, 3]
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Admin Tool - Updating offline server'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+
+                ActionButton:
+                    text: "<-- Back"
+                    on_press: root.manager.current="offline_mode"
+
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+
+        Button:
+            text: 'Run Update'
+            size_hint_y: .1
+            on_press: app.update_offline_server(status_label_sl, self, offline_progress)
+        ScrollLabel:
+            id: status_label_sl
+            text: 'Click "Run Update" button to start'
+            size_hint_y: .85
+            halign: "left"
+            #size: (300, 300)
+            font_size: 14
+            #font_size: sl_font_size.value
+            markup: True
+            #on_text: self.rv.scroll_y = 0  # in the scrolllable.py class
+#        ScrollView:
+#            size_hint_y: .85
+#            id: status_label_sv
+#            Label:
+#                text_size: self.width, None
+#                size_hint_y: None
+#                height: self.texture_size[1]
+#                valign: "top"
+#                padding: (6, 6)
+#                markup: True
+#                text: 'Click "Run Update" button to start'
+#                id: status_label
+#                on_text: status_label_sv.scroll_y = 0
+        ProgressBar:
+            id: offline_progress
+            size_hint_y: .05
+
+
+
+<VerifySettingsScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Admin Tool - Verify Server Settings'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+
+                ActionButton:
+                    text: "<-- Back"
+                    on_press: root.manager.current="start"
+
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+
+        Button:
+            text: 'Verify'
+            on_press: app.verify_ope_server(verify_status_label)
+        Label:
+            text: '...'
+            id: verify_status_label
+
+
+<StartScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Admin Tool'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+
+        Button:
+            text: "Overview - Getting Started"
+            on_press: root.manager.current="getting_started"
+        Button:
+            text: 'Pick Apps - Select the apps to install and sync'
+            on_press: root.manager.current="pick_apps"
+        Button:
+            text: 'Online Mode - Setup or sync with apps on campus'
+            on_press: root.manager.current="online_mode"
+        Button:
+            text: "Offline Mode - Setup or sync with apps on inmate network"
+            on_press: root.manager.current="offline_mode"
+        #Button:
+        #    text: "Login test"
+        #    on_press: root.manager.current="login_screen"
+
+        ScrollView:
+            size_hint: (1, .2)
+            text: ''
+            id: log_console
+            Label:
+                size_hint_y: None  # turn off auto height
+                # text_size: self.size
+                text_size: self.width, None  # Fit text width, but wrap forever
+                height: self.texture_size[1]  # Draw height
+                markup: True
+                text: log_console.text
+                valign: 'top'
+
+<OnlineModeScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Admin Tool - Online Mode'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+
+                ActionButton:
+                    text: "<-- Back"
+                    on_press: root.manager.current="start"
+
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+
+        Button:
+            text: 'Settings - Online Server\nSet IP and login info for your online server'
+            on_press: app.show_settings_panel("Online Settings")
+
+        Button:
+            text: 'Install or Update server\nSetup OPE folder and make sure you have the latest updates'
+            on_press: root.manager.current="online_update"
+        #Button:
+        #    text: 'Sync - Move updates to USB drive\nE.g. app images, curriculum updates...'
+        #    on_press: root.manager.current="online_sync"
+
+<OfflineModeScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Admin Tool - Offline Mode'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+
+                ActionButton:
+                    text: "<-- Back"
+                    on_press: root.manager.current="start"
+
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+
+        Button:
+            text: 'Settings - Offline Server\nSet IP and login info for your offline server'
+            on_press: app.show_settings_panel("Offline Settings")
+        Button:
+            text: 'Install or Update server\nSetup OPE folder and make sure you have the latest updates'
+            on_press: root.manager.current="offline_update"
+        #Button:
+        #    text: 'Sync - Move updates from USB drive to server\nE.g. app images, curriculum updates...'
+        #    on_press: root.manager.current="offline_sync"
+
+<GettingStartedScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Admin Tool - Getting Started'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+
+                ActionButton:
+                    text: "<-- Back"
+                    on_press: root.manager.current="start"
+
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+
+        ScrollView:
+            size_hint: (1, 1)
+            text: ''
+            Label:
+                markup: True
+                text: app.get_file("GettingStarted.md")
+                size_hint_y: None  # turn off auto height
+                # text_size: self.size
+                text_size: self.width, None  # Fit text width, but wrap forever
+                height: self.texture_size[1]  # Draw height
+                valign: 'top'
+
+<GridLabel@Label>:
+    markup: True
+    size_hint_y: None
+    size_hint_x: .8
+    halign: "left"
+    valign: "top"
+    text_size: self.width, None
+    size: self.texture_size
+    padding: [3, 3]
+#    canvas.before:
+#        Color:
+#            rgba: .2, .2, .2, .7
+#        Rectangle:
+#            pos: self.pos
+#            size: self.size
+
+<GridSwitch@Switch>:
+    size: (30, 35)
+    size_hint_y: None
+    size_hint_x: .2
+    halign: "left"
+    valign: "top"
+    #text_size: self.width, None
+    #size: self.texture_size
+    padding: [3, 3]
+
+#    canvas.before:
+#        Color:
+#            rgba: .2, .2, .2, .7
+#        Rectangle:
+#            pos: self.pos
+#            size: self.size
+
+<PickAppsScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Admin Tool - Pick Apps'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+
+                ActionButton:
+                    text: "<-- Back"
+                    on_press: root.manager.current="start"
+
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+        ScrollView:
+            size_hint: (1, 1)
+            height: root.height * 2
+            text: ''
+            do_scroll_x: False
+
+            GridLayout:
+                cols: 2
+                padding: [4, 4, 4, 4]
+                spacing: 4
+                id: grid_pick_apps
+                #size_hint_x: 1
+                size_hint_y: None  # turn off auto height
+                # text_size: self.size
+                #text_size: self.width, None  # Fit text width, but wrap forever
+                #height: self.texture_size[1]  # Draw height
+                valign: 'top'
+                #row_default_height: 30
+                #size: (root.width, 50 * 16)
+                height: self.minimum_height #+ 700
+
+
+                GridLabel:
+                    text: "\n[b][color=ff0000]**[/color] Required Apps[/b]\nThese apps are always required\n- ope-gateway\n- ope-dns\n- ope-clamav\n- ope-redis\n- ope-postgresql\n\n[color=00ff00]**[/color] - Apps with a single asterisk are strongly recommended and required for normal functionality\n"
+                GridLabel:
+                    text: ''
+                    size_hint_x: .2
+
+
+                GridLabel:
+                    text: "[b][color=ff0000]**[/color][/b] Gateway (ope-gateway) - Routes traffic to various apps"
+                GridSwitch:
+                    id: gateway_on
+                    disabled: True
+                    active: app.is_app_active('ope-gateway')
+
+                GridLabel:
+                    text: "[b][color=ff0000]**[/color][/b] DNS (ope-dns) - Deals with DNS requests - add conditional forwarder for domain to this IP"
+                GridSwitch:
+                    id: dns_on
+                    disabled: True
+                    active: app.is_app_active('ope-dns')
+
+                GridLabel:
+                    text: "[b][color=ff0000]**[/color][/b] Clam Anti-virus (ope-clamav) - Holds anti-virus patterns for your network"
+                GridSwitch:
+                    id: clamv_on
+                    disabled: True
+                    active: app.is_app_active('ope-clamav')
+
+                GridLabel:
+                    text: "[b][color=ff0000]**[/color][/b] Redis (ope-redis) - Memory caching server, used by Canvas and other apps"
+                GridSwitch:
+                    id: redis_on
+                    disabled: True
+                    active: app.is_app_active('ope-redis')
+
+                GridLabel:
+                    text: "[b][color=ff0000]**[/color][/b] Postgresql (ope-postgresql) - Database server, used by Canvas and other apps"
+                GridSwitch:
+                    id: postgresql_on
+                    disabled: True
+                    active: app.is_app_active('ope-postgresql')
+
+                GridLabel:
+                    text: "[b][color=00ff00]**[/color][/b] FOG (ope-fog) - Imaging Server - stores windows images for OPE Laptops"
+                GridSwitch:
+                    id: fog_on
+                    active: app.is_app_active('ope-fog')
+                    on_active: app.set_app_active('ope-fog', self.active)
+
+                GridLabel:
+                    text: "[b][color=00ff00]**[/color][/b] Canvas (ope-canvas) - LMS setup to run offline and integrate with OPE project"
+                GridSwitch:
+                    id: canvas_on
+                    active: app.is_app_active('ope-canvas')
+                    on_active: app.set_app_active('ope-canvas', self.active)
+
+                GridLabel:
+                    text: "[b][color=00ff00]**[/color][/b] SMC (ope-smc) - Student Management Console to import student accounts and integrate with Canvas and OPE Laptops"
+                GridSwitch:
+                    id: smc_on
+                    active: app.is_app_active('ope-smc')
+                    on_active: app.set_app_active('ope-smc', self.active)
+
+                GridLabel:
+                    text: "Code Combat (ope-coco) - Lean to write code by scripting games in a website and solving puzzles"
+                GridSwitch:
+                    id: coco_on
+                    active: app.is_app_active('ope-coco')
+                    on_active: app.set_app_active('ope-coco', self.active)
+
+                GridLabel:
+                    text: "FreeCodeCamp (ope-freecodecamp) - Learn to code with lessons and projects from freecodecamp.com"
+                GridSwitch:
+                    id: freecodecamp_on
+                    active: app.is_app_active('ope-freecodecamp')
+                    on_active: app.set_app_active('ope-freecodecamp', self.active)
+
+                GridLabel:
+                    text: "GCFLearnFree (ope-gcf) - Learn basic computer skills - choose version available in RACHEL server"
+                GridSwitch:
+                    id: gcf_on
+                    active: app.is_app_active('ope-gcf')
+                    on_active: app.set_app_active('ope-gcf', self.active)
+
+                GridLabel:
+                    text: "JSBin (ope-jsbin) - Javascript learning environment"
+                GridSwitch:
+                    id: jsbin_on
+                    active: app.is_app_active('ope-jsbin')
+                    on_active: app.set_app_active('ope-jsbin', self.active)
+
+                GridLabel:
+                    text: "KALite (ope-kalite) - Khan Academy Lite - choose version available in RACHEL server"
+                GridSwitch:
+                    id: kalite_on
+                    active: app.is_app_active('ope-kalite')
+                    on_active: app.set_app_active('ope-kalite', self.active)
+
+                GridLabel:
+                    text: "RACHEL (ope-rachel) - RACHEL Web server, large library of offline content available as modules"
+                GridSwitch:
+                    id: rachel_on
+                    active: app.is_app_active('ope-rachel')
+                    on_active: app.set_app_active('ope-rachel', self.active)
+
+                GridLabel:
+                    text: "Stack Dump (ope-stackdump) - StackDump is a copy of Stack Overflow filtered for inmate use"
+                GridSwitch:
+                    id: stackdump_on
+                    active: app.is_app_active('ope-stackdump')
+                    on_active: app.set_app_active('ope-stackdump', self.active)
+
+                GridLabel:
+                    text: "WAMAP (ope-wamap) - Open source math learning system with lesson materials"
+                GridSwitch:
+                    id: wamap_on
+                    active: app.is_app_active('ope-wamap')
+                    on_active: app.set_app_active('ope-wamap', self.active)
+
+
+<LoginScreen>:
+    BoxLayout
+        id: login_layout
+        orientation: 'vertical'
+        padding: [10,50,10,50]
+        spacing: 50
+
+        Label:
+            text: 'Welcome'
+            font_size: 32
+
+        BoxLayout:
+            orientation: 'vertical'
+
+            Label:
+                text: 'Login'
+                font_size: 18
+                halign: 'left'
+                text_size: root.width-20, 20
+
+            TextInput:
+                id: login
+                multiline:False
+                font_size: 28
+
+        BoxLayout:
+            orientation: 'vertical'
+            Label:
+                text: 'Password'
+                halign: 'left'
+                font_size: 18
+                text_size: root.width-20, 20
+
+            TextInput:
+                id: password
+                multiline:False
+                password:True
+                font_size: 28
+
+        Button:
+            text: 'Connection'
+            font_size: 24
+
+            on_press: root.do_login(login.text, password.text)

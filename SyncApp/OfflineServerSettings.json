@@ -1,0 +1,32 @@
+[
+  {
+    "type": "string",
+    "title": "App Server IP",
+    "desc": "IP address of the OPE server where docker apps run (no host name, dns may not work yet)",
+    "section": "Offline Settings",
+    "key": "server_ip"
+  },
+  {
+    "type": "string",
+    "title": "User",
+    "desc": "The user to login with (generally root)",
+    "section": "Offline Settings",
+    "key": "server_user"
+  },
+  {
+    "type": "button",
+    "title": "Password",
+    "desc": "Click the button to set the password",
+    "section": "Offline Settings",
+    "key": "server_password",
+    "buttons": [{"title": "Set Password", "id": "btn_set_password"}]
+  },
+  {
+    "type": "string",
+    "title": "Root OPE Folder (/ope)",
+    "desc": "Location on the server where the OPE files are located. Default is /ope",
+    "section": "Offline Settings",
+    "key": "server_folder"
+  }
+
+]
