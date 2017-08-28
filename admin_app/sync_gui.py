@@ -939,8 +939,8 @@ class SyncOPEApp(App):
             remote_digest_file = os.path.join(ssh_folder, "volumes", "app_images", app + ".digest").replace("\\", "/")
             local_digest_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".digest.online")
             current_digest_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".digest")
-            remote_image = os.path.join(ssh_folder, "volumes", "app_images", app + ".tar").replace("\\", "/")
-            local_image = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".tar")
+            remote_image = os.path.join(ssh_folder, "volumes", "app_images", app + ".tar.gz").replace("\\", "/")
+            local_image = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".tar.gz")
             sftp.get(remote_digest_file, local_digest_file)
 
             # Read the online digest info
@@ -1024,8 +1024,8 @@ class SyncOPEApp(App):
             remote_digest_file = os.path.join(ssh_folder, "volumes", "app_images", app + ".digest").replace("\\", "/")
             local_digest_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".digest.offline")
             current_digest_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".digest")
-            remote_image = os.path.join(ssh_folder, "volumes", "app_images", app + ".tar").replace("\\", "/")
-            local_image = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".tar")
+            remote_image = os.path.join(ssh_folder, "volumes", "app_images", app + ".tar.gz").replace("\\", "/")
+            local_image = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".tar.gz")
             try:
                 sftp.get(remote_digest_file, local_digest_file)
             except:
