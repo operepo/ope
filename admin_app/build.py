@@ -33,5 +33,8 @@ assets = ["SyncOPEApp.kv", "OfflineServerSettings.json", "OnlineServerSettings.j
 for a in assets:
     shutil.copyfile(a, os.path.join("dist", project_name, a))
 
-# Remove the manifest file (fixes opengl errors)
+# Remove the manifest file (fixes opengl detection errors)
 os.unlink(os.path.join("dist", project_name, project_name+".exe.manifest"))
+
+# Move/Package the EXE files for easy download/install
+# TODO

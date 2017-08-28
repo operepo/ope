@@ -537,6 +537,7 @@
                 GridSwitch:
                     id: fog_on
                     active: app.is_app_active('ope-fog')
+                    on_active: app.set_app_active('ope-fog', self.active)
 
                 GridLabel:
                     text: "[b][color=00ff00]**[/color][/b] Canvas (ope-canvas) - LMS setup to run offline and integrate with OPE project"

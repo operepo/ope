@@ -1,4 +1,3 @@
-from kivy.deps import sdl2, glew
 # -*- mode: python -*-
 
 block_cipher = None
@@ -29,7 +28,6 @@ coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
                a.datas,
-               *[Tree(p) for p in (sdl2.dep_bins + glew.dep_bins)],
                strip=False,
                upx=True,
                name='SyncApp')
