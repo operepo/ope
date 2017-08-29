@@ -60,6 +60,16 @@ kivy.require('1.10.0')
 # Window.size = (900, 800)
 # Window.borderless = True
 
+def get_app_folder():
+    ret = ""
+    # return the folder this app is running in.
+    if getattr(sys, 'frozen', False):
+        # Running in pyinstaller bundle
+        ret = sys._MEIPASS
+    else:
+        ret = os.path.dirname(os.path.abspath(__file__))
+
+    return ret
 
 # Manage multiple screens
 sm = ScreenManager()
@@ -407,7 +417,7 @@ class SyncOPEApp(App):
         settings.register_type('password', SettingPassword)
         settings.register_type('button', SettingButton)
 
-        cwd = os.path.dirname(os.path.abspath(__file__))
+        cwd = get_app_folder()
         settings.add_json_panel('Online Settings', self.config,
                                 os.path.join(cwd, 'OnlineServerSettings.json'))
         settings.add_json_panel('Offline Settings', self.config,
@@ -603,7 +613,7 @@ class SyncOPEApp(App):
         # Sync files on the online server with the USB drive
 
         # Get project folder (parent folder)
-        root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        root_path = os.path.dirname( get_app_folder() )
         volumes_path = os.path.join(root_path, "volumes")
         volume_path = os.path.join(volumes_path, volume)
         folder_path = os.path.join(volume_path, folder.replace("/", os.sep))
@@ -643,7 +653,7 @@ class SyncOPEApp(App):
         # Pull the latest git data to the current project folder
 
         # Get project folder (parent folder)
-        root_path = os.path.dirname(os.path.dirname(__file__))
+        root_path = os.path.dirname( get_app_folder() )
 
         # Figure the path for the git app
         git_path = os.path.join(root_path, "PortableGit/bin/git.exe")
@@ -678,7 +688,7 @@ class SyncOPEApp(App):
             remote_name = "ope_offline"
 
         # Get project folder (parent folder)
-        root_path = os.path.dirname(os.path.dirname(__file__))
+        root_path = os.path.dirname(get_app_folder())
 
         # Figure the path for the git app
         git_path = os.path.join(root_path, "PortableGit/bin/git.exe")
@@ -791,7 +801,7 @@ class SyncOPEApp(App):
 
     def generate_local_ssh_key(self, status_label):
         # Get project folder (parent folder)
-        root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        root_path = os.path.dirname(get_app_folder())
         # Make sure ssh keys exist (saved in home directory in .ssh folder on current computer)
         bash_path = os.path.join(root_path, "PortableGit/bin/bash.exe")
         # Run this to generate keys
@@ -810,7 +820,7 @@ class SyncOPEApp(App):
         ret = ""
 
         # Get project folder (parent folder)
-        root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        root_path = os.path.dirname(get_app_folder())
         # Make sure ssh keys exist (saved in home directory in .ssh folder on current computer)
         bash_path = os.path.join(root_path, "PortableGit/bin/bash.exe")
 
@@ -920,7 +930,7 @@ class SyncOPEApp(App):
 
         # Ensure the local app_images folder exists
         try:
-            os.makedirs(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images"))
+            os.makedirs(os.path.join(os.path.dirname(get_app_folder()), "volumes", "app_images"))
         except:
             # Throws an error if already exists
             pass
@@ -937,10 +947,10 @@ class SyncOPEApp(App):
             online_digest = "."
             current_digest = "..."
             remote_digest_file = os.path.join(ssh_folder, "volumes", "app_images", app + ".digest").replace("\\", "/")
-            local_digest_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".digest.online")
-            current_digest_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".digest")
+            local_digest_file = os.path.join(os.path.dirname(get_app_folder()), "volumes", "app_images", app + ".digest.online")
+            current_digest_file = os.path.join(os.path.dirname(get_app_folder()), "volumes", "app_images", app + ".digest")
             remote_image = os.path.join(ssh_folder, "volumes", "app_images", app + ".tar.gz").replace("\\", "/")
-            local_image = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".tar.gz")
+            local_image = os.path.join(os.path.dirname(get_app_folder()), "volumes", "app_images", app + ".tar.gz")
             sftp.get(remote_digest_file, local_digest_file)
 
             # Read the online digest info
@@ -999,7 +1009,7 @@ class SyncOPEApp(App):
 
         # Ensure the local app_images folder exists
         try:
-            os.makedirs(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images"))
+            os.makedirs(os.path.join(os.path.dirname(get_app_folder()), "volumes", "app_images"))
         except:
             # Throws an error if already exists
             pass
@@ -1022,10 +1032,10 @@ class SyncOPEApp(App):
             offline_digest = "."
             current_digest = "..."
             remote_digest_file = os.path.join(ssh_folder, "volumes", "app_images", app + ".digest").replace("\\", "/")
-            local_digest_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".digest.offline")
-            current_digest_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".digest")
+            local_digest_file = os.path.join(os.path.dirname(get_app_folder()), "volumes", "app_images", app + ".digest.offline")
+            current_digest_file = os.path.join(os.path.dirname(get_app_folder()), "volumes", "app_images", app + ".digest")
             remote_image = os.path.join(ssh_folder, "volumes", "app_images", app + ".tar.gz").replace("\\", "/")
-            local_image = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "volumes", "app_images", app + ".tar.gz")
+            local_image = os.path.join(os.path.dirname(get_app_folder()), "volumes", "app_images", app + ".tar.gz")
             try:
                 sftp.get(remote_digest_file, local_digest_file)
             except:
@@ -1123,7 +1133,7 @@ class SyncOPEApp(App):
         progress_widget = progress_bar
 
         # Get project folder (parent folder)
-        root_path = os.path.dirname(os.path.dirname(__file__))
+        root_path = os.path.dirname(get_app_folder())
 
         # Pull current stuff from GIT repo so we have the latest code
         status_label.text += "\n\n[b]Git Pull[/b]\nPulling latest updates from github...\n"
@@ -1202,7 +1212,7 @@ class SyncOPEApp(App):
         progress_widget = progress_bar
 
         # Get project folder (parent folder)
-        root_path = os.path.dirname(os.path.dirname(__file__))
+        root_path = os.path.dirname(get_app_folder())
 
         # Login to the OPE server
         ssh = paramiko.SSHClient()
