@@ -86,7 +86,7 @@ RUN wget http://web2py.com/examples/static/web2py_src.zip && \
 RUN python -c "from gluon.main import save_password; save_password('$IT_PW',80)" && \
 	python -c "from gluon.main import save_password; save_password('$IT_PW',443)"
 
-LABEL rebuild=5
+LABEL rebuild=6
 # Checkout release copy of SMC
 RUN git clone https://github.com/frankyrumple/smc.git $W2P_DIR/applications/smc
 RUN cp -f $W2P_DIR/applications/smc/routes.py $W2P_DIR/routes.py
