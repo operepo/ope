@@ -1122,7 +1122,7 @@ class SyncOPEApp(App):
 
             if app == "ope-fog":
                 # Sync FOG images
-                self.sync_volume('fog', 'share_images', ssh, ssh_folder, status_label)
+                #self.sync_volume('fog', 'share_images', ssh, ssh_folder, status_label)
                 # TODO - trigger image import
 
             if app == "ope-postgresql":
