@@ -158,6 +158,24 @@ def main():
         key = win_util.create_reg_key(r"HKLM\Software\OPE\OPELMS\student")
         key.canvas_access_token = canvas_access_token
 
+        print("Installing Admin Services...")
+
+        print("Installing offline LMS app...")
+
+        print ("Applying security rules...")
+
+        # TODO
+        # Download current policy zip file
+        # unzip
+        # import
+        # /mergedpolicy -- to combine domain/local
+        cmd = "cd policy_dir; secedit /export /cfg gp.ini /log export.log"
+
+        # netsh -- import firewall rules
+        # download netsh import
+        # run netsh import command
+        
+
         print_checklist_warning()
 
         a = raw_input("Press enter when done")

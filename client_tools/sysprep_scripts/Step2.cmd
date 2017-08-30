@@ -24,7 +24,7 @@ del /F c:\windows\system32\sysprep\panther\setuperr.log
 del /F c:\windows\system32\sysprep\panther\ie\setupact.log
 del /F c:\windows\system32\sysprep\panther\ie\setuperr.log
 del /F "C:\Program Files (x86)\FOG\fog.log"
-REM del /F "C:\Program Files (x86)\FOG\token.dat"
+del /F "C:\Program Files (x86)\FOG\token.dat"
 
 echo disabling FOGService during sysprep...
 rem turn off fog service during clone

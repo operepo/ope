@@ -920,6 +920,19 @@ class SyncOPEApp(App):
 
         return ret
 
+    def start_apps(self, ssh, ssh_folder, status_label):
+        # Start the docker apps by calling the up.sh script
+        ret = ""
+
+        build_path = os.path.join(ssh_folder, "docker_build_files").replace("\\", "/")
+        # Run twice - sometimes compose fails, so we just rerun it
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; sh up.sh; sh up.sh; ", get_pty=True)
+        stdin.close()
+        for line in stdout.read():
+            status_label.text += line
+
+        return ret
+
     def copy_docker_images_to_usb_drive(self, ssh, ssh_folder, status_label, progress_bar):
         global progress_widget
 
@@ -1172,6 +1185,10 @@ class SyncOPEApp(App):
             self.pull_docker_images(ssh, ssh_folder, status_label)
             progress_bar.value = 0
 
+            # Run the up command so the docker apps start
+            status_label.text += "\n\n[b]Starting Apps[/b]\n - some apps may be slow to come online (e.g. canvas)...\n"
+            self.start_apps(ssh, ssh_folder, status_label)
+
             # Save the image binary files for syncing
             status_label.text += "\n\n[b]Save app binaries[/b]\n - will take a few minutes...\n"
             self.save_docker_images(ssh, ssh_folder, status_label)
@@ -1183,6 +1200,7 @@ class SyncOPEApp(App):
             progress_bar.value = 0
 
             # Start syncing volume folders
+            status_label.text += "\n\n[b]Syncing Volumes[/b]\n - may take a while...\n"
             self.sync_volumes(ssh, ssh_folder, status_label)
 
             ssh.close()
@@ -1251,7 +1269,12 @@ class SyncOPEApp(App):
             self.load_docker_images(ssh, ssh_folder, status_label)
             progress_bar.value = 0
 
+            # Run the up command so the docker apps start
+            status_label.text += "\n\n[b]Starting Apps[/b]\n - some apps may be slow to come online (e.g. canvas)...\n"
+            self.start_apps(ssh, ssh_folder, status_label)
+
             # Start syncing volume folders
+            status_label.text += "\n\n[b]Syncing Volumes[/b]\n - may take a while...\n"
             self.sync_volumes(ssh, ssh_folder, status_label)
 
             ssh.close()

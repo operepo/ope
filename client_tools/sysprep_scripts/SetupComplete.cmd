@@ -9,3 +9,6 @@ powercfg /H off
 
 rem disable firstboot user after done
 NET USER firstboot /active:no
+
+rem reboot
+shutdown /r /t 1

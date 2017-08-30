@@ -6,10 +6,7 @@ rem remove firstboot profile
 echo removing firstboot profile...
 wmic /node:localhost path win32_UserProfile where LocalPath="c:\\users\\firstboot" Delete 2>>c:\apps\sysprep_scripts\wmic.err
 
-rem  to put apps back:
-rem Add-AppxPackage -register "C:\Program Files\WindowsApps\Microsoft.DesktopAppInstaller_1.0.10332.0_x64__8wekyb3d8bbwe\appxmanifest.xml" -DisableDevelopmentMode
-REM For fixing stuff
-rem DISM.exe /Online /Cleanup-Image /Restorehealth
+rem see win10_fix.cmd for ways to fix things
 
 echo Do you want to remove unneeded apps? [default N in 6 seconds]?
 choice /C yn /T 6 /D n /M "Press y for yes, or n to skip"
