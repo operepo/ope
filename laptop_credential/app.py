@@ -174,7 +174,7 @@ def main():
         # netsh -- import firewall rules
         # download netsh import
         # run netsh import command
-        
+
 
         print_checklist_warning()
 
