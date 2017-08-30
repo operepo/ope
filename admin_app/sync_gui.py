@@ -1124,6 +1124,7 @@ class SyncOPEApp(App):
                 # Sync FOG images
                 #self.sync_volume('fog', 'share_images', ssh, ssh_folder, status_label)
                 # TODO - trigger image import
+                pass
 
             if app == "ope-postgresql":
                 # Dump data so we can import/sync/merge it
