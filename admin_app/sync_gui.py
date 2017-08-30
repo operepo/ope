@@ -1354,7 +1354,6 @@ class SyncOPEApp(App):
         self.config.write()
         return ret
 
-
     def is_app_active(self, app_name):
         ret = self.config.getdefault("Selected Apps", app_name, "0")
 
@@ -1396,10 +1395,10 @@ class SyncOPEApp(App):
             else:
                 button.selected = True
         # Bind the current_uid property to the menu
-        #content.bind(current_uid=menu.on_selected_uid)
-        #menu.bind(selected_uid=self._app_settings.children[0].content.current_uid)
-        #content.current_uid = curr_p.uid
-        #menu.selected_uid = self._app_settings.children[0].content.current_uid
+        # content.bind(current_uid=menu.on_selected_uid)
+        # menu.bind(selected_uid=self._app_settings.children[0].content.current_uid)
+        # content.current_uid = curr_p.uid
+        # menu.selected_uid = self._app_settings.children[0].content.current_uid
 
 
 if __name__ == "__main__":

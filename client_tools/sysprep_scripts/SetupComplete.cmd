@@ -11,4 +11,6 @@ rem disable firstboot user after done
 NET USER firstboot /active:no
 
 rem reboot
-shutdown /r /t 1
+rem NOTE NOTE NOTE - if this runs as a proper SetupComplete script, don't reboot here!
+rem if it runs as a user startup script, then reboot should be ok
+rem shutdown /r /t 1
