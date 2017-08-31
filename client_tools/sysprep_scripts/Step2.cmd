@@ -23,13 +23,15 @@ del /F c:\windows\system32\sysprep\panther\setupact.log
 del /F c:\windows\system32\sysprep\panther\setuperr.log
 del /F c:\windows\system32\sysprep\panther\ie\setupact.log
 del /F c:\windows\system32\sysprep\panther\ie\setuperr.log
-del /F "C:\Program Files (x86)\FOG\fog.log"
-del /F "C:\Program Files (x86)\FOG\token.dat"
 
 echo disabling FOGService during sysprep...
 rem turn off fog service during clone
 net stop FOGService
 sc config FOGService start=disabled
+
+del /F "C:\Program Files (x86)\FOG\fog.log"
+del /F "C:\fog.log"
+del /F "C:\Program Files (x86)\FOG\token.dat"
 
 echo Do you want to run disk cleanup [recommended - default N in 6 seconds]?
 choice /C yn /T 6 /D n /M "Press y for yes, or n to skip"
@@ -53,8 +55,13 @@ defrag c: /U /V
 :skipdefrag
 
 REM enable the firstboot user if it exists so it can autologin
-echo "enabling firstboot account..."
-NET USER firstboot /active:yes
+rem echo "enabling firstboot account..."
+rem NET USER firstboot /active:yes
+rem set startup script
+rem wmic /node:localhost path win32_NetworkLoginProfile where caption="firstboot" set scriptpath="c:\apps\sysprep_scripts\SetupComplete.cmd"
+REM NOTE: This will run for ANY user that logs in, so the firstboot user doesn't need a startup script, just be set to login.
+rem reg add HKLM\Software\Microsoft\Windows\CurrentVersion\RunOnce /v SetupComplete /t REG_SZ /d "c:\apps\sysprep_scripts\SetupComplete.cmd reboot" /f
+reg add HKLM\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce /v SetupComplete /t REG_SZ /d "c:\apps\sysprep_scripts\SetupComplete.cmd" /f
 
 echo "This will run sysprep and shutdown."
 echo Do you want to run sysprep [recommended]?
