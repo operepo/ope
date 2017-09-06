@@ -414,7 +414,7 @@ GenericTableModel::GenericTableModel(APP_DB *parent, QString table_name, QSqlDat
             QCoreApplication::quit();
             return;
         }
-        //p->rootContext()->setContextProperty(table_name + "_model", this);
+        p->rootContext()->setContextProperty(table_name + "_model", this);
     }
 }
 

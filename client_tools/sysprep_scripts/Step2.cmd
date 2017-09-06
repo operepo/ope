@@ -33,8 +33,8 @@ del /F "C:\Program Files (x86)\FOG\fog.log"
 del /F "C:\fog.log"
 del /F "C:\Program Files (x86)\FOG\token.dat"
 
-echo Do you want to run disk cleanup [recommended - default N in 6 seconds]?
-choice /C yn /T 6 /D n /M "Press y for yes, or n to skip"
+echo Do you want to run disk cleanup [recommended - default Y in 6 seconds]?
+choice /C yn /T 6 /D y /M "Press y for yes, or n to skip"
 if errorlevel 2 goto skipdiskcleanup
 echo running disk cleanup...
 cleanmgr /sagerun:1
@@ -65,7 +65,7 @@ reg add HKLM\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce /v SetupC
 
 echo "This will run sysprep and shutdown."
 echo Do you want to run sysprep [recommended]?
-choice /C yn /m "Press n for no, or y to run defrag"
+choice /C yn /m "Press n for no, or y to run sysprep"
 if errorlevel 2 goto skipsysprep
 echo "  DO NOT do anything during sysprep!!!"
 echo "  DO NOT start the machine back up - start your imaging process to capture after shutdown!!!"

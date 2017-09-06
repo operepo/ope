@@ -217,6 +217,16 @@ bool AppModule::hasAppSycnedWithCanvas()
     return ret;
 }
 
+bool AppModule::markAsSyncedWithCanvas()
+{
+    // Save our status as synced with canvas
+    bool ret = true;
+
+    _app_settings->setValue("app/has_synced_with_canvas", true);
+    _app_settings->setValue("app/last_sync_with_canvas", QDateTime::currentDateTime());
+    return ret;
+}
+
 bool AppModule::authenticateUser(QString user_name, QString password){
     // Try to login against local db
     bool ret = false;

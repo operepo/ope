@@ -64,7 +64,8 @@ ApplicationWindow {
         r = mainWidget.canvas.pullMessages("sent");
         if (r === false) { progressLabel.text += "\n  ERROR pulling messages"; }
 
-
+        // Mark that we have synced
+        mainWidget.markAsSyncedWithCanvas();
 
     }
 

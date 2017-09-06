@@ -39,8 +39,12 @@ def fast_urandom16(urandom=[], locker=threading.RLock()):
 
 
 def pad(s, n=32, padchar=' '):
-    while ((len(s) % 32) != 0):
-        s += ' '
+    if len(s) == 0:
+        # Handle empty value - pad it out w empty data
+        s += padchar * n
+        return s
+    while ((len(s) % n) != 0):
+        s += padchar
     #pad_len = len(s) % 32 # How many characters do we need to pad out to a multiple of 32
     #if (pad_len != 0):
     #    #return s + (32 - len(s) % 32) * padchar
@@ -48,32 +52,47 @@ def pad(s, n=32, padchar=' '):
     return s
 
 
-def AES_new(key, IV=None):
+def AES_new(key, iv=None):
     """ Returns an AES cipher object and random IV if None specified """
-    if IV is None:
-        IV = fast_urandom16()
+    if iv is None:
+        iv = fast_urandom16()
 
-    return AES.new(key, AES.MODE_CBC, IV), IV
+    # return AES.new(key, AES.MODE_CBC, IV), IV
+    # Util.aes = pyaes.AESModeOfOperationCBC(key, iv = iv)
+    # plaintext = "TextMustBe16Byte"
+    # ciphertext = aes.encrypt(plaintext)
+    return AES.AESModeOfOperationCBC(key, iv = iv), iv
 
 
 def encrypt(data, key):
     key = pad(key[:32])
-    cipher, IV = AES_new(key)
-    encrypted_data = IV + cipher.encrypt(pad(data))
+    cipher, iv = AES_new(key)
+    encrypted_data = iv + cipher.encrypt(pad(data, 16))
     return base64.urlsafe_b64encode(encrypted_data)
 
 
 def decrypt(data, key):
     key = pad(key[:32])
-    if (data == None):
+    if data is None:
         data = ""
-    data = base64.urlsafe_b64decode(data)
-    IV, data = data[:16], data[16:]
-    cipher, _ = AES_new(key, IV=IV)
-    data = cipher.decrypt(data)
+    try:
+        data = base64.urlsafe_b64decode(data)
+    except TypeError as ex:
+        # Don't let error blow things up
+        pass
+    iv, data = data[:16], data[16:]
+    try:
+        cipher, _ = AES_new(key, iv=iv)
+    except:
+        # bad IV = bad data
+        return data
+    try:
+        data = cipher.decrypt(data)
+    except:
+        # Don't let error blow things up
+        pass
     data = data.rstrip(' ')
     return data
-
 
 
 def create_local_student_account(user_name, full_name, password):
