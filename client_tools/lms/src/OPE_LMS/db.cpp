@@ -18,6 +18,9 @@ APP_DB::APP_DB(QQmlApplicationEngine *parent) : QObject(parent)
         return;
     }
 
+    // Expose the generic table model
+    qmlRegisterType<GenericTableModel>("com.openprisoneducation.ope", 1, 0, "GenericTableModel");
+
     //p->rootContext()->setContextProperty("database", this);
 }
 
@@ -437,6 +440,46 @@ QVariant GenericTableModel::data(const QModelIndex &index, int role) const
     }
 
     return value;
+}
+
+void GenericTableModel::modifyFilter(QString f)
+{
+    // Expose a method to QML that can set the filter for this table
+    setFilter(f);
+}
+
+QHash<QString, QVariant> GenericTableModel::getRecord(int row) const
+{
+    QSqlRecord r = record(row);
+    QHash<QString, QVariant> rhash;
+
+    for (int i = 0; i < r.count(); i++) {
+        rhash[r.fieldName(i)] = r.value(i);
+    }
+
+    return rhash;
+}
+
+QString GenericTableModel::getColumnName(int col_index)
+{
+    // Return the column for this index
+    QString ret = "";
+
+    QSqlRecord r = record();
+    QSqlField f = r.field(col_index);
+    ret = f.name();
+
+    return ret;
+}
+
+int GenericTableModel::getColumnIndex(QString col_name)
+{
+    // Find the index for this column
+    int ret = -1;
+
+    ret = fieldIndex(col_name);
+
+    return ret;
 }
 
 void GenericTableModel::generateRoleNames()

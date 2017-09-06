@@ -25,10 +25,17 @@ class GenericTableModel : public QSqlTableModel {
 public:
     explicit GenericTableModel(APP_DB *parent=0, QString table_name="", QSqlDatabase db = QSqlDatabase());
 
+public slots:
     void setTable(QString tableName);
 
     QVariant data(const QModelIndex &index, int role) const;
     QHash<int, QByteArray> roleNames() const { return m_roleNames; }
+
+    // A slot that exposes set filter to QML code
+    void modifyFilter(QString f);
+    QHash<QString, QVariant> getRecord(int row) const;
+    QString getColumnName(int col_index);
+    int getColumnIndex(QString col_name);
 
 private:
     void generateRoleNames();

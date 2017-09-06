@@ -190,22 +190,22 @@ bool EX_Canvas::pullCourses()
                     record.setValue("account_id", o["account_id"].toString(""));
                     record.setValue("start_at", o["start_at"].toString(""));
                     record.setValue("grading_standard_id", o["grading_standard_id"].toString(""));
-                    record.setValue("is_public", o["is_public"].toString(""));
+                    record.setValue("is_public", o["is_public"].toBool(false));
                     record.setValue("course_code", o["course_code"].toString(""));
                     record.setValue("default_view", o["default_view"].toString(""));
                     record.setValue("root_account_id", o["root_account_id"].toString(""));
                     record.setValue("enrollment_term_id", o["enrollment_term_id"].toString(""));
                     record.setValue("end_at", o["end_at"].toString(""));
-                    record.setValue("public_syllabus", o["public_syllabus"].toString(""));
-                    record.setValue("public_syllabus_to_auth", o["public_syllabus_to_auth"].toString(""));
+                    record.setValue("public_syllabus", o["public_syllabus"].toBool(false));
+                    record.setValue("public_syllabus_to_auth", o["public_syllabus_to_auth"].toBool(false));
                     record.setValue("storage_quota_mb", o["storage_quota_mb"].toString(""));
-                    record.setValue("is_public_to_auth_users", o["is_public_to_auth_users"].toString(""));
-                    record.setValue("apply_assignment_group_weights", o["apply_assignment_group_weights"].toString(""));
+                    record.setValue("is_public_to_auth_users", o["is_public_to_auth_users"].toBool(false));
+                    record.setValue("apply_assignment_group_weights", o["apply_assignment_group_weights"].toBool(false));
                     record.setValue("calendar", QJsonDocument(o["calendar"].toObject()).toJson());
                     record.setValue("time_zone", o["time_zone"].toString(""));
                     record.setValue("hide_final_grades", o["hide_final_grades"].toString(""));
                     record.setValue("workflow_state", o["workflow_state"].toString(""));
-                    record.setValue("restrict_enrollments_to_course_dates", o["restrict_enrollments_to_course_dates"].toString(""));
+                    record.setValue("restrict_enrollments_to_course_dates", o["restrict_enrollments_to_course_dates"].toBool(false));
                     record.setValue("enrollment_type", enrollment["type"].toString(""));
                     record.setValue("enrollment_role", enrollment["role"].toString(""));
                     record.setValue("enrollment_role_id", enrollment["role_id"].toString(""));
@@ -302,10 +302,10 @@ bool EX_Canvas::pullModules()
                 record.setValue("name", o["name"].toString(""));
                 record.setValue("position", o["position"].toString(""));
                 record.setValue("unlock_at", o["unlock_at"].toString(""));
-                record.setValue("require_sequential_progress", o["require_sequential_progress"].toString(""));
-                record.setValue("publish_final_grade", o["publish_final_grade"].toString(""));
+                record.setValue("require_sequential_progress", o["require_sequential_progress"].toBool(false));
+                record.setValue("publish_final_grade", o["publish_final_grade"].toBool(false));
                 record.setValue("prerequisite_module_ids", QJsonDocument(o["prerequisite_module_ids"].toArray()).toJson());
-                record.setValue("published", o["published"].toString(""));
+                record.setValue("published", o["published"].toBool(false));
                 record.setValue("items_count", o["items_count"].toString(""));
                 record.setValue("items_url", o["items_url"].toString(""));
                 record.setValue("course_id", course_id);
@@ -405,7 +405,7 @@ bool EX_Canvas::pullModuleItems()
                 record.setValue("html_url", o["html_url"].toString(""));
                 record.setValue("page_url", o["page_url"].toString(""));
                 record.setValue("url", o["url"].toString(""));
-                record.setValue("published", o["published"].toString(""));
+                record.setValue("published", o["published"].toBool(false));
 
                if (is_insert) {
                    model->insertRecord(-1, record);
@@ -512,14 +512,14 @@ bool EX_Canvas::pullCourseFilesInfo()
                 record.setValue("updated_at", o["updated_at"].toString(""));
                 record.setValue("unlock_at", o["unlock_at"].toString(""));
                 record.setValue("locked", o["locked"].toString(""));
-                record.setValue("hidden", o["hidden"].toString(""));
+                record.setValue("hidden", o["hidden"].toBool(false));
                 record.setValue("lock_at", o["lock_at"].toString(""));
-                record.setValue("hidden_for_user", o["hidden_for_user"].toString(""));
+                record.setValue("hidden_for_user", o["hidden_for_user"].toBool(false));
                 record.setValue("thumbnail_url", o["thumbnail_url"].toString(""));
                 record.setValue("modified_at", o["modified_at"].toString(""));
                 record.setValue("mime_class", o["mime_class"].toString(""));
                 record.setValue("media_entry_id", o["media_entry_id"].toString(""));
-                record.setValue("locked_for_user", o["locked_for_user"].toString(""));
+                record.setValue("locked_for_user", o["locked_for_user"].toBool(false));
                 record.setValue("course_id", course_id);
 
 
@@ -635,12 +635,12 @@ bool EX_Canvas::pullCoursePages()
                 record.setValue("url", o["url"].toString(""));
                 record.setValue("editing_roles", o["editing_roles"].toString(""));
                 record.setValue("page_id", o["page_id"].toString(""));
-                record.setValue("published", o["published"].toString(""));
-                record.setValue("hide_from_students", o["hide_from_students"].toString(""));
-                record.setValue("front_page", o["front_page"].toString(""));
+                record.setValue("published", o["published"].toBool(false));
+                record.setValue("hide_from_students", o["hide_from_students"].toBool(false));
+                record.setValue("front_page", o["front_page"].toBool(false));
                 record.setValue("html_url", o["html_url"].toString(""));
                 record.setValue("updated_at", o["updated_at"].toString(""));
-                record.setValue("locked_for_user", o["locked_for_user"].toString(""));
+                record.setValue("locked_for_user", o["locked_for_user"].toBool(false));
                 record.setValue("course_id", course_id);
                 record.setValue("body", page_body);
                 record.setValue("lock_info", o["lock_info"].toString(""));
@@ -707,7 +707,30 @@ bool EX_Canvas::pullMessages(QString scope)
     // Should be an array of conversations
     if (conversations_doc.isArray()) {
         // Should have something like this:
-        // [{"id":26664700000000089,"subject":"Next conversation","workflow_state":"read","last_message":"Hello","last_message_at":"2017-06-22T17:44:09Z","last_authored_message":"Is this getting through?","last_authored_message_at":"2017-06-22T05:24:11Z","message_count":2,"subscribed":true,"private":false,"starred":false,"properties":[],"audience":[1],"audience_contexts":{"courses":{"26664700000000090":["TeacherEnrollment"]},"groups":{}},"avatar_url":"https://canvas.ed.dev/images/messages/avatar-50.png","participants":[{"id":26664700000000083,"name":"Smith, Bob (s777777)"},{"id":1,"name":"admin@ed"}],"visible":true,"context_code":"course_26664700000000090","context_name":"TestMathCourse"},{"id":26664700000000088,"subject":"Email Diag","workflow_state":"read","last_message":"It works!!!","last_message_at":"2017-06-22T05:09:16Z","last_authored_message":"Diag Email.","last_authored_message_at":"2017-06-22T04:59:37Z","message_count":2,"subscribed":true,"private":false,"starred":false,"properties":[],"audience":[1],"audience_contexts":{"courses":{"26664700000000090":["TeacherEnrollment"]},"groups":{}},"avatar_url":"https://canvas.ed.dev/images/messages/avatar-50.png","participants":[{"id":26664700000000083,"name":"Smith, Bob (s777777)"},{"id":1,"name":"admin@ed"}],"visible":true,"context_code":"course_26664700000000090","context_name":"TestMathCourse"}]
+        // [{"id":26664700000000089,"subject":"Next conversation",
+        // "workflow_state":"read","last_message":"Hello",
+        // "last_message_at":"2017-06-22T17:44:09Z",
+        // "last_authored_message":"Is this getting through?",
+        // "last_authored_message_at":"2017-06-22T05:24:11Z","message_count":2,
+        // "subscribed":true,"private":false,"starred":false,"properties":[],
+        // "audience":[1],
+        // "audience_contexts":{"courses":{"26664700000000090":["TeacherEnrollment"]},
+        // "groups":{}},"avatar_url":"https://canvas.ed.dev/images/messages/avatar-50.png",
+        // "participants":[{"id":26664700000000083,"name":"Smith, Bob (s777777)"},
+        // {"id":1,"name":"admin@ed"}],
+        // "visible":true,"context_code":"course_26664700000000090",
+        // "context_name":"TestMathCourse"},
+        // {"id":26664700000000088,"subject":"Email Diag","workflow_state":"read",
+        // "last_message":"It works!!!","last_message_at":"2017-06-22T05:09:16Z",
+        // "last_authored_message":"Diag Email.",
+        // "last_authored_message_at":"2017-06-22T04:59:37Z",
+        // "message_count":2,"subscribed":true,"private":false,"starred":false,
+        // "properties":[],"audience":[1],
+        // "audience_contexts":{"courses":{"26664700000000090":["TeacherEnrollment"]},
+        // "groups":{}},"avatar_url":"https://canvas.ed.dev/images/messages/avatar-50.png",
+        // "participants":[{"id":26664700000000083,"name":"Smith, Bob (s777777)"},
+        // {"id":1,"name":"admin@ed"}],"visible":true,
+        // "context_code":"course_26664700000000090","context_name":"TestMathCourse"}]
 
         // Just pull the ID, we will pull all the details after
         // the next call since we we get all that when we pull the message list
@@ -752,15 +775,15 @@ bool EX_Canvas::pullMessages(QString scope)
                 record.setValue("last_authored_message", o["last_authored_message"].toString(""));
                 record.setValue("last_authored_message_at", o["last_authored_message_at"].toString(""));
                 record.setValue("message_count", o["message_count"].toString(""));
-                record.setValue("subscribed", o["subscribed"].toString(""));
-                record.setValue("private", o["private"].toString(""));
-                record.setValue("starred", o["starred"].toString(""));
+                record.setValue("subscribed", o["subscribed"].toBool(false));
+                record.setValue("private", o["private"].toBool(false));
+                record.setValue("starred", o["starred"].toBool(false));
                 record.setValue("properties", QJsonDocument(o["properties"].toArray()).toJson());
                 record.setValue("audience", QJsonDocument(o["audience"].toArray()).toJson());
                 record.setValue("audience_contexts", QJsonDocument(o["audience_contexts"].toObject()).toJson());
                 record.setValue("avatar_url", o["avatar_url"].toString(""));
                 record.setValue("participants", QJsonDocument(o["participants"].toArray()).toJson());
-                record.setValue("visible", o["visible"].toString(""));
+                record.setValue("visible", o["visible"].toBool(false));
                 record.setValue("context_code", o["context_code"].toString(""));
                 record.setValue("context_name", o["context_name"].toString(""));
                 record.setValue("submissions", QJsonDocument(o["submissions"].toArray()).toJson());

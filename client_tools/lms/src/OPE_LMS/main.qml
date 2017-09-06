@@ -144,6 +144,7 @@ ApplicationWindow {
             Label {
                 text: loginWebView.url
             }
+
             Label {
                 text: loginWebView.title
             }
@@ -153,6 +154,7 @@ ApplicationWindow {
                 color: "darkblue"
                 width: 600
                 height: 300
+
 
                 WebEngineView {
                    anchors.fill: parent
@@ -214,7 +216,6 @@ ApplicationWindow {
                 id: resources_title
                 text: "Resources"
             }
-
 
             ListView {
                 width: parent.width
@@ -364,63 +365,10 @@ ApplicationWindow {
                                         onEntered: { parent.color="lightsteelblue" }
                                         onExited: { parent.color="lightgrey" }
                                         onClicked: {
+                                            // Set the current tab
                                             courseTabs.currentIndex = indexOfThisDelegate
-                                            var c = null;
-                                            for (var i=0; i < pageLoader.children.count; i++) {
-                                                var child = pageLoader.children[i].children[0];
-                                                if (child.objectName == name) {
-                                                    c = child;
-                                                }
-                                            }
-
-                                            //c = window.findObjectById("course"+name);
-                                            if (c !== null) {
-                                                pageLoader.sourceComponent = c;
-                                            } else {
-                                                pageLoader.sourceComponent = courseHomeScreen
-                                            }
-                                            return;
-
-                                            switch (name) {
-                                            case "Home":
-                                                pageLoader.sourceComponent = courseHomeScreen
-                                                break;
-                                            case "Modules":
-                                                pageLoader.sourceComponent = courseModules
-                                                break;
-                                            case "Pages":
-                                                pageLoader.sourceComponent = coursePages
-                                                break;
-                                            case "Assignments":
-                                                pageLoader.sourceComponent = courseAssignments
-                                                break;
-                                            case "Quizzes":
-                                                pageLoader.sourceComponent = courseQuizzes
-                                                break;
-                                            case "Inbox":
-                                                pageLoader.sourceComponent = courseInbox
-                                                break;
-                                            case "Calendar":
-                                                pageLoader.sourceComponent = courseCalendar
-                                                break;
-                                            case "Announcements":
-                                                pageLoader.sourceComponent = courseAnnouncements
-                                                break;
-                                            case "Discussions":
-                                                pageLoader.sourceComponent = courseDiscussions
-                                                break;
-                                            case "Grades":
-                                                pageLoader.sourceComponent = courseGrades
-                                                break;
-                                            case "Files":
-                                                pageLoader.sourceComponent = courseFiles
-                                                break;
-                                            case "Syllabus":
-                                                pageLoader.sourceComponent = courseSyllabus
-                                                break;
-                                            default:
-                                                pageLoader.source = courseHomeScreen
-                                            }
+                                            // Load the page
+                                            pageLoader.setSource(name + ".qml");
 
                                         }
                                     }
@@ -454,116 +402,7 @@ ApplicationWindow {
                 Loader {
                     id: pageLoader
                     anchors.fill: parent
-                    sourceComponent: courseHomeScreen
-
-                    Component {
-                        Item {
-                            id: courseHomeScreen
-                            objectName: "Home"
-                            Text {
-                                text: "Home Screen"
-                            }
-                        }
-                    }
-                    Component {
-                        Item {
-                            id: courseModules
-                            objectName: "Modules"
-                            Text {
-                            text: "Modules"
-                            }
-                        }
-                    }
-                    Component {
-                        Item {
-                            id: coursePages
-                            objectName: "Pages"
-                            Text {
-                            text: "Pages"
-                            }
-                        }
-                    }
-                    Component {
-                        Item {
-                            id: courseAssignments
-                            objectName: "Assignments"
-                            Text {
-                            text: "Assignments"
-                            }
-                        }
-                    }
-                    Component {
-                        Item {
-                            id: courseQuizzes
-                            objectName: "Quizzes"
-                            Text {
-                            text: "Quizzes"
-                            }
-                        }
-                    }
-                    Component {
-                        Item {
-                            id: courseInbox
-                            objectName: "Inbox"
-                            Text {
-                            text: "Inbox"
-                            }
-                        }
-                    }
-                    Component {
-                        Item {
-                            id: courseCalendar
-                            objectName: "Calendar"
-                            Text {
-                            text: "Calendar"
-                            }
-                        }
-                    }
-                    Component {
-                        Item {
-                            id: courseAnnouncements
-                            objectName: "Announcements"
-                            Text {
-                            text: "Announcements"
-                            }
-                        }
-                    }
-                    Component {
-                        Item {
-                            id: courseDiscussions
-                            objectName: "Discussions"
-                            Text {
-                            text: "Discussions"
-                            }
-                        }
-                    }
-                    Component {
-                        Item {
-                            id: courseGrades
-                            objectName: "Grades"
-                            Text {
-                            text: "Grades"
-                            }
-                        }
-                    }
-                    Component {
-                        Item {
-                            id: courseFiles
-                            objectName: "Files"
-                            Text {
-                            text: "Files"
-                            }
-                        }
-                    }
-                    Component {
-                        Item {
-                            id: courseSyllabus
-                            objectName: "Syllabus"
-                            Text {
-                            text: "Syllabus"
-                            }
-                        }
-                    }
+                    source: "Home.qml"
                 }
             }
 
