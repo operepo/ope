@@ -507,6 +507,7 @@ class SyncOPEApp(App):
     def sftp_pull_files(self, remote_path, local_path, sftp, status_label, depth=1):
         # Recursive Walk through the folder and pull changed files
         depth_str = " " * depth
+        # TODO - follow symlinks for folders/files
         for f in sftp.listdir_attr(remote_path):
             if stat.S_ISDIR(f.st_mode):
                 status_label.text += "\n" + depth_str + "Found Dir: " + f.filename

@@ -1,5 +1,7 @@
 import QtQuick 2.7
-import QtQuick.Controls 2.1
+import QtQuick.Controls 1.4
+import QtQuick.Controls 2.2
+import QtQuick.Controls.Material 2.2
 import QtQuick.Layouts 1.0
 //import QtWebView 1.1
 import QtWebEngine 1.4
@@ -34,17 +36,26 @@ ApplicationWindow {
     {
         RowLayout {
             anchors.fill: parent;
-            ToolButton {
-                text: qsTr("Login")
-                onClicked: loginDrawer.open();
-            }
+//            ToolButton {
+//                text: qsTr("Login")
+//                onClicked: loginDrawer.open();
+//            }
             ToolButton {
                 text: qsTr("Sync")
-                onClicked: syncDrawer.open();
+                onClicked: {
+                    if(syncDrawer.position < 0.1) {
+                        syncDrawer.open();
+                    }
+                }
             }
+
             ToolButton {
                 text: qsTr("Resources");
-                onClicked: resourcesDrawer.open();
+                onClicked: {
+                    if (resourcesDrawer.position < 0.1) {
+                        resourcesDrawer.open();
+                    }
+                }
             }
         }
 
@@ -210,7 +221,7 @@ ApplicationWindow {
                 height: parent.height - resources_title.height
                 model: resources_model
 
-                highlight: Rectangle { color: "lightsteelblue"; radius: 5; }
+                highlight: Rectangle { color: "lightsteelblue"; radius: 2; }
 
                 delegate: Text {
                     text: resource_name
@@ -269,43 +280,315 @@ ApplicationWindow {
 
     }
 
-    SwipeView {
-        id: swipeView
+
+    Page {
+        id: mainPage
         anchors.fill: parent
-        currentIndex: tabBar.currentIndex
 
-        Page {
+        SplitView {
+            anchors.fill: parent
+            orientation: Qt.Horizontal
+            resizing: true
 
-        }
+            Pane {
+                width: 250
+                height: parent.height
 
-        Page {
-            Label {
-                text: qsTr("Second page")
-                anchors.centerIn: parent
+                ColumnLayout {
+                    anchors.right: parent.right
+                    anchors.left: parent.left
+                    height: parent.height
+
+                    ComboBox {
+                        Layout.fillWidth: true
+                        id: selectedCourse
+                        model: courses_model
+                        textRole: "name"
+
+                    }
+
+                    Pane {
+                        Layout.fillHeight: true
+                        Layout.fillWidth: true
+                        leftPadding: 0
+                        rightPadding: 0
+
+                        /*
+                        Rectangle {
+                            color: "red"
+                            width: parent.width
+                            height: parent.height
+                        }*/
+
+
+                        ListView {
+                            width: parent.width
+                            height: parent.height
+                            id: courseTabs
+                            interactive: false
+                            focus: true
+                            spacing: 4
+                            highlightFollowsCurrentItem: true
+
+                            highlight: Rectangle {
+                                width: parent.width
+                                height: 30
+                                color: "steelblue"
+                                radius: 3
+                            }
+
+                            delegate: Component {
+                                Rectangle {
+                                    id: item
+                                    Layout.fillWidth: true
+                                    width: parent.width
+                                    height: 30
+                                    implicitHeight: height
+                                    color: "lightgrey"
+                                    radius: 3
+                                    opacity: 0.5
+                                    property int indexOfThisDelegate: index
+
+                                    Row {
+                                        Text {
+                                            height: 30
+                                            verticalAlignment: Text.AlignVCenter
+                                            text: name
+                                            font.bold: true
+                                            font.pixelSize: 18
+                                        }
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        onEntered: { parent.color="lightsteelblue" }
+                                        onExited: { parent.color="lightgrey" }
+                                        onClicked: {
+                                            courseTabs.currentIndex = indexOfThisDelegate
+                                            var c = null;
+                                            for (var i=0; i < pageLoader.children.count; i++) {
+                                                var child = pageLoader.children[i].children[0];
+                                                if (child.objectName == name) {
+                                                    c = child;
+                                                }
+                                            }
+
+                                            //c = window.findObjectById("course"+name);
+                                            if (c !== null) {
+                                                pageLoader.sourceComponent = c;
+                                            } else {
+                                                pageLoader.sourceComponent = courseHomeScreen
+                                            }
+                                            return;
+
+                                            switch (name) {
+                                            case "Home":
+                                                pageLoader.sourceComponent = courseHomeScreen
+                                                break;
+                                            case "Modules":
+                                                pageLoader.sourceComponent = courseModules
+                                                break;
+                                            case "Pages":
+                                                pageLoader.sourceComponent = coursePages
+                                                break;
+                                            case "Assignments":
+                                                pageLoader.sourceComponent = courseAssignments
+                                                break;
+                                            case "Quizzes":
+                                                pageLoader.sourceComponent = courseQuizzes
+                                                break;
+                                            case "Inbox":
+                                                pageLoader.sourceComponent = courseInbox
+                                                break;
+                                            case "Calendar":
+                                                pageLoader.sourceComponent = courseCalendar
+                                                break;
+                                            case "Announcements":
+                                                pageLoader.sourceComponent = courseAnnouncements
+                                                break;
+                                            case "Discussions":
+                                                pageLoader.sourceComponent = courseDiscussions
+                                                break;
+                                            case "Grades":
+                                                pageLoader.sourceComponent = courseGrades
+                                                break;
+                                            case "Files":
+                                                pageLoader.sourceComponent = courseFiles
+                                                break;
+                                            case "Syllabus":
+                                                pageLoader.sourceComponent = courseSyllabus
+                                                break;
+                                            default:
+                                                pageLoader.source = courseHomeScreen
+                                            }
+
+                                        }
+                                    }
+                                }
+                            }
+
+                            model: ListModel {
+                                id: courseTabsModel
+                                ListElement { name: "Home"; order: 0; enabled: true }
+                                ListElement { name: "Modules"; order: 1; enabled: true }
+                                ListElement { name: "Pages"; order: 2; enabled: true }
+                                ListElement { name: "Assignments"; order: 3; enabled: true }
+                                ListElement { name: "Quizzes"; order: 4; enabled: true }
+                                ListElement { name: "Inbox"; order: 5; enabled: true }
+                                ListElement { name: "Calendar"; order: 6; enabled: false }
+                                ListElement { name: "Announcements"; order: 7; enabled: false }
+                                ListElement { name: "Discussions"; order: 8; enabled: false }
+                                ListElement { name: "Grades"; order: 9; enabled: false }
+                                ListElement { name: "Files"; order: 10; enabled: true }
+                                ListElement { name: "Syllabus"; order: 11; enabled: true }
+
+                            }
+                        }
+                    }
+
+
+                }
             }
-        }
-//        Page {
-//            WebView {
-//                id: webView;
-//                objectName: "testWebView"
-//                anchors.fill: parent;
-//                url: "http://localhost:8080";
 
-//            }
-//        }
+            Page {
+                Loader {
+                    id: pageLoader
+                    anchors.fill: parent
+                    sourceComponent: courseHomeScreen
+
+                    Component {
+                        Item {
+                            id: courseHomeScreen
+                            objectName: "Home"
+                            Text {
+                                text: "Home Screen"
+                            }
+                        }
+                    }
+                    Component {
+                        Item {
+                            id: courseModules
+                            objectName: "Modules"
+                            Text {
+                            text: "Modules"
+                            }
+                        }
+                    }
+                    Component {
+                        Item {
+                            id: coursePages
+                            objectName: "Pages"
+                            Text {
+                            text: "Pages"
+                            }
+                        }
+                    }
+                    Component {
+                        Item {
+                            id: courseAssignments
+                            objectName: "Assignments"
+                            Text {
+                            text: "Assignments"
+                            }
+                        }
+                    }
+                    Component {
+                        Item {
+                            id: courseQuizzes
+                            objectName: "Quizzes"
+                            Text {
+                            text: "Quizzes"
+                            }
+                        }
+                    }
+                    Component {
+                        Item {
+                            id: courseInbox
+                            objectName: "Inbox"
+                            Text {
+                            text: "Inbox"
+                            }
+                        }
+                    }
+                    Component {
+                        Item {
+                            id: courseCalendar
+                            objectName: "Calendar"
+                            Text {
+                            text: "Calendar"
+                            }
+                        }
+                    }
+                    Component {
+                        Item {
+                            id: courseAnnouncements
+                            objectName: "Announcements"
+                            Text {
+                            text: "Announcements"
+                            }
+                        }
+                    }
+                    Component {
+                        Item {
+                            id: courseDiscussions
+                            objectName: "Discussions"
+                            Text {
+                            text: "Discussions"
+                            }
+                        }
+                    }
+                    Component {
+                        Item {
+                            id: courseGrades
+                            objectName: "Grades"
+                            Text {
+                            text: "Grades"
+                            }
+                        }
+                    }
+                    Component {
+                        Item {
+                            id: courseFiles
+                            objectName: "Files"
+                            Text {
+                            text: "Files"
+                            }
+                        }
+                    }
+                    Component {
+                        Item {
+                            id: courseSyllabus
+                            objectName: "Syllabus"
+                            Text {
+                            text: "Syllabus"
+                            }
+                        }
+                    }
+                }
+            }
+
+
+
+/*
+            Page {
+
+                SwipeView {
+                    id: courseView
+                    anchors.fill: parent
+                    currentIndex: courseTabs.currentIndex
+                    interactive: false
+
+
+
+
+                }
+
+            } */
+
+        }
     }
 
-    footer: TabBar {
-        id: tabBar
-        currentIndex: swipeView.currentIndex
-        TabButton {
-            text: qsTr("First")
-        }
-        TabButton {
-            text: qsTr("Second")
-        }
-        TabButton {
-            text: qsTr("WebView")
-        }
-    }
+    //footer:
+
+
 }

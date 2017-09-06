@@ -6,7 +6,7 @@ EX_Canvas::EX_Canvas(QObject *parent, APP_DB *db, QSettings *app_settings) :
     canvas_client_id = "1";
     canvas_client_secret = "hVGyxhHAKulUTZwAExbKALBpZaHTGDBkoSS7DpsvRpY1H7yzoMfnI5NLnC6t5A0Q";
     canvas_access_token = "";
-    canvas_server = "https://canvas.ed.dev";
+    canvas_server = "https://canvas.ed";
 
     // Store the app db we will use to
     if (db == NULL) {

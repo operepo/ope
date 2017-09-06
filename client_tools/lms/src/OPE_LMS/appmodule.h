@@ -138,6 +138,7 @@ public slots:
     // === User Functions ===
     bool isAppCredentialed(); // is this app properly credentialed?
     bool hasAppSycnedWithCanvas(); // Has this app synced with the canvas server yet?
+    bool markAsSyncedWithCanvas(); // Save our status as synced w canvas
 
     // Authenticate the user
     bool authenticateUser(QString user_name, QString password);
