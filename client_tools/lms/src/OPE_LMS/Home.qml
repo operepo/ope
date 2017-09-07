@@ -7,8 +7,16 @@ import QtQuick.Layouts 1.0
 import QtWebEngine 1.4
 
 import com.openprisoneducation.ope 1.0
+import "App.js" as App
 
-Item {
+Page {
+    property string current_course_id: App.current_course;
+
+    onCurrent_course_idChanged: {
+        console.log("Course id changed to: " + current_course_id);
+        loadHomePage();
+    }
+
     function setHTML(wView, html) {
         // Use JS to write out the HTML to the web engine
         // Stupid hack because QT didn't provide this
@@ -17,26 +25,31 @@ Item {
         wView.runJavaScript(js, function(result) {console.log(result); });
     }
 
-    Text {
-        text: "Home Screen"
-    }
-    Component.onCompleted: {
+    function loadHomePage() {
         var m = pages_model
-        m.modifyFilter("front_page=1")
+        m.modifyFilter("front_page=1 and course_id=" + current_course_id);
+        m.select();
 
-        var page = "";
+        var page = "No Default Page Set";
         for(var i = 0; i < m.rowCount(); i++) {
-            page = m.data(m.index(i, m.getColumnIndex("body")), Qt.DisplayRole).toString("Default");
+            page = App.getFieldValue(m, i, "body").toString("No Default Page Set");
+            //page = App. m.data(m.index(i, m.getColumnIndex("body")), Qt.DisplayRole).toString("Default");
             //page = m.getRecord(i)["body"].toString("Default String");
         }
 
         setHTML(webView, page);
     }
 
+    Component.onCompleted: {
+        loadHomePage();
+    }
+
+    header: Text {
+        text: "Home Screen"
+    }
 
     WebEngineView {
-        width: 200
-        height: 200
+        anchors.fill: parent
         id: webView
         focus: true
 

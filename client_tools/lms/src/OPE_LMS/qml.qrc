@@ -17,5 +17,6 @@
         <file>Grades.qml</file>
         <file>Files.qml</file>
         <file>Syllabus.qml</file>
+        <file>App.js</file>
     </qresource>
 </RCC>

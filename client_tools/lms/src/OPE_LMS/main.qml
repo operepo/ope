@@ -6,6 +6,8 @@ import QtQuick.Layouts 1.0
 //import QtWebView 1.1
 import QtWebEngine 1.4
 
+import "App.js" as App
+
 ApplicationWindow {
     visible: true
     id: window
@@ -21,6 +23,10 @@ ApplicationWindow {
             syncDrawer.open();
             //firstRunDrawer.open();
         }
+
+        // Make sure we set the current course
+        App.current_course = App.getFieldValue(selectedCourse.model, selectedCourse.currentIndex, "id");
+        console.log(App.current_course);
     }
 
     Connections {
@@ -305,6 +311,10 @@ ApplicationWindow {
                         id: selectedCourse
                         model: courses_model
                         textRole: "name"
+                        onActivated: {
+                            App.current_course = App.getFieldValue(this.model, index, "id");
+                            console.log(App.current_course);
+                        }
 
                     }
 
