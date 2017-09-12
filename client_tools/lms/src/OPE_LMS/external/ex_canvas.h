@@ -8,7 +8,7 @@
 #include <QJsonObject>
 #include <QUrl>
 #include <QDesktopServices>
-
+#include <QStandardPaths>
 
 #include "../db.h"
 #include "cm/cm_httpserver.h"
@@ -67,7 +67,8 @@ public slots:
     QJsonDocument CanvasAPICall(QString api_call, QString method = "GET", QHash<QString, QString> *p = NULL);
     // Low level network call - make the actual connection to canvas, auto pull additional pages - BLOCKING
     QString NetworkCall(QString url, QString method = "GET", QHash<QString, QString> *p = NULL, QHash<QString, QString> *headers = NULL);
-
+    // Download a file to a local path
+    bool DownloadFile(QString url, QString local_path);
 
     // Store the auth token so that requests can be sent to canvas on behalf of this user
     void SetCanvasAccessToken(QString token);

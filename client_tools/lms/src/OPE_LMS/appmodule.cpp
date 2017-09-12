@@ -66,6 +66,11 @@ AppModule::~AppModule()
 
 }
 
+bool AppModule::desktopLaunch(QString url)
+{
+    return QDesktopServices::openUrl(QUrl(url, QUrl::TolerantMode));
+}
+
 QString AppModule::dataFolder()
 {
     QDir d;
@@ -91,6 +96,14 @@ QString AppModule::dataFolder()
     d.mkpath(d.path());
 
     return d.path();
+}
+
+QString AppModule::fileCacheFolder()
+{
+    QDir base_dir;
+    base_dir.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/file_cache/");
+    base_dir.mkpath(base_dir.path());
+    return base_dir.path();
 }
 
 bool AppModule::isDebug()

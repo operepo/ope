@@ -18,5 +18,6 @@
         <file>Files.qml</file>
         <file>Syllabus.qml</file>
         <file>App.js</file>
+        <file>CanvasPage.qml</file>
     </qresource>
 </RCC>

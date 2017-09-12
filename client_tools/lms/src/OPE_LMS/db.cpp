@@ -1,5 +1,7 @@
 #include "db.h"
 
+QQmlEngine *APP_DB::_engine = NULL;
+
 APP_DB::APP_DB(QQmlApplicationEngine *parent) : QObject(parent)
 {
     _db = QSqlDatabase::addDatabase("QSQLITE");
@@ -10,8 +12,9 @@ APP_DB::APP_DB(QQmlApplicationEngine *parent) : QObject(parent)
     //        QCryptographicHash::Sha256).toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
     //qDebug() << "TEST PW: " << crypt_pw;
 
-    QQmlApplicationEngine *p = qobject_cast<QQmlApplicationEngine*>(this->parent());
-    if (p == NULL) {
+    //QQmlApplicationEngine *p = qobject_cast<QQmlApplicationEngine*>(this->parent());
+    APP_DB::_engine = qobject_cast<QQmlApplicationEngine*>(this->parent());
+    if (APP_DB::_engine == NULL) {
         // Unable to get app engine
         qDebug() << "FATAL ERROR - APP_DB Unable to get the QML Application Engine.";
         QCoreApplication::quit();
@@ -19,6 +22,7 @@ APP_DB::APP_DB(QQmlApplicationEngine *parent) : QObject(parent)
     }
 
     // Expose the generic table model
+    qmlRegisterType<GenericQueryModel>("com.openprisoneducation.ope", 1, 0, "GenericQueryModel");
     qmlRegisterType<GenericTableModel>("com.openprisoneducation.ope", 1, 0, "GenericTableModel");
 
     //p->rootContext()->setContextProperty("database", this);
@@ -300,6 +304,12 @@ bool APP_DB::init_db()
         // Make sure to commit and release locks
         _db.commit();
 
+
+        // Now create views
+        sql = "SELECT module_items.*, modules.name, modules.course_id from module_items, modules WHERE modules.id=module_items.module_id";
+        GenericQueryModel *view = new GenericQueryModel(this, "module_items", sql, _db);
+
+
     }
 
     //qDebug() << "DB INIT complete " << this;
@@ -410,14 +420,14 @@ GenericTableModel::GenericTableModel(APP_DB *parent, QString table_name, QSqlDat
         parent->_tables[table_name] = this;
 
         // Expose this to QML
-        QQmlEngine *p = qobject_cast<QQmlApplicationEngine*>(this->parent()->parent());
-        if (p == NULL) {
+        //QQmlEngine *p = qobject_cast<QQmlApplicationEngine*>(this->parent()->parent());
+        if (APP_DB::_engine == NULL) {
             // Unable to get app engine
             qDebug() << "FATAL ERROR - Generic Table Model Unable to get the QML Application Engine.";
             QCoreApplication::quit();
             return;
         }
-        p->rootContext()->setContextProperty(table_name + "_model", this);
+        APP_DB::_engine->rootContext()->setContextProperty(table_name + "_model", this);
     }
 }
 
@@ -490,3 +500,138 @@ void GenericTableModel::generateRoleNames()
     }
 }
 
+
+GenericQueryModel::GenericQueryModel(APP_DB *parent, QString query_name, QString query, QSqlDatabase db)
+{
+    m_filter = "";
+    m_combine_filter_w_and = true;
+    m_sql_select = query;
+    m_query_name = query_name;
+    setCombinedQuery();
+    if (parent != NULL) {
+        parent->_queries[query_name] = this;
+
+        // Expose this to QML
+        //QQmlEngine *p = qobject_cast<QQmlApplicationEngine*>(this->parent()->parent());
+        if (APP_DB::_engine == NULL) {
+            // Unable to get app engine
+            qDebug() << "FATAL ERROR - Generic Query Model Unable to get the QML Application Engine.";
+            QCoreApplication::quit();
+            return;
+        }
+        APP_DB::_engine->rootContext()->setContextProperty(query_name + "_query", this);
+    }
+}
+
+void GenericQueryModel::refresh()
+{
+    setCombinedQuery();
+}
+
+QVariant GenericQueryModel::data(const QModelIndex &index, int role) const
+{
+    // Return the requested data
+    QVariant value = QSqlQueryModel::data(index, role);
+    if (role < Qt::UserRole) {
+        value = QSqlQueryModel::data(index, role);
+    } else {
+        int columnIndex= role - Qt::UserRole- 1;
+        QModelIndex modelIndex = this->index(index.row(), columnIndex);
+        value = QSqlQueryModel::data(modelIndex, Qt::DisplayRole);
+    }
+    return value;
+}
+
+void GenericQueryModel::modifyQuery(QString q)
+{
+    // Change the query for this model
+    m_sql_select = q;
+
+    // Calculate and reset the query
+    setCombinedQuery();
+}
+
+void GenericQueryModel::modifyFilter(QString f, bool combine_w_and)
+{
+    // Adjust the filter portion of the sql statement
+    m_filter = f;
+    m_combine_filter_w_and = combine_w_and;
+    // Calculate and reset the query
+    setCombinedQuery();
+}
+
+QHash<QString, QVariant> GenericQueryModel::getRecord(int row) const
+{
+    QSqlRecord r = record(row);
+    QHash<QString, QVariant> rhash;
+
+    for (int i = 0; i < r.count(); i++) {
+        rhash[r.fieldName(i)] = r.value(i);
+    }
+
+    return rhash;
+}
+
+QString GenericQueryModel::getColumnName(int col_index)
+{
+    // Return the column for this index
+    QString ret = "";
+
+    QSqlRecord r = record();
+    QSqlField f = r.field(col_index);
+    ret = f.name();
+
+    return ret;
+}
+
+int GenericQueryModel::getColumnIndex(QString col_name)
+{
+    // Find the index for this column
+    int ret = -1;
+
+    // this doesn't exist for qsqlquerymodel - so we do our own
+    //ret = fieldIndex(col_name);
+    for(int i = 0; i < record().count(); i++) {
+        if (record().fieldName(i).toUtf8() == col_name) {
+            // Return the column index, not the role number
+            ret = i; // + Qt::UserRole + 1;
+            break;
+        }
+    }
+    return ret;
+}
+
+void GenericQueryModel::generateRoleNames()
+{
+    m_roleNames.clear();
+    for(int i = 0; i < record().count(); i++) {
+        m_roleNames.insert(Qt::UserRole + i + 1, record().fieldName(i).toUtf8());
+    }
+}
+
+void GenericQueryModel::setCombinedQuery()
+{
+    // Query is a combination of query and filter. Combine them and set it as the
+    // current query.
+    QString q = "";
+    q = m_sql_select;
+
+    // Add the filter if there is something to add
+    if (m_filter != "") {
+        // Need to combine, see if we need to add WHERE or if it is already present
+        if (q.contains("WHERE", Qt::CaseInsensitive)) {
+            if (m_combine_filter_w_and) {
+                q += " AND ";
+            } else {
+                q += " OR ";
+            }
+            q += m_filter;
+        } else {
+            // No where clause, append it with the filter
+            q += " WHERE " + m_filter;
+        }
+    }
+
+    setQuery(q);
+    generateRoleNames();
+}

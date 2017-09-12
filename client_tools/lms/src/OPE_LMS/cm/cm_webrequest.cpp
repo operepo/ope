@@ -5,6 +5,7 @@ CM_WebRequest::CM_WebRequest(QObject *parent) :
 {
     // Keeps track of when a request is currently pending
     http_request_active = false;
+    download_active = false;
 
 
     // Setup signals for the network manager
@@ -122,6 +123,31 @@ QString CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString, Q
     return ret;
 }
 
+bool CM_WebRequest::DownloadFile(QString url, QString local_path)
+{
+    download_active = true;
+
+    // Store our local path
+    download_local_path = local_path;
+
+    // Hook up our signals
+    connect(&download_manager, SIGNAL(finished(QNetworkReply*)),
+            this, SLOT(downloadReplyFinished(QNetworkReply*)));
+
+    QNetworkReply *reply = download_manager.get(QNetworkRequest(QUrl(url)));
+
+    // Use a QEventLoop to allow events and block until network traffic is done
+    QEventLoop loop;
+    connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
+    loop.exec(QEventLoop::ExcludeUserInputEvents);
+
+    if (reply->error()) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 QString CM_WebRequest::ConvertHashToQueryString(QHash<QString, QString> *arr)
 {
     QString ret = "";
@@ -154,6 +180,34 @@ QString CM_WebRequest::GetHeader(QString header_name)
 QHash<QString,QString> CM_WebRequest::GetAllHeaders()
 {
     return http_reply_headers;
+}
+
+void CM_WebRequest::downloadReplyFinished(QNetworkReply *reply)
+{
+    // Deal with the downloaded file
+    if (reply->error()) {
+        qDebug() << "Error downloading file: " << reply->errorString();
+        reply->deleteLater();
+        return;
+    }
+
+//    qDebug() << reply->header(QNetworkRequest::ContentTypeHeader).toString();
+//    qDebug() << reply->header(QNetworkRequest::LastModifiedHeader).toDateTime().toString();;
+//    qDebug() << reply->header(QNetworkRequest::ContentLengthHeader).toULongLong();
+//    qDebug() << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+//    qDebug() << reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
+
+    QFile *dl_file = new QFile(download_local_path);
+    qDebug() << "File downloaded - saving to: " << download_local_path;
+    if(dl_file->open(QIODevice::WriteOnly))
+    {
+        dl_file->write(reply->readAll());
+        dl_file->flush();
+        dl_file->close();
+        delete dl_file;
+    }
+    reply->deleteLater();
+    download_active = false;
 }
 
 

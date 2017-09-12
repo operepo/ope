@@ -91,8 +91,6 @@ private:
 
 public:
 
-
-
     explicit AppModule(QQmlApplicationEngine *parent = 0);
     ~AppModule();
 
@@ -113,8 +111,12 @@ signals:
 
 public slots:
 
+    // Launch a file or URL using desktop services
+    bool desktopLaunch(QString url);
+
     // User folder where data can be stored
     QString dataFolder();
+    QString fileCacheFolder();
 
     // Are we debugging? Used to disable certain features during debuging
     bool isDebug();

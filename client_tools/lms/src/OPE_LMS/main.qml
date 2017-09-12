@@ -15,7 +15,7 @@ ApplicationWindow {
     width: 900
     height: 600
     title: qsTr("OPE - Learning Resource System")
-        
+
 
     Component.onCompleted: {
         // if first run, open up the first run drawer
@@ -27,14 +27,22 @@ ApplicationWindow {
         // Make sure we set the current course
         App.current_course = App.getFieldValue(selectedCourse.model, selectedCourse.currentIndex, "id");
         console.log(App.current_course);
+        pageLoader.item.refreshPage();
     }
 
     Connections {
-        target: mainWidget
-        onShowCanvasLogin:
-        {
-            //console.log("Change url: " + url);
-            loginWebView.url = url;           
+//        target: mainWidget
+//        onShowCanvasLogin:
+//        {
+//            //console.log("Change url: " + url);
+//            loginWebView.url = url;
+//        }
+
+        target: pageLoader.item
+        onLoadPage: {
+            console.log("Load Page Called: " + page_url);
+            App.current_page_url = page_url;
+            pageLoader.setSource("CanvasPage.qml");
         }
     }
 
@@ -47,7 +55,7 @@ ApplicationWindow {
 //                onClicked: loginDrawer.open();
 //            }
             ToolButton {
-                text: qsTr("Sync")
+                text: qsTr("Sync With Canvas")
                 onClicked: {
                     if(syncDrawer.position < 0.1) {
                         syncDrawer.open();
@@ -57,6 +65,7 @@ ApplicationWindow {
 
             ToolButton {
                 text: qsTr("Resources");
+                visible: false
                 onClicked: {
                     if (resourcesDrawer.position < 0.1) {
                         resourcesDrawer.open();
@@ -239,9 +248,115 @@ ApplicationWindow {
 
     }
 
+
+    Drawer {
+        id: syncDrawer
+        y: header.height
+        width: window.width * 0.6
+        height: window.height - header.height
+        edge: Qt.RightEdge
+        dragMargin: 0
+
+
+        Page {
+            id: syncPage
+            anchors.fill: parent
+
+            function startSyncProcess()
+            {
+                var r;
+                progressLabel.text = "\n\nStarting sync process:";
+                syncProgress.value = 0;
+                syncProgress.visible = true;
+
+                // Pull student information
+                progressLabel.text += "\nPulling student information...";
+                r = mainWidget.canvas.pullStudentInfo();
+                if (r === false) { progressLabel.text += "\n  ERROR pulling student info"; }
+                syncProgress.value = .1;
+
+                // Pull classes
+                progressLabel.text += "\nPulling courses from canvas...";
+                r = mainWidget.canvas.pullCourses();
+                if (r === false) { progressLabel.text += "\n  ERROR pulling course info"; }
+                syncProgress.value = .2;
+
+                progressLabel.text += "\nPulling modules for courses...";
+                r = mainWidget.canvas.pullModules();
+                if (r === false) { progressLabel.text += "\n  ERROR pulling module info"; }
+                syncProgress.value = .3;
+
+                progressLabel.text += "\nPulling items for all courses and modules...";
+                r = mainWidget.canvas.pullModuleItems();
+                if (r === false) { progressLabel.text += "\n  ERROR pulling item info"; }
+                syncProgress.value = .4;
+
+                progressLabel.text += "\nPulling file info for courses...";
+                r = mainWidget.canvas.pullCourseFilesInfo();
+                if (r === false) { progressLabel.text += "\n  ERROR pulling files info"; }
+                syncProgress.value = .5;
+
+                // Pull pages for courses
+                progressLabel.text += "\nPulling pages for courses...";
+                r = mainWidget.canvas.pullCoursePages();
+                if (r === false) { progressLabel.text += "\n  ERROR pulling pages"; }
+                syncProgress.value = .6;
+
+                // Pull inbox messages for user
+                progressLabel.text += "\nPulling inbox messages for user...";
+                r = mainWidget.canvas.pullMessages();
+                if (r === false) { progressLabel.text += "\n  ERROR pulling messages"; }
+                syncProgress.value = .7;
+
+                // Pull sent messages for user
+                progressLabel.text += "\nPulling sent messages for user...";
+                r = mainWidget.canvas.pullMessages("sent");
+                if (r === false) { progressLabel.text += "\n  ERROR pulling messages"; }
+                syncProgress.value = .8;
+
+                // Don't do this unless its marked for pull
+                progressLabel.text += "\nPulling file binaries...";
+                r = mainWidget.canvas.pullCourseFilesBinaries();
+                if (r === false) { progressLabel.text += "\n  ERROR pulling file binaries"; }
+                syncProgress.value = 1.0;
+
+                progressLabel.text += "\n\nDone!";
+                syncProgress.visible = false;
+
+                // Mark that we have synced
+                mainWidget.markAsSyncedWithCanvas();
+
+            }
+
+            header: Row {
+                Button {
+                    id: syncButton
+                    text: "Sync with Canvas";
+                    onClicked: {
+                        syncPage.startSyncProcess();
+                    }
+                }
+            }
+
+            ProgressBar {
+                id: syncProgress
+                visible: false;
+                from: 0
+                to: 1
+                value: 0
+            }
+
+            Label {
+                id: progressLabel
+                text: ""
+            }
+        }
+
+    }
+
     Drawer
     {
-        id: syncDrawer
+        id: syncDrawerOld
         y: header.height
         width: window.width * 0.6
         height: window.height - header.height
@@ -314,6 +429,7 @@ ApplicationWindow {
                         onActivated: {
                             App.current_course = App.getFieldValue(this.model, index, "id");
                             console.log(App.current_course);
+                            pageLoader.item.refreshPage();
                         }
 
                     }

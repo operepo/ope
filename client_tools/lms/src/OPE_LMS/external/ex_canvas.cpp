@@ -549,7 +549,60 @@ bool EX_Canvas::pullCourseFilesBinaries()
 {
     // Pull binaries for files that are marked as pull
     bool ret = false;
+    if (_app_db == NULL) { return ret; }
 
+    GenericTableModel *files_model = _app_db->getTable("files");
+
+    if (files_model == NULL) {
+        qDebug() << "Unable to get model for files";
+        return false;
+    }
+
+    files_model->setFilter(""); // pull_file=1
+
+    // Get the local cache folder
+    QDir base_dir;
+    base_dir.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/file_cache/");
+    base_dir.mkpath(base_dir.path());
+
+    ret = true;
+    for (int i=0; i<files_model->rowCount(); i++) {
+        QSqlRecord f = files_model->record(i);
+        QString f_id = f.value("id").toString();
+        QString f_filename = f.value("filename").toString();
+        QString f_name = f.value("display_name").toString();
+        QString f_url = f.value("url").toString();
+        int f_size = f.value("size").toInt();
+        QString local_path = f.value("pull_file").toString();
+
+        if (local_path == "") {
+            // Assign a new local path
+            local_path = "/" + f_id + "_" + f_filename;
+            f.setValue("pull_file", local_path);
+        }
+
+        // See if the file already exists locally
+        QFileInfo fi = QFileInfo(base_dir.path() + local_path);
+        if (fi.exists() && fi.size() == f_size ) {
+            qDebug() << "File exists " << f_name;
+            // Mark it as present
+            f.setValue("local_copy_present", true);
+        } else {
+            // Download the file
+            qDebug() << "Downloading file " << f_name;
+            bool r = DownloadFile(f_url, base_dir.path() + local_path);
+
+            if (r == true) {
+                // Mark the file as downloaded
+                f.setValue("local_copy_present", true);
+            }
+        }
+
+        // Write changes
+        files_model->setRecord(i, f);
+        files_model->submitAll();
+        files_model->database().commit();
+    }
 
     return ret;
 }
@@ -1066,6 +1119,11 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
     }
 
     return ret;
+}
+
+bool EX_Canvas::DownloadFile(QString url, QString local_path)
+{
+    return web_request->DownloadFile(url, local_path);
 }
 
 void EX_Canvas::SetCanvasAccessToken(QString token)

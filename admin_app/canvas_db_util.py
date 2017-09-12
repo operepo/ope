@@ -11,6 +11,7 @@ min_id = 90000000000
 # Tables to merge
 merge_tables = ["users", "accounts"]
 
+# docker exec -it ope-redis redis-cli flushall
 
 def export_table(table, con):
     # Figure out what parts to export for this table

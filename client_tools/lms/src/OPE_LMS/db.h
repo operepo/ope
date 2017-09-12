@@ -15,6 +15,45 @@
 #include <QCryptographicHash>
 
 class APP_DB;
+class GenericQueryModel;
+class GenericTableModel;
+
+/**
+ * @brief The GenericQueryModel class
+ * Used to create generic queries for QML controls
+ */
+class GenericQueryModel : public QSqlQueryModel {
+    Q_OBJECT
+public:
+    explicit GenericQueryModel(APP_DB *parent=0, QString query_name="", QString query="", QSqlDatabase db = QSqlDatabase());
+    void refresh();
+
+signals:
+
+public slots:
+
+    QVariant data(const QModelIndex &index, int role) const;
+    QHash<int, QByteArray> roleNames() const { return m_roleNames; }
+
+    void modifyQuery(QString q);
+    void modifyFilter(QString f, bool combine_w_and=true);
+
+    QHash<QString, QVariant> getRecord(int row) const;
+    QString getColumnName(int col_index);
+    int getColumnIndex(QString col_name);
+
+
+private:
+    void generateRoleNames();
+    void setCombinedQuery();
+
+    QString m_query_name;
+    QHash<int, QByteArray> m_roleNames;
+    QString m_sql_select;
+    QString m_filter;
+    bool m_combine_filter_w_and;
+};
+
 
 /**
  * @brief The GenericTableModel class
@@ -56,7 +95,11 @@ class APP_DB : public QObject
 public:
     explicit APP_DB(QQmlApplicationEngine *parent = 0);
 
+    static QQmlEngine *_engine;
+
     QHash<QString, GenericTableModel *> _tables;
+    QHash<QString, GenericQueryModel *> _queries;
+
 signals:
 
 public slots:
