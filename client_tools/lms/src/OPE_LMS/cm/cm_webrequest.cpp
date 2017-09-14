@@ -125,14 +125,29 @@ QString CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString, Q
 
 bool CM_WebRequest::DownloadFile(QString url, QString local_path)
 {
+    bool ret = false;
+
     download_active = true;
 
     // Store our local path
     download_local_path = local_path;
 
     // Hook up our signals
+    connect(&download_manager, SIGNAL(readyRead()),
+            this, SLOT(downloadReadyRead()));
     connect(&download_manager, SIGNAL(finished(QNetworkReply*)),
             this, SLOT(downloadReplyFinished(QNetworkReply*)));
+
+    dl_file = new QFile(download_local_path);
+    if(dl_file->open(QIODevice::WriteOnly))
+    {
+        // File opened successfully
+        qDebug() << "File downloaded - saving to: " << download_local_path;
+    } else {
+        // Unable to open the file
+        qDebug() << "Unable to write to file: " << download_local_path;
+        return false;
+    }
 
     QNetworkReply *reply = download_manager.get(QNetworkRequest(QUrl(url)));
 
@@ -141,11 +156,25 @@ bool CM_WebRequest::DownloadFile(QString url, QString local_path)
     connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
     loop.exec(QEventLoop::ExcludeUserInputEvents);
 
+    //    qDebug() << reply->header(QNetworkRequest::ContentTypeHeader).toString();
+    //    qDebug() << reply->header(QNetworkRequest::LastModifiedHeader).toDateTime().toString();;
+    //    qDebug() << reply->header(QNetworkRequest::ContentLengthHeader).toULongLong();
+    //    qDebug() << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    //    qDebug() << reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
+
+
     if (reply->error()) {
-        return false;
+        ret = false;
     } else {
-        return true;
+        ret = true;
     }
+    dl_file->flush();
+    dl_file->close();
+    delete dl_file; //dl_file->deleteLater();
+    delete reply; //reply->deleteLater();
+    download_active = false;
+
+    return ret;
 }
 
 QString CM_WebRequest::ConvertHashToQueryString(QHash<QString, QString> *arr)
@@ -182,14 +211,31 @@ QHash<QString,QString> CM_WebRequest::GetAllHeaders()
     return http_reply_headers;
 }
 
-void CM_WebRequest::downloadReplyFinished(QNetworkReply *reply)
+void CM_WebRequest::downloadReadyRead()
 {
-    // Deal with the downloaded file
-    if (reply->error()) {
-        qDebug() << "Error downloading file: " << reply->errorString();
-        reply->deleteLater();
+    if  (!dl_file->isOpen()) {
+        qDebug() << "File isn't open! " << download_local_path;
         return;
     }
+    // Save this chunk of data to the dl file
+    if(dl_file->write(reply->ReadAll()) == -1) {
+        // Error occured
+    } else {
+        // Read/write worked
+    }
+}
+
+void CM_WebRequest::downloadReplyFinished(QNetworkReply *reply)
+{
+    // Retired this in favor of writing during readyRead to limit
+    // memory size issues
+    return;
+    // Deal with the downloaded file
+//    if (reply->error()) {
+//        qDebug() << "Error downloading file: " << reply->errorString();
+//        //reply->deleteLater();
+//        return;
+//    }
 
 //    qDebug() << reply->header(QNetworkRequest::ContentTypeHeader).toString();
 //    qDebug() << reply->header(QNetworkRequest::LastModifiedHeader).toDateTime().toString();;
@@ -197,17 +243,17 @@ void CM_WebRequest::downloadReplyFinished(QNetworkReply *reply)
 //    qDebug() << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 //    qDebug() << reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
 
-    QFile *dl_file = new QFile(download_local_path);
-    qDebug() << "File downloaded - saving to: " << download_local_path;
-    if(dl_file->open(QIODevice::WriteOnly))
-    {
-        dl_file->write(reply->readAll());
-        dl_file->flush();
-        dl_file->close();
-        delete dl_file;
-    }
-    reply->deleteLater();
-    download_active = false;
+//    QFile *dl_file = new QFile(download_local_path);
+//    qDebug() << "File downloaded - saving to: " << download_local_path;
+//    if(dl_file->open(QIODevice::WriteOnly))
+//    {
+//        dl_file->write(reply->readAll());
+//        dl_file->flush();
+//        dl_file->close();
+//        delete dl_file;
+//    }
+//    reply->deleteLater();
+//    download_active = false;
 }
 
 
