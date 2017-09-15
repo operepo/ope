@@ -1,0 +1,23 @@
+    ope-gcf:
+        build: ./ope-wsl
+        image: operepo/ope-gcf:release
+        container_name: ope-wsl
+        ports:
+            - "8080"
+        labels:
+            - "desc=Wiki container for washington state library"
+        volumes:
+            - ../volumes/wsl/sites:/var/www/html/sites:ro
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        env_file: .env
+        environment:
+            - IT_PW=${IT_PW}
+            - OFFICE_PW=${OFFICE_PW}
+            - VIRTUAL_HOST=wsl.<DOMAIN>
+            - VIRTUAL_PORT=8080
+            - CERT_NAME=default
+            - VIRTUAL_PROTO=http
+        #    - NGINX_HOST=gcf.<DOMAIN>
+        #    - NGINX_PORT=80      
