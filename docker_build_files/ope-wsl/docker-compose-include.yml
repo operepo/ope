@@ -3,7 +3,7 @@
         image: operepo/ope-wsl:release
         container_name: ope-wsl
         ports:
-            - "8080"
+            - "80"
         labels:
             - "desc=Wiki container for washington state library"
         volumes:
@@ -16,7 +16,7 @@
             - IT_PW=${IT_PW}
             - OFFICE_PW=${OFFICE_PW}
             - VIRTUAL_HOST=wsl.<DOMAIN>
-            - VIRTUAL_PORT=8080
+            - VIRTUAL_PORT=80
             - CERT_NAME=default
             - VIRTUAL_PROTO=http
         #    - NGINX_HOST=wsl.<DOMAIN>

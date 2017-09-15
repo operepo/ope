@@ -15,4 +15,4 @@ LABEL Description="Washington State Library offline resource wiki - Image for Op
 
 
 VOLUME ["/var/www/html/sites"]
-EXPOSE 8080
+EXPOSE 80
