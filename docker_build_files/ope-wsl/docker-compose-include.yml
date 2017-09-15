@@ -1,6 +1,6 @@
-    ope-gcf:
+    ope-wsl:
         build: ./ope-wsl
-        image: operepo/ope-gcf:release
+        image: operepo/ope-wsl:release
         container_name: ope-wsl
         ports:
             - "8080"
@@ -19,5 +19,5 @@
             - VIRTUAL_PORT=8080
             - CERT_NAME=default
             - VIRTUAL_PROTO=http
-        #    - NGINX_HOST=gcf.<DOMAIN>
+        #    - NGINX_HOST=wsl.<DOMAIN>
         #    - NGINX_PORT=80      
