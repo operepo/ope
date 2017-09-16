@@ -252,7 +252,7 @@ ApplicationWindow {
     Drawer {
         id: syncDrawer
         y: header.height
-        width: window.width * 0.6
+        width: window.width // * 0.99
         height: window.height - header.height
         edge: Qt.RightEdge
         dragMargin: 0
@@ -265,6 +265,8 @@ ApplicationWindow {
             Connections {
                 target: mainWidget.canvas;
                 onProgress: {
+                    progressCurrentItem.text = currentItem;
+
                     if (totalBytes == 0) {
                         syncProgress.value = 0
 
@@ -350,20 +352,43 @@ ApplicationWindow {
                         syncPage.startSyncProcess();
                     }
                 }
+                Button {
+                    id: closeButton
+                    text: "Close"
+                    onClicked: {
+                        syncDrawer.close();
+                    }
+                }
             }
 
-            ProgressBar {
-                id: syncProgress
-                visible: false;
-                from: 0
-                to: 1
-                value: 0
+            contentData: Column {
+                width: parent.width
+                height: parent.height
+
+                Row {
+                    width: parent.width
+                    height: 30
+                    ProgressBar {
+                        id: syncProgress
+                        visible: false;
+                        from: 0
+                        to: 1
+                        value: 0
+                    }
+                    Label {
+                        id: progressCurrentItem
+                        text: "Current Item"
+                        font.pixelSize: 12
+                    }
+                }
+
+                Label {
+                    id: progressLabel
+                    text: ""
+                    font.pixelSize: 18;
+                }
             }
 
-            Label {
-                id: progressLabel
-                text: ""
-            }
         }
 
     }

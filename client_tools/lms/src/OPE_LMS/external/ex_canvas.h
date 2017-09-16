@@ -68,7 +68,7 @@ public slots:
     // Low level network call - make the actual connection to canvas, auto pull additional pages - BLOCKING
     QString NetworkCall(QString url, QString method = "GET", QHash<QString, QString> *p = NULL, QHash<QString, QString> *headers = NULL);
     // Download a file to a local path
-    bool DownloadFile(QString url, QString local_path);
+    bool DownloadFile(QString url, QString local_path, QString item_name = "");
     void downloadProgress(qint64 bytesRead, qint64 totalBytes);
 
     // Store the auth token so that requests can be sent to canvas on behalf of this user
@@ -86,6 +86,8 @@ private:
 
     // Web request used by NetworkCall - hands off
     CM_WebRequest *web_request;
+
+    QString progressCurrentItem;
 
     // Database pointer - provided by app - where do we store our canvas info?
     APP_DB *_app_db;
@@ -118,7 +120,7 @@ private slots:
     /// WikiPages API
 
 signals:
-    void progress(qint64 bytesRead, qint64 totalBytes);
+    void progress(qint64 bytesRead, qint64 totalBytes, QString currentItem);
 
 public slots:
 

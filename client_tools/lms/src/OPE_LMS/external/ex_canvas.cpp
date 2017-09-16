@@ -593,6 +593,7 @@ bool EX_Canvas::pullCourseFilesBinaries()
         } else {
             // Download the file
             qDebug() << "Downloading file " << f_name;
+            progressCurrentItem = f_filename;
             bool r = DownloadFile(f_url, base_dir.path() + local_path);
 
             if (r == true) {
@@ -1129,14 +1130,15 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
     return ret;
 }
 
-bool EX_Canvas::DownloadFile(QString url, QString local_path)
+bool EX_Canvas::DownloadFile(QString url, QString local_path, QString item_name)
 {
+    progressCurrentItem = item_name;
     return web_request->DownloadFile(url, local_path);
 }
 
 void EX_Canvas::downloadProgress(qint64 bytesRead, qint64 totalBytes)
 {
-    emit progress(bytesRead, totalBytes);
+    emit progress(bytesRead, totalBytes, progressCurrentItem);
 }
 
 void EX_Canvas::SetCanvasAccessToken(QString token)
