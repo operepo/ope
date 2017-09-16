@@ -1,5 +1,14 @@
 import json
 import os
+
+# try glew + gles or sdl2?
+os.environ["KIVY_GL_BACKEND"] = "glew"  # gl, glew, sdl2, angle_sdl2, mock
+os.environ["KIVY_GRAPHICS"] = "gles"  # "gles"
+# os.environ["KIVY_GL_DEBUG"] = "1"
+
+# os.environ["USE_SDL2"] = "1"
+# os.environ["KIVY_WINDOW"] = "pygame"  # "sdl2" "pygame"
+
 import sys
 import re
 from os.path import expanduser
@@ -39,13 +48,14 @@ from kivy.uix.button import Button
 from kivy.config import Config
 Config.set('kivy', 'exit_on_escape', '0')
 Config.set('graphics', 'multisamples', '0')
+Config.set('graphics', 'fbo', 'software')
+#Config.set('KIVY_GRAPHICS', 'gles')
 from kivy.properties import ListProperty
 from kivy.logger import Logger
 from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.core.window import Window
 kivy.require('1.10.0')
-
 # Adjust kivy config to change window look/behavior
 # Config.set('graphics','borderless',1)
 # Config.set('graphics','resizable',0)

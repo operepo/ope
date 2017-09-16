@@ -69,6 +69,7 @@ public slots:
     QString NetworkCall(QString url, QString method = "GET", QHash<QString, QString> *p = NULL, QHash<QString, QString> *headers = NULL);
     // Download a file to a local path
     bool DownloadFile(QString url, QString local_path);
+    void downloadProgress(qint64 bytesRead, qint64 totalBytes);
 
     // Store the auth token so that requests can be sent to canvas on behalf of this user
     void SetCanvasAccessToken(QString token);
@@ -117,6 +118,7 @@ private slots:
     /// WikiPages API
 
 signals:
+    void progress(qint64 bytesRead, qint64 totalBytes);
 
 public slots:
 

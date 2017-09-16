@@ -13,6 +13,11 @@ FROM mediawiki:stable
 MAINTAINER Ray Pulsipher <ray@cmagic.biz>
 LABEL Description="Washington State Library offline resource wiki - Image for Open Prison Education" Vendor="openprisoneducation.com" Version="0.1"
 
+# Copy in our settings
+COPY LocalSettings.php /var/www/html/LocalSettings.php
+
+# Copy in our custom startup script
+# TOOD
 
 VOLUME ["/var/www/html/sites"]
 EXPOSE 80

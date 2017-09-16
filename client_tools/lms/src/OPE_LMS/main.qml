@@ -262,6 +262,18 @@ ApplicationWindow {
             id: syncPage
             anchors.fill: parent
 
+            Connections {
+                target: mainWidget.canvas;
+                onProgress: {
+                    if (totalBytes == 0) {
+                        syncProgress.value = 0
+
+                    } else {
+                        syncProgress.value = bytesRead / totalBytes;
+                    }
+                }
+            }
+
             function startSyncProcess()
             {
                 var r;
@@ -327,6 +339,8 @@ ApplicationWindow {
                 mainWidget.markAsSyncedWithCanvas();
 
             }
+
+
 
             header: Row {
                 Button {

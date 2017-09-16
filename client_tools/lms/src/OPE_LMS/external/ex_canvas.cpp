@@ -20,6 +20,9 @@ EX_Canvas::EX_Canvas(QObject *parent, APP_DB *db, QSettings *app_settings) :
     _app_settings = app_settings;
 
     web_request = new CM_WebRequest(this);
+    // Connect the progress signal
+    connect(web_request, SIGNAL(progress(qint64,qint64)),
+            this, SLOT(downloadProgress(qint64, qint64)));
 }
 
 bool EX_Canvas::pullStudentInfo()
@@ -655,6 +658,9 @@ bool EX_Canvas::pullCoursePages()
                 } else {
                     QJsonObject page_object = page_doc.object();
                     page_body = page_object["body"].toString("");
+                    if (page_object["locked_for_user"].toBool() == true) {
+                        page_body = page_object["lock_explanation"].toString("Page Locked - see instructor");
+                    }
                 }
 
                 model->setFilter("page_id = " + id);
@@ -1050,6 +1056,7 @@ QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<Q
     QHash<QString,QString> headers;
     headers["Authorization"] = "Bearer " + canvas_access_token;
     headers["User-Agent"] = "OPE LMS";
+    headers["Accept-Language"] = "en-US,en;q=0.8";
 
     QString json = NetworkCall(canvas_server + api_call, method, p, &headers);
 
@@ -1073,7 +1080,8 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
 {
     QString ret;
 
-    ret = web_request->NetworkCall(url, method, p, headers);
+    QByteArray bin_ret = web_request->NetworkCall(url, method, p, headers);
+    ret = QString::fromUtf8(bin_ret);
 
     QString link_header = web_request->GetHeader("Link");
 
@@ -1124,6 +1132,11 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
 bool EX_Canvas::DownloadFile(QString url, QString local_path)
 {
     return web_request->DownloadFile(url, local_path);
+}
+
+void EX_Canvas::downloadProgress(qint64 bytesRead, qint64 totalBytes)
+{
+    emit progress(bytesRead, totalBytes);
 }
 
 void EX_Canvas::SetCanvasAccessToken(QString token)
