@@ -25,3 +25,4 @@ ope.git
 /docker_build_files/docker-compose.yml
 /admin_app/build/SyncApp
 /admin_app/dist/SyncApp
+/SyncApp/syncope.ini
