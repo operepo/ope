@@ -81,6 +81,7 @@ COPY nfs-kernel-server /etc/default/nfs-kernel-server
 COPY nfs-common /etc/default/nfs-common
 COPY index.html /var/www/html/index.html
 COPY vsftpd.conf /etc/vsftpd.conf
+COPY update_password.sh /fog_src/bin/
 
 # Setup permissions and ownership as needed
 RUN chmod +x /start.sh \
@@ -88,7 +89,8 @@ RUN chmod +x /start.sh \
     && chmod +x /fog_src/bin/update_fog_ip.py \
     && dos2unix /start.sh /etc/default/tftpd-hpa /fog_src/bin/update_fog_ip.py \
     && chown -R www-data:www-data /var/www/fog/management/other/ssl \
-    && chown -R fog:www-data /opt/fog/snapins/ssl
+    && chown -R fog:www-data /opt/fog/snapins/ssl \
+    && chmod +x /fog_src/bin/update_password.sh
 
 # Deal with sgdisk uuid error during deploy - Will want to take this out when fixes get pulled into main code 7/15/17
 #RUN wget -O /var/www/fog/service/ipxe/init.xz https://fogproject.org/inits/init.xz \
