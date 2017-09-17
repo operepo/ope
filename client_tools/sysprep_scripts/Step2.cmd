@@ -63,6 +63,10 @@ REM NOTE: This will run for ANY user that logs in, so the firstboot user doesn't
 rem reg add HKLM\Software\Microsoft\Windows\CurrentVersion\RunOnce /v SetupComplete /t REG_SZ /d "c:\apps\sysprep_scripts\SetupComplete.cmd reboot" /f
 reg add HKLM\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce /v SetupComplete /t REG_SZ /d "c:\apps\sysprep_scripts\SetupComplete.cmd" /f
 
+rem Download the current fog certificates 
+echo Updating fog certificates...
+fix_fog_service.cmd
+
 echo "This will run sysprep and shutdown."
 echo Do you want to run sysprep [recommended]?
 choice /C yn /m "Press n for no, or y to run sysprep"

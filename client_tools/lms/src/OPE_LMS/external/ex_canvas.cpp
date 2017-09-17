@@ -253,7 +253,7 @@ bool EX_Canvas::pullModules()
         return false;
     }
 
-    // TODO - All enteries should be for this student, so get them all
+    // All enteries should be for this student, so get them all
     courses_model->setFilter("");
     ret = true;
     for (int i=0; i<courses_model->rowCount(); i++) {
@@ -923,6 +923,147 @@ qDebug() << "Got conversation, going for messages: " << o["messages"];
 
             // Commit any remaining transactions
             conversations_model->database().commit();
+        }
+    }
+
+    return ret;
+}
+
+bool EX_Canvas::pullAssignments()
+{
+    // Grab assignments for each course in the database
+    bool ret = false;
+    if (_app_db == NULL) { return ret; }
+
+    // Get a list of courses for this student
+    GenericTableModel *courses_model = _app_db->getTable("courses");
+    GenericTableModel *model = _app_db->getTable("assignments");
+
+    if (courses_model == NULL || model == NULL) {
+        qDebug() << "Unable to get models for courses or assignments";
+        return false;
+    }
+
+    // All entries should be for this student, so get them all
+    courses_model->setFilter("");
+    ret = true;
+    for(int i=0; i<courses_model->rowCount(); i++) {
+        // Get assignments for this course
+        QSqlRecord course_record = courses_model->record(i);
+        QString course_id = course_record.value("id").toString();
+        qDebug() << "Retrieving assignments for " << course_id;
+        QHash<QString, QString> p;
+        p["per_page"] = "10000"; // cut number of calls
+        QJsonDocument doc = CanvasAPICall("/api/v1/courses/" + course_id + "/assignments", "GET", &p);
+
+        if (doc.isArray()) {
+            qDebug() << "\tAssignments for course:";
+            // Should be an array of assignments
+            QJsonArray arr = doc.array();
+            foreach(QJsonValue val, arr) {
+                // Should be an assignment
+                QJsonObject o = val.toObject();
+
+                QString id = o["id"].toString("");
+                qDebug() << "Assignment ID " << id;
+
+                model->setFilter("id = " + id);
+                model->select();
+                QSqlRecord record;
+                bool is_insert = false;
+
+                if (model->rowCount() == 1) {
+                    // Row exists, update w current info
+                    record = model->record(0);
+                    is_insert = false;
+                    qDebug() << "\t\tUpadting assignment..." << id << o["name"].toString("");
+                } else {
+                    // Need to clear the filter to insert
+                    model->setFilter("");
+                    record = model->record();
+                    is_insert = true;
+                    qDebug() << "\t\tImporting assignment..." << id << o["name"].toString("");
+                }
+
+                // JSON - list of objects
+                // {"id": 35871700000000002,"description": null,"due_at": null,
+                // "unlock_at": null,"lock_at": null,"points_possible": null,
+                // "grading_type": "points","assignment_group_id": 35871700000000003,
+                // "grading_standard_id": null,"created_at": "2017-09-09T23:49:06Z",
+                // "updated_at": "2017-09-09T23:49:09Z","peer_reviews": false,
+                // "automatic_peer_reviews": false,"position": 1,
+                // "grade_group_students_individually": false,"anonymous_peer_reviews": false,
+                // "group_category_id": null,"post_to_sis": false,
+                // "moderated_grading": false,"omit_from_final_grade": false,
+                // "intra_group_peer_reviews": false,
+                // "secure_params": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsdGlfYXNzaWdubWVudF9pZCI6IjFjNTBhOTAzLWZmMWMtNDk5My1hYjg3LTY2ZWU2NWViMjY1ZiJ9.4EbPTYlKDiTZps_MxzKTlTCpXuqmzdRW7Z-q1LJX0kg",
+                // "course_id": 35871700000000003,"name": "Test Assignment",
+                // "submission_types": ["none"],
+                // "has_submitted_submissions": false,"due_date_required": false,
+                // "max_name_length": 255,"in_closed_grading_period": false,
+                // "is_quiz_assignment": false,"muted": false,
+                // "html_url": "https://canvas.ed/courses/35871700000000003/assignments/35871700000000002",
+                // "has_overrides": false,"needs_grading_count": 0,"integration_id": null,
+                // "integration_data": {},"published": true,"unpublishable": true,
+                // "only_visible_to_overrides": false,"locked_for_user": false,
+                // "submissions_download_url": "https://canvas.ed/courses/35871700000000003/assignments/35871700000000002/submissions?zip=1"
+                //  },
+
+                record.setValue("id", o["id"].toString(""));
+                record.setValue("description", o["description"].toString(""));
+                record.setValue("due_at", o["due_at"].toString(""));
+                record.setValue("unlock_at", o["unlock_at"].toString(""));
+                record.setValue("lock_at", o["lock_at"].toString(""));
+                record.setValue("points_possible", o["points_possible"].toString(""));
+                record.setValue("grading_type", o["grading_type"].toString(""));
+                record.setValue("assignment_group_id", o["assignment_group_id"].toString(""));
+                record.setValue("grading_standard_id", o["grading_standard_id"].toString(""));
+                record.setValue("created_at", o["created_at"].toString(""));
+                record.setValue("updated_at", o["updated_at"].toString(""));
+                record.setValue("peer_reviews", o["peer_reviews"].toBool(false));
+                record.setValue("automatic_peer_reviews", o["automatic_peer_reviews"].toBool(false));
+                record.setValue("position", o["position"].toString(""));
+                record.setValue("grade_group_students_individually", o["grade_group_students_individually"].toBool(false));
+                record.setValue("anonymous_peer_reviews", o["anonymous_peer_reviews"].toBool(false));
+                record.setValue("group_category_id", o["group_category_id"].toString(""));
+                record.setValue("post_to_sis", o["post_to_sis"].toBool(false));
+                record.setValue("moderated_grading", o["moderated_grading"].toBool(false));
+                record.setValue("omit_from_final_grade", o["omit_from_final_grade"].toBool(false));
+                record.setValue("intra_group_peer_reviews", o["intra_group_peer_reviews"].toBool(false));
+                record.setValue("secure_params", o["secure_params"].toString(""));
+                record.setValue("course_id", o["course_id"].toString(""));
+                record.setValue("name", o["name"].toString(""));
+                record.setValue("submission_types", o["submission_types"].toString(""));
+                record.setValue("has_submitted_submissions", o["has_submitted_submissions"].toBool(false));
+                record.setValue("due_date_required", o["due_date_required"].toBool(false));
+                record.setValue("max_name_length", o["max_name_length"].toString(""));
+                record.setValue("in_closed_grading_period", o["in_closed_grading_period"].toBool(false));
+                record.setValue("is_quiz_assignment", o["is_quiz_assignment"].toBool(false));
+                record.setValue("muted", o["muted"].toBool(false));
+                record.setValue("html_url", o["html_url"].toString(""));
+                record.setValue("has_overrides", o["has_overrides"].toBool(false));
+                record.setValue("needs_grading_count", o["needs_grading_count"].toString(""));
+                record.setValue("integration_id", o["integration_id"].toString(""));
+                record.setValue("integration_data", o["integration_data"].toString(""));
+                record.setValue("published", o["published"].toBool(false));
+                record.setValue("unpublishable", o["unpublishable"].toBool(false));
+                record.setValue("only_visible_to_overrides", o["only_visible_to_overrides"].toBool(false));
+                record.setValue("locked_for_user", o["locked_for_user"].toBool(false));
+                record.setValue("submissions_download_url", o["submissions_download_url"].toString(""));
+
+                if (is_insert) {
+                    model->insertRecord(-1, record);
+                } else {
+                    // Filter should be set so 0 should be current record
+                    model->setRecord(0, record);
+                }
+                // Write changes
+                if (!model->submitAll()) { ret = false; }
+                model->setFilter(""); // clear the filter
+
+                model->database().commit();
+
+            }
         }
     }
 

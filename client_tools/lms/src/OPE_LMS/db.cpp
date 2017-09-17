@@ -280,6 +280,55 @@ bool APP_DB::init_db()
         model = new GenericTableModel(this, "messages", _db);
 
 
+        // Create the assignments table
+        sql = "CREATE TABLE IF NOT EXISTS `assignments` ( \
+                `id`    INTEGER PRIMARY KEY AUTOINCREMENT, \
+                `description`   TEXT NOT NULL DEFAULT '', \
+                `due_at`        TEXT NOT NULL DEFAULT '', \
+                `unlock_at`     TEXT NOT NULL DEFAULT '', \
+                `lock_at`       TEXT NOT NULL DEFAULT '', \
+                `points_possible` TEXT NOT NULL DEFAULT '', \
+                `grading_type` TEXT NOT NULL DEFAULT '', \
+                `assignment_group_id` TEXT NOT NULL DEFAULT '', \
+                `grading_standard_id` TEXT NOT NULL DEFAULT '', \
+                `created_at`    TEXT NOT NULL DEFAULT '', \
+                `updated_at`    TEXT NOT NULL DEFAULT '', \
+                `peer_reviews`  TEXT NOT NULL DEFAULT '', \
+                `automatic_peer_reviews` TEXT NOT NULL '', \
+                `position`      TEXT NOT NULL DEFAULT '', \
+                `grade_group_students_individually` TEXT NOT NULL DEFAULT '', \
+                `anonymous_peer_reviews` TEXT NOT NULL DEFAULT '', \
+                `group_category_id` TEXT NOT NULL DEFAULT '', \
+                `post_to_sis`   TEXT NOT NULL DEFAULT '', \
+                `moderated_grading` TEXT NOT NULL DEFAULT '', \
+                `omit_from_final_grade` TEXT NOT NULL DEFAULT '', \
+                `intra_group_peer_reviews` TEXT NOT NULL DEFAULT '', \
+                `secure_params` TEXT NOT NULL DEFAULT '', \
+                `course_id`     TEXT NOT NULL DEFAULT '', \
+                `name`          TEXT NOT NULL DEFAULT '', \
+                `submission_types` TEXT NOT NULL DEFAULT '', \
+                `has_submitted_submissions` TEXT NOT NULL DEFAULT '', \
+                `due_date_required` TEXT NOT NULL DEFAULT '', \
+                `max_name_length` TEXT NOT NULL DEFAULT '', \
+                `in_closed_grading_period` TEXT NOT NULL DEFAULT '', \
+                `is_quiz_assignment` TEXT NOT NULL DEFAULT '', \
+                `muted`         TEXT NOT NULL DEFAULT '', \
+                `html_url`      TEXT NOT NULL DEFAULT '', \
+                `has_overrides` TEXT NOT NULL DEFAULT '', \
+                `needs_grading_count` TEXT NOT NULL DEFAULT '', \
+                `integration_id` TEXT NOT NULL DEFAULT '', \
+                `integration_data` TEXT NOT NULL DEFAULT '', \
+                `published`     TEXT NOT NULL DEFAULT '', \
+                `unpublishable` TEXT NOT NULL DEFAULT '', \
+                `only_visible_to_overrides` TEXT NOT NULL DEFAULT '', \
+                `locked_for_user` TEXT NOT NULL DEFAULT '', \
+                `submissions_download_url` TEXT NOT NULL DEFAULT '', \
+              );";
+        if (!query.exec(sql)) {
+            qDebug() << "DB Error: " << query.lastError().text();
+            ret = false;
+        }
+        model = new GenericTableModel(this, "assignments", _db);
 
 
         // Create the resources table

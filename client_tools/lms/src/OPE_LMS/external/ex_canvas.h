@@ -41,8 +41,10 @@ public slots:
     bool pullCourseFilesBinaries();
     // Pull list of pages for courses
     bool pullCoursePages();
-    // Pul list of messages
+    // Pull list of messages
     bool pullMessages(QString scope="inbox");
+    // Pull list of assignments
+    bool pullAssignments();
 
     // =================================================
     // push data to canvas - used during sync

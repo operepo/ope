@@ -316,6 +316,12 @@ ApplicationWindow {
                 if (r === false) { progressLabel.text += "\n  ERROR pulling pages"; }
                 syncProgress.value = .6;
 
+                // Pull assignments for courses
+                progressLabel.text += "\nPulling assignments...";
+                r = mainWidget.canvas.pullAssignments();
+                if (r === false) { progressLabel.text += "\n ERROR pulling assignments"; }
+                syncProgress.value = .65;
+
                 // Pull inbox messages for user
                 progressLabel.text += "\nPulling inbox messages for user...";
                 r = mainWidget.canvas.pullMessages();
@@ -388,9 +394,7 @@ ApplicationWindow {
                     font.pixelSize: 18;
                 }
             }
-
         }
-
     }
 
     Drawer
