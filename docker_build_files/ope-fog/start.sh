@@ -51,8 +51,9 @@ service apache2 start
 # Make sure the database scheme has been init
 wget --no-check-certificate -qO - --post-data="confirm&fogverified" --no-proxy http://localhost/fog/management/index.php?node=schema
 
-# Make sure to update with the current public ip
+# Make sure to update with the current public ip and password
 cd /fog_src/bin
+bash update_password.sh
 python update_fog_ip.py
 
 # Make sure services are all up and ready
@@ -73,8 +74,6 @@ service FOGPingHosts start
 service FOGScheduler start
 service FOGSnapinHash start
 service FOGSnapinReplicator start
-
-# TODO - set fog pw to IT_PW from environment
 
 #/bin/bash -c '. /etc/apache2/envvars; rm -Rf /var/run/apache2/*; /usr/sbin/apache2 -D FOREGROUND'
 
