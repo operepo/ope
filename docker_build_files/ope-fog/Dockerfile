@@ -50,7 +50,7 @@ RUN chmod +x /bin/pipework
 #    && chmod +x pipework
 
 
-LABEL REBUILD = 3
+LABEL REBUILD = 4
 # Load up our settings - will start things with 127.0.0.1 as the ip
 RUN mkdir -p /opt/fog
 COPY .fogsettings /opt/fog
