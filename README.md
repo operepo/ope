@@ -29,6 +29,7 @@ This project consists of building and staging of apps, easy deployment into faci
 ## Micro Service Architecture
 We utilize Docker containers for micro services. You will need a machine that can run docker containers on the outside to build and setup your services, and a docker machine on the inside to transfer images and data to.
 
+```
   +----------------------------------------------------------------------+
   | Online Server                                                        |
   |                                                                      |
@@ -70,6 +71,7 @@ We utilize Docker containers for micro services. You will need a machine that ca
                 | Will pull course work from offline LMS server and         |
                 | push completed work back to the server for grading        |
                 +-----------------------------------------------------------+
+```
 
 ## Getting Started
 1. Get a linux distro with docker installed in both your online and offline servers:
@@ -144,6 +146,7 @@ This is currently in process and could mean breaking changes to the prev build p
 ## DHCP Settings - to allow FOG Server to do network imaging with PXE Boot
 
 ### DHCP Settings for Endian Firewall
+```
 option space PXE;
 option PXE.mtftp-ip    code 1 = ip-address;
 option PXE.mtftp-cport code 2 = unsigned integer 16;
@@ -202,3 +205,4 @@ class "UEFI-32-1" {
     match if substring(option vendor-class-identifier, 0, 20) = "PXEClient:Arch:00000";
     filename "undionly.kkpxe";
     }
+```
