@@ -1,6 +1,6 @@
     ope-freecodecamp:
         build: ./ope-freecodecamp
-        image: kgonyo/ope-freecodecamp
+        image: operepo/ope-freecodecamp
         container_name: ope-freecodecamp
         ports:
             - "3000"

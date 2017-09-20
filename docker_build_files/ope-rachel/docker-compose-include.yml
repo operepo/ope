@@ -1,6 +1,6 @@
     ope-rachel:
         build: ./ope-rachel
-        image: kgonyo/ope-rachel
+        image: operepo/ope-rachel
         container_name: ope-rachel
         ports:
             - "80"
