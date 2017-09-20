@@ -63,6 +63,9 @@ REM NOTE: This will run for ANY user that logs in, so the firstboot user doesn't
 rem reg add HKLM\Software\Microsoft\Windows\CurrentVersion\RunOnce /v SetupComplete /t REG_SZ /d "c:\apps\sysprep_scripts\SetupComplete.cmd reboot" /f
 reg add HKLM\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce /v SetupComplete /t REG_SZ /d "c:\apps\sysprep_scripts\SetupComplete.cmd" /f
 
+rem disable cortana
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v AllowCortana /t REG_DWORD /d 0 /f
+
 rem Download the current fog certificates 
 echo Updating fog certificates...
 fix_fog_service.cmd

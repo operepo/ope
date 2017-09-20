@@ -67,7 +67,7 @@ Page {
         highlight: Rectangle {
             width: modulesList.width;
             height: 30
-            color: "steelblue"
+            color: "lightgrey"
             radius: 3
         }
 

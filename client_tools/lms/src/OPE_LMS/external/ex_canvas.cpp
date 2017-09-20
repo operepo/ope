@@ -951,13 +951,20 @@ bool EX_Canvas::pullAssignments()
         // Get assignments for this course
         QSqlRecord course_record = courses_model->record(i);
         QString course_id = course_record.value("id").toString();
+        QString course_name = course_record.value("name").toString();
         qDebug() << "Retrieving assignments for " << course_id;
         QHash<QString, QString> p;
         p["per_page"] = "10000"; // cut number of calls
         QJsonDocument doc = CanvasAPICall("/api/v1/courses/" + course_id + "/assignments", "GET", &p);
 
+        qDebug() << "JSON Doc: " << doc;
+        qDebug() << "Is Array: " << doc.isArray();
+        qDebug() << "Is Object: " << doc.isObject();
+        qDebug() << "Is Null: " << doc.isNull();
+        //qDebug() << "JSON: " << doc.toJson();
+
         if (doc.isArray()) {
-            qDebug() << "\tAssignments for course:";
+            qDebug() << "\tAssignments for course:" << course_name;
             // Should be an array of assignments
             QJsonArray arr = doc.array();
             foreach(QJsonValue val, arr) {
@@ -1202,19 +1209,37 @@ QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<Q
 
     QString json = NetworkCall(canvas_server + api_call, method, p, &headers);
 
+    QJsonParseError *err = new QJsonParseError();
+    QJsonDocument d2(QJsonDocument::fromJson(json.toUtf8(), err));
+    qDebug() << "\tJSON Parse Err: " << err->errorString() << err->offset;
+    qDebug() << "\tJSON Doc: " << d2;
+    qDebug() << "\tIs Array: " << d2.isArray();
+    qDebug() << "\tIs Object: " << d2.isObject();
+    qDebug() << "\tIs Null: " << d2.isNull();
 
     //http_reply_data = "{\"default_time_zone\":\"Pacific Time (US \u0026 Canada)\",\"id\":1,\"name\":\"Admin\",\"parent_account_id\":null,\"root_account_id\":null,\"default_storage_quota_mb\":5000,\"default_user_storage_quota_mb\":50}";
 
     // Convert big id numbers to strings so they parse correctly
     // NOTE: qjsondocument converts ints to doubles and ends up loosing presision
     // find occurences of integer values in json documents and add quotes
-    QRegularExpression regex("(\"\\s*:\\s*)(\\d+)([^\"])|([\\[])(\\d+)|([,])(\\d+)"); //   ":\\s*(\\d+)\\s*,");
+    QRegularExpression regex("(\"\\s*:\\s*)(\\d+\\.?\\d*)([^\"])|([\\[])(\\d+\\.?\\d*)|([,])(\\d+\\.?\\d*)"); //   ":\\s*(\\d+)\\s*,");
     json = json.replace(regex, "\\1\\4\\6\"\\2\\5\\7\"\\3");  //  :\"\\1\",");
     //qDebug() << "===================================\nParsing http data: " << json;
 
     // Convert response to json
-    QJsonDocument d(QJsonDocument::fromJson(json.toUtf8()));
+    delete err;
+    err = new QJsonParseError();
+    QJsonDocument d(QJsonDocument::fromJson(json.toUtf8(), err));
 
+    qDebug() << "JSON: " << json;
+    qDebug() << "JSON Parse Err: " << err->errorString() << err->offset;
+    qDebug() << "JSON Doc: " << d;
+    qDebug() << "Is Array: " << d.isArray();
+    qDebug() << "Is Object: " << d.isObject();
+    qDebug() << "Is Null: " << d.isNull();
+    //qDebug() << "JSON: " << d.toJson();
+
+    delete err;
     return d;
 }
 
@@ -1222,8 +1247,9 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
 {
     QString ret;
 
-    QByteArray bin_ret = web_request->NetworkCall(url, method, p, headers);
-    ret = QString::fromUtf8(bin_ret);
+    ret = web_request->NetworkCall(url, method, p, headers);
+    //QByteArray bin_ret = web_request->NetworkCall(url, method, p, headers);
+    //ret = QString::fromUtf8(bin_ret);
 
     QString link_header = web_request->GetHeader("Link");
 

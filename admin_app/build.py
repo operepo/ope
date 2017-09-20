@@ -38,3 +38,5 @@ os.unlink(os.path.join("dist", project_name, project_name+".exe.manifest"))
 
 # Move/Package the EXE files for easy download/install
 # TODO
+# Pyinstaller not copying all of the data folder properly, do it manually
+# TODO - Copy C:\Python27\Lib\site-packages\kivy\data to ./kivy_install/data

@@ -294,7 +294,7 @@ bool APP_DB::init_db()
                 `created_at`    TEXT NOT NULL DEFAULT '', \
                 `updated_at`    TEXT NOT NULL DEFAULT '', \
                 `peer_reviews`  TEXT NOT NULL DEFAULT '', \
-                `automatic_peer_reviews` TEXT NOT NULL '', \
+                `automatic_peer_reviews` TEXT NOT NULL DEFAULT '', \
                 `position`      TEXT NOT NULL DEFAULT '', \
                 `grade_group_students_individually` TEXT NOT NULL DEFAULT '', \
                 `anonymous_peer_reviews` TEXT NOT NULL DEFAULT '', \
@@ -322,7 +322,7 @@ bool APP_DB::init_db()
                 `unpublishable` TEXT NOT NULL DEFAULT '', \
                 `only_visible_to_overrides` TEXT NOT NULL DEFAULT '', \
                 `locked_for_user` TEXT NOT NULL DEFAULT '', \
-                `submissions_download_url` TEXT NOT NULL DEFAULT '', \
+                `submissions_download_url` TEXT NOT NULL DEFAULT '' \
               );";
         if (!query.exec(sql)) {
             qDebug() << "DB Error: " << query.lastError().text();
