@@ -66,6 +66,11 @@ AppModule::~AppModule()
 
 }
 
+bool AppModule::desktopLaunch(QString url)
+{
+    return QDesktopServices::openUrl(QUrl(url, QUrl::TolerantMode));
+}
+
 QString AppModule::dataFolder()
 {
     QDir d;
@@ -91,6 +96,14 @@ QString AppModule::dataFolder()
     d.mkpath(d.path());
 
     return d.path();
+}
+
+QString AppModule::fileCacheFolder()
+{
+    QDir base_dir;
+    base_dir.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/file_cache/");
+    base_dir.mkpath(base_dir.path());
+    return base_dir.path();
 }
 
 bool AppModule::isDebug()
@@ -217,6 +230,16 @@ bool AppModule::hasAppSycnedWithCanvas()
     return ret;
 }
 
+bool AppModule::markAsSyncedWithCanvas()
+{
+    // Save our status as synced with canvas
+    bool ret = true;
+
+    _app_settings->setValue("app/has_synced_with_canvas", true);
+    _app_settings->setValue("app/last_sync_with_canvas", QDateTime::currentDateTime());
+    return ret;
+}
+
 bool AppModule::authenticateUser(QString user_name, QString password){
     // Try to login against local db
     bool ret = false;
@@ -324,7 +347,7 @@ void AppModule::syncLMS(QString lms)
 {
     if (lms == "Canvas") {
         // Init Externals
-        _canvas->InitTool();
+        //_canvas->InitTool();
         _canvas->LinkToCanvas("http://localhost:8080/oath/response", "1");
         //_canvas->Sync();
     }

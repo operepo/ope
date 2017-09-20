@@ -1,6 +1,7 @@
 # Terminal Stuff
 # Use keys from color_codes array below to put colors into text
 # Use {{x,y; to put a text position into your text
+from __future__ import print_function
 
 import colorama
 
@@ -138,7 +139,7 @@ def translateColorCodes(txt):
             # Split on ,
             parts = pos_txt2.split(",")
             if len(parts) != 2:
-                print "Invalid pos??"
+                print("Invalid pos??")
             else:
                 # x in 0, y in 1
                 x = parts[0]
@@ -161,6 +162,9 @@ def setTermPos(x, y, out=sys.stdout):
     out.write(CSI + str(y) + ";" + str(x) + "H")
 
 
-def p(txt):
+def p(txt, lf=True):
     txt = translateColorCodes(txt)
-    print(txt)
+    if lf is True:
+        print(txt)
+    else:
+        print(txt, end='')

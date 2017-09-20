@@ -18,6 +18,7 @@ import winsys
 from winsys import accounts, registry, security
 
 import term
+from term import p
 
 import win_util
 
@@ -25,7 +26,7 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 admin_user = "admin"
 admin_pass = ""
-smc_url = "https://smc.ed.dev"
+smc_url = "https://smc.ed"
 student_user = ""
 
 server_name = None
@@ -64,7 +65,7 @@ def print_app_header():
 
     """
 
-    term.p(txt)
+    p(txt)
 
 
 def print_checklist_warning():
@@ -78,47 +79,55 @@ def print_checklist_warning():
 }}mn======================================================================}}dn
     """
 
-    term.p(txt)
-
-
+    p(txt)
 
 
 def main():
     global admin_user, admin_pass, smc_url, student_user, server_name, home_root
     canvas_access_token = ""
 
-
     print_app_header()
     # Ask for admnin user/pass and website
-    tmp = raw_input( term.translateColorCodes("}}ynPlease enter the ADMIN user name }}cn[enter for default " + admin_user + "]:}}dn "))
-    tmp = tmp.strip()
-    if tmp == "":
-        tmp = admin_user
-    admin_user = tmp
-
-    tmp = getpass.getpass("Please enter ADMIN password: ")
-    if tmp == "":
-        print("A password is required.")
-        sys.exit()
-    admin_pass = tmp
-
-    tmp = raw_input("Enter URL for SMC Server [enter for default " + smc_url + "]: ")
+    tmp = raw_input(term.translateColorCodes("}}ynEnter URL for SMC Server }}cn[enter for default " + smc_url + "]:}}dn "))
     tmp = tmp.strip()
     if tmp == "":
         tmp = smc_url
     smc_url = tmp
 
+    tmp = raw_input(term.translateColorCodes("}}ynPlease enter the ADMIN user name }}cn[enter for default " + admin_user + "]:}}dn "))
+    tmp = tmp.strip()
+    if tmp == "":
+        tmp = admin_user
+    admin_user = tmp
+
+    p("}}ynPlease enter ADMIN password }}cn[characters will not show]:}}dn", False)
+    tmp = getpass.getpass(" ")
+    if tmp == "":
+        p("}}rbA password is required.}}dn")
+        return False
+    admin_pass = tmp
+
     tmp = ""
     while tmp.strip() == "":
-        tmp = raw_input("Please enter the username for the student: ")
+        tmp = raw_input(term.translateColorCodes("}}ynPlease enter the username for the student:}}dn "))
     student_user = tmp.strip()
 
-    print("Setup computer with: ")
-    print("\tAdmin User: " + admin_user)
-    print("\tAdmin Pass: *******")
-    print("\tSMC URL: " + smc_url)
-    print("\tStudent Username: " + student_user)
-    tmp = raw_input("Press Y to continue: ")
+    txt = """
+}}mn======================================================================
+}}mn| }}ybCredential Computer                                                }}mn|
+}}mn| }}ynSMC URL:            }}cn<smc_url>}}mn|
+}}mn| }}ynAdmin User:         }}cn<admin_user>}}mn|
+}}mn| }}ynAdmin Password:     }}cn<admin_pass>}}mn|
+}}mn| }}ynStudent Username:   }}cn<student_user>}}mn|
+}}mn======================================================================}}dn
+    """
+    txt = txt.replace("<smc_url>", smc_url.ljust(47))
+    txt = txt.replace("<admin_user>", admin_user.ljust(47))
+    txt = txt.replace("<admin_pass>", "******".ljust(47))
+    txt = txt.replace("<student_user>", student_user.ljust(47))
+
+    p(txt)
+    tmp = raw_input(term.translateColorCodes("}}ybPress Y to continue: }}dn"))
     tmp = tmp.strip().lower()
     if tmp == "y":
         api_url = smc_url
@@ -134,14 +143,40 @@ def main():
         # opener = urllib2.build_opener(handler)
         # ssl_context = ssl._create_unverified_context()
 
-        print("Getting Canvas Auth Key...")
+        p("\n}}gnGetting Canvas Auth Key...}}dn\n")
         url = api_url + "lms/credential_student.json/" + student_user
 
         request = urllib2.Request(url, None, headers)
-        response = urllib2.urlopen(request)
+        json_str = ""
+        try:
+            response = urllib2.urlopen(request)
+            json_str = response.read()
+        except urllib2.HTTPError as ex:
+            if ex.code == 403:
+                p("}}rbInvalid ADMIN Password!}}dn")
+                return False
+            else:
+                p("}}rbHTTP Error!}}dn")
+                p("}}mn" + str(ex) + "}}dn")
+                return False
+        except Exception as ex:
+            p("}}rbUnable to communicate with SMC tool!}}dn")
+            p("}}mn" + str(ex) + "}}dn")
+            return False
 
-        json_str = response.read()
-        canvas_response = json.loads(json_str)
+        canvas_response = None
+        try:
+            canvas_response = json.loads(json_str)
+        except Exception as ex:
+            p("}}rbUnable to interpret response from SMC}}dn")
+            p("}}mn" + str(ex) + "}}dn")
+            return False
+        if "msg" in canvas_response:
+            if canvas_response["msg"] == "Invalid User!":
+                p("\n}}rbInvalid User!}}dn")
+                p("}}mnUser doesn't exit in system, please import this student in the SMC first!}}dn")
+                return False
+
         canvas_access_token = str(canvas_response["key"])
         hash = str(canvas_response["hash"])
         student_full_name = str(canvas_response["full_name"])
@@ -149,18 +184,37 @@ def main():
         #print("Response: " + canvas_access_token + " ---- " + hash)
         pw = win_util.decrypt(hash, canvas_access_token)
 
-        print("Creating Windows User...")
+        p("}}gnCreating local windows account...")
         win_util.create_local_student_account(student_user, student_full_name, pw)
 
 
         # Store the access token in the registry where the LMS app can pick it up
+        p("}}gnSaving canvas credentials for student...")
         key = win_util.create_reg_key(r"HKLM\Software\OPE\OPELMS", student_user)
         key = win_util.create_reg_key(r"HKLM\Software\OPE\OPELMS\student")
         key.canvas_access_token = canvas_access_token
 
+        print("Installing Admin Services...")
+
+        print("Installing offline LMS app...")
+
+        print ("Applying security rules...")
+
+        # TODO
+        # Download current policy zip file
+        # unzip
+        # import
+        # /mergedpolicy -- to combine domain/local
+        cmd = "cd policy_dir; secedit /export /cfg gp.ini /log export.log"
+
+        # netsh -- import firewall rules
+        # download netsh import
+        # run netsh import command
+
+
         print_checklist_warning()
 
-        a = raw_input("Press enter when done")
+        a = raw_input(term.translateColorCodes("}}ybPress enter when done}}dn"))
 
 
 

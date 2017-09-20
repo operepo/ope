@@ -1,6 +1,6 @@
     ope-canvas:
         build: ./ope-canvas
-        image: operepo/ope-canvas
+        image: operepo/ope-canvas:release
         container_name: ope-canvas
         ports:
             - "3000"

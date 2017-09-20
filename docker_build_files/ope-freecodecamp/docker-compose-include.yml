@@ -3,6 +3,7 @@
         image: operepo/ope-freecodecamp
         container_name: ope-freecodecamp
         ports:
+            - "80"
             - "3000"
             - "27017"
             - "27018"
@@ -13,6 +14,7 @@
             - ope-dns
         env_file: .env
         environment:
+            - PORT=80
             - IT_PW=${IT_PW}
             - OFFICE_PW=${OFFICE_PW}
             - VIRTUAL_HOST=freecodecamp.<DOMAIN>

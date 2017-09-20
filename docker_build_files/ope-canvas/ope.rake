@@ -91,6 +91,7 @@ COMMENT ON COLUMN ope_audit.logged_actions.statement_only IS '''t'' if ope_audit
 CREATE INDEX IF NOT EXISTS logged_actions_relid_idx ON ope_audit.logged_actions(relid);
 CREATE INDEX IF NOT EXISTS logged_actions_action_tstamp_tx_stm_idx ON ope_audit.logged_actions(action_tstamp_stm);
 CREATE INDEX IF NOT EXISTS logged_actions_action_idx ON ope_audit.logged_actions(action);
+CREATE INDEX IF NOT EXISTS logged_actions_table_name_idx ON ope_audit.logged_actions(table_name);
 
 CREATE OR REPLACE FUNCTION ope_audit.if_modified_func() RETURNS TRIGGER AS $body$
 DECLARE
@@ -223,6 +224,18 @@ END;
 $body$
 language 'plpgsql';
 
+CREATE OR REPLACE FUNCTION ope_audit.ope_audit_table_disable(target_table regclass) RETURNS void AS $body$
+DECLARE
+  stm_targets text = 'INSERT OR UPDATE OR DELETE OR TRUNCATE';
+  _q_txt text;
+  _ignored_cols_snip text = '';
+BEGIN
+    EXECUTE 'DROP TRIGGER IF EXISTS ope_audit_trigger_row ON ' || target_table;
+    EXECUTE 'DROP TRIGGER IF EXISTS ope_audit_trigger_stm ON ' || target_table;
+END;
+$body$
+language 'plpgsql';
+
 COMMENT ON FUNCTION ope_audit.ope_audit_table(regclass, boolean, boolean, text[]) IS $body$
 Add auditing support to a table.
 
@@ -248,8 +261,6 @@ $$ LANGUAGE 'sql';
 COMMENT ON FUNCTION ope_audit.ope_audit_table(regclass) IS $body$
 Add ope_auditing support to the given table. Row-level changes will be logged with full client query text. No cols are ignored.
 $body$;
-
-
 	
 	
 SQLSTRING
@@ -257,9 +268,17 @@ SQLSTRING
 	
 	# Audit all tables in the db
 	ActiveRecord::Base.connection.tables.each do |table|
-	  puts "Enabling auditing on #{table}"
 	  begin
-		ActiveRecord::Base.connection.execute("select ope_audit.ope_audit_table('#{table}');")
+		# Don't add triggers to certain tables that we don't want to merge
+		# TODO - ruby way to test against an array of table names?
+		if (table != "delayed_jobs" && table != "failed_jobs")
+			puts "Enabling auditing on #{table}"
+			ActiveRecord::Base.connection.execute("select ope_audit.ope_audit_table('#{table}');")
+		else
+			# Make sure to remove trigger if it exists
+			puts "Disabling auditing on #{table}"
+			ActiveRecord::Base.connection.execute("select ope_audit.ope_audit_table_disable('#{table}');")
+		end
 	  rescue
 		puts "---> Error enabling auditing on #{table}"
 	  end
@@ -368,6 +387,18 @@ SQLSTRING
 		puts "---> Error setting sequence #{rangestart} on table #{table}"
 	  end
 	end
+	
+	# Set the logged_actions table sequence too
+	last_seq = 0
+	seq_row = ActiveRecord::Base.connection.exec_query("select nextval('ope_audit.logged_actions_event_id_seq'::regclass) as nv")
+	seq_row.each do |row|
+		last_seq = row["nv"].to_i
+	end
+	if (last_seq < rangestart || last_seq >= rangestart + 100000000000 )
+		puts "-> Last sequence outside of current range logged_actions_event_id_seq #{last_seq} -> #{rangestart}"
+		ActiveRecord::Base.connection.execute("ALTER SEQUENCE ope_audit.logged_actions_event_id_seq RESTART WITH #{rangestart}")
+	end
+	
 	puts "--> Finished setting sequence range to #{rangestart}"
 	
 	# Make sure to change the constraint on the version tables so they don't blow up with big ids
@@ -382,5 +413,4 @@ SQLSTRING
   end
     
 end
-
 

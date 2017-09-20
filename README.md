@@ -1,64 +1,149 @@
-# ope
-Open Prison Education - A docker based environment to easily install and download online resources for an offline environment
+# Overview - OPE (Open Prison Education)
+It is a struggle to install and manage online services in an offline world. Simple things like updates or installing new packages becomes a hassle. We work in highly secure prison environments where internet is not available. 
 
-# NOTE - 6/7/17 - BIG CHANGES
+The goal here is to create a tool where we can package apps that can be easily copied to a USB drive, then pushed to a server in the offline environment.
+
+This project consists of building and staging of apps, easy deployment into facilities, and offline laptops that students can take back to their unit to continue their school work.
+
+# Project Goals
+
+1) Create a place for skilled IT personnel to stage and place apps that are ready to deploy
+
+2) Limit the need for skilled IT personnel to deal with the actual deployment process
+
+3) Provide laptop images that can sync to a learning management system, credential for an individual student, and apply security settings to keep the system secure during use
+
+
+# Deployment Steps
+
+1) Skilled IT personnel create docker apps and setup code to sync these apps and app data to a device (e.g. USB drive or Laptop)
+
+2) Sync USB drive in online or offline mode with a few button clicks - Goal is to have non IT personnel do this
+
+3) Image laptops and credential them for individual students - Goal is non IT personnel or local IT personnel to be able to do this easily
+
+4) Student brings laptop to docking station to sync with learning management system - download materials, upload completed work
+
+# Tech Details
+
+## Micro Service Architecture
+We utilize Docker containers for micro services. You will need a machine that can run docker containers on the outside to build and setup your services, and a docker machine on the inside to transfer images and data to.
+
+  +----------------------------------------------------------------------+
+  | Online Server                                                        |
+  |                                                                      |
+  | you need a linux machine running docker                              |
+  |  - can host this on campus (recommended)                             |
+  |  - or on your desktop in virtual box/hyper-v/vmware/etc...           |
+  |                                                                      |
+  | Pre built Linux with Docker Available Here:                          |
+  | - https://susestudio.com/a/P08rUy/ope-docker                         |
+  |                                                                      |
+  +------------------^---------------------------------------------------+
+                     |
+                     |
+                +----V--------------------------------------------------+
+                | USB Drive (or laptop)                                 |
+                |                                                       |
+                | Use a GUI based app to sync between servers           |
+                | - Pulls apps/data from the online server              |
+                | - Pushes apps/data to the offline server              |
+                | - Clickable buttons - made for NON IT personnel       |
+                +------------------------^------------------------------+
+                                         |
+                                         |
+                                    +----V-------------------------------------------------------+
+                                    | Offline Server                                             |
+                                    |                                                            |
+                                    | identical to the online server, but apps/data will         |
+                                    | be pushed into this system                                 |
+                                    |                                                            |
+                                    | Use the same docker system as the online system:           |
+                                    | - https://susestudio.com/a/P08rUy/ope-docker               |
+                                    +--^----------------------------------------------------------+
+                                       |
+                                       |
+                +----------------------V------------------------------------+
+                | Inmate Laptop                                             |
+                |                                                           |
+                | Credentialed with the LMS app installed                   |
+                | Will pull course work from offline LMS server and         |
+                | push completed work back to the server for grading        |
+                +-----------------------------------------------------------+
+
+## Getting Started
+1. Get a linux distro with docker installed in both your online and offline servers:
+   - Linux image ready to go (ISO - burn to DVD): https://susestudio.com/a/P08rUy/ope-docker
+   - Assign a static IP address to each server and write it down
+
+2. From online computer, download the OPE Git project at: https://github.com/operepo/ope
+   - From the GREEN button, click and choose "Download Zip".
+   - Unzip this onto your USB drive into a folder called ope (e.g. e:\ope )
+   
+3. Run the SyncApp.exe app
+   - In the ope folder, you should see a folder called SyncApp. Run the SyncApp.exe file from there
+
+4. Configure your settings
+   - Make sure you put in the correct IP for each server as well as the password you set
+
+5. Run Online
+   - Choose the online button, then click Run. This will start pulling in the selected apps and syncing them to the USB drive
+
+6. Unplug, take USB drive to offline server, the choose the Offline option and run it
+   - This will push the apps/data on the USB drive to the offline server
+
+7. Repeat online/offline as often as needed
+
+8. Setup DNS forwarder to .ed domain name to the static IP of the server. This forwards all DNS queries for the .ed domain to the docker apps to resolve DNS automatically
+   - For Active Directory DNS - add a conditional forwarder for the domain ed -> to the static IP (put in the correct IP for the online or offline server)
+   - For Linux DNS users, a wildcard DNS should work too if you don't know how to do a conditional forwarder
+
+  
+   
+   
+   
+## Getting Started - Developers
+Use this method to get everything ready to do development.
+
+1. Get a linux distro with docker installed in both your online and offline servers:
+   - Linux image ready to go (ISO - burn to DVD): https://susestudio.com/a/P08rUy/ope-docker
+   - Assign a static IP address to each server and write it down
+
+2. Install Git
+
+3. Python 2.7.? and needed libraries (python.org - choose 2.7? MSI installer)
+   - NOTE: On the options page of the install, make sure "Add Python to Path" is selected
+   - Run the InstallPythonModules.cmd batch file as admin to install all the needed python modules
+   
+4. Clone the OPE project into a folder on your computer.
+   - From the command line, CD to the folder you want to be in: cd git_projects
+   - Clone the rep to your computer: git clone https://github.com/operepo/ope.git
+
+5. Use the SyncApp tool to push apps to your online linux server (see instructions above)
+
+## Manuall Starting Apps - On the online Linux Server
+
+1. SSH into your online server (putty is a great tool from windows)
+
+2. Move to the OPE folder: cd /ope
+
+3. Move to the folder with the docker files: cd docker_build_files
+
+4. Start the apps: ./up.sh  (use ./up.sh b  if you want to build the docker apps from here) 
+
+5. From here you can also use docker-compose commands:
+   - python ../build_tools/rebuild_compose.py  --> rebuilds the docker-compose file based on activated apps
+   - docker-compose up -d   --> start up all enabled apps
+   - docker-compose down    --> stop all apps
+
+
+# NOTE - 6/7/17 - file structure rearranged on this date
 Revising to use dockerhub to pull built images as well as include client tools/etc...
 This is currently in process and could mean breaking changes to the prev build process.
 
-# Overview
-Getting online resources into a facility with limited or non-existant internet access can be difficult. This is an attempt to deal with the infrastructure problems associated with setting up web services and transferring applications and data to an inside server.
+## DHCP Settings - to allow FOG Server to do network imaging with PXE Boot
 
-# Micro Service Architecture
-We utilize Docker containers for micro services. You will need a machine that can run docker containers on the outside to build and setup your services, and a docker machine on the inside to transfer images and data to.
-
-Online Docker Machine --> Portable USB Drive --> Offline Docker Machine
-
-# Getting Started
-1) Install Docker on your servers (once on online server, once on offline server). This is a linux image that you can install as a VM or directly on a server: https://susestudio.com/a/P08rUy/ope-docker
-
-2) Ensure adequate storage space - 2 TB recommended storage, 32 gig ram
-
-3) Install python 2.7 on both machines (https://www.python.org/ - choose 2.7? MSI installer for windows, linux should already have it)
-
-4) Clone the ope project to your online server: git clone https://github.com/frankyrumple/ope.git
-
-5) Open a shell and cd to the ope folder (Power shell in windows preferred)
-
-6) Run: python 
-
-7) Run: python rebuild_compose.py - this will build a docker-compose.yml file from the enabled services. If you want to turn off services rename or remove the .enabled file in each folder and run this again.
-
-8) Run: docker-compose build  - this will build the images for each service
-
-9) Run: docker-compose up -d  - This will start all the enabled services.
-
-10) SETUP DNS - For active directory users, add a conditional forwarder for the ed domain to point to the docker machine IP. For linux users, you can add the docker machine ip as a forwarder or setup an ed domain (wildcard?) to point to the docker machine ip.
-
-11) Now you can login to the ones you need to and do any additional setup (e.g. kalite - download kahn videos) - look at http://gateway.ed:8080 to see a list of services available.
-
-12) When done run: docker-compose down  - This shuts down the services
-
-13) Export the images: python export_docker_images.py   - This will create tar files that you can carry in on a portable drive.
-
-14) Sync everything to your portable drive: python sync_to_portable_drive.py  - This will copy the whole ope project folder as well as exported images and volume data to the portable drive. Make sure your drive is big enough to hold it all. We use sync so the first time it will be very slow, but should be much faster the next time.
-
-15) Bring portable drive to offline server. This assumes that your offline server is setup to run docker already.
-
-16) Make sure that you have an OPE folder on your server to transfer stuff to (/ope recommended).
-
-17) From the portable drive, run the sync_from_portable_drive.py script: e.g.   python /mnt/usbdrive/sync_from_portable_drive.py
-    When complete, your local ope folder should contain everything from your online computer
-
-18) From the ope folder on the server, run: docker-compose up -d
-
-19) Ensure that DNS is setup on offline network (see step 10)
-
-20) View status at: http://gateway.ed:8080  - check other services. Things should be working.
-
-
-
-
-== DHCP Mods for PXE Boot ==
+### DHCP Settings for Endian Firewall
 option space PXE;
 option PXE.mtftp-ip    code 1 = ip-address;
 option PXE.mtftp-cport code 2 = unsigned integer 16;
@@ -74,11 +159,11 @@ allow booting;
 allow bootp;
 option option-128 code 128 = string;
 option option-129 code 129 = text;
-next-server 192.168.10.203;
+next-server fog.ed;
 #filename "pxelinux.0";
 #filename "snponly.efi";
 #filename "ipxe.efi";
-option tftp-server-name "192.168.10.203";
+option tftp-server-name "fog.ed";
 #option bootfile-name "pelinux.0";
 #option bootfile-name "undionly.kpxe";  # works for vmplayer
 #option bootfile-name "snponly.efi";
@@ -98,19 +183,19 @@ class "UEFI-32-1" {
     class "UEFI-64-1" {
     match if substring(option vendor-class-identifier, 0, 20) = "PXEClient:Arch:00007";
      #filename "ipxe.efi";
-     filename "snp.efi";
+     filename "snp.efi";  # works for hyperv
     }
 
     class "UEFI-64-2" {
     match if substring(option vendor-class-identifier, 0, 20) = "PXEClient:Arch:00008";
-    #filename "ipxe.efi";
-     filename "snp.efi";
+     #filename "ipxe.efi";
+     filename "snp.efi"; # Works for hyper v
     }
 
     class "UEFI-64-3" {
     match if substring(option vendor-class-identifier, 0, 20) = "PXEClient:Arch:00009";
      #filename "ipxe.efi";
-     filename "snp.efi";
+     filename "snp.efi"; # Works for hyperv
     }
 
     class "Legacy" {

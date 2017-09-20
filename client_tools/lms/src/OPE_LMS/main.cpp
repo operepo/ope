@@ -1,6 +1,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QMessageBox>
+#include <QTextCodec>
 //#include <QtWebView>
 //#include <QtWebEngine/qtwebengineglobal.h>
 
@@ -9,6 +10,7 @@
 
 int main(int argc, char *argv[])
 {
+    //QTextCodec::setCodecForLocale(QTextCodec::codecForName("UTF-8"));
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QGuiApplication app(argc, argv);
     // NOTE: Need this right after GUI App creation
@@ -33,6 +35,7 @@ int main(int argc, char *argv[])
     } else {
         engine.load(QUrl(QLatin1String("qrc:/main.qml")));
     }
+
 
     return app.exec();
 }

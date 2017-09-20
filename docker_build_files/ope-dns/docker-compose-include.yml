@@ -1,6 +1,6 @@
     ope-dns:
         build: ./ope-dns
-        image: operepo/ope-dns
+        image: operepo/ope-dns:release
         container_name: ope-dns
         cap_add:
             - NET_ADMIN

@@ -1,6 +1,6 @@
     ope-mysql:
         build: ./ope-mysql
-        image: operepo/ope-mysql
+        image: operepo/ope-mysql:release
         container_name: ope-mysql
         ports:
             - "3306:3306"

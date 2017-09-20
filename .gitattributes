@@ -1,0 +1,5 @@
+
+# Convert these text files to unix line feeds on checkin
+*.sh text=auto
+*.py text=auto
+*.kv text=auto

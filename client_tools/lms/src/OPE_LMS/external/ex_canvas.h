@@ -8,7 +8,7 @@
 #include <QJsonObject>
 #include <QUrl>
 #include <QDesktopServices>
-
+#include <QStandardPaths>
 
 #include "../db.h"
 #include "cm/cm_httpserver.h"
@@ -41,8 +41,10 @@ public slots:
     bool pullCourseFilesBinaries();
     // Pull list of pages for courses
     bool pullCoursePages();
-    // Pul list of messages
+    // Pull list of messages
     bool pullMessages(QString scope="inbox");
+    // Pull list of assignments
+    bool pullAssignments();
 
     // =================================================
     // push data to canvas - used during sync
@@ -67,7 +69,9 @@ public slots:
     QJsonDocument CanvasAPICall(QString api_call, QString method = "GET", QHash<QString, QString> *p = NULL);
     // Low level network call - make the actual connection to canvas, auto pull additional pages - BLOCKING
     QString NetworkCall(QString url, QString method = "GET", QHash<QString, QString> *p = NULL, QHash<QString, QString> *headers = NULL);
-
+    // Download a file to a local path
+    bool DownloadFile(QString url, QString local_path, QString item_name = "");
+    void downloadProgress(qint64 bytesRead, qint64 totalBytes);
 
     // Store the auth token so that requests can be sent to canvas on behalf of this user
     void SetCanvasAccessToken(QString token);
@@ -84,6 +88,8 @@ private:
 
     // Web request used by NetworkCall - hands off
     CM_WebRequest *web_request;
+
+    QString progressCurrentItem;
 
     // Database pointer - provided by app - where do we store our canvas info?
     APP_DB *_app_db;
@@ -116,6 +122,7 @@ private slots:
     /// WikiPages API
 
 signals:
+    void progress(qint64 bytesRead, qint64 totalBytes, QString currentItem);
 
 public slots:
 

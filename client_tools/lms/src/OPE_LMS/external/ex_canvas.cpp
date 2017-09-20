@@ -6,7 +6,7 @@ EX_Canvas::EX_Canvas(QObject *parent, APP_DB *db, QSettings *app_settings) :
     canvas_client_id = "1";
     canvas_client_secret = "hVGyxhHAKulUTZwAExbKALBpZaHTGDBkoSS7DpsvRpY1H7yzoMfnI5NLnC6t5A0Q";
     canvas_access_token = "";
-    canvas_server = "https://canvas.ed.dev";
+    canvas_server = "https://canvas.ed";
 
     // Store the app db we will use to
     if (db == NULL) {
@@ -20,6 +20,9 @@ EX_Canvas::EX_Canvas(QObject *parent, APP_DB *db, QSettings *app_settings) :
     _app_settings = app_settings;
 
     web_request = new CM_WebRequest(this);
+    // Connect the progress signal
+    connect(web_request, SIGNAL(progress(qint64,qint64)),
+            this, SLOT(downloadProgress(qint64, qint64)));
 }
 
 bool EX_Canvas::pullStudentInfo()
@@ -190,22 +193,22 @@ bool EX_Canvas::pullCourses()
                     record.setValue("account_id", o["account_id"].toString(""));
                     record.setValue("start_at", o["start_at"].toString(""));
                     record.setValue("grading_standard_id", o["grading_standard_id"].toString(""));
-                    record.setValue("is_public", o["is_public"].toString(""));
+                    record.setValue("is_public", o["is_public"].toBool(false));
                     record.setValue("course_code", o["course_code"].toString(""));
                     record.setValue("default_view", o["default_view"].toString(""));
                     record.setValue("root_account_id", o["root_account_id"].toString(""));
                     record.setValue("enrollment_term_id", o["enrollment_term_id"].toString(""));
                     record.setValue("end_at", o["end_at"].toString(""));
-                    record.setValue("public_syllabus", o["public_syllabus"].toString(""));
-                    record.setValue("public_syllabus_to_auth", o["public_syllabus_to_auth"].toString(""));
+                    record.setValue("public_syllabus", o["public_syllabus"].toBool(false));
+                    record.setValue("public_syllabus_to_auth", o["public_syllabus_to_auth"].toBool(false));
                     record.setValue("storage_quota_mb", o["storage_quota_mb"].toString(""));
-                    record.setValue("is_public_to_auth_users", o["is_public_to_auth_users"].toString(""));
-                    record.setValue("apply_assignment_group_weights", o["apply_assignment_group_weights"].toString(""));
+                    record.setValue("is_public_to_auth_users", o["is_public_to_auth_users"].toBool(false));
+                    record.setValue("apply_assignment_group_weights", o["apply_assignment_group_weights"].toBool(false));
                     record.setValue("calendar", QJsonDocument(o["calendar"].toObject()).toJson());
                     record.setValue("time_zone", o["time_zone"].toString(""));
                     record.setValue("hide_final_grades", o["hide_final_grades"].toString(""));
                     record.setValue("workflow_state", o["workflow_state"].toString(""));
-                    record.setValue("restrict_enrollments_to_course_dates", o["restrict_enrollments_to_course_dates"].toString(""));
+                    record.setValue("restrict_enrollments_to_course_dates", o["restrict_enrollments_to_course_dates"].toBool(false));
                     record.setValue("enrollment_type", enrollment["type"].toString(""));
                     record.setValue("enrollment_role", enrollment["role"].toString(""));
                     record.setValue("enrollment_role_id", enrollment["role_id"].toString(""));
@@ -250,7 +253,7 @@ bool EX_Canvas::pullModules()
         return false;
     }
 
-    // TODO - All enteries should be for this student, so get them all
+    // All enteries should be for this student, so get them all
     courses_model->setFilter("");
     ret = true;
     for (int i=0; i<courses_model->rowCount(); i++) {
@@ -302,10 +305,10 @@ bool EX_Canvas::pullModules()
                 record.setValue("name", o["name"].toString(""));
                 record.setValue("position", o["position"].toString(""));
                 record.setValue("unlock_at", o["unlock_at"].toString(""));
-                record.setValue("require_sequential_progress", o["require_sequential_progress"].toString(""));
-                record.setValue("publish_final_grade", o["publish_final_grade"].toString(""));
+                record.setValue("require_sequential_progress", o["require_sequential_progress"].toBool(false));
+                record.setValue("publish_final_grade", o["publish_final_grade"].toBool(false));
                 record.setValue("prerequisite_module_ids", QJsonDocument(o["prerequisite_module_ids"].toArray()).toJson());
-                record.setValue("published", o["published"].toString(""));
+                record.setValue("published", o["published"].toBool(false));
                 record.setValue("items_count", o["items_count"].toString(""));
                 record.setValue("items_url", o["items_url"].toString(""));
                 record.setValue("course_id", course_id);
@@ -405,7 +408,7 @@ bool EX_Canvas::pullModuleItems()
                 record.setValue("html_url", o["html_url"].toString(""));
                 record.setValue("page_url", o["page_url"].toString(""));
                 record.setValue("url", o["url"].toString(""));
-                record.setValue("published", o["published"].toString(""));
+                record.setValue("published", o["published"].toBool(false));
 
                if (is_insert) {
                    model->insertRecord(-1, record);
@@ -512,14 +515,14 @@ bool EX_Canvas::pullCourseFilesInfo()
                 record.setValue("updated_at", o["updated_at"].toString(""));
                 record.setValue("unlock_at", o["unlock_at"].toString(""));
                 record.setValue("locked", o["locked"].toString(""));
-                record.setValue("hidden", o["hidden"].toString(""));
+                record.setValue("hidden", o["hidden"].toBool(false));
                 record.setValue("lock_at", o["lock_at"].toString(""));
-                record.setValue("hidden_for_user", o["hidden_for_user"].toString(""));
+                record.setValue("hidden_for_user", o["hidden_for_user"].toBool(false));
                 record.setValue("thumbnail_url", o["thumbnail_url"].toString(""));
                 record.setValue("modified_at", o["modified_at"].toString(""));
                 record.setValue("mime_class", o["mime_class"].toString(""));
                 record.setValue("media_entry_id", o["media_entry_id"].toString(""));
-                record.setValue("locked_for_user", o["locked_for_user"].toString(""));
+                record.setValue("locked_for_user", o["locked_for_user"].toBool(false));
                 record.setValue("course_id", course_id);
 
 
@@ -549,7 +552,61 @@ bool EX_Canvas::pullCourseFilesBinaries()
 {
     // Pull binaries for files that are marked as pull
     bool ret = false;
+    if (_app_db == NULL) { return ret; }
 
+    GenericTableModel *files_model = _app_db->getTable("files");
+
+    if (files_model == NULL) {
+        qDebug() << "Unable to get model for files";
+        return false;
+    }
+
+    files_model->setFilter(""); // pull_file=1
+
+    // Get the local cache folder
+    QDir base_dir;
+    base_dir.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/file_cache/");
+    base_dir.mkpath(base_dir.path());
+
+    ret = true;
+    for (int i=0; i<files_model->rowCount(); i++) {
+        QSqlRecord f = files_model->record(i);
+        QString f_id = f.value("id").toString();
+        QString f_filename = f.value("filename").toString();
+        QString f_name = f.value("display_name").toString();
+        QString f_url = f.value("url").toString();
+        int f_size = f.value("size").toInt();
+        QString local_path = f.value("pull_file").toString();
+
+        if (local_path == "") {
+            // Assign a new local path
+            local_path = "/" + f_id + "_" + f_filename;
+            f.setValue("pull_file", local_path);
+        }
+
+        // See if the file already exists locally
+        QFileInfo fi = QFileInfo(base_dir.path() + local_path);
+        if (fi.exists() && fi.size() == f_size ) {
+            qDebug() << "File exists " << f_name;
+            // Mark it as present
+            f.setValue("local_copy_present", true);
+        } else {
+            // Download the file
+            qDebug() << "Downloading file " << f_name;
+            progressCurrentItem = f_filename;
+            bool r = DownloadFile(f_url, base_dir.path() + local_path);
+
+            if (r == true) {
+                // Mark the file as downloaded
+                f.setValue("local_copy_present", true);
+            }
+        }
+
+        // Write changes
+        files_model->setRecord(i, f);
+        files_model->submitAll();
+        files_model->database().commit();
+    }
 
     return ret;
 }
@@ -602,6 +659,9 @@ bool EX_Canvas::pullCoursePages()
                 } else {
                     QJsonObject page_object = page_doc.object();
                     page_body = page_object["body"].toString("");
+                    if (page_object["locked_for_user"].toBool() == true) {
+                        page_body = page_object["lock_explanation"].toString("Page Locked - see instructor");
+                    }
                 }
 
                 model->setFilter("page_id = " + id);
@@ -635,12 +695,12 @@ bool EX_Canvas::pullCoursePages()
                 record.setValue("url", o["url"].toString(""));
                 record.setValue("editing_roles", o["editing_roles"].toString(""));
                 record.setValue("page_id", o["page_id"].toString(""));
-                record.setValue("published", o["published"].toString(""));
-                record.setValue("hide_from_students", o["hide_from_students"].toString(""));
-                record.setValue("front_page", o["front_page"].toString(""));
+                record.setValue("published", o["published"].toBool(false));
+                record.setValue("hide_from_students", o["hide_from_students"].toBool(false));
+                record.setValue("front_page", o["front_page"].toBool(false));
                 record.setValue("html_url", o["html_url"].toString(""));
                 record.setValue("updated_at", o["updated_at"].toString(""));
-                record.setValue("locked_for_user", o["locked_for_user"].toString(""));
+                record.setValue("locked_for_user", o["locked_for_user"].toBool(false));
                 record.setValue("course_id", course_id);
                 record.setValue("body", page_body);
                 record.setValue("lock_info", o["lock_info"].toString(""));
@@ -707,7 +767,30 @@ bool EX_Canvas::pullMessages(QString scope)
     // Should be an array of conversations
     if (conversations_doc.isArray()) {
         // Should have something like this:
-        // [{"id":26664700000000089,"subject":"Next conversation","workflow_state":"read","last_message":"Hello","last_message_at":"2017-06-22T17:44:09Z","last_authored_message":"Is this getting through?","last_authored_message_at":"2017-06-22T05:24:11Z","message_count":2,"subscribed":true,"private":false,"starred":false,"properties":[],"audience":[1],"audience_contexts":{"courses":{"26664700000000090":["TeacherEnrollment"]},"groups":{}},"avatar_url":"https://canvas.ed.dev/images/messages/avatar-50.png","participants":[{"id":26664700000000083,"name":"Smith, Bob (s777777)"},{"id":1,"name":"admin@ed"}],"visible":true,"context_code":"course_26664700000000090","context_name":"TestMathCourse"},{"id":26664700000000088,"subject":"Email Diag","workflow_state":"read","last_message":"It works!!!","last_message_at":"2017-06-22T05:09:16Z","last_authored_message":"Diag Email.","last_authored_message_at":"2017-06-22T04:59:37Z","message_count":2,"subscribed":true,"private":false,"starred":false,"properties":[],"audience":[1],"audience_contexts":{"courses":{"26664700000000090":["TeacherEnrollment"]},"groups":{}},"avatar_url":"https://canvas.ed.dev/images/messages/avatar-50.png","participants":[{"id":26664700000000083,"name":"Smith, Bob (s777777)"},{"id":1,"name":"admin@ed"}],"visible":true,"context_code":"course_26664700000000090","context_name":"TestMathCourse"}]
+        // [{"id":26664700000000089,"subject":"Next conversation",
+        // "workflow_state":"read","last_message":"Hello",
+        // "last_message_at":"2017-06-22T17:44:09Z",
+        // "last_authored_message":"Is this getting through?",
+        // "last_authored_message_at":"2017-06-22T05:24:11Z","message_count":2,
+        // "subscribed":true,"private":false,"starred":false,"properties":[],
+        // "audience":[1],
+        // "audience_contexts":{"courses":{"26664700000000090":["TeacherEnrollment"]},
+        // "groups":{}},"avatar_url":"https://canvas.ed.dev/images/messages/avatar-50.png",
+        // "participants":[{"id":26664700000000083,"name":"Smith, Bob (s777777)"},
+        // {"id":1,"name":"admin@ed"}],
+        // "visible":true,"context_code":"course_26664700000000090",
+        // "context_name":"TestMathCourse"},
+        // {"id":26664700000000088,"subject":"Email Diag","workflow_state":"read",
+        // "last_message":"It works!!!","last_message_at":"2017-06-22T05:09:16Z",
+        // "last_authored_message":"Diag Email.",
+        // "last_authored_message_at":"2017-06-22T04:59:37Z",
+        // "message_count":2,"subscribed":true,"private":false,"starred":false,
+        // "properties":[],"audience":[1],
+        // "audience_contexts":{"courses":{"26664700000000090":["TeacherEnrollment"]},
+        // "groups":{}},"avatar_url":"https://canvas.ed.dev/images/messages/avatar-50.png",
+        // "participants":[{"id":26664700000000083,"name":"Smith, Bob (s777777)"},
+        // {"id":1,"name":"admin@ed"}],"visible":true,
+        // "context_code":"course_26664700000000090","context_name":"TestMathCourse"}]
 
         // Just pull the ID, we will pull all the details after
         // the next call since we we get all that when we pull the message list
@@ -752,15 +835,15 @@ bool EX_Canvas::pullMessages(QString scope)
                 record.setValue("last_authored_message", o["last_authored_message"].toString(""));
                 record.setValue("last_authored_message_at", o["last_authored_message_at"].toString(""));
                 record.setValue("message_count", o["message_count"].toString(""));
-                record.setValue("subscribed", o["subscribed"].toString(""));
-                record.setValue("private", o["private"].toString(""));
-                record.setValue("starred", o["starred"].toString(""));
+                record.setValue("subscribed", o["subscribed"].toBool(false));
+                record.setValue("private", o["private"].toBool(false));
+                record.setValue("starred", o["starred"].toBool(false));
                 record.setValue("properties", QJsonDocument(o["properties"].toArray()).toJson());
                 record.setValue("audience", QJsonDocument(o["audience"].toArray()).toJson());
                 record.setValue("audience_contexts", QJsonDocument(o["audience_contexts"].toObject()).toJson());
                 record.setValue("avatar_url", o["avatar_url"].toString(""));
                 record.setValue("participants", QJsonDocument(o["participants"].toArray()).toJson());
-                record.setValue("visible", o["visible"].toString(""));
+                record.setValue("visible", o["visible"].toBool(false));
                 record.setValue("context_code", o["context_code"].toString(""));
                 record.setValue("context_name", o["context_name"].toString(""));
                 record.setValue("submissions", QJsonDocument(o["submissions"].toArray()).toJson());
@@ -840,6 +923,154 @@ qDebug() << "Got conversation, going for messages: " << o["messages"];
 
             // Commit any remaining transactions
             conversations_model->database().commit();
+        }
+    }
+
+    return ret;
+}
+
+bool EX_Canvas::pullAssignments()
+{
+    // Grab assignments for each course in the database
+    bool ret = false;
+    if (_app_db == NULL) { return ret; }
+
+    // Get a list of courses for this student
+    GenericTableModel *courses_model = _app_db->getTable("courses");
+    GenericTableModel *model = _app_db->getTable("assignments");
+
+    if (courses_model == NULL || model == NULL) {
+        qDebug() << "Unable to get models for courses or assignments";
+        return false;
+    }
+
+    // All entries should be for this student, so get them all
+    courses_model->setFilter("");
+    ret = true;
+    for(int i=0; i<courses_model->rowCount(); i++) {
+        // Get assignments for this course
+        QSqlRecord course_record = courses_model->record(i);
+        QString course_id = course_record.value("id").toString();
+        QString course_name = course_record.value("name").toString();
+        qDebug() << "Retrieving assignments for " << course_id;
+        QHash<QString, QString> p;
+        p["per_page"] = "10000"; // cut number of calls
+        QJsonDocument doc = CanvasAPICall("/api/v1/courses/" + course_id + "/assignments", "GET", &p);
+
+        qDebug() << "JSON Doc: " << doc;
+        qDebug() << "Is Array: " << doc.isArray();
+        qDebug() << "Is Object: " << doc.isObject();
+        qDebug() << "Is Null: " << doc.isNull();
+        //qDebug() << "JSON: " << doc.toJson();
+
+        if (doc.isArray()) {
+            qDebug() << "\tAssignments for course:" << course_name;
+            // Should be an array of assignments
+            QJsonArray arr = doc.array();
+            foreach(QJsonValue val, arr) {
+                // Should be an assignment
+                QJsonObject o = val.toObject();
+
+                QString id = o["id"].toString("");
+                qDebug() << "Assignment ID " << id;
+
+                model->setFilter("id = " + id);
+                model->select();
+                QSqlRecord record;
+                bool is_insert = false;
+
+                if (model->rowCount() == 1) {
+                    // Row exists, update w current info
+                    record = model->record(0);
+                    is_insert = false;
+                    qDebug() << "\t\tUpadting assignment..." << id << o["name"].toString("");
+                } else {
+                    // Need to clear the filter to insert
+                    model->setFilter("");
+                    record = model->record();
+                    is_insert = true;
+                    qDebug() << "\t\tImporting assignment..." << id << o["name"].toString("");
+                }
+
+                // JSON - list of objects
+                // {"id": 35871700000000002,"description": null,"due_at": null,
+                // "unlock_at": null,"lock_at": null,"points_possible": null,
+                // "grading_type": "points","assignment_group_id": 35871700000000003,
+                // "grading_standard_id": null,"created_at": "2017-09-09T23:49:06Z",
+                // "updated_at": "2017-09-09T23:49:09Z","peer_reviews": false,
+                // "automatic_peer_reviews": false,"position": 1,
+                // "grade_group_students_individually": false,"anonymous_peer_reviews": false,
+                // "group_category_id": null,"post_to_sis": false,
+                // "moderated_grading": false,"omit_from_final_grade": false,
+                // "intra_group_peer_reviews": false,
+                // "secure_params": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsdGlfYXNzaWdubWVudF9pZCI6IjFjNTBhOTAzLWZmMWMtNDk5My1hYjg3LTY2ZWU2NWViMjY1ZiJ9.4EbPTYlKDiTZps_MxzKTlTCpXuqmzdRW7Z-q1LJX0kg",
+                // "course_id": 35871700000000003,"name": "Test Assignment",
+                // "submission_types": ["none"],
+                // "has_submitted_submissions": false,"due_date_required": false,
+                // "max_name_length": 255,"in_closed_grading_period": false,
+                // "is_quiz_assignment": false,"muted": false,
+                // "html_url": "https://canvas.ed/courses/35871700000000003/assignments/35871700000000002",
+                // "has_overrides": false,"needs_grading_count": 0,"integration_id": null,
+                // "integration_data": {},"published": true,"unpublishable": true,
+                // "only_visible_to_overrides": false,"locked_for_user": false,
+                // "submissions_download_url": "https://canvas.ed/courses/35871700000000003/assignments/35871700000000002/submissions?zip=1"
+                //  },
+
+                record.setValue("id", o["id"].toString(""));
+                record.setValue("description", o["description"].toString(""));
+                record.setValue("due_at", o["due_at"].toString(""));
+                record.setValue("unlock_at", o["unlock_at"].toString(""));
+                record.setValue("lock_at", o["lock_at"].toString(""));
+                record.setValue("points_possible", o["points_possible"].toString(""));
+                record.setValue("grading_type", o["grading_type"].toString(""));
+                record.setValue("assignment_group_id", o["assignment_group_id"].toString(""));
+                record.setValue("grading_standard_id", o["grading_standard_id"].toString(""));
+                record.setValue("created_at", o["created_at"].toString(""));
+                record.setValue("updated_at", o["updated_at"].toString(""));
+                record.setValue("peer_reviews", o["peer_reviews"].toBool(false));
+                record.setValue("automatic_peer_reviews", o["automatic_peer_reviews"].toBool(false));
+                record.setValue("position", o["position"].toString(""));
+                record.setValue("grade_group_students_individually", o["grade_group_students_individually"].toBool(false));
+                record.setValue("anonymous_peer_reviews", o["anonymous_peer_reviews"].toBool(false));
+                record.setValue("group_category_id", o["group_category_id"].toString(""));
+                record.setValue("post_to_sis", o["post_to_sis"].toBool(false));
+                record.setValue("moderated_grading", o["moderated_grading"].toBool(false));
+                record.setValue("omit_from_final_grade", o["omit_from_final_grade"].toBool(false));
+                record.setValue("intra_group_peer_reviews", o["intra_group_peer_reviews"].toBool(false));
+                record.setValue("secure_params", o["secure_params"].toString(""));
+                record.setValue("course_id", o["course_id"].toString(""));
+                record.setValue("name", o["name"].toString(""));
+                record.setValue("submission_types", o["submission_types"].toString(""));
+                record.setValue("has_submitted_submissions", o["has_submitted_submissions"].toBool(false));
+                record.setValue("due_date_required", o["due_date_required"].toBool(false));
+                record.setValue("max_name_length", o["max_name_length"].toString(""));
+                record.setValue("in_closed_grading_period", o["in_closed_grading_period"].toBool(false));
+                record.setValue("is_quiz_assignment", o["is_quiz_assignment"].toBool(false));
+                record.setValue("muted", o["muted"].toBool(false));
+                record.setValue("html_url", o["html_url"].toString(""));
+                record.setValue("has_overrides", o["has_overrides"].toBool(false));
+                record.setValue("needs_grading_count", o["needs_grading_count"].toString(""));
+                record.setValue("integration_id", o["integration_id"].toString(""));
+                record.setValue("integration_data", o["integration_data"].toString(""));
+                record.setValue("published", o["published"].toBool(false));
+                record.setValue("unpublishable", o["unpublishable"].toBool(false));
+                record.setValue("only_visible_to_overrides", o["only_visible_to_overrides"].toBool(false));
+                record.setValue("locked_for_user", o["locked_for_user"].toBool(false));
+                record.setValue("submissions_download_url", o["submissions_download_url"].toString(""));
+
+                if (is_insert) {
+                    model->insertRecord(-1, record);
+                } else {
+                    // Filter should be set so 0 should be current record
+                    model->setRecord(0, record);
+                }
+                // Write changes
+                if (!model->submitAll()) { ret = false; }
+                model->setFilter(""); // clear the filter
+
+                model->database().commit();
+
+            }
         }
     }
 
@@ -974,22 +1205,41 @@ QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<Q
     QHash<QString,QString> headers;
     headers["Authorization"] = "Bearer " + canvas_access_token;
     headers["User-Agent"] = "OPE LMS";
+    headers["Accept-Language"] = "en-US,en;q=0.8";
 
     QString json = NetworkCall(canvas_server + api_call, method, p, &headers);
 
+    QJsonParseError *err = new QJsonParseError();
+    QJsonDocument d2(QJsonDocument::fromJson(json.toUtf8(), err));
+    qDebug() << "\tJSON Parse Err: " << err->errorString() << err->offset;
+    qDebug() << "\tJSON Doc: " << d2;
+    qDebug() << "\tIs Array: " << d2.isArray();
+    qDebug() << "\tIs Object: " << d2.isObject();
+    qDebug() << "\tIs Null: " << d2.isNull();
 
     //http_reply_data = "{\"default_time_zone\":\"Pacific Time (US \u0026 Canada)\",\"id\":1,\"name\":\"Admin\",\"parent_account_id\":null,\"root_account_id\":null,\"default_storage_quota_mb\":5000,\"default_user_storage_quota_mb\":50}";
 
     // Convert big id numbers to strings so they parse correctly
     // NOTE: qjsondocument converts ints to doubles and ends up loosing presision
     // find occurences of integer values in json documents and add quotes
-    QRegularExpression regex("(\"\\s*:\\s*)(\\d+)([^\"])|([\\[])(\\d+)|([,])(\\d+)"); //   ":\\s*(\\d+)\\s*,");
+    QRegularExpression regex("(\"\\s*:\\s*)(\\d+\\.?\\d*)([^\"])|([\\[])(\\d+\\.?\\d*)|([,])(\\d+\\.?\\d*)"); //   ":\\s*(\\d+)\\s*,");
     json = json.replace(regex, "\\1\\4\\6\"\\2\\5\\7\"\\3");  //  :\"\\1\",");
     //qDebug() << "===================================\nParsing http data: " << json;
 
     // Convert response to json
-    QJsonDocument d(QJsonDocument::fromJson(json.toUtf8()));
+    delete err;
+    err = new QJsonParseError();
+    QJsonDocument d(QJsonDocument::fromJson(json.toUtf8(), err));
 
+    qDebug() << "JSON: " << json;
+    qDebug() << "JSON Parse Err: " << err->errorString() << err->offset;
+    qDebug() << "JSON Doc: " << d;
+    qDebug() << "Is Array: " << d.isArray();
+    qDebug() << "Is Object: " << d.isObject();
+    qDebug() << "Is Null: " << d.isNull();
+    //qDebug() << "JSON: " << d.toJson();
+
+    delete err;
     return d;
 }
 
@@ -998,6 +1248,8 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
     QString ret;
 
     ret = web_request->NetworkCall(url, method, p, headers);
+    //QByteArray bin_ret = web_request->NetworkCall(url, method, p, headers);
+    //ret = QString::fromUtf8(bin_ret);
 
     QString link_header = web_request->GetHeader("Link");
 
@@ -1043,6 +1295,17 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
     }
 
     return ret;
+}
+
+bool EX_Canvas::DownloadFile(QString url, QString local_path, QString item_name)
+{
+    progressCurrentItem = item_name;
+    return web_request->DownloadFile(url, local_path);
+}
+
+void EX_Canvas::downloadProgress(qint64 bytesRead, qint64 totalBytes)
+{
+    emit progress(bytesRead, totalBytes, progressCurrentItem);
 }
 
 void EX_Canvas::SetCanvasAccessToken(QString token)

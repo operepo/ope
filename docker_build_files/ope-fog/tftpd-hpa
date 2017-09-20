@@ -4,5 +4,5 @@
 TFTP_USERNAME="root"
 TFTP_DIRECTORY="/tftpboot"
 TFTP_ADDRESS=":69"
-TFTP_OPTIONS="-s --port-range 7000:7100"
+TFTP_OPTIONS="-s --port-range 7000:7030"
 

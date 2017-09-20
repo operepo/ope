@@ -5,6 +5,7 @@ CM_WebRequest::CM_WebRequest(QObject *parent) :
 {
     // Keeps track of when a request is currently pending
     http_request_active = false;
+    download_active = false;
 
 
     // Setup signals for the network manager
@@ -18,14 +19,14 @@ CM_WebRequest::CM_WebRequest(QObject *parent) :
 }
 
 
-QString CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString, QString> *parameters, QHash<QString, QString> *headers, QString content_type)
+QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString, QString> *parameters, QHash<QString, QString> *headers, QString content_type)
 {
     // Clear current data
     http_reply_data.clear();
     http_reply_headers.clear();
 
     num_network_calls++;
-    QString ret;
+    //QByteArray ret;
 
     http_request_active = true;
 
@@ -117,7 +118,68 @@ QString CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString, Q
 
     // Read in the reply
     //qDebug() << "NetowrkCall - Got Data: " << http_reply_data;
-    ret.append(http_reply_data);
+    //ret.append(http_reply_data);
+    //ret = QString::fromUtf8(http_reply_data);
+
+    return http_reply_data;
+}
+
+bool CM_WebRequest::DownloadFile(QString url, QString local_path)
+{
+    bool ret = false;
+
+    download_active = true;
+
+    // Store our local path
+    download_local_path = local_path;
+
+    dl_file = new QFile(download_local_path);
+    if(dl_file->open(QIODevice::WriteOnly))
+    {
+        // File opened successfully
+        qDebug() << "File downloaded - saving to: " << download_local_path;
+    } else {
+        // Unable to open the file
+        qDebug() << "Unable to write to file: " << download_local_path;
+        return false;
+    }
+
+    QNetworkReply *reply = download_manager.get(QNetworkRequest(QUrl(url)));
+    download_reply = reply;
+
+    download_progress = 0;
+    download_size = 0;
+
+    // Hook up our signals
+    connect(reply, SIGNAL(readyRead()),
+            this, SLOT(downloadReadyRead()));
+    connect(reply, SIGNAL(downloadProgress(qint64,qint64)),
+            this, SLOT(downloadProgress(qint64,qint64)));
+    connect(&download_manager, SIGNAL(finished(QNetworkReply*)),
+            this, SLOT(downloadReplyFinished(QNetworkReply*)));
+
+    // Use a QEventLoop to allow events and block until network traffic is done
+    QEventLoop loop;
+    connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
+    loop.exec(QEventLoop::ExcludeUserInputEvents);
+
+    //    qDebug() << reply->header(QNetworkRequest::ContentTypeHeader).toString();
+    //    qDebug() << reply->header(QNetworkRequest::LastModifiedHeader).toDateTime().toString();;
+    //    qDebug() << reply->header(QNetworkRequest::ContentLengthHeader).toULongLong();
+    //    qDebug() << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    //    qDebug() << reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
+
+
+    if (reply->error()) {
+        ret = false;
+    } else {
+        ret = true;
+    }
+    dl_file->flush();
+    dl_file->close();
+    delete dl_file; //dl_file->deleteLater();
+    delete reply; //reply->deleteLater();
+    download_active = false;
 
     return ret;
 }
@@ -154,6 +216,66 @@ QString CM_WebRequest::GetHeader(QString header_name)
 QHash<QString,QString> CM_WebRequest::GetAllHeaders()
 {
     return http_reply_headers;
+}
+
+void CM_WebRequest::downloadReadyRead()
+{
+    if  (!dl_file->isOpen()) {
+        qDebug() << "File isn't open! " << download_local_path;
+        return;
+    }
+    // Save this chunk of data to the dl file
+    qlonglong r = dl_file->write(download_reply->readAll());
+    if(r == -1) {
+        // Error occured
+        qDebug() << "Error writing chunk!";
+        return;
+    } else {
+        // Read/write worked
+    }
+    download_progress += r;
+
+    download_size = download_reply->header(QNetworkRequest::ContentLengthHeader).toULongLong();
+
+    //qDebug() << "chunk saved: " << download_progress;
+
+}
+
+void CM_WebRequest::downloadReplyFinished(QNetworkReply *reply)
+{
+    // Retired this in favor of writing during readyRead to limit
+    // memory size issues
+    return;
+    // Deal with the downloaded file
+//    if (reply->error()) {
+//        qDebug() << "Error downloading file: " << reply->errorString();
+//        //reply->deleteLater();
+//        return;
+//    }
+
+//    qDebug() << reply->header(QNetworkRequest::ContentTypeHeader).toString();
+//    qDebug() << reply->header(QNetworkRequest::LastModifiedHeader).toDateTime().toString();;
+//    qDebug() << reply->header(QNetworkRequest::ContentLengthHeader).toULongLong();
+//    qDebug() << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+//    qDebug() << reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
+
+//    QFile *dl_file = new QFile(download_local_path);
+//    qDebug() << "File downloaded - saving to: " << download_local_path;
+//    if(dl_file->open(QIODevice::WriteOnly))
+//    {
+//        dl_file->write(reply->readAll());
+//        dl_file->flush();
+//        dl_file->close();
+//        delete dl_file;
+//    }
+//    reply->deleteLater();
+    //    download_active = false;
+}
+
+void CM_WebRequest::downloadProgress(qint64 bytesRead, qint64 totalBytes)
+{
+    // Notify of download progress...
+    emit progress(bytesRead, totalBytes);
 }
 
 
@@ -227,8 +349,9 @@ void CM_WebRequest::httpReadyRead()
 //        file->write(reply->readAll());
     //qDebug() << "ReadyRead...";
     //http_reply_data.append(http_reply->readAll());
-
-    http_reply_data.append(http_reply->readAll());
+    QByteArray data = http_reply->readAll();
+    QString s_data = QString::fromStdString(data.toStdString());
+    http_reply_data.append(data);
 
     // Capture the headers
     foreach(QString key, http_reply->rawHeaderList())
@@ -241,6 +364,7 @@ void CM_WebRequest::httpReadyRead()
 
 void CM_WebRequest::httpUpdateDataReadProgress(qint64 bytesRead, qint64 totalBytes)
 {
+    emit progress(bytesRead, totalBytes);
 //    if (httpRequestAborted)
 //        return;
     //qDebug() << "DataReadProgress: " << bytesRead << " - " << totalBytes;

@@ -5,5 +5,19 @@
         <file>sync.qml</file>
         <file>lms.qml</file>
         <file>CanvasSync.qml</file>
+        <file>Home.qml</file>
+        <file>Modules.qml</file>
+        <file>Pages.qml</file>
+        <file>Assignments.qml</file>
+        <file>Quizzes.qml</file>
+        <file>Inbox.qml</file>
+        <file>Calendar.qml</file>
+        <file>Announcements.qml</file>
+        <file>Discussions.qml</file>
+        <file>Grades.qml</file>
+        <file>Files.qml</file>
+        <file>Syllabus.qml</file>
+        <file>App.js</file>
+        <file>CanvasPage.qml</file>
     </qresource>
 </RCC>

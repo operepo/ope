@@ -1,6 +1,6 @@
     ope-gcf:
         build: ./ope-gcf
-        image: operepo/ope-gcf
+        image: operepo/ope-gcf:release
         container_name: ope-gcf
         ports:
             - "80"

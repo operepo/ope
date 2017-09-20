@@ -91,8 +91,6 @@ private:
 
 public:
 
-
-
     explicit AppModule(QQmlApplicationEngine *parent = 0);
     ~AppModule();
 
@@ -113,8 +111,12 @@ signals:
 
 public slots:
 
+    // Launch a file or URL using desktop services
+    bool desktopLaunch(QString url);
+
     // User folder where data can be stored
     QString dataFolder();
+    QString fileCacheFolder();
 
     // Are we debugging? Used to disable certain features during debuging
     bool isDebug();
@@ -138,6 +140,7 @@ public slots:
     // === User Functions ===
     bool isAppCredentialed(); // is this app properly credentialed?
     bool hasAppSycnedWithCanvas(); // Has this app synced with the canvas server yet?
+    bool markAsSyncedWithCanvas(); // Save our status as synced w canvas
 
     // Authenticate the user
     bool authenticateUser(QString user_name, QString password);

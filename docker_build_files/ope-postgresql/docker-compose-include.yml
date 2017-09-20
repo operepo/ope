@@ -1,6 +1,6 @@
     ope-postgresql:
         build: ./ope-postgresql
-        image: operepo/ope-postgresql
+        image: operepo/ope-postgresql:release
         container_name: ope-postgresql        
         ports:
             - "5432:5432"
