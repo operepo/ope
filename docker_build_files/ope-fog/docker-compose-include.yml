@@ -2,9 +2,10 @@
         build: ./ope-fog
         image: operepo/ope-fog
         container_name: ope-fog
+        network_mode: host
         ports:
-            - "80"
-            - "443"
+            - "7480"
+            - "7443"
             - "212:212/udp"
             - "9098:9098"
             - "21:21"
@@ -18,19 +19,27 @@
             - "4045:4045"
             - "34463:34463"
             - "34463:34463/udp"
-            
+            - "7000:7100/udp"
         labels:
             - fogproject="Open Source PC Imaging Server"
         volumes:
             - ../volumes/fog/images:/images:rw
-            - ../volumes/fog/tftpboot:/tftpboot:rw
-            - ../volumes/fog/opt/fog:/opt/fog:rw
-            - ../volumes/mysql/data:/var/lib/mysql:rw
+            - ../volumes/fog/backup:/backup:rw
+            #- ../volumes/fog/tftpboot:/tftpboot:rw
+            #- ../volumes/fog/opt/fog:/opt/fog:rw
+            - ../volumes/fog/mysql/data:/var/lib/mysql:rw
         depends_on:
             - ope-gateway
             - ope-dns
         env_file: .env
         environment:
+            - IT_PW=${IT_PW}
+            - OFFICE_PW=${OFFICE_PW}
             - VIRTUAL_HOST=fog.<DOMAIN>,fogserver,fogserver.<DOMAIN>
             - PUBLIC_IP=${PUBLIC_IP}
+            - VIRTUAL_PORT=7480
+            # Share the default cert on the gateway
+            - CERT_NAME=default
+            - VIRTUAL_PROTO=http
+            #- HTTPS_METHOD=noredirect
         

@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+touch /usr/src/app/log/app_starting
+
 APP_DIR=/usr/src/app
 
 # Make sure the initial database is setup for canvas
@@ -81,5 +83,7 @@ $GEM_HOME/bin/bundle exec rake ope:startup --trace
 # Make sure this is all owned by the correct user
 #echo "setting permissions..."
 #chown -R docker:docker $APP_DIR
+
+rm -f /usr/src/app/log/app_starting
 
 exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf

@@ -71,7 +71,7 @@ class AppModule : public QObject
 
 private:
     // Database object
-    APP_DB *database;
+    APP_DB *_database;
 
     // builtin http server
     CM_HTTPServer *server;
@@ -80,18 +80,24 @@ private:
     QString _www_root;
 
     // Canvas object - interface with APIs
-    EX_Canvas *canvas;
+    EX_Canvas *_canvas;
+    QString _canvas_access_token;
 
     QOAuth2AuthorizationCodeFlow canvas_auth;
 
-    QSettings _app_settings;
+    QSettings *_app_settings;
     bool exit_early;
 
+
 public:
+
+
+
     explicit AppModule(QQmlApplicationEngine *parent = 0);
     ~AppModule();
 
     Q_PROPERTY(QString wwwRoot READ wwwRoot WRITE setwwwRoot NOTIFY wwwRootChanged)
+    Q_PROPERTY(EX_Canvas* canvas READ canvas)
 
     bool isPermanent() { return false; }
 
@@ -103,15 +109,22 @@ signals:
     void canvas_authenticated();
 
     void showCanvasLogin(QString url);
+    void canvasChanged();
 
 public slots:
 
     // User folder where data can be stored
     QString dataFolder();
 
+    // Are we debugging? Used to disable certain features during debuging
+    bool isDebug();
+
     // Read/Write wwwRoot property
     QString wwwRoot();
     void setwwwRoot(QString wwwRoot);
+
+    EX_Canvas* canvas() { return _canvas; }
+    void setCanvas(EX_Canvas *c) { _canvas = c; emit canvasChanged(); }
 
     // === HTTP Server Functions ===
     // Start the http server
@@ -124,6 +137,7 @@ public slots:
 
     // === User Functions ===
     bool isAppCredentialed(); // is this app properly credentialed?
+    bool hasAppSycnedWithCanvas(); // Has this app synced with the canvas server yet?
 
     // Authenticate the user
     bool authenticateUser(QString user_name, QString password);

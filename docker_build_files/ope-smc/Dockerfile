@@ -91,7 +91,8 @@ RUN git clone https://github.com/frankyrumple/smc.git $W2P_DIR/applications/smc
 RUN cp -f $W2P_DIR/applications/smc/routes.py $W2P_DIR/routes.py
 
 # Add a first run file so that next time a page is hit db migration happens
-RUN touch $W2P_DIR/applications/smc/.first_run
+# Not needed - code detects first run with cache.ram
+# RUN touch $W2P_DIR/applications/smc/.first_run
 
 
 USER root
@@ -103,7 +104,7 @@ RUN echo '#!/bin/sh\ncd /home/www-data/web2py/applications/smc\npython set_admin
 RUN chmod +x /bin/set_admin_password
 RUN chmod +x /home/www-data/web2py/applications/smc/set_admin_password.py
 
-LABEL rebuild=23
+LABEL rebuild=24
 # Take out default site
 RUN rm -f /etc/apache2/sites-enabled/*
 # Configure apache to run web2py app
@@ -125,4 +126,4 @@ EXPOSE 80 443
 ENV USER=www-data
 #ENTRYPOINT python web2py.py
 #CMD ["/usr/sbin/apache2", "-D", "FOREGROUND"]
-ENTRYPOINT bash -c '. /etc/apache2/envvars ; chown -R www-data:www-data /home/www-data; /usr/sbin/apache2 -D FOREGROUND'
+ENTRYPOINT bash -c '. /etc/apache2/envvars ; chown -R www-data:www-data /home/www-data ; rm -Rf /var/run/apache2/*; /usr/sbin/apache2 -D FOREGROUND'

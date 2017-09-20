@@ -40,11 +40,14 @@ USER root
 RUN rm -rf node_modules
 RUN npm install
 RUN $GEM_HOME/bin/bundle exec rake canvas:compile_assets --trace
+RUN echo "Settings file permissions on node_modules..." \
+    && chown -R docker:docker /usr/src/app/node_modules
+
 
 USER docker
 
 
-LABEL rebuild=21
+LABEL rebuild=22
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml
@@ -72,7 +75,8 @@ RUN chmod 755 /usr/src/*.sh	\
     && mkdir /tmp/attachment_fu \
 	&& chown -R docker:docker /tmp/attachment_fu
 
-RUN chown -R docker:docker /usr/src/*.sh /usr/src/app/config /usr/src/app/vendor /usr/src/app/lib/tasks/ope.rake /usr/src/app/node_modules
+RUN echo "Settings file permissions..." \
+    && chown -R docker:docker /usr/src/*.sh /usr/src/app/config /usr/src/app/vendor /usr/src/app/lib/tasks/ope.rake
     
 
 

@@ -1,0 +1,83 @@
+K 25
+svn:wc:ra_dav:version-url
+V 36
+/svn/!svn/ver/558/trunk/winsys/tests
+END
+test_security.py
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/!svn/ver/556/trunk/winsys/tests/test_security.py
+END
+run_tests.py
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/!svn/ver/556/trunk/winsys/tests/run_tests.py
+END
+test_registry.py
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/!svn/ver/556/trunk/winsys/tests/test_registry.py
+END
+test_privileges.py
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/!svn/ver/556/trunk/winsys/tests/test_privileges.py
+END
+test_aces.py
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/!svn/ver/556/trunk/winsys/tests/test_aces.py
+END
+test_lsa.py
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/!svn/ver/556/trunk/winsys/tests/test_lsa.py
+END
+test_accounts.py
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/!svn/ver/556/trunk/winsys/tests/test_accounts.py
+END
+__init__.py
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/!svn/ver/505/trunk/winsys/tests/__init__.py
+END
+utils.py
+K 25
+svn:wc:ra_dav:version-url
+V 45
+/svn/!svn/ver/556/trunk/winsys/tests/utils.py
+END
+test_acls.py
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/!svn/ver/556/trunk/winsys/tests/test_acls.py
+END
+test_core_order.py
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/!svn/ver/555/trunk/winsys/tests/test_core_order.py
+END
+test_tokens.py
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/!svn/ver/556/trunk/winsys/tests/test_tokens.py
+END
+test_event_logs.py
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/!svn/ver/556/trunk/winsys/tests/test_event_logs.py
+END

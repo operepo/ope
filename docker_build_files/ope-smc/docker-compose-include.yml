@@ -23,6 +23,7 @@
             - IT_PW=${IT_PW}
             - OFFICE_PW=${OFFICE_PW}
             - CANVAS_SECRET=${CANVAS_SECRET}
+            - CANVAS_SERVER=https://canvas.<DOMAIN>
             - VIRTUAL_HOST=smc.<DOMAIN>,admin.<DOMAIN>,videos.<DOMAIN>,media.<DOMAIN>
             - VIRTUAL_PORT=443
             # Share the default cert on the gateway
