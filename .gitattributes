@@ -1,5 +1,5 @@
 
-# Convert these text files to unix line feeds on checkin
-*.sh text=auto
+# Deal with linefeed issues on checkin/checkout
+*.sh text eol=lf
 *.py text=auto
 *.kv text=auto

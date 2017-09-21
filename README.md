@@ -13,6 +13,19 @@ This project consists of building and staging of apps, easy deployment into faci
 
 3) Provide laptop images that can sync to a learning management system, credential for an individual student, and apply security settings to keep the system secure during use
 
+# Project Members
+- Project Lead:
+    - Brian Walsh <bwalsh@sbctc.edu>
+- Software Development:
+    - Ray Pulsipher <rpulsipher@pencol.edu>
+    - Kent James <kent@caspia.com>
+- Product Testing:
+    - Mike Huse <mdhuse@DOC1.WA.GOV>
+    - Daniel Gonzales <dgonzales@DOC1.WA.GOV>
+- Docker App Development:
+    - Kris Gonyo <kristophergonyo@gmail.com>
+
+
 
 # Deployment Steps
 
