@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# change to force update/checkout after adjusting gitattribute linefeeds
+
 # Need these loaded for tftp server to work
 echo "Ensuring tftp kernel modules are loaded..."
 modprobe nf_conntrack_tftp
