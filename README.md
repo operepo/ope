@@ -24,7 +24,8 @@ This project consists of building and staging of apps, easy deployment into faci
     - Daniel Gonzales <dgonzales@DOC1.WA.GOV>
 - Docker App Development:
     - Kris Gonyo <kristophergonyo@gmail.com>
-
+- Fabrication
+    - Kristopher Margart <kwmargart@DOC1.WA.GOV>
 
 
 # Deployment Steps

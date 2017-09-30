@@ -1126,6 +1126,9 @@ class SyncOPEApp(App):
                 # - sync canvas db (sync db dumps)
                 self.sync_volume('canvas', 'db/sync', ssh, ssh_folder, status_label)
 
+                # TODO - rebuild canvas assets
+                # docker exec -it ope-canvas bash -c "$GEM_HOME/bin/bundle exec rake canvas:compile_assets"
+
             if app == "ope-smc":
                 # Sync SMC movies
                 self.sync_volume('smc', 'media', ssh, ssh_folder, status_label)
