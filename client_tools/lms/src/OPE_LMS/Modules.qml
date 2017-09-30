@@ -69,6 +69,7 @@ Page {
             height: 30
             color: "lightgrey"
             radius: 3
+            opacity: 0;
         }
 
         delegate: Component {

@@ -2,6 +2,7 @@
         build: ./ope-gateway
         image: operepo/ope-gateway:release
         container_name: ope-gateway
+        restart: always
         #command:
         ports:
             - "80:80"

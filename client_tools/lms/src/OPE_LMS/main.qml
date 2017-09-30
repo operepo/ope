@@ -264,7 +264,7 @@ ApplicationWindow {
 
             Connections {
                 target: mainWidget.canvas;
-                onProgress: {
+                onDlProgress: {
                     progressCurrentItem.text = currentItem;
 
                     if (totalBytes == 0) {

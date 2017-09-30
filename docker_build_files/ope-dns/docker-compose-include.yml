@@ -2,6 +2,7 @@
         build: ./ope-dns
         image: operepo/ope-dns:release
         container_name: ope-dns
+        restart: always
         cap_add:
             - NET_ADMIN
         command: -A /<DOMAIN>/<IP> # --log-facility=-

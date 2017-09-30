@@ -2,6 +2,7 @@
         build: ./ope-codecombat
         image: operepo/ope-codecombat:release
         container_name: ope-codecombat
+        restart: always
         ports:
             - "3000"
         volumes:

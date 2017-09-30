@@ -11,13 +11,14 @@ import "App.js" as App
 
 Page {
     signal refreshPage();
+    signal loadPage(string page_url);
 
     onRefreshPage: {
         console.log("RefreshPageCalled");
-        loadHomePage();
+        loadCanvasPage();
     }
 
-    function loadPage() {
+    function loadCanvasPage() {
         console.log("  - loadPage: " +  App.current_page_url);
         var m = pages_model
         m.modifyFilter("url='" + App.current_page_url + "'");
@@ -32,7 +33,7 @@ Page {
     }
 
     Component.onCompleted: {
-        loadPage();
+        loadCanvasPage();
 
 
     }
@@ -48,6 +49,10 @@ Page {
         anchors.fill: parent
         id: webView
         focus: true
+
+        onCertificateError: {
+            error.ignoreCertificateError();
+        }
 
 
     }

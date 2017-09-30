@@ -2,6 +2,7 @@
         build: ./ope-gcf
         image: operepo/ope-gcf:release
         container_name: ope-gcf
+        restart: always
         ports:
             - "80"
         labels:

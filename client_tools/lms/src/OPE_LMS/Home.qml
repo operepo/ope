@@ -12,6 +12,7 @@ import "App.js" as App
 Page {
     property string current_course_id: App.current_course;
     signal refreshPage();
+    signal loadPage(string page_url);
 
     onRefreshPage: {
         console.log("RefreshPageCalled");
@@ -59,6 +60,9 @@ Page {
         id: webView
         focus: true
 
+        onCertificateError: {
+            error.ignoreCertificateError();
+        }
 
     }
 

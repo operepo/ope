@@ -2,6 +2,7 @@
         build: ./ope-smc
         image: operepo/ope-smc:release
         container_name: ope-smc
+        restart: always
         ports:
             - "80"
             - "443"

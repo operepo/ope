@@ -2,6 +2,7 @@
         build: ./ope-kalite
         image: operepo/ope-kalite:release
         container_name: ope-kalite
+        restart: always
         ports:
             - "8008"
         labels:

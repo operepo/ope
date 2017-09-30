@@ -53,6 +53,7 @@ Page {
             height: 30
             color: "steelblue"
             radius: 3
+            opacity: 0
         }
 
         delegate: Component {

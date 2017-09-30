@@ -95,7 +95,7 @@ public:
     ~AppModule();
 
     Q_PROPERTY(QString wwwRoot READ wwwRoot WRITE setwwwRoot NOTIFY wwwRootChanged)
-    Q_PROPERTY(EX_Canvas* canvas READ canvas)
+    Q_PROPERTY(EX_Canvas* canvas READ canvas CONSTANT)
 
     bool isPermanent() { return false; }
 

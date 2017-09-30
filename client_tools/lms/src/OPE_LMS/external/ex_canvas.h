@@ -22,6 +22,7 @@ public:
     // Must provide db and settings objects during object creation
     explicit EX_Canvas(QObject *parent = 0, APP_DB *db = NULL, QSettings *app_settings = NULL);
 
+    Q_PROPERTY(qint64 dlProgress READ dlProgress WRITE setDlProgress NOTIFY dlProgressChanged)
 public slots:
 
     // ==================================================
@@ -72,6 +73,8 @@ public slots:
     // Download a file to a local path
     bool DownloadFile(QString url, QString local_path, QString item_name = "");
     void downloadProgress(qint64 bytesRead, qint64 totalBytes);
+    qint64 dlProgress() { return _dl_progress; }
+    void setDlProgress(qint64 p) { _dl_progress = p; }
 
     // Store the auth token so that requests can be sent to canvas on behalf of this user
     void SetCanvasAccessToken(QString token);
@@ -90,6 +93,7 @@ private:
     CM_WebRequest *web_request;
 
     QString progressCurrentItem;
+    qint64 _dl_progress;
 
     // Database pointer - provided by app - where do we store our canvas info?
     APP_DB *_app_db;
@@ -123,6 +127,7 @@ private slots:
 
 signals:
     void progress(qint64 bytesRead, qint64 totalBytes, QString currentItem);
+    void dlProgressChanged();
 
 public slots:
 

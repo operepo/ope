@@ -2,6 +2,7 @@
         build: ./ope-canvas
         image: operepo/ope-canvas:release
         container_name: ope-canvas
+        restart: always
         ports:
             - "3000"
         volumes:

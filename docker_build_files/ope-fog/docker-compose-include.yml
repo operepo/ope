@@ -4,6 +4,7 @@
         container_name: ope-fog
         #network_mode: host
         privileged: true
+        restart: always
         cap_add:
             - NET_ADMIN
             - SYS_ADMIN

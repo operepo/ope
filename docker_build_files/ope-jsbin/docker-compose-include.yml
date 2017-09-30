@@ -2,6 +2,7 @@
         build: ./ope-jsbin
         image: operepo/ope-jsbin:release
         container_name: ope-jsbin
+        restart: always
         ports:
             - "80"
         volumes:

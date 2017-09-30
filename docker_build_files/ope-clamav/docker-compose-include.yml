@@ -2,6 +2,7 @@
         build: ./ope-clamav
         image: operepo/ope-clamav:release
         container_name: ope-clamav
+        restart: always
         ports:
             - "80"
         volumes:

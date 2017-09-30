@@ -1,7 +1,8 @@
     ope-postgresql:
         build: ./ope-postgresql
         image: operepo/ope-postgresql:release
-        container_name: ope-postgresql        
+        container_name: ope-postgresql
+        restart: always
         ports:
             - "5432:5432"
         volumes:

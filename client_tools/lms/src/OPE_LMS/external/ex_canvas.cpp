@@ -8,6 +8,8 @@ EX_Canvas::EX_Canvas(QObject *parent, APP_DB *db, QSettings *app_settings) :
     canvas_access_token = "";
     canvas_server = "https://canvas.ed";
 
+    qmlRegisterType<EX_Canvas>("com.openprisoneducation.ope", 1, 0, "Canvas");
+
     // Store the app db we will use to
     if (db == NULL) {
         qDebug() << "ERROR - NO QSqlDatabase object provided in constructor!";
@@ -1305,7 +1307,13 @@ bool EX_Canvas::DownloadFile(QString url, QString local_path, QString item_name)
 
 void EX_Canvas::downloadProgress(qint64 bytesRead, qint64 totalBytes)
 {
+    if (totalBytes == 0) {
+        _dl_progress = 0;
+    } else {
+        _dl_progress = bytesRead / totalBytes;
+    }
     emit progress(bytesRead, totalBytes, progressCurrentItem);
+    emit dlProgressChanged();
 }
 
 void EX_Canvas::SetCanvasAccessToken(QString token)

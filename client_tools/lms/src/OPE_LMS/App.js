@@ -17,6 +17,6 @@ function setHTML(wView, html) {
     // Use JS to write out the HTML to the web engine
     // Stupid hack because QT didn't provide this
 
-    var js = "document.body.innerHTML='" + html.replace("'", "\'") + "'";
+    var js = "document.body.innerHTML=`" + html.replace("`", "\`") + "`";
     wView.runJavaScript(js, function(result) {console.log(result); });
 }

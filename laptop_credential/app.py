@@ -1,3 +1,4 @@
+import os
 import sys
 import getpass
 import urllib2
@@ -36,10 +37,6 @@ home_root = "c:\\users"
 
 
 
-
-
-
-
 def run_as_admin():
     if ctypes.windll.shell32.IsUserAnAdmin():
         # We are admin, run the main function
@@ -73,7 +70,7 @@ def print_checklist_warning():
 
     txt = """
 }}mn======================================================================
-}}mn| }}ybWARNING: }}dnEnsure that the boot from USB or boot from SD card        }}mn|
+}}mn| }}rbWARNING!!! }}dnEnsure that the boot from USB or boot from SD card        }}mn|
 }}mn| }}dnoptions in the bios are disabled and that the admin password is    }}mn|
 }}mn| }}dnset to a strong random password.                                   }}mn|
 }}mn======================================================================}}dn
@@ -200,6 +197,101 @@ def main():
 
         print ("Applying security rules...")
 
+        p("\tDownloading firewall rules...")
+        url = api_url + "lms/get_firewall_list.json"
+        p("\n\nURL: " + url)
+
+        request = urllib2.Request(url, None, headers)
+        json_str = ""
+        try:
+            response = urllib2.urlopen(request)
+            json_str = response.read()
+        except urllib2.HTTPError as ex:
+            if ex.code == 403:
+                p("}}rbInvalid ADMIN Password!}}dn")
+                return False
+            else:
+                p("}}rbHTTP Error!}}dn")
+                p("}}mn" + str(ex) + "}}dn")
+                return False
+        except Exception as ex:
+            p("}}rbUnable to communicate with SMC tool!}}dn")
+            p("}}mn" + str(ex) + "}}dn")
+            return False
+
+        firewall_response = None
+        try:
+            firewall_response = json.loads(json_str)
+        except Exception as ex:
+            p("}}rbUnable to interpret firewall response from SMC}}dn")
+            p("}}mn" + str(ex) + "}}dn")
+            return False
+
+        for rule in firewall_response:
+            p("}}ybApplying Firewall Rule: " + str(rule["rule_name"]))
+            fw_cmd = "netsh advfirewall firewall delete rule \"" + str(rule["rule_name"]) + "\""
+            p("\t\t}}rn" + fw_cmd)
+            os.system(fw_cmd)
+            fw_cmd = "netsh advfirewall firewall add rule name=\"" + str(rule["rule_name"]) + "\""
+            if rule["protocol"] != "":
+                fw_cmd += " protocol="+rule["protocol"]
+            if rule["rmtusrgrp"] != "":
+                fw_cmd += " rmtusrgrp=" + rule["rmtusrgrp"]
+            if rule["rmtcomputergrp"] != "":
+                fw_cmd += " rmtcomputergrp=" + rule["rmtcomputergrp"]
+            if rule["description"] != "":
+                fw_cmd += " description=\"" + rule["description"].replace("\"", "") + "\""
+            if rule["service"] != "":
+                fw_cmd += " service=\"" + rule["service"] + "\""
+            if rule["fw_action"] != "":
+                fw_cmd += " action=" + rule["fw_action"]
+            if rule["fw_security"] != "":
+                fw_cmd += " security=" + rule["fw_security"]
+            if rule["program"] != "":
+                fw_cmd += " program=\"" + rule["program"].replace("\"", "") + "\""
+            if rule["profile"] != "":
+                fw_cmd += " profile=" + rule["profile"]
+            if rule["direction"] != "":
+                fw_cmd += " direction=" + rule["direction"]
+            if rule["remoteip"] != "":
+                fw_cmd += " remoteip=" + rule["remoteip"]
+            if rule["fw_enable"] != "":
+                fw_cmd += " enable=" + rule["fw_enable"]
+            if rule["remoteport"] != "":
+                fw_cmd += " remoteport=" + rule["remoteport"]
+            if rule["localport"] != "":
+                fw_cmd += " localport=" + rule["localport"]
+            if rule["localip"] != "":
+                fw_cmd += " localip=" + rule["localip"]
+            if rule["edge"] != "":
+                fw_cmd += " edge=" + rule["edge"]
+            if rule["interfacetype"] != "":
+                fw_cmd += " interfacetype=" + rule["interfacetype"]
+            p("\t\t}}rb" + fw_cmd)
+            os.system(fw_cmd)
+
+        # Turn the firewall on
+        # netsh advfirewall set allprofiles state on
+        # Default Settings
+        # netsh advfirewall reset
+        # Set logging
+        # netsh advfirewall set currentprofile logging filename "C:\temp\pfirewall.log"
+        # Block ping
+        # netsh advfirewall firewall add rule name="All ICMP V4" dir=in action=block protocol=icmpv4
+        # Allow ping
+        # netsh advfirewall firewall add rule name="All ICMP V4" dir=in action=allow protocol=icmpv4
+        # Allow or deny port
+        # netsh advfirewall firewall add rule name="Open SQL Server Port 1433" dir=in action=allow protocol=TCP localport=1433
+        # netsh advfirewall firewall delete rule name="Open SQL Server Port 1433" protocol=tcp localport=1433
+        # Enable program
+        # netsh advfirewall firewall add rule name="Allow Messenger" dir=in action=allow program="C:\programfiles\messenger\msnmsgr.exe"
+        # Enable remote manatement
+        # netsh advfirewall firewall set rule group="remote administration" new enable=yes
+        # Enable remote desktop
+        # netsh advfirewall firewall set rule group="remote desktop" new enable=Yes
+        # Export settings
+        # netsh advfirewall export "C:\temp\WFconfiguration.wfw"
+
         # TODO
         # Download current policy zip file
         # unzip
@@ -217,13 +309,9 @@ def main():
         a = raw_input(term.translateColorCodes("}}ybPress enter when done}}dn"))
 
 
-
-
 if __name__ == "__main__":
     # Make sure this runs as admin
     run_as_admin()
-
-
 
 
 # import win32api
