@@ -23,10 +23,10 @@ python ../build_tools/rebuild_compose.py
 
 build_flag=""
 if [ ! -z "$1" ]; then
-  build_flag=$1
+  build_flag="$1"
 fi
 
-if [ $build_flag == "b" ]; then
+if [ "$build_flag" == "b" ]; then
   echo "Building docker containers..."
   docker-compose build
 fi
