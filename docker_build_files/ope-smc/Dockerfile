@@ -105,7 +105,7 @@ RUN echo '#!/bin/sh\ncd /home/www-data/web2py/applications/smc\npython set_admin
 RUN chmod +x /bin/set_admin_password
 RUN chmod +x /home/www-data/web2py/applications/smc/set_admin_password.py
 
-LABEL rebuild=24
+LABEL rebuild=33
 # Take out default site
 RUN rm -f /etc/apache2/sites-enabled/*
 # Configure apache to run web2py app
