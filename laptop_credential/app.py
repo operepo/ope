@@ -292,6 +292,9 @@ def main():
         # Export settings
         # netsh advfirewall export "C:\temp\WFconfiguration.wfw"
 
+        # Get repo over test cert
+        # git -c http.sslVerify=false clone https://example.com/path/to/git
+
         # TODO
         # Download current policy zip file
         # unzip
