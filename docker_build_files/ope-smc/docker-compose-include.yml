@@ -6,8 +6,11 @@
         ports:
             - "80"
             - "443"
+            # git daemon
+            - "9418:9418"
         volumes:
             # Normal mounts, using smc app included in the container, can leave on during dev
+            - ../volumes/smc/git:/home/www-data/git:rw
             - ../volumes/smc/cache:/home/www-data/web2py/applications/smc/cache:rw
             - ../volumes/smc/databases:/home/www-data/web2py/applications/smc/databases:rw
             - ../volumes/smc/errors:/home/www-data/web2py/applications/smc/errors:rw

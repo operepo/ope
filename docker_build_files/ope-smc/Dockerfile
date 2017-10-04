@@ -17,7 +17,6 @@ LABEL Description="Student Management Console - Image for Open Prison Education"
 
 # env vars
 
-#TODO - change admin password!!!
 # Should be passed by compose file to override defaults
 ENV IT_PW changeme
 ENV OFFICE_PW changeme
@@ -44,7 +43,7 @@ RUN mkdir $W2P_DIR
 # update and install necessary packages
 RUN apt-get update && \
 	apt-get -y upgrade && \
-	apt-get -y --no-install-recommends install ca-certificates nano gettext-base libxml2-dev python python-dev python-pip python-setuptools unzip wget net-tools git apache2-mpm-worker apache2-threaded-dev libapache2-mod-wsgi libapache2-mod-proxy-html ssl-cert unzip ffmpeg vim python-ldap python-crypto openssl python-mysqldb zip tar python-psycopg2 python-matplotlib python-reportlab   && \
+	apt-get -y --no-install-recommends install ca-certificates nano gettext-base libxml2-dev python python-dev python-pip python-setuptools unzip wget net-tools git apache2-mpm-worker apache2-threaded-dev libapache2-mod-wsgi libapache2-mod-proxy-html ssl-cert unzip ffmpeg vim python-ldap python-crypto openssl python-mysqldb zip tar python-psycopg2 python-matplotlib python-reportlab dos2unix supervisor   && \
 	PIPPATH=`which pip` && \
 	apt-get autoremove && \
 	apt-get autoclean && \
@@ -120,11 +119,22 @@ RUN a2enmod headers
 RUN a2enmod expires
 RUN a2enmod wsgi
 
-VOLUME ["/home/www-data/web2py/applications/smc/cache", "/home/www-data/web2py/applications/smc/databases", "/home/www-data/web2py/applications/smc/errors", "/home/www-data/web2py/applications/smc/private", "/home/www-data/web2py/applications/smc/static/media", "/home/www-data/web2py/applications/smc/uploads"] 
+# Add git user
+RUN useradd -ms /bin/bash  git
 
-EXPOSE 80 443
-# 8000
+LABEL rebuild=8
+# Copy in our start script
+COPY start.sh /start.sh
+COPY supervisord.conf /etc/supervisor/supervisord.conf
+RUN dos2unix /start.sh /etc/supervisor/supervisord.conf \
+ && chmod +x /start.sh
+
+VOLUME ["/home/www-data/git", "/home/www-data/web2py/applications/smc/cache", "/home/www-data/web2py/applications/smc/databases", "/home/www-data/web2py/applications/smc/errors", "/home/www-data/web2py/applications/smc/private", "/home/www-data/web2py/applications/smc/static/media", "/home/www-data/web2py/applications/smc/uploads"] 
+
+EXPOSE 80 443 9418
+
 ENV USER=www-data
 #ENTRYPOINT python web2py.py
 #CMD ["/usr/sbin/apache2", "-D", "FOREGROUND"]
-ENTRYPOINT bash -c '. /etc/apache2/envvars ; chown -R www-data:www-data /home/www-data ; rm -Rf /var/run/apache2/*; /usr/sbin/apache2 -D FOREGROUND'
+#ENTRYPOINT bash -c '. /etc/apache2/envvars ; chown -R www-data:www-data /home/www-data ; chmod -R 774 /home/www-data/git; nohup git daemon --resuseaddr --basepath=/home/www-data/git/ /home/www-data/git/ &;  rm -Rf /var/run/apache2/*; /usr/sbin/apache2 -D FOREGROUND'
+ENTRYPOINT "/start.sh"
