@@ -1,0 +1,20 @@
+    ope-git:
+        build: ./ope-git
+        image: operepo/ope-git:release
+        container_name: ope-git
+        restart: always
+        ports:
+            - "80"
+        labels:
+            - "container_name=ope-git"
+        volumes:
+            - ../volumes/git/repos:/usr/share/nginx/html:rw
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        env_file: .env
+        environment:
+            - VIRTUAL_HOST=git.<DOMAIN>
+        #    - NGINX_HOST=git.<DOMAIN>
+        #    - NGINX_PORT=80
+        #command: /bin/bash -c "envsubst < /etc/nginx/conf.d/mysite.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
