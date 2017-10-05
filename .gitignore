@@ -26,3 +26,5 @@ ope.git
 /admin_app/build/SyncApp
 /admin_app/dist/SyncApp
 /SyncApp/syncope.ini
+/syncope.ini
+/client_tools/bin/Win 10 1607 Security Baseline/Local_Script/LOGS/*.log
