@@ -33,7 +33,7 @@ fi
 
 echo "Bringing up containers..."
 # Bring up without rebuilding (in case container is out of date it will still start)
-docker-compose up -d --no-build
+docker-compose up -d --no-build --remove-orphans
 
 
 #echo "Bringing up bridge for fog..."
