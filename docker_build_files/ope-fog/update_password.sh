@@ -19,7 +19,7 @@ if [ ! -z $password ]; then
     configureUsers
 
     # Get the password hash
-    pw_hash=$( php -r "echo password_hash('$IT_PW', PASSWORD_BCRYPT, ['cost'=>11]);" )
+    pw_hash=$( php -r "echo password_hash('$password', PASSWORD_BCRYPT, ['cost'=>11]);" )
     #echo $pw_hash
 
     # Need to update the mysql password for the fog user
@@ -27,6 +27,13 @@ if [ ! -z $password ]; then
     echo $sql > tmp.sql
     mysql < tmp.sql
     rm tmp.sql
+    
+    # Update fog ftp password
+    sql="UPDATE fog.globalSettings SET settingValue='$password' WHERE settingKey='FOG_TFTP_FTP_PASSWORD'"
+    echo $sql > tmp.sql
+    mysql < tmp.sql
+    rm tmp.sql
+    
 
     # updateStorageNodeCredentials
 
