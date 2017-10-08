@@ -1,4 +1,4 @@
-FROM instructure/canvas-lms:master
+FROM instructure/canvas-lms:stable
 
 LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
 LABEL description="Canvas LMS by Instructure - Image for Open Prison Education"
