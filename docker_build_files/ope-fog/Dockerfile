@@ -70,7 +70,7 @@ COPY other/ssl/* /var/www/fog/management/other/ssl/
 RUN cd /fog_src/bin/; \
 ./installfog.sh -y
 
-LABEL rebuild=33
+LABEL rebuild=34
 # Copy in the startup scripts
 COPY update_fog_ip.py /fog_src/bin/
 COPY supervisord.conf /etc/supervisor/supervisord.conf

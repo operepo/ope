@@ -34,6 +34,12 @@ if [ ! -z $password ]; then
     mysql < tmp.sql
     rm tmp.sql
     
+    # Update fog NFS Storage password
+    sql="UPDATE fog.nfsGroupMembers SET ngmPass='$password' WHERE ngmMemberName='DefaultMember'"
+    echo $sql > tmp.sql
+    mysql < tmp.sql
+    rm tmp.sql
+    
 
     # updateStorageNodeCredentials
 
