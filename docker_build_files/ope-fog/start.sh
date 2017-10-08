@@ -53,8 +53,8 @@ wget --no-check-certificate -qO - --post-data="confirm&fogverified" --no-proxy h
 
 # Make sure to update with the current public ip and password
 cd /fog_src/bin
-bash update_password.sh
 python update_fog_ip.py
+bash update_password.sh
 
 # Make sure services are all up and ready
 #service mysql start

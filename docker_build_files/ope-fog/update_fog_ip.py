@@ -3,7 +3,7 @@
 #FOG - update IP
 
 # Adjust /opt/fog/.fogsettings
-# Change Mysql values
+# Change Mysql values and update password from environment
 # - DB - fog
 #    - globalSettings
 #        - update globalSettings set settingValue='??' where settingKey='FOG_TFTP_HOST';
@@ -58,6 +58,9 @@ def get_lan_ip():
     return ip
 
 
+# Pull password
+it_pw = os.getenv("IT_PW")
+
 print("Detecting ip...")
 
 # Check environment variable if it exists
@@ -90,6 +93,8 @@ f = open(fog_settings_path, "w")
 for line in filedata:
     if line.startswith("ipaddress="):
         f.write("ipaddress='" + ip + "'\n")
+    if line.startswith("password="):
+        f.write("password='" + it_pw + "'\n")
     else:
         f.write(line)
     # Check for mysql values
@@ -136,7 +141,8 @@ os.system("/bin/sed -i \"s|\\\".*\\..*\\..*\\..*\\\"|\\\"" + ip + "\\\"|\" /var/
 #installer_path = "~/trunk/bin"
 #installer_file = "installfog.sh"
 
-print("Running fog installer...")
+#print("Running fog installer...")
+# Don't run installer
 #cmd = "cd " + installer_path + "; ./" + installer_file + " -y"
 #print("CMD: " + cmd)
 #os.system(cmd)
