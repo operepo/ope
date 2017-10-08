@@ -321,9 +321,14 @@ SQLSTRING
 		puts "Migrations detected, compiling assets"
 		#$GEM_HOME/bin/bundle exec rake canvas:compile_assets
 		Rake::Task['canvas:compile_assets'].invoke
+         
 	else
 		puts "No migrations detected"
 	end
+    
+    # Make sure brand configs are present
+    #$GEM_HOME/bin/bundle exec rake brand_configs:generate_and_upload_all
+    Rake::Task['brand_config:generate_and_upload_all'].invoke
   end
   
   task :set_sequence_range => :environment do
