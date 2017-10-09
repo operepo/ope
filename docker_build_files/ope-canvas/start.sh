@@ -66,6 +66,10 @@ if [ $count != '1' ]; then
     $GEM_HOME/bin/bundle exec rake canvas:compile_assets
 fi
 
+# Make sure brand configs are present
+#$GEM_HOME/bin/bundle exec rake brand_configs:generate_and_upload_all
+# Rake::Task['brand_configs:generate_and_upload_all'].invoke
+
 # Setup auditing, sequence range, db migrate and compile assets if needed
 $GEM_HOME/bin/bundle exec rake ope:startup --trace
 

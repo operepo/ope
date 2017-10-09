@@ -328,7 +328,7 @@ SQLSTRING
     
     # Make sure brand configs are present
     #$GEM_HOME/bin/bundle exec rake brand_configs:generate_and_upload_all
-    Rake::Task['brand_config:generate_and_upload_all'].invoke
+    Rake::Task['brand_configs:generate_and_upload_all'].invoke
   end
   
   task :set_sequence_range => :environment do
