@@ -550,12 +550,12 @@ ApplicationWindow {
                                 ListElement { name: "Modules"; order: 1; enabled: true }
                                 ListElement { name: "Pages"; order: 2; enabled: true }
                                 ListElement { name: "Assignments"; order: 3; enabled: true }
-                                ListElement { name: "Quizzes"; order: 4; enabled: true }
+                                //ListElement { name: "Quizzes"; order: 4; enabled: true }
                                 ListElement { name: "Inbox"; order: 5; enabled: true }
-                                ListElement { name: "Calendar"; order: 6; enabled: false }
+                                //ListElement { name: "Calendar"; order: 6; enabled: false }
                                 ListElement { name: "Announcements"; order: 7; enabled: false }
-                                ListElement { name: "Discussions"; order: 8; enabled: false }
-                                ListElement { name: "Grades"; order: 9; enabled: false }
+                                //ListElement { name: "Discussions"; order: 8; enabled: false }
+                                //ListElement { name: "Grades"; order: 9; enabled: false }
                                 ListElement { name: "Files"; order: 10; enabled: true }
                                 ListElement { name: "Syllabus"; order: 11; enabled: true }
 

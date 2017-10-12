@@ -664,7 +664,7 @@ class SyncOPEApp(App):
         # Pull the latest git data to the current project folder
 
         # Get project folder (parent folder)
-        root_path = os.path.dirname( get_app_folder() )
+        root_path = os.path.dirname(get_app_folder())
 
         # Figure the path for the git app
         git_path = os.path.join(root_path, "PortableGit/bin/git.exe")
@@ -687,7 +687,8 @@ class SyncOPEApp(App):
         # Make sure we have the current stuff
         proc = subprocess.Popen(git_path + " pull ope_origin " + branch, stdout=subprocess.PIPE)
         for line in proc.stdout:
-            status_label.text += line
+            #status_label.text += line
+            Logger.info(line)
         #ret += proc.stdout.read()
 
         return ret
@@ -707,9 +708,9 @@ class SyncOPEApp(App):
         # Set current path
         os.chdir(root_path)
 
-        # Ensure the folder exists, is a repo, and has a sub folder (ope.git) that is a bare repo
+        # Ensure the folder exists, is a repo, and has a sub folder (volumes/smc/ope.git) that is a bare repo
         ret += "\n\n[b]Ensuring git repo setup properly...[/b]\n"
-        stdin, stdout, stderr = ssh.exec_command("mkdir -p " + ssh_folder + "; cd " + ssh_folder + "; git init; mkdir -p ope.git; cd ope.git; git init --bare;", get_pty=True)
+        stdin, stdout, stderr = ssh.exec_command("mkdir -p " + ssh_folder + "; cd " + ssh_folder + "; git init; mkdir -p volumes/smc/git/ope.git; cd volumes/smc/git/ope.git; git init --bare;", get_pty=True)
         stdin.close()
         for line in stdout:
             status_label.text += line
@@ -725,7 +726,7 @@ class SyncOPEApp(App):
         for line in proc.stdout:
             status_label.text += line
 
-        ssh_bare_repo_path = os.path.join(ssh_folder, "ope.git").replace("\\","/")
+        ssh_bare_repo_path = os.path.join(ssh_folder, "volumes/smc/git/ope.git").replace("\\","/")
         proc = subprocess.Popen(git_path + " remote add " + remote_name + " ssh://" + ssh_user + "@" + ssh_server + ":" + ssh_bare_repo_path, stdout=subprocess.PIPE)
         for line in proc.stdout:
             status_label.text += line
@@ -733,23 +734,27 @@ class SyncOPEApp(App):
         # Push to the remote server
         proc = subprocess.Popen(git_path + " push " + remote_name + " " + branch, stdout=subprocess.PIPE)
         for line in proc.stdout:
-            status_label.text += line
+            #status_label.text += line
+            Logger.info(line)
 
         # Have remote server checkout from the bare repo
         stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git remote remove local_bare;", get_pty=True)
         stdin.close()
         for line in stdout:
-            status_label.text += line
+            #status_label.text += line
+            Logger.info(line)
 
-        stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git remote add local_bare ope.git;", get_pty=True)
+        stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git remote add local_bare volumes/smc/git/ope.git;", get_pty=True)
         stdin.close()
         for line in stdout:
-            status_label.text += line
+            # status_label.text += line
+            Logger.info(line)
 
         stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git pull local_bare " + branch + ";", get_pty=True)
         stdin.close()
         for line in stdout:
-            status_label.text += line
+            # status_label.text += line
+            Logger.info(line)
 
         return ret
 
@@ -902,7 +907,8 @@ class SyncOPEApp(App):
         stdin, stdout, stderr = ssh.exec_command("cd " + docker_files_path + "; docker-compose pull;", get_pty=True)
         stdin.close()
         for line in stdout:
-            status_label.text += line
+            # status_label.text += line
+            Logger.info(line)
 
         return ret
 
@@ -1087,7 +1093,11 @@ class SyncOPEApp(App):
             # If digest files don't match, copy the file to the local folder
             if offline_digest != current_digest:
                 status_label.text += "\nCopying App: " + app
-                sftp.put(local_image, remote_image, callback=self.copy_docker_images_from_usb_drive_progress_callback)
+                try:
+                    sftp.put(local_image, remote_image, callback=self.copy_docker_images_from_usb_drive_progress_callback)
+                except:
+                    status_label.text += "\n       [b][color=ff0000]Error[/color][/b] pushing " + local_image + "  -- make sure you have pulled it properly by running the Online Sync first."
+                    continue
                 # Logger.info("Moving on...")
                 # Store the current digest
                 try:

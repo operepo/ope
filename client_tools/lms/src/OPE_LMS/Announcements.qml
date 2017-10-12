@@ -9,8 +9,12 @@ import QtWebEngine 1.4
 import com.openprisoneducation.ope 1.0
 import "App.js" as App
 
+
 Item {
     Text {
         text: "Announcements Screen"
+        font.bold: true;
+        font.pixelSize: 26
+        padding: 6
     }
 }
