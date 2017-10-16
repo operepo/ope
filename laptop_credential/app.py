@@ -312,9 +312,841 @@ def main():
         a = raw_input(term.translateColorCodes("}}ybPress enter when done}}dn"))
 
 
+def deviceDetection():
+    import wmi
+
+    local_machine = wmi.WMI()
+    for os in local_machine.Win32_OperatingSystem():
+        print os.Caption
+
+    #disk_watcher = local_machine.
+    print local_machine.methods.keys()
+
+
+def listUSB():
+    import usb
+    import usb.core
+    import usb.util
+
+    #busses = usb.busses()
+    #for bus in busses:
+    #    devices = bus.devices
+    #    for dev in devices:
+    #        print "Device: ", dev
+
+    devices = usb.core.find(find_all=True)
+    #n = devices.next()
+    #print n
+    for dev in devices:
+        d_class = dev.bDeviceClass
+        print "Device Found: " + str(dev.bcdDevice)
+        try:
+            print dev
+        except:
+            pass
+
+def listNics():
+    import win32com.client
+    strComputer = "."
+    objWMIService = win32com.client.Dispatch("WbemScripting.SWbemLocator")
+    objSWbemServices = objWMIService.ConnectServer(strComputer,"root\cimv2")
+    colItems = objSWbemServices.ExecQuery("Select * from Win32_NetworkAdapter")
+    for objItem in colItems:
+        print "========================================================"
+        print "Adapter Type: ", objItem.AdapterType
+        print "Adapter Type Id: ", objItem.AdapterTypeId
+        print "AutoSense: ", objItem.AutoSense
+        print "Availability: ", objItem.Availability
+        print "Caption: ", objItem.Caption
+        print "Config Manager Error Code: ", objItem.ConfigManagerErrorCode
+        print "Config Manager User Config: ", objItem.ConfigManagerUserConfig
+        print "Creation Class Name: ", objItem.CreationClassName
+        print "Description: ", objItem.Description
+        print "Device ID: ", objItem.DeviceID
+        print "Error Cleared: ", objItem.ErrorCleared
+        print "Error Description: ", objItem.ErrorDescription
+        print "Index: ", objItem.Index
+        print "Install Date: ", objItem.InstallDate
+        print "Installed: ", objItem.Installed
+        print "Last Error Code: ", objItem.LastErrorCode
+        print "MAC Address: ", objItem.MACAddress
+        print "Manufacturer: ", objItem.Manufacturer
+        print "Max Number Controlled: ", objItem.MaxNumberControlled
+        print "Max Speed: ", objItem.MaxSpeed
+        print "Name: ", objItem.Name
+        print "Net Connection ID: ", objItem.NetConnectionID
+        print "Net Connection Status: ", objItem.NetConnectionStatus
+        z = objItem.NetworkAddresses
+        if z is None:
+            a = 1
+        else:
+            for x in z:
+                print "Network Addresses: ", x
+        print "Permanent Address: ", objItem.PermanentAddress
+        print "PNP Device ID: ", objItem.PNPDeviceID
+        z = objItem.PowerManagementCapabilities
+        if z is None:
+            a = 1
+        else:
+            for x in z:
+                print "Power Management Capabilities: ", x
+        print "Power Management Supported: ", objItem.PowerManagementSupported
+        print "Product Name: ", objItem.ProductName
+        print "Service Name: ", objItem.ServiceName
+        print "Speed: ", objItem.Speed
+        print "Status: ", objItem.Status
+        print "Status Info: ", objItem.StatusInfo
+        print "System Creation Class Name: ", objItem.SystemCreationClassName
+        print "System Name: ", objItem.SystemName
+        print "Time Of Last Reset: ", objItem.TimeOfLastReset
+
+        if objItem.Name == "Realtek USB GbE Family Controller":
+            print "--------------> Disabling Device!"
+            cmd = "netsh interface set interface \"" + objItem.NetConnectionID + "\" DISABLED"
+            print cmd
+            os.system(cmd)
+
+
 if __name__ == "__main__":
     # Make sure this runs as admin
-    run_as_admin()
+    #
+
+    #deviceDetection()
+    #listUSB()
+    listNics()
+
+
+"""
+Running C:/Users/ray/Desktop/git_projects/ope/laptop_credential/app.py
+PyDev console: starting.
+Device Found: 0
+DEVICE ID 8087:0024 on Bus 001 Address 002 =================
+ bLength                :   0x12 (18 bytes)
+ bDescriptorType        :    0x1 Device
+ bcdUSB                 :  0x200 USB 2.0
+ bDeviceClass           :    0x9 Hub
+ bDeviceSubClass        :    0x0
+ bDeviceProtocol        :    0x1
+ bMaxPacketSize0        :   0x40 (64 bytes)
+ idVendor               : 0x8087
+ idProduct              : 0x0024
+ bcdDevice              :    0x0 Device 0.0
+ iManufacturer          :    0x0 
+ iProduct               :    0x0 
+ iSerialNumber          :    0x0 
+ bNumConfigurations     :    0x1
+  CONFIGURATION 1: 0 mA ====================================
+   bLength              :    0x9 (9 bytes)
+   bDescriptorType      :    0x2 Configuration
+   wTotalLength         :   0x19 (25 bytes)
+   bNumInterfaces       :    0x1
+   bConfigurationValue  :    0x1
+   iConfiguration       :    0x0 
+   bmAttributes         :   0xe0 Self Powered, Remote Wakeup
+   bMaxPower            :    0x0 (0 mA)
+    INTERFACE 0: Hub =======================================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x0
+     bAlternateSetting  :    0x0
+     bNumEndpoints      :    0x1
+     bInterfaceClass    :    0x9 Hub
+     bInterfaceSubClass :    0x0
+     bInterfaceProtocol :    0x0
+     iInterface         :    0x0 
+      ENDPOINT 0x81: Interrupt IN ==========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x81 IN
+       bmAttributes     :    0x3 Interrupt
+       wMaxPacketSize   :    0x1 (1 bytes)
+       bInterval        :    0xc
+Device Found: 0
+Device Found: 12288
+DEVICE ID 0bda:8153 on Bus 001 Address 004 =================
+ bLength                :   0x12 (18 bytes)
+ bDescriptorType        :    0x1 Device
+ bcdUSB                 :  0x210 USB 2.1
+ bDeviceClass           :    0x0 Specified at interface
+ bDeviceSubClass        :    0x0
+ bDeviceProtocol        :    0x0
+ bMaxPacketSize0        :   0x40 (64 bytes)
+ idVendor               : 0x0bda
+ idProduct              : 0x8153
+ bcdDevice              : 0x3000 Device 48.0
+ iManufacturer          :    0x1 Error Accessing String
+ iProduct               :    0x2 Error Accessing String
+ iSerialNumber          :    0x6 Error Accessing String
+ bNumConfigurations     :    0x2
+  CONFIGURATION 1: 180 mA ==================================
+   bLength              :    0x9 (9 bytes)
+   bDescriptorType      :    0x2 Configuration
+   wTotalLength         :   0x27 (39 bytes)
+   bNumInterfaces       :    0x1
+   bConfigurationValue  :    0x1
+   iConfiguration       :    0x0 
+   bmAttributes         :   0xa0 Bus Powered, Remote Wakeup
+   bMaxPower            :   0x5a (180 mA)
+    INTERFACE 0: Vendor Specific ===========================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x0
+     bAlternateSetting  :    0x0
+     bNumEndpoints      :    0x3
+     bInterfaceClass    :   0xff Vendor Specific
+     bInterfaceSubClass :   0xff
+     bInterfaceProtocol :    0x0
+     iInterface         :    0x0 
+      ENDPOINT 0x81: Bulk IN ===============================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x81 IN
+       bmAttributes     :    0x2 Bulk
+       wMaxPacketSize   :  0x200 (512 bytes)
+       bInterval        :    0x0
+      ENDPOINT 0x2: Bulk OUT ===============================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :    0x2 OUT
+       bmAttributes     :    0x2 Bulk
+       wMaxPacketSize   :  0x200 (512 bytes)
+       bInterval        :    0x0
+      ENDPOINT 0x83: Interrupt IN ==========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x83 IN
+       bmAttributes     :    0x3 Interrupt
+       wMaxPacketSize   :    0x2 (2 bytes)
+       bInterval        :    0x8
+  CONFIGURATION 2: 180 mA ==================================
+   bLength              :    0x9 (9 bytes)
+   bDescriptorType      :    0x2 Configuration
+   wTotalLength         :   0x50 (80 bytes)
+   bNumInterfaces       :    0x2
+   bConfigurationValue  :    0x2
+   iConfiguration       :    0x0 
+   bmAttributes         :   0xa0 Bus Powered, Remote Wakeup
+   bMaxPower            :   0x5a (180 mA)
+    INTERFACE 0: CDC Communication =========================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x0
+     bAlternateSetting  :    0x0
+     bNumEndpoints      :    0x1
+     bInterfaceClass    :    0x2 CDC Communication
+     bInterfaceSubClass :    0x6
+     bInterfaceProtocol :    0x0
+     iInterface         :    0x5 Error Accessing String
+      ENDPOINT 0x83: Interrupt IN ==========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x83 IN
+       bmAttributes     :    0x3 Interrupt
+       wMaxPacketSize   :   0x10 (16 bytes)
+       bInterval        :    0x8
+    INTERFACE 1: CDC Data ==================================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x1
+     bAlternateSetting  :    0x0
+     bNumEndpoints      :    0x0
+     bInterfaceClass    :    0xa CDC Data
+     bInterfaceSubClass :    0x0
+     bInterfaceProtocol :    0x0
+     iInterface         :    0x0 
+    INTERFACE 1, 1: CDC Data ===============================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x1
+     bAlternateSetting  :    0x1
+     bNumEndpoints      :    0x2
+     bInterfaceClass    :    0xa CDC Data
+     bInterfaceSubClass :    0x0
+     bInterfaceProtocol :    0x0
+     iInterface         :    0x4 Error Accessing String
+      ENDPOINT 0x81: Bulk IN ===============================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x81 IN
+       bmAttributes     :    0x2 Bulk
+       wMaxPacketSize   :  0x200 (512 bytes)
+       bInterval        :    0x0
+      ENDPOINT 0x2: Bulk OUT ===============================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :    0x2 OUT
+       bmAttributes     :    0x2 Bulk
+       wMaxPacketSize   :  0x200 (512 bytes)
+       bInterval        :    0x0
+Device Found: 1874
+DEVICE ID 04f2:b221 on Bus 001 Address 006 =================
+ bLength                :   0x12 (18 bytes)
+ bDescriptorType        :    0x1 Device
+ bcdUSB                 :  0x200 USB 2.0
+ bDeviceClass           :   0xef Miscellaneous
+ bDeviceSubClass        :    0x2
+ bDeviceProtocol        :    0x1
+ bMaxPacketSize0        :   0x40 (64 bytes)
+ idVendor               : 0x04f2
+ idProduct              : 0xb221
+ bcdDevice              :  0x752 Device 7.52
+ iManufacturer          :    0x1 Error Accessing String
+ iProduct               :    0x2 Error Accessing String
+ iSerialNumber          :    0x0 
+ bNumConfigurations     :    0x1
+  CONFIGURATION 1: 200 mA ==================================
+   bLength              :    0x9 (9 bytes)
+   bDescriptorType      :    0x2 Configuration
+   wTotalLength         :  0x320 (800 bytes)
+   bNumInterfaces       :    0x2
+   bConfigurationValue  :    0x1
+   iConfiguration       :    0x0 
+   bmAttributes         :   0x80 Bus Powered
+   bMaxPower            :   0x64 (200 mA)
+    INTERFACE 0: Video =====================================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x0
+     bAlternateSetting  :    0x0
+     bNumEndpoints      :    0x1
+     bInterfaceClass    :    0xe Video
+     bInterfaceSubClass :    0x1
+     bInterfaceProtocol :    0x0
+     iInterface         :    0x4 Error Accessing String
+      ENDPOINT 0x81: Interrupt IN ==========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x81 IN
+       bmAttributes     :    0x3 Interrupt
+       wMaxPacketSize   :   0x10 (16 bytes)
+       bInterval        :    0x8
+    INTERFACE 1: Video =====================================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x1
+     bAlternateSetting  :    0x0
+     bNumEndpoints      :    0x0
+     bInterfaceClass    :    0xe Video
+     bInterfaceSubClass :    0x2
+     bInterfaceProtocol :    0x0
+     iInterface         :    0x0 
+    INTERFACE 1, 1: Video ==================================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x1
+     bAlternateSetting  :    0x1
+     bNumEndpoints      :    0x1
+     bInterfaceClass    :    0xe Video
+     bInterfaceSubClass :    0x2
+     bInterfaceProtocol :    0x0
+     iInterface         :    0x0 
+      ENDPOINT 0x82: Isochronous IN ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x82 IN
+       bmAttributes     :    0x5 Isochronous
+       wMaxPacketSize   :  0x3c0 (960 bytes)
+       bInterval        :    0x1
+    INTERFACE 1, 2: Video ==================================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x1
+     bAlternateSetting  :    0x2
+     bNumEndpoints      :    0x1
+     bInterfaceClass    :    0xe Video
+     bInterfaceSubClass :    0x2
+     bInterfaceProtocol :    0x0
+     iInterface         :    0x0 
+      ENDPOINT 0x82: Isochronous IN ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x82 IN
+       bmAttributes     :    0x5 Isochronous
+       wMaxPacketSize   :  0x400 (1024 bytes)
+       bInterval        :    0x1
+    INTERFACE 1, 3: Video ==================================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x1
+     bAlternateSetting  :    0x3
+     bNumEndpoints      :    0x1
+     bInterfaceClass    :    0xe Video
+     bInterfaceSubClass :    0x2
+     bInterfaceProtocol :    0x0
+     iInterface         :    0x0 
+      ENDPOINT 0x82: Isochronous IN ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x82 IN
+       bmAttributes     :    0x5 Isochronous
+       wMaxPacketSize   :  0xb5c (2908 bytes)
+       bInterval        :    0x1
+    INTERFACE 1, 4: Video ==================================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x1
+     bAlternateSetting  :    0x4
+     bNumEndpoints      :    0x1
+     bInterfaceClass    :    0xe Video
+     bInterfaceSubClass :    0x2
+     bInterfaceProtocol :    0x0
+     iInterface         :    0x0 
+      ENDPOINT 0x82: Isochronous IN ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x82 IN
+       bmAttributes     :    0x5 Isochronous
+       wMaxPacketSize   :  0xc00 (3072 bytes)
+       bInterval        :    0x1
+    INTERFACE 1, 5: Video ==================================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x1
+     bAlternateSetting  :    0x5
+     bNumEndpoints      :    0x1
+     bInterfaceClass    :    0xe Video
+     bInterfaceSubClass :    0x2
+     bInterfaceProtocol :    0x0
+     iInterface         :    0x0 
+      ENDPOINT 0x82: Isochronous IN ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x82 IN
+       bmAttributes     :    0x5 Isochronous
+       wMaxPacketSize   : 0x135c (4956 bytes)
+       bInterval        :    0x1
+    INTERFACE 1, 6: Video ==================================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x1
+     bAlternateSetting  :    0x6
+     bNumEndpoints      :    0x1
+     bInterfaceClass    :    0xe Video
+     bInterfaceSubClass :    0x2
+     bInterfaceProtocol :    0x0
+     iInterface         :    0x0 
+      ENDPOINT 0x82: Isochronous IN ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x82 IN
+       bmAttributes     :    0x5 Isochronous
+       wMaxPacketSize   : 0x13c0 (5056 bytes)
+       bInterval        :    0x1
+    INTERFACE 1, 7: Video ==================================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x1
+     bAlternateSetting  :    0x7
+     bNumEndpoints      :    0x1
+     bInterfaceClass    :    0xe Video
+     bInterfaceSubClass :    0x2
+     bInterfaceProtocol :    0x0
+     iInterface         :    0x0 
+      ENDPOINT 0x82: Isochronous IN ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x82 IN
+       bmAttributes     :    0x5 Isochronous
+       wMaxPacketSize   : 0x13fc (5116 bytes)
+       bInterval        :    0x1
+Device Found: 272
+DEVICE ID 062a:4101 on Bus 001 Address 003 =================
+ bLength                :   0x12 (18 bytes)
+ bDescriptorType        :    0x1 Device
+ bcdUSB                 :  0x110 USB 1.1
+ bDeviceClass           :    0x0 Specified at interface
+ bDeviceSubClass        :    0x0
+ bDeviceProtocol        :    0x0
+ bMaxPacketSize0        :    0x8 (8 bytes)
+ idVendor               : 0x062a
+ idProduct              : 0x4101
+ bcdDevice              :  0x110 Device 1.1
+ iManufacturer          :    0x1 Error Accessing String
+ iProduct               :    0x2 Error Accessing String
+ iSerialNumber          :    0x0 
+ bNumConfigurations     :    0x1
+  CONFIGURATION 1: 100 mA ==================================
+   bLength              :    0x9 (9 bytes)
+   bDescriptorType      :    0x2 Configuration
+   wTotalLength         :   0x3b (59 bytes)
+   bNumInterfaces       :    0x2
+   bConfigurationValue  :    0x1
+   iConfiguration       :    0x0 
+   bmAttributes         :   0xa0 Bus Powered, Remote Wakeup
+   bMaxPower            :   0x32 (100 mA)
+    INTERFACE 0: Human Interface Device ====================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x0
+     bAlternateSetting  :    0x0
+     bNumEndpoints      :    0x1
+     bInterfaceClass    :    0x3 Human Interface Device
+     bInterfaceSubClass :    0x1
+     bInterfaceProtocol :    0x1
+     iInterface         :    0x0 
+      ENDPOINT 0x81: Interrupt IN ==========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x81 IN
+       bmAttributes     :    0x3 Interrupt
+       wMaxPacketSize   :    0x8 (8 bytes)
+       bInterval        :    0xa
+    INTERFACE 1: Human Interface Device ====================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x1
+     bAlternateSetting  :    0x0
+     bNumEndpoints      :    0x1
+     bInterfaceClass    :    0x3 Human Interface Device
+     bInterfaceSubClass :    0x1
+     bInterfaceProtocol :    0x2
+     iInterface         :    0x0 
+      ENDPOINT 0x82: Interrupt IN ==========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x82 IN
+       bmAttributes     :    0x3 Interrupt
+       wMaxPacketSize   :    0x7 (7 bytes)
+       bInterval        :    0x2
+Device Found: 0
+Device Found: 1864
+DEVICE ID 0a5c:217f on Bus 001 Address 005 =================
+ bLength                :   0x12 (18 bytes)
+ bDescriptorType        :    0x1 Device
+ bcdUSB                 :  0x200 USB 2.0
+ bDeviceClass           :   0xe0 Wireless Controller
+ bDeviceSubClass        :    0x1
+ bDeviceProtocol        :    0x1
+ bMaxPacketSize0        :   0x40 (64 bytes)
+ idVendor               : 0x0a5c
+ idProduct              : 0x217f
+ bcdDevice              :  0x748 Device 7.48
+ iManufacturer          :    0x1 Error Accessing String
+ iProduct               :    0x2 Error Accessing String
+ iSerialNumber          :    0x3 Error Accessing String
+ bNumConfigurations     :    0x1
+  CONFIGURATION 1: 0 mA ====================================
+   bLength              :    0x9 (9 bytes)
+   bDescriptorType      :    0x2 Configuration
+   wTotalLength         :   0xd8 (216 bytes)
+   bNumInterfaces       :    0x4
+   bConfigurationValue  :    0x1
+   iConfiguration       :    0x0 
+   bmAttributes         :   0xe0 Self Powered, Remote Wakeup
+   bMaxPower            :    0x0 (0 mA)
+    INTERFACE 0: Wireless Controller =======================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x0
+     bAlternateSetting  :    0x0
+     bNumEndpoints      :    0x3
+     bInterfaceClass    :   0xe0 Wireless Controller
+     bInterfaceSubClass :    0x1
+     bInterfaceProtocol :    0x1
+     iInterface         :    0x0 
+      ENDPOINT 0x81: Interrupt IN ==========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x81 IN
+       bmAttributes     :    0x3 Interrupt
+       wMaxPacketSize   :   0x10 (16 bytes)
+       bInterval        :    0x1
+      ENDPOINT 0x82: Bulk IN ===============================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x82 IN
+       bmAttributes     :    0x2 Bulk
+       wMaxPacketSize   :   0x40 (64 bytes)
+       bInterval        :    0x1
+      ENDPOINT 0x2: Bulk OUT ===============================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :    0x2 OUT
+       bmAttributes     :    0x2 Bulk
+       wMaxPacketSize   :   0x40 (64 bytes)
+       bInterval        :    0x1
+    INTERFACE 1: Wireless Controller =======================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x1
+     bAlternateSetting  :    0x0
+     bNumEndpoints      :    0x2
+     bInterfaceClass    :   0xe0 Wireless Controller
+     bInterfaceSubClass :    0x1
+     bInterfaceProtocol :    0x1
+     iInterface         :    0x0 
+      ENDPOINT 0x83: Isochronous IN ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x83 IN
+       bmAttributes     :    0x1 Isochronous
+       wMaxPacketSize   :    0x0 (0 bytes)
+       bInterval        :    0x1
+      ENDPOINT 0x3: Isochronous OUT ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :    0x3 OUT
+       bmAttributes     :    0x1 Isochronous
+       wMaxPacketSize   :    0x0 (0 bytes)
+       bInterval        :    0x1
+    INTERFACE 1, 1: Wireless Controller ====================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x1
+     bAlternateSetting  :    0x1
+     bNumEndpoints      :    0x2
+     bInterfaceClass    :   0xe0 Wireless Controller
+     bInterfaceSubClass :    0x1
+     bInterfaceProtocol :    0x1
+     iInterface         :    0x0 
+      ENDPOINT 0x83: Isochronous IN ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x83 IN
+       bmAttributes     :    0x1 Isochronous
+       wMaxPacketSize   :    0x9 (9 bytes)
+       bInterval        :    0x1
+      ENDPOINT 0x3: Isochronous OUT ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :    0x3 OUT
+       bmAttributes     :    0x1 Isochronous
+       wMaxPacketSize   :    0x9 (9 bytes)
+       bInterval        :    0x1
+    INTERFACE 1, 2: Wireless Controller ====================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x1
+     bAlternateSetting  :    0x2
+     bNumEndpoints      :    0x2
+     bInterfaceClass    :   0xe0 Wireless Controller
+     bInterfaceSubClass :    0x1
+     bInterfaceProtocol :    0x1
+     iInterface         :    0x0 
+      ENDPOINT 0x83: Isochronous IN ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x83 IN
+       bmAttributes     :    0x1 Isochronous
+       wMaxPacketSize   :   0x11 (17 bytes)
+       bInterval        :    0x1
+      ENDPOINT 0x3: Isochronous OUT ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :    0x3 OUT
+       bmAttributes     :    0x1 Isochronous
+       wMaxPacketSize   :   0x11 (17 bytes)
+       bInterval        :    0x1
+    INTERFACE 1, 3: Wireless Controller ====================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x1
+     bAlternateSetting  :    0x3
+     bNumEndpoints      :    0x2
+     bInterfaceClass    :   0xe0 Wireless Controller
+     bInterfaceSubClass :    0x1
+     bInterfaceProtocol :    0x1
+     iInterface         :    0x0 
+      ENDPOINT 0x83: Isochronous IN ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x83 IN
+       bmAttributes     :    0x1 Isochronous
+       wMaxPacketSize   :   0x20 (32 bytes)
+       bInterval        :    0x1
+      ENDPOINT 0x3: Isochronous OUT ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :    0x3 OUT
+       bmAttributes     :    0x1 Isochronous
+       wMaxPacketSize   :   0x20 (32 bytes)
+       bInterval        :    0x1
+    INTERFACE 1, 4: Wireless Controller ====================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x1
+     bAlternateSetting  :    0x4
+     bNumEndpoints      :    0x2
+     bInterfaceClass    :   0xe0 Wireless Controller
+     bInterfaceSubClass :    0x1
+     bInterfaceProtocol :    0x1
+     iInterface         :    0x0 
+      ENDPOINT 0x83: Isochronous IN ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x83 IN
+       bmAttributes     :    0x1 Isochronous
+       wMaxPacketSize   :   0x40 (64 bytes)
+       bInterval        :    0x1
+      ENDPOINT 0x3: Isochronous OUT ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :    0x3 OUT
+       bmAttributes     :    0x1 Isochronous
+       wMaxPacketSize   :   0x40 (64 bytes)
+       bInterval        :    0x1
+    INTERFACE 1, 5: Wireless Controller ====================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x1
+     bAlternateSetting  :    0x5
+     bNumEndpoints      :    0x2
+     bInterfaceClass    :   0xe0 Wireless Controller
+     bInterfaceSubClass :    0x1
+     bInterfaceProtocol :    0x1
+     iInterface         :    0x0 
+      ENDPOINT 0x83: Isochronous IN ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x83 IN
+       bmAttributes     :    0x1 Isochronous
+       wMaxPacketSize   :   0x40 (64 bytes)
+       bInterval        :    0x1
+      ENDPOINT 0x3: Isochronous OUT ========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :    0x3 OUT
+       bmAttributes     :    0x1 Isochronous
+       wMaxPacketSize   :   0x40 (64 bytes)
+       bInterval        :    0x1
+    INTERFACE 2: Vendor Specific ===========================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x2
+     bAlternateSetting  :    0x0
+     bNumEndpoints      :    0x2
+     bInterfaceClass    :   0xff Vendor Specific
+     bInterfaceSubClass :   0xff
+     bInterfaceProtocol :   0xff
+     iInterface         :    0x0 
+      ENDPOINT 0x84: Bulk IN ===============================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x84 IN
+       bmAttributes     :    0x2 Bulk
+       wMaxPacketSize   :   0x20 (32 bytes)
+       bInterval        :    0x1
+      ENDPOINT 0x4: Bulk OUT ===============================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :    0x4 OUT
+       bmAttributes     :    0x2 Bulk
+       wMaxPacketSize   :   0x20 (32 bytes)
+       bInterval        :    0x1
+    INTERFACE 3: Application Specific ======================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x3
+     bAlternateSetting  :    0x0
+     bNumEndpoints      :    0x0
+     bInterfaceClass    :   0xfe Application Specific
+     bInterfaceSubClass :    0x1
+     bInterfaceProtocol :    0x1
+     iInterface         :    0x0 
+Device Found: 272
+DEVICE ID 062a:4101 on Bus 001 Address 003 =================
+ bLength                :   0x12 (18 bytes)
+ bDescriptorType        :    0x1 Device
+ bcdUSB                 :  0x110 USB 1.1
+ bDeviceClass           :    0x0 Specified at interface
+ bDeviceSubClass        :    0x0
+ bDeviceProtocol        :    0x0
+ bMaxPacketSize0        :    0x8 (8 bytes)
+ idVendor               : 0x062a
+ idProduct              : 0x4101
+ bcdDevice              :  0x110 Device 1.1
+ iManufacturer          :    0x1 MOSART Semi.
+ iProduct               :    0x2 2.4G Keyboard Mouse
+ iSerialNumber          :    0x0 
+ bNumConfigurations     :    0x1
+  CONFIGURATION 1: 100 mA ==================================
+   bLength              :    0x9 (9 bytes)
+   bDescriptorType      :    0x2 Configuration
+   wTotalLength         :   0x3b (59 bytes)
+   bNumInterfaces       :    0x2
+   bConfigurationValue  :    0x1
+   iConfiguration       :    0x0 
+   bmAttributes         :   0xa0 Bus Powered, Remote Wakeup
+   bMaxPower            :   0x32 (100 mA)
+    INTERFACE 0: Human Interface Device ====================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x0
+     bAlternateSetting  :    0x0
+     bNumEndpoints      :    0x1
+     bInterfaceClass    :    0x3 Human Interface Device
+     bInterfaceSubClass :    0x1
+     bInterfaceProtocol :    0x1
+     iInterface         :    0x0 
+      ENDPOINT 0x81: Interrupt IN ==========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x81 IN
+       bmAttributes     :    0x3 Interrupt
+       wMaxPacketSize   :    0x8 (8 bytes)
+       bInterval        :    0xa
+    INTERFACE 1: Human Interface Device ====================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x1
+     bAlternateSetting  :    0x0
+     bNumEndpoints      :    0x1
+     bInterfaceClass    :    0x3 Human Interface Device
+     bInterfaceSubClass :    0x1
+     bInterfaceProtocol :    0x2
+     iInterface         :    0x0 
+      ENDPOINT 0x82: Interrupt IN ==========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x82 IN
+       bmAttributes     :    0x3 Interrupt
+       wMaxPacketSize   :    0x7 (7 bytes)
+       bInterval        :    0x2
+Device Found: 0
+DEVICE ID 8087:0024 on Bus 002 Address 002 =================
+ bLength                :   0x12 (18 bytes)
+ bDescriptorType        :    0x1 Device
+ bcdUSB                 :  0x200 USB 2.0
+ bDeviceClass           :    0x9 Hub
+ bDeviceSubClass        :    0x0
+ bDeviceProtocol        :    0x1
+ bMaxPacketSize0        :   0x40 (64 bytes)
+ idVendor               : 0x8087
+ idProduct              : 0x0024
+ bcdDevice              :    0x0 Device 0.0
+ iManufacturer          :    0x0 
+ iProduct               :    0x0 
+ iSerialNumber          :    0x0 
+ bNumConfigurations     :    0x1
+  CONFIGURATION 1: 0 mA ====================================
+   bLength              :    0x9 (9 bytes)
+   bDescriptorType      :    0x2 Configuration
+   wTotalLength         :   0x19 (25 bytes)
+   bNumInterfaces       :    0x1
+   bConfigurationValue  :    0x1
+   iConfiguration       :    0x0 
+   bmAttributes         :   0xe0 Self Powered, Remote Wakeup
+   bMaxPower            :    0x0 (0 mA)
+    INTERFACE 0: Hub =======================================
+     bLength            :    0x9 (9 bytes)
+     bDescriptorType    :    0x4 Interface
+     bInterfaceNumber   :    0x0
+     bAlternateSetting  :    0x0
+     bNumEndpoints      :    0x1
+     bInterfaceClass    :    0x9 Hub
+     bInterfaceSubClass :    0x0
+     bInterfaceProtocol :    0x0
+     iInterface         :    0x0 
+      ENDPOINT 0x81: Interrupt IN ==========================
+       bLength          :    0x7 (7 bytes)
+       bDescriptorType  :    0x5 Endpoint
+       bEndpointAddress :   0x81 IN
+       bmAttributes     :    0x3 Interrupt
+       wMaxPacketSize   :    0x2 (2 bytes)
+       bInterval        :    0xc
+
+
+"""
 
 
 # import win32api

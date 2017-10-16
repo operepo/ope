@@ -13,7 +13,8 @@ docker_build_files/.domain
 
 # Ignore build folders
 client_tools/lms/src/build-*
-
+client_tools/svc/build
+client_tools/svc/dist
 
 .enabled
 
