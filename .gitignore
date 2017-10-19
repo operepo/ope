@@ -15,6 +15,9 @@ docker_build_files/.domain
 client_tools/lms/src/build-*
 client_tools/svc/build
 client_tools/svc/dist
+client_tools/sshot/build
+client_tools/sshot/dist
+
 
 .enabled
 

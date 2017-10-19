@@ -1,3 +1,27 @@
+# ModuleFinder can't handle runtime changes to __path__, but win32com uses them
+try:
+    # py2exe 0.6.4 introduced a replacement modulefinder.
+    # This means we have to add package paths there, not to the built-in
+    # one.  If this new modulefinder gets integrated into Python, then
+    # we might be able to revert this some day.
+    # if this doesn't work, try import modulefinder
+    try:
+        import py2exe.mf as modulefinder
+    except ImportError:
+        import modulefinder
+    import win32com, sys
+    for p in win32com.__path__[1:]:
+        modulefinder.AddPackagePath("win32com", p)
+    for extra in ["win32com.shell"]: #,"win32com.mapi"
+        __import__(extra)
+        m = sys.modules[extra]
+        for p in m.__path__[1:]:
+            modulefinder.AddPackagePath(extra, p)
+except ImportError:
+    # no build path setup, no worries.
+    pass
+
+
 from distutils.core import setup
 import py2exe
 from glob import glob
@@ -7,6 +31,8 @@ import shutil
 
 DESCRIPTION = 'OPE Service - Admin service for OPE project'
 NAME = 'Ope Service'
+INCLUDES = "win32com,win32service,win32serviceutil,win32event,win32api"
+OPTIMIZE = "2"
 
 sys.path.insert(0,os.getcwd())
  
@@ -66,8 +92,8 @@ if not buildservice:
         zipfile=None,
         options = {
                 "py2exe":{"packages":"encodings",
-                    "includes":"win32com,win32service,win32serviceutil,win32event",
-                    "optimize": '2'
+                    "includes":INCLUDES,
+                    "optimize": OPTIMIZE
                     },
                 },
     )
@@ -81,8 +107,8 @@ else:
         zipfile=None,
         options = {
                 "py2exe":{"packages":"encodings",
-                    "includes":"win32com,win32service,win32serviceutil,win32event",
-                    "optimize": '2'
+                    "includes":INCLUDES,
+                    "optimize": OPTIMIZE
                     },
                 },
     )        
