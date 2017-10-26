@@ -1,4 +1,4 @@
-TODO TODO TODO
+REM  SEE setupcomplete script for commands TODO TODO TODO
 exit
 
 REM OEM KEY FROM BIOS - need oemkey.exe

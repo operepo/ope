@@ -67,6 +67,7 @@ setup(
     description = DESCRIPTION,
     version = '1.00.00',
     windows = ['sshot.py'],
+    #console = ['sshot.py'],
     zipfile=None,
     options = {
             "py2exe":{"unbuffered": True, "packages":"encodings",

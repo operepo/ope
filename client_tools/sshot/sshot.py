@@ -13,6 +13,7 @@ import win32ui
 import win32con
 
 
+
 #LOG_FOLDER = os.path.join(shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_APPDATA, None, 0), "ope")
 LOG_FOLDER = "c:\programdata\ope"
 SCREEN_SHOTS_FOLDER = os.path.join(LOG_FOLDER, "screen_shots")
@@ -21,7 +22,7 @@ PIC_TYPE = ".png"
 logging.basicConfig(
     filename=os.path.join(LOG_FOLDER, 'ope-sshot.log'),
     level=logging.DEBUG,
-    format='[ope-service] %(levelname)-7.7s %(message)s'
+    format='[ope-sshot] %(levelname)-7.7s %(message)s'
 )
 
 def grab_screen_area(x1, y1, x2, y2):
@@ -130,4 +131,6 @@ if __name__ == '__main__':
     # freeze_support()
     #grab_full_screen()
     # grab_screen_area(10, 10, 510, 510)
+    print "Grabbing screen shot..."
+    logging.info("SShot called...")
     grabScreenShot()

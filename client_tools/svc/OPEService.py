@@ -19,6 +19,7 @@ import win32ui
 import win32con
 import win32gui_struct
 import win32ts
+import win32process
 import PIL
 import pyscreenshot as ImageGrab
 import ctypes
@@ -158,7 +159,99 @@ class OPEService(win32serviceutil.ServiceFramework):
                 (self._svc_name_, '')
                 )
 
+    def runScreenShotApp3(self):
+        # Get the current security token
+        token = win32security.OpenProcessToken(win32process.GetCurrentProcess(),
+                                               win32security.TOKEN_ALL_ACCESS)
+
+        # Make a copy
+        #token2 = win32security.DuplicateToken(token)
+        token2 = win32security.DuplicateTokenEx(token,
+                                                win32security.SecurityImpersonation,
+                                                win32security.TOKEN_ALL_ACCESS,
+                                                win32security.TokenPrimary)
+
+        # Find the session id - we will grab the console/keyboard
+        #proc_id = win32process.GetCurrentProcessId()
+        #session_id = win32ts.ProcessIdToSessionId(proc_id)
+        session_id = win32ts.WTSGetActiveConsoleSessionId()
+
+        # Make this token target our session
+        win32security.SetTokenInformation(token2, win32security.TokenSessionId, session_id)
+
+
     def runScreenShotApp(self):
+        # Get the session id for the console
+        session_id = win32ts.WTSGetActiveConsoleSessionId()
+        if session_id == 0xffffffff:
+            # User not logged in right now?
+            logging.info("No console user")
+            return None
+
+        logging.info("Got Console: " + str(session_id))
+
+        # Login to the terminal service to get the user token for the console id
+        svr = win32ts.WTSOpenServer(".")
+        user_token = win32ts.WTSQueryUserToken(session_id)
+        logging.info("User Token " + str(user_token))
+
+        # Copy the token
+        user_token_copy = win32security.DuplicateTokenEx(user_token,
+                                                win32security.SecurityImpersonation,
+                                                win32security.TOKEN_ALL_ACCESS,
+                                                win32security.TokenPrimary)
+
+        # Put this token in the logged in session
+        win32security.SetTokenInformation(user_token_copy, win32security.TokenSessionId, session_id)
+
+        # Switch to the user
+        #win32security.ImpersonateLoggedOnUser(user_token)
+        #logging.info("Impersonating " + win32api.GetUserName())
+
+        # Run the screen shot app
+        app_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
+        #cmd = os.path.join(app_path, "sshot\\dist\\sshot.exe")
+        cmd = "c:\\programdata\\ope\\bin\\sshot.exe"
+        #cmd = "cmd.exe"
+        logging.info("Running sshot app " + cmd)
+
+        # Use win create process function
+        si = win32process.STARTUPINFO()
+        si.dwFlags = win32process.STARTF_USESHOWWINDOW
+        si.wShowWindow = win32con.SW_NORMAL
+        #si.lpDesktop = "WinSta0\Default"
+        si.lpDesktop = ""
+
+        try:
+            (hProcess, hThread, dwProcessId, dwThreadId) = win32process.CreateProcessAsUser(user_token_copy,
+                                             None,   # AppName (really command line, blank if cmd line supplied)
+                                             "\"" + cmd + "\"",  # Command Line (blank if app supplied)
+                                             None,  # Process Attributes
+                                             None,  # Thread Attributes
+                                             0,  # Inherits Handles
+                                             win32con.NORMAL_PRIORITY_CLASS,  # or win32con.CREATE_NEW_CONSOLE,
+                                             None,  # Environment
+                                             os.path.dirname(cmd),  # Curr directory
+                                             si)  # Startup info
+
+            logging.info("Process Started: " + str(dwProcessId))
+            logging.info(hProcess)
+        except Exception as e:
+            logging.info("Error launching process: " + str(e))
+
+        #logging.info(os.system(cmd))
+
+        # Return us to normal security
+        #win32security.RevertToSelf()
+
+        # Cleanup
+        win32ts.WTSCloseServer(svr)
+        user_token.close()
+        user_token_copy.close()
+
+        return
+
+    def runScreenShotApp2(self):
         console_id = win32ts.WTSGetActiveConsoleSessionId()
         if console_id == 0xffffffff:
             # User not logged in right now?
@@ -261,10 +354,10 @@ class OPEService(win32serviceutil.ServiceFramework):
         
         
     def main(self):
-        #f = open('D:\\test.txt', 'a')
         rc = None
         while rc != win32event.WAIT_OBJECT_0:
             # TODO
+            #logging.info("Loop...")
 
             # Grab screen shots
             i = random.randint(0, 2)
@@ -284,10 +377,11 @@ class OPEService(win32serviceutil.ServiceFramework):
             # Is online?
 
 
-            #block for 24*60*60 seconds and wait for a stop event
-            #it is used for a one-day loop
-            rest = 5 * 1000 # 24*60*60*1000
+            # block for 24*60*60 seconds and wait for a stop event
+            # it is used for a one-day loop
+            rest = 5  # * 1000  # 24*60*60*1000
             rc = win32event.WaitForSingleObject(self.hWaitStop, rest)
+            time.sleep(5)
         
         
 if __name__ == '__main__':

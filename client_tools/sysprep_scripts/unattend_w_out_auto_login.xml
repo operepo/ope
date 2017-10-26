@@ -18,7 +18,7 @@
             </WindowsFeatures>
             <BluetoothTaskbarIconEnabled>false</BluetoothTaskbarIconEnabled>
             <ComputerName>StudentPC</ComputerName>
-            <CopyProfile>false</CopyProfile>
+            <CopyProfile>true</CopyProfile>
             <DoNotCleanTaskBar>true</DoNotCleanTaskBar>
             <EnableStartMenu>true</EnableStartMenu>
             <RegisteredOrganization>Department Of corrections</RegisteredOrganization>
@@ -38,23 +38,6 @@
     </settings>
     <settings pass="oobeSystem">
         <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-            <AutoLogon>
-                <Password>
-                    <Value>IwAkACMAJAAjACQAIwAkACEAIwBAACMAJABQAGEAcwBzAHcAbwByAGQA</Value>
-                    <PlainText>false</PlainText>
-                </Password>
-                <Enabled>true</Enabled>
-                <LogonCount>1</LogonCount>
-                <Username>firstboot</Username>
-            </AutoLogon>
-            <FirstLogonCommands>
-                <SynchronousCommand wcm:action="add">
-                    <RequiresUserInput>false</RequiresUserInput>
-                    <Order>1</Order>
-                    <Description>Do initial setup after imaging</Description>
-                    <CommandLine>C:\Apps\sysprep_scripts\SetupComplete.cmd</CommandLine>
-                </SynchronousCommand>
-            </FirstLogonCommands>
             <OOBE>
                 <HideEULAPage>true</HideEULAPage>
                 <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
@@ -66,19 +49,6 @@
                 <SkipMachineOOBE>true</SkipMachineOOBE>
                 <SkipUserOOBE>true</SkipUserOOBE>
             </OOBE>
-            <UserAccounts>
-                <LocalAccounts>
-                    <LocalAccount wcm:action="add">
-                        <Password>
-                            <Value>IwAkACMAJAAjACQAIwAkACEAIwBAACMAJABQAGEAcwBzAHcAbwByAGQA</Value>
-                            <PlainText>false</PlainText>
-                        </Password>
-                        <Description>Account to login after imaging</Description>
-                        <DisplayName>FirstBoot</DisplayName>
-                        <Name>firstboot</Name>
-                    </LocalAccount>
-                </LocalAccounts>
-            </UserAccounts>
         </component>
     </settings>
     <settings pass="generalize">
