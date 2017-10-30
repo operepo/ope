@@ -2,9 +2,13 @@
 
 REM Much of this pulled from https://forums.fogproject.org/topic/9877/windows-10-pro-oem-sysprep-imaging/2
 
+rem disable win store auto updates which can break sysprep
+reg add HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsStore /v AutoDownload /t REG_DWORD /d 2 /f
+
+
 rem remove firstboot profile
 echo removing firstboot profile...
-wmic /node:localhost path win32_UserProfile where LocalPath="c:\\users\\firstboot" Delete 2>>c:\apps\sysprep_scripts\wmic.err
+wmic /node:localhost path win32_UserProfile where LocalPath="c:\\users\\firstboot" Delete 2>>c:\windows\setup\sysprep_scripts\wmic.err
 
 rem see win10_fix.cmd for ways to fix things
 
@@ -61,7 +65,7 @@ echo Do you want to zero the drive [recommended but takes hours - default N in 6
 choice /C yn /T 6 /D n /M "Press y for yes, or n to skip"
 if errorlevel 2 goto skipzero
 echo Writing zeros to the drive...
-rem c:\apps\sdelete\sdelete -z c:
+rem c:\windows\setup\sysprep_scripts\sdelete\sdelete -z c:
 :skipzero
 
 echo Do you want to run chkdisk [recommended - default y in 6 seconds]?

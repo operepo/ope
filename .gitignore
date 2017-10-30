@@ -32,3 +32,5 @@ ope.git
 /SyncApp/syncope.ini
 /syncope.ini
 /client_tools/bin/Win 10 1607 Security Baseline/Local_Script/LOGS/*.log
+/client_tools/sysprep_scripts/AppAssoc.xml
+/client_tools/sysprep_scripts/wmic.err

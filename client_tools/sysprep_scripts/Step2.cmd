@@ -5,8 +5,8 @@ echo Turn off hibernate...
 powercfg /H off
 
 rem remove firstboot profile
-REM echo removing firstboot profile...
-REM wmic /node:localhost path win32_UserProfile where LocalPath="c:\\users\\firstboot" Delete 2>>c:\apps\sysprep_scripts\wmic.err
+echo removing firstboot profile...
+wmic /node:localhost path win32_UserProfile where LocalPath="c:\\users\\firstboot" Delete 2>>c:\apps\sysprep_scripts\wmic.err
 
 rem delete shadow copies
 echo deleting shadow copies...
@@ -33,6 +33,7 @@ del /F "C:\Program Files (x86)\FOG\fog.log"
 del /F "C:\fog.log"
 del /F "C:\Program Files (x86)\FOG\token.dat"
 
+
 echo Do you want to run disk cleanup [recommended - default Y in 6 seconds]?
 choice /C yn /T 6 /D y /M "Press y for yes, or n to skip"
 if errorlevel 2 goto skipdiskcleanup
@@ -45,7 +46,7 @@ echo Do you want to zero the drive [recommended but takes hours - default N in 6
 choice /C yn /T 6 /D n /M "Press y for yes, or n to skip"
 if errorlevel 2 goto skipzero
 echo Writing zeros to the drive...
-rem c:\apps\sdelete\sdelete -z c:
+rem c:\windows\setup\sysprep_scripts\sdelete\sdelete -z c:
 :skipzero
 
 echo Do you want to run defrag [recommended]?
@@ -61,15 +62,69 @@ rem set startup script
 rem wmic /node:localhost path win32_NetworkLoginProfile where caption="firstboot" set scriptpath="c:\apps\sysprep_scripts\SetupComplete.cmd"
 REM NOTE: This will run for ANY user that logs in, so the firstboot user doesn't need a startup script, just be set to login.
 rem reg add HKLM\Software\Microsoft\Windows\CurrentVersion\RunOnce /v SetupComplete /t REG_SZ /d "c:\apps\sysprep_scripts\SetupComplete.cmd reboot" /f
-reg add HKLM\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce /v SetupComplete /t REG_SZ /d "c:\apps\sysprep_scripts\SetupComplete.cmd" /f
+rem reg add HKLM\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce /v SetupComplete /t REG_SZ /d "c:\apps\sysprep_scripts\SetupComplete.cmd" /f
 
 rem disable cortana
 reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v AllowCortana /t REG_DWORD /d 0 /f
 
-rem Download the current fog certificates 
-echo Updating fog certificates...
-fix_fog_service.cmd
 
+rem Export current app defaults so we can import them later
+DISM /online /export-defaultappassociations:AppAssoc.xml
+
+
+rem activate windows with KMS server
+rem install public key
+rem win 10 enterprise - NPPR9-FWDCX-D2C8J-H872K-2YT43
+REM c:\windows\system32\slmgr.vbs /ipk NPPR9-FWDCX-D2C8J-H872K-2YT43
+rem activate with kms server
+REM c:\windows\system32\slmgr.vbs /ato
+rem view detailed info
+rem slmgr.vbs /dlv
+
+rem enable auto discovery of kms server
+rem slmgr.vbs /ckms
+rem manual activation
+rem slmgr.vbs /skms server:port
+
+rem activate office 2016 with KMS server
+rem CD \Program Files\Microsoft Office\Office16
+rem specify server name
+rem cscript ospp.vbs /sethst:kms01.yourdomain.com
+rem activate office 
+REM REM cscript c:\Program Files\Microsoft Office\Office16ospp.vbs /act
+rem status of activation 
+rem cscript ospp.vbs /dstatusall
+rem disable host cache
+rem cscript ospp.vbs /cachst:FALSE
+rem enable host cache
+rem cscript ospp.vbs /cachst:TRUE
+
+rem --- kms notes - activate kms host - activate initial host requires internet or phone ---
+rem Check current status
+rem slmgr.vbs /dlv
+rem uninstall current kms key
+rem slmgr.vbs /upk
+rem install new KMS key
+rem slmgr.vbs /ipk KEY TO INSTALL
+rem activate kms host
+rem slmgr.vbs /ato
+rem c:\windows\system32\slmgr.vbs
+
+rem allow win store apps to update again
+REM reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsStore /v AutoDownload /f
+
+
+REM Copy SetupComplete.cmd to c:\windows\setup\scripts\
+c:\windows\system32\takeown.exe /f ..\Scripts
+c:\windows\system32\icacls.exe ..\Scripts /grant Administrators:(OI)(CI)F /T
+copy %~dp0\SetupComplete.cmd c:\windows\setup\scripts\
+
+echo -----------------------------------------------------------------
+echo - NOTE - broken win 10 1709 - will fail on sysprep
+echo - Edit c:\windows\system32\sysprep\actionscripts\generalize.xml
+echo - Comment out whole section on Appx (from <image to </image> )
+echo -----------------------------------------------------------------
+echo
 echo "This will run sysprep and shutdown."
 echo Do you want to run sysprep [recommended]?
 choice /C yn /m "Press n for no, or y to run sysprep"

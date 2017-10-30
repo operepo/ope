@@ -1,7 +1,7 @@
 REM Create SetupComplete.cmd (C:\Windows\Setup\Scripts\SetupComplete.cmd)
-
+echo Running SetupComplete.cmd
 rem disable ipv6 - interferes w joining domains in some cases - set back to 0 to enable (windows default)
-reg add HKLM\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters /v DisabledComponents /t REG_DWORD /d 0xff /f
+rem reg add HKLM\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters /v DisabledComponents /t REG_DWORD /d 0xff /f
 
 rem make sure we don't have hibernate enabled
 powercfg /H off
@@ -18,46 +18,28 @@ rem	shutdown /r /t 1
 rem :skipreboot
 
 
-
-rem activate windows with KMS server
-rem install public key
-rem win 10 enterprise - NPPR9-FWDCX-D2C8J-H872K-2YT43
-c:\windows\system32\slmgr.vbs /ipk NPPR9-FWDCX-D2C8J-H872K-2YT43
-rem activate with kms server
-c:\windows\system32\slmgr.vbs /ato
-rem view detailed info
-rem slmgr.vbs /dlv
-
-rem enable auto discovery of kms server
-rem slmgr.vbs /ckms
-rem manual activation
-rem slmgr.vbs /skms server:port
-
-rem activate office 2016 with KMS server
-rem CD \Program Files\Microsoft Office\Office16
-rem specify server name
-rem cscript ospp.vbs /sethst:kms01.yourdomain.com
-rem activate office 
-cscript c:\Program Files\Microsoft Office\Office16ospp.vbs /act
-rem status of activation 
-rem cscript ospp.vbs /dstatusall
-rem disable host cache
-rem cscript ospp.vbs /cachst:FALSE
-rem enable host cache
-rem cscript ospp.vbs /cachst:TRUE
-
-rem --- kms notes - activate kms host - activate initial host requires internet or phone ---
-rem Check current status
-rem slmgr.vbs /dlv
-rem uninstall current kms key
-rem slmgr.vbs /upk
-rem install new KMS key
-rem slmgr.vbs /ipk KEY TO INSTALL
-rem activate kms host
-rem slmgr.vbs /ato
-rem c:\windows\system32\slmgr.vbs
+rem import app associations
+DISM /online /import-defaultappassociations:..\sysprep_scripts\AppAssoc.xml
 
 
 rem make sure fog service is enabled
 sc config FOGService start=delayed-auto
+rem download and install the certs for the fog service
+echo Downloading Fog certs...
+..\sysprep_scripts\wget.exe -O srvpublic.crt http://fog.ed/fog/management/other/ssl/srvpublic.crt
+..\sysprep_scripts\wget.exe -O ca.cert.der http://fog.ed/fog/management/other/ca.cert.der
+
+rem install the certs
+echo Installing Fog certs...
+REM remove old certs
+certmgr.exe -del -c -n "FOG Project" -s -r localMachine Root
+certmgr.exe -del -c -n "FOG Server CA" -s -r localMachine Root
+
+certmgr.exe -add ca.cert.der -c -s -r localMachine root
+rem certmgr.exe -add ca.cert.der -c -s -r localMachine trustedpublisher
+certmgr.exe -add srvpublic.crt -c -s -r localMachine root
+rem certmgr.exe -add srvpublic.crt -c -s -r localMachine trustedpublisher
+
 net start FOGService
+
+echo SetupComplete.cmd Finished.
