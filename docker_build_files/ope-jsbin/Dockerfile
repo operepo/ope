@@ -1,6 +1,6 @@
 FROM node:0.10
 
-RUN npm install -g jsbin
+RUN npm install -g jsbin@3.11.23
 
 #ENV JSBIN_CONFIG=/usr/local/lib/node_modules/jsbin/config.default.json 
 ENV JSBIN_CONFIG=/config/jsbin.json
