@@ -1,4 +1,4 @@
-    ope-gitlab:
+    ope-git:
         build: ./ope-git
         image: operepo/ope-git:release
         container_name: ope-git
