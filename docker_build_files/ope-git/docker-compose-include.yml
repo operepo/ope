@@ -25,10 +25,13 @@
             - VIRTUAL_PORT=80
             - VIRTUAL_PROTO=http
             - CERT_NAME=default
-            - GITLAB_OMNIBUS_CONFIG = "nginx['enable']=true;external_url='https://git.<DOMAIN>'
+            - GITLAB_ROOT_PASSWORD=${IT_PW}
+            - GITLAB_ROOT_EMAIL=admin@ed
+            - GITLAB_OMNIBUS_CONFIG = |
+                nginx['enable']=true;external_url='https://git.<DOMAIN>'
                 gitlab_rails['gitlab_shell_ssh_port'] = 2224
-                gitlab_rails['initial_root_password'] = "${IT_PW}"
+                gitlab_rails['initial_root_password'] = '${IT_PW}'
                 gitlab_rails['gitlab_signup_enabled'] = false
-                nginx['proxy_set_headers']={'X-Forwarded-Proto'=>'https','X-Forwarded-Ssl'=>'on'};"
+                nginx['proxy_set_headers']={'X-Forwarded-Proto'=>'https','X-Forwarded-Ssl'=>'on'}
         
         
