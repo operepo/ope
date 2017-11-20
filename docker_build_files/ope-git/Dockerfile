@@ -1,4 +1,4 @@
-FROM gitlab/gitlab-ce:release
+FROM gitlab/gitlab-ce:latest
 
 ENV VIRTUAL_HOST=git.ed
 
