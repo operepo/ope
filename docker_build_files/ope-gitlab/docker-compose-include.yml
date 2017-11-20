@@ -1,18 +1,18 @@
     ope-gitlab:
-        build: ./ope-gitlab
-        image: operepo/ope-gitlab:release
-        container_name: ope-gitlab
+        build: ./ope-git
+        image: operepo/ope-git:release
+        container_name: ope-git
         restart: always
-        hostname: gitlab.<DOMAIN>
+        hostname: git.<DOMAIN>
         ports:
             - "80"
             #- "443"
             - "2224:2224"
             #- "8080"
         volumes:
-            - ../volumes/gitlab/config:/etc/gitlab:rw
-            - ../volumes/gitlab/logs:/var/log/gitlab:rw
-            - ../volumes/gitlab/data:/var/opt/gitlab:rw
+            - ../volumes/git/config:/etc/git:rw
+            - ../volumes/git/logs:/var/log/git:rw
+            - ../volumes/git/data:/var/opt/git:rw
         depends_on:
             - ope-gateway
             - ope-dns
@@ -21,11 +21,11 @@
             - PORT=443
             - IT_PW=${IT_PW}
             - OFFICE_PW=${OFFICE_PW}
-            - VIRTUAL_HOST=gitlab.<DOMAIN>
+            - VIRTUAL_HOST=git.<DOMAIN>
             - VIRTUAL_PORT=80
             - VIRTUAL_PROTO=http
             - CERT_NAME=default
-            - GITLAB_OMNIBUS_CONFIG = "nginx['enable']=true;external_url='https://gitlab.<DOMAIN>'
+            - GITLAB_OMNIBUS_CONFIG = "nginx['enable']=true;external_url='https://git.<DOMAIN>'
                 gitlab_rails['gitlab_shell_ssh_port'] = 2224
                 gitlab_rails['initial_root_password'] = "${IT_PW}"
                 gitlab_rails['gitlab_signup_enabled'] = false

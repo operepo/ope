@@ -1,4 +1,4 @@
-FROM nginx:alpine
+FORM gitlab/gitlab-ce:latest
 
 # ope-git - OPE Git Server - offline version
 # Build with docker build -t ope-git .
@@ -14,5 +14,5 @@ LABEL Description="Offline Git Server - Image for Open Prison Education" Vendor=
 
 COPY nginx.conf /etc/nginx/nginx.conf
 
-VOLUME ["/usr/share/nginx/html"]
+VOLUME ["/etc/gitlab", "/var/log/gitlab", "/var/opt/gitlab"]
 EXPOSE 80
