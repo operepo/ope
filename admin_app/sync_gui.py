@@ -520,7 +520,7 @@ class SyncOPEApp(App):
         # TODO - follow symlinks for folders/files
         for f in sftp.listdir_attr(remote_path):
             if stat.S_ISDIR(f.st_mode):
-                status_label.text += "\n" + depth_str + "Found Dir: " + f.filename
+                #status_label.text += "\n" + depth_str + "Found Dir: " + f.filename
                 n_remote_path = os.path.join(remote_path, f.filename).replace("\\", "/")
                 n_local_path = os.path.join(local_path, f.filename)
                 self.sftp_pull_files(n_remote_path, n_local_path, sftp, status_label, depth+1)
@@ -574,7 +574,7 @@ class SyncOPEApp(App):
                 pass
             l_path = os.path.join(enc_local_path, enc_item)
             if os.path.isdir(l_path):
-                status_label.text += "\n" + depth_str + "Found Dir: " + enc_item.encode('ascii', 'ignore')
+                #status_label.text += "\n" + depth_str + "Found Dir: " + enc_item.encode('ascii', 'ignore')
                 n_remote_path = os.path.join(remote_path, enc_item).replace("\\", "/")
                 n_local_path = os.path.join(enc_local_path, enc_item)
                 # Make sure the directory exists on the remote system
@@ -624,7 +624,7 @@ class SyncOPEApp(App):
         # Sync files on the online server with the USB drive
 
         # Get project folder (parent folder)
-        root_path = os.path.dirname( get_app_folder() )
+        root_path = os.path.dirname(get_app_folder())
         volumes_path = os.path.join(root_path, "volumes")
         volume_path = os.path.join(volumes_path, volume)
         folder_path = os.path.join(volume_path, folder.replace("/", os.sep))
@@ -821,16 +821,17 @@ class SyncOPEApp(App):
         # Make sure ssh keys exist (saved in home directory in .ssh folder on current computer)
         bash_path = os.path.join(root_path, "PortableGit/bin/bash.exe")
         # Run this to generate keys
-        proc = subprocess.Popen(bash_path + " -c 'if [ ! -f ~/.ssh/id_rsa ]; then ssh-keygen -t rsa -f ~/.ssh/id_rsa; fi'", stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+        proc = subprocess.Popen(bash_path + " -c 'if [ ! -f ~/.ssh/id_rsa ]; then ssh-keygen -P \"\" -t rsa -f ~/.ssh/id_rsa; fi'", stdout=subprocess.PIPE, stdin=subprocess.PIPE)
         try:
-            proc.stdin.write("\n\n")  #  Write 2 line feeds to add empty passphrase
+            # proc.stdin.write("\n\n")  #  Write 2 line feeds to add empty passphrase
+            pass
         except:
             # This will fail if it isn't waiting for input, that is ok
             pass
         proc.stdin.close()
         for line in proc.stdout:
             status_label.text += line
-        #ret += proc.stdout.read()
+        #  ret += proc.stdout.read()
 
     def add_ssh_key_to_authorized_keys(self, ssh, status_label):
         ret = ""
@@ -937,11 +938,16 @@ class SyncOPEApp(App):
 
         return ret
 
-    def start_apps(self, ssh, ssh_folder, status_label):
+    def start_apps(self, ssh, ssh_folder, status_label, ip, domain):
         # Start the docker apps by calling the up.sh script
         ret = ""
 
         build_path = os.path.join(ssh_folder, "docker_build_files").replace("\\", "/")
+
+        # Make sure .ip and .domain files exist
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; if [ ! -f .ip ]; then echo \"" + ip + "\" > .ip; fi ", get_pty=True)
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; if [ ! -f .domain ]; then echo \"" + domain + "\" > .domain; fi ", get_pty=True)
+
         # Run twice - sometimes compose fails, so we just rerun it
         stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; sh up.sh; sh up.sh; ", get_pty=True)
         stdin.close()
@@ -1180,6 +1186,7 @@ class SyncOPEApp(App):
         # Login to the OPE server
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        domain = "ed"
         ssh_server = self.config.getdefault("Online Settings", "server_ip", "127.0.0.1")
         ssh_user = self.config.getdefault("Online Settings", "server_user", "root")
         ssh_pass = self.get_online_pw()  # self.config.getdefault("Online Settings", "server_password", "")
@@ -1212,7 +1219,7 @@ class SyncOPEApp(App):
 
             # Run the up command so the docker apps start
             status_label.text += "\n\n[b]Starting Apps[/b]\n - some apps may be slow to come online (e.g. canvas)...\n"
-            self.start_apps(ssh, ssh_folder, status_label)
+            self.start_apps(ssh, ssh_folder, status_label, ssh_server, domain)
 
             # Save the image binary files for syncing
             status_label.text += "\n\n[b]Save app binaries[/b]\n - will take a few minutes...\n"
@@ -1260,6 +1267,7 @@ class SyncOPEApp(App):
         # Login to the OPE server
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        domain = "ed"
         ssh_server = self.config.getdefault("Offline Settings", "server_ip", "127.0.0.1")
         ssh_user = self.config.getdefault("Offline Settings", "server_user", "root")
         ssh_pass = self.get_offline_pw()  # self.config.getdefault("Offline Settings", "server_password", "")
@@ -1296,7 +1304,7 @@ class SyncOPEApp(App):
 
             # Run the up command so the docker apps start
             status_label.text += "\n\n[b]Starting Apps[/b]\n - some apps may be slow to come online (e.g. canvas)...\n"
-            self.start_apps(ssh, ssh_folder, status_label)
+            self.start_apps(ssh, ssh_folder, status_label, ssh_server, domain)
 
             # Start syncing volume folders
             status_label.text += "\n\n[b]Syncing Volumes[/b]\n - may take a while...\n"
@@ -1316,7 +1324,6 @@ class SyncOPEApp(App):
             run_button.disabled = False
 
         pass
-
 
     def verify_ope_server(self, status_label):
         # See if you can connect to the OPE serve and if the .ope_root file is present
