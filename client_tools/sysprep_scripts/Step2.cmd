@@ -71,7 +71,11 @@ rem reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v AllowCo
 rem Export current app defaults so we can import them later
 DISM /online /export-defaultappassociations:AppAssoc.xml
 
+REM PC software - use these keys for win 10 pro and office 2016
+REM cscript c:\windows\system32\slmgr.vbs /ipk W269N-WFGWX-YVC9B-4J6C9-T83GX
+REM cscript 'c:\Program Files\Microsoft Office\Office16\ospp.vbs' /inpkey:XQNVK-8JYDB-WJ9W3-YJ8YR-WFG99
 
+REM ---------- SCRATCH -------------------
 rem activate windows with KMS server
 rem install public key
 rem win 10 pro - W269N-WFGWX-YVC9B-4J6C9-T83GX
@@ -127,6 +131,7 @@ rem slmgr.vbs /ipk KEY TO INSTALL
 rem activate kms host
 rem slmgr.vbs /ato
 rem c:\windows\system32\slmgr.vbs
+REM ---------- SCRATCH -------------------
 
 rem allow win store apps to update again
 REM reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsStore /v AutoDownload /f

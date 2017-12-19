@@ -1,8 +1,8 @@
 namespace :ope do
   desc "Deal with OPE specific startup and configuration tasks"
   
-  task :enable_auditing => :environment do
-	# Add the audit scheme/etc...
+  task :init_db => :environment do
+    # Add the audit scheme/etc...
 	ActiveRecord::Base.connection.execute( <<-SQLSTRING
 
 CREATE SCHEMA IF NOT EXISTS ope_audit;
@@ -265,7 +265,9 @@ $body$;
 	
 SQLSTRING
 	)
-	
+  end
+  
+  task :enable_auditing => :environment do
 	# Audit all tables in the db
 	ActiveRecord::Base.connection.tables.each do |table|
 	  begin
@@ -288,6 +290,8 @@ SQLSTRING
   
   task :startup => :environment do
 	# Do all startup tasks
+    puts "-----> init auditing tables..."
+    Rake::Task['ope:init_db'].invoke
 	
 	# Get the number of schema migrations so we can see if db:migrate changes anything
 	pre_migrations = 0
@@ -300,7 +304,9 @@ SQLSTRING
 		
 	# Make sure we are at the current table version
 	#$GEM_HOME/bin/bundle exec rake db:migrate
-	Rake::Task['db:migrate'].invoke
+    puts "-----> running db:migrate..."
+    Rake::Task['db:migrate'].invoke
+    
 	
 	# Get the number after migrations
 	sql_row = ActiveRecord::Base.connection.exec_query("select count(*) as cnt from schema_migrations")
@@ -310,24 +316,27 @@ SQLSTRING
 
 	# Load the unique sequence range for this install to avoid ID conflicts
 	#$GEM_HOME/bin/bundle exec rake ope:set_sequence_range
+    puts "-----> running ope:set_sequence_range..."
 	Rake::Task['ope:set_sequence_range'].invoke
 
 	# Make sure that we have loaded and enabled the audit stuff
 	#$GEM_HOME/bin/bundle exec rake ope:enable_auditing
+    puts "-----> enabling audting - ope:enable_auditing..."
 	Rake::Task['ope:enable_auditing'].invoke
 
 	# Make sure that the assets are properly compiled (run this each time as a migrate may require a recompile)
 	if (pre_migrations != post_migrations)
-		puts "Migrations detected, compiling assets"
+		puts "-----> Migrations detected, compiling assets"
 		#$GEM_HOME/bin/bundle exec rake canvas:compile_assets
 		Rake::Task['canvas:compile_assets'].invoke
          
 	else
-		puts "No migrations detected"
+		puts "-----> No migrations detected"
 	end
     
     # Make sure brand configs are present
     #$GEM_HOME/bin/bundle exec rake brand_configs:generate_and_upload_all
+    puts "-----> brand_configs:generate_and_upload_all..."
     Rake::Task['brand_configs:generate_and_upload_all'].invoke
   end
   
@@ -376,7 +385,7 @@ SQLSTRING
 	end
 	
 	# Update the database sequences to use this range
-	ActiveRecord::Base.connection.tables.each do |table|	  
+	ActiveRecord::Base.connection.tables.each do |table|  
 	  begin
 		last_seq = 0
 		seq_row = ActiveRecord::Base.connection.exec_query("select nextval('#{table}_id_seq'::regclass) as nv")

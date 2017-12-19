@@ -3,19 +3,21 @@
 # change to force update/checkout after adjusting gitattribute linefeeds
 
 # Need these loaded for tftp server to work
-echo "Ensuring tftp kernel modules are loaded..."
-modprobe nf_conntrack_tftp
-modprobe nf_nat_tftp
-modprobe nf_conntrack_ftp
-modprobe nf_conntrack_netbios_ns
-modprobe nfs
-modprobe nfsd
+#### Moved to ope-router so it runs on auto startup after a reboot
+#echo "Ensuring tftp kernel modules are loaded..."
+#modprobe nf_conntrack_tftp
+#modprobe nf_nat_tftp
+#modprobe nf_conntrack_ftp
+#modprobe nf_conntrack_netbios_ns
+#modprobe nfs
+#modprobe nfsd
 
 
 # Add some rules to track tftp traffic
-WLAN_IF=eth0
-iptables -A INPUT -i $WLAN_IF -p udp -m state --state ESTABLISHED,RELATED -j ACCEPT
-iptables -A INPUT -i $WLAN_IF -p udp --dport 69 -m state --state NEW -j ACCEPT
+#### Moved to ope-router
+#WLAN_IF=eth0
+#iptables -A INPUT -i $WLAN_IF -p udp -m state --state ESTABLISHED,RELATED -j ACCEPT
+#iptables -A INPUT -i $WLAN_IF -p udp --dport 69 -m state --state NEW -j ACCEPT
 
 
 echo "Rebuilding docker compose..."
