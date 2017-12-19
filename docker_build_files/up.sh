@@ -23,7 +23,6 @@ modprobe ipip
 echo "ipip" > /etc/modules-load.d/ipip.conf
 
 
-#### Moved to ope-router so that they are applied after system reboot
 # Add some rules to track tftp traffic
 #WLAN_IF=eth0
 #iptables -A INPUT -i $WLAN_IF -p udp -m state --state ESTABLISHED,RELATED -j ACCEPT

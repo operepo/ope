@@ -71,11 +71,16 @@ rem reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v AllowCo
 rem Export current app defaults so we can import them later
 DISM /online /export-defaultappassociations:AppAssoc.xml
 
+REM PC software - use these keys for win 10 pro and office 2016
+REM cscript c:\windows\system32\slmgr.vbs /ipk W269N-WFGWX-YVC9B-4J6C9-T83GX
+REM cscript 'c:\Program Files\Microsoft Office\Office16\ospp.vbs' /inpkey:XQNVK-8JYDB-WJ9W3-YJ8YR-WFG99
 
+REM ---------- SCRATCH -------------------
 rem activate windows with KMS server
 rem install public key
+rem win 10 pro - W269N-WFGWX-YVC9B-4J6C9-T83GX
 rem win 10 enterprise - NPPR9-FWDCX-D2C8J-H872K-2YT43
-REM c:\windows\system32\slmgr.vbs /ipk NPPR9-FWDCX-D2C8J-H872K-2YT43
+REM c:\windows\system32\slmgr.vbs /ipk W269N-WFGWX-YVC9B-4J6C9-T83GX
 rem activate with kms server
 REM c:\windows\system32\slmgr.vbs /ato
 rem view detailed info
@@ -86,12 +91,29 @@ rem slmgr.vbs /ckms
 rem manual activation
 rem slmgr.vbs /skms server:port
 
+
+REM set APP=sysinternalssuite\psexec.exe
+REM set LIST=computer_list_test.txt
+REM set LIST=computer_list.txt
+
+REM active win 10
+REM %APP% @%LIST% -dehs cmd /C "cscript 'c:\windows\system32\slmgr.vbs' /ipk W269N-WFGWX-YVC9B-4J6C9-T83GX"
+REM %APP% @%LIST% -dehs cmd /C "cscript 'c:\windows\system32\slmgr.vbs' /ato"
+
+
+REM activate office
+REM %APP% @%LIST% -dehs cmd /C "cscript 'c:\Program Files\Microsoft Office\Office16\ospp.vbs' /inpkey:XQNVK-8JYDB-WJ9W3-YJ8YR-WFG99"
+REM %APP% @%LIST% -dehs cmd /C "cscript 'c:\Program Files\Microsoft Office\Office16\ospp.vbs' /act"
+
+
 rem activate office 2016 with KMS server
 rem CD \Program Files\Microsoft Office\Office16
 rem specify server name
 rem cscript ospp.vbs /sethst:kms01.yourdomain.com
+REM set public kms key for office 2016
+rem .\psexec.exe \\acct-inst,acct-1,acct-2,acct-3,acct-4,acct-5,acct-ta1,acct-ta2 -u huskers -dehs cmd /C "cscript 'c:\Program Files\Microsoft Office\Office16\ospp.vbs' /inpkey:XQNVK-8JYDB-WJ9W3-YJ8YR-WFG99"
 rem activate office 
-REM REM cscript c:\Program Files\Microsoft Office\Office16ospp.vbs /act
+REM REM cscript c:\Program Files\Microsoft Office\Office16\ospp.vbs /act
 rem status of activation 
 rem cscript ospp.vbs /dstatusall
 rem disable host cache
@@ -109,6 +131,7 @@ rem slmgr.vbs /ipk KEY TO INSTALL
 rem activate kms host
 rem slmgr.vbs /ato
 rem c:\windows\system32\slmgr.vbs
+REM ---------- SCRATCH -------------------
 
 rem allow win store apps to update again
 REM reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\WindowsStore /v AutoDownload /f
