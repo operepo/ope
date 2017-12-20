@@ -1,20 +1,29 @@
 #!/bin/sh
 
+systemctl disable rpcbind
+systemctl stop rpcbind
+
 # change to force update/checkout after adjusting gitattribute linefeeds
 
 # Need these loaded for tftp server to work
-#### Moved to ope-router so it runs on auto startup after a reboot
-#echo "Ensuring tftp kernel modules are loaded..."
-#modprobe nf_conntrack_tftp
-#modprobe nf_nat_tftp
-#modprobe nf_conntrack_ftp
-#modprobe nf_conntrack_netbios_ns
-#modprobe nfs
-#modprobe nfsd
+echo "Ensuring kernel modules are loaded..."
+modprobe nf_conntrack_tftp
+echo "nf_conntrack_tftp" > /etc/modules-load.d/nf_conntrack_tftp.conf
+modprobe nf_nat_tftp
+echo "nf_nat_tftp" > /etc/modules-load.d/nf_nat_tftp.conf
+modprobe nf_conntrack_ftp
+echo "nf_conntrack_ftp" > /etc/modules-load.d/nf_conntrack_ftp.conf
+modprobe nf_conntrack_netbios_ns
+echo "nf_conntrack_netbios_ns" > /etc/modules-load.d/nf_conntrack_netbios_ns.conf
+modprobe nfs
+echo "nfs" > /etc/modules-load.d/nfs.conf
+modprobe nfsd
+echo "nfsd" > /etc/modules-load.d/nfsd.conf
+modprobe ipip
+echo "ipip" > /etc/modules-load.d/ipip.conf
 
 
 # Add some rules to track tftp traffic
-#### Moved to ope-router
 #WLAN_IF=eth0
 #iptables -A INPUT -i $WLAN_IF -p udp -m state --state ESTABLISHED,RELATED -j ACCEPT
 #iptables -A INPUT -i $WLAN_IF -p udp --dport 69 -m state --state NEW -j ACCEPT
