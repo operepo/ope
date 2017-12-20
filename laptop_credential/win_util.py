@@ -130,6 +130,7 @@ def create_local_student_account(user_name, full_name, password):
     # user_data['home_dir_drive'] = "h:"
     user_data['primary_group_id'] = ntsecuritycon.DOMAIN_GROUP_RID_USERS
     user_data['password_expired'] = 0
+    user_data['acct_expires'] = win32netcon.TIMEQ_FOREVER
 
     win32net.NetUserSetInfo(None, user_name, 3, user_data)
 
