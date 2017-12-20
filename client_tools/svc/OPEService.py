@@ -26,6 +26,11 @@ import ctypes
 
 # TODO - Set recovery options for service so it restarts on failure
 
+# Disable ALL nics if this is set
+DISABLE_ALL_NICS = True
+# Disable sshot if this is set
+DISABLE_SSHOT = False
+
 # Most event notification support lives around win32gui
 GUID_DEVINTERFACE_USB_DEVICE = "{A5DCBF10-6530-11D2-901F-00C04FB951ED}"
 
@@ -48,23 +53,119 @@ def make_data_folder(folder, allow_add_file=False):
         os.makedirs(folder)
     except:
         pass
-        
+    
+    # Set inheritance flags
+    flags = win32security.OBJECT_INHERIT_ACE | win32security.CONTAINER_INHERIT_ACE
     # Set permissions on this folder so that it isn't viewable by students
     sd = win32security.GetFileSecurity(folder, win32security.DACL_SECURITY_INFORMATION)
     
     # Create the blank DACL and add our ACE's
     dacl = win32security.ACL()
     #dacl.AddAccessAllowedAce(win32security.ACL_REVISION, ntsecuritycon.FILE_GENERIC_READ, EVERYONE)
+    # Setup a folder where sshot running as the student can add pics, but can't delete/modify anythin
     if allow_add_file == True:
         dacl.AddAccessAllowedAce(win32security.ACL_REVISION, ntsecuritycon.FILE_ADD_FILE, EVERYONE)
     #dacl.AddAccessAllowedAce(win32security.ACL_REVISION, ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_WRITE, CURRENT_USER)
-    dacl.AddAccessAllowedAce(win32security.ACL_REVISION, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
-    dacl.AddAccessAllowedAce(win32security.ACL_REVISION, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
+    #dacl.AddAccessAllowedAce(win32security.ACL_REVISION, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
+    #dacl.AddAccessAllowedAce(win32security.ACL_REVISION, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
     
     # Set our ACL
     sd.SetSecurityDescriptorDacl(1, dacl, 0)
-    win32security.SetFileSecurity(folder, win32security.DACL_SECURITY_INFORMATION, sd)
-    
+    win32security.SetFileSecurity(folder, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
+    #win32security.TreeSetNamedSecurityInfo(folder, win32security.SE_FILE_OBJECT, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, None, None, sd, None)
+   
+
+def scanNics():
+    # May need to call this before calling this function so that COM works
+    #pythoncom.CoInitialize()
+    global DISABLE_ALL_NICS
+    system_nics = ["WAN Miniport (IP)", "WAN Miniport (IPv6)", "WAN Miniport (Network Monitor)",
+        "WAN Miniport (PPPOE)", "WAN Miniport (PPTP)", "WAN Miniport (L2TP)", "WAN Miniport (IKEv2)",
+        "WAN Miniport (SSTP)", "Microsoft Wi-Fi Direct Virtual Adapter", "Teredo Tunneling Pseudo-Interface",
+        "Microsoft Kernel Debug Network Adapter",
+        ]
+    approved_nics = ["Realtek USB GbE Family Controller",]
+    if DISABLE_ALL_NICS == True:
+        approved_nics = []
+
+    logging.info("scanning for unauthorized nics...")
+        
+    import win32com.client
+    strComputer = "."
+    objWMIService = win32com.client.Dispatch("WbemScripting.SWbemLocator")
+    objSWbemServices = objWMIService.ConnectServer(strComputer,"root\cimv2")
+    colItems = objSWbemServices.ExecQuery("Select * from Win32_NetworkAdapter")
+    for objItem in colItems:
+        if objItem.Name in approved_nics:
+            #logging.info("***Device found - on approved list: " + str(objItem.Name) + str(objItem.NetConnectionID))
+            continue
+        elif objItem.Name in system_nics:
+            #logging.info("***Device found - system nic - ignoring: " + str(objItem.Name))
+            continue
+        else:
+            #logging.info("***Device found :" + str(objItem.Name))
+            dev_id = objItem.NetConnectionID
+            if dev_id:
+                logging.info("     ---> !!! unauthorized !!!, disabling..." + str(dev_id))
+                cmd = "netsh interface set interface \"" + dev_id + "\" DISABLED"
+                #print cmd
+                os.system(cmd)
+            else:
+                #print "     ---> unauthorized, not plugged in..."
+                pass
+            continue
+		   
+        #print "========================================================"
+        #print "Adapter Type: ", objItem.AdapterType
+        #print "Adapter Type Id: ", objItem.AdapterTypeId
+        #print "AutoSense: ", objItem.AutoSense
+        #print "Availability: ", objItem.Availability
+        #print "Caption: ", objItem.Caption
+        #print "Config Manager Error Code: ", objItem.ConfigManagerErrorCode
+        #print "Config Manager User Config: ", objItem.ConfigManagerUserConfig
+        #print "Creation Class Name: ", objItem.CreationClassName
+        #print "Description: ", objItem.Description
+        #print "Device ID: ", objItem.DeviceID
+        #print "Error Cleared: ", objItem.ErrorCleared
+        #print "Error Description: ", objItem.ErrorDescription
+        #print "Index: ", objItem.Index
+        #print "Install Date: ", objItem.InstallDate
+        #print "Installed: ", objItem.Installed
+        #print "Last Error Code: ", objItem.LastErrorCode
+        #print "MAC Address: ", objItem.MACAddress
+        #print "Manufacturer: ", objItem.Manufacturer
+        #print "Max Number Controlled: ", objItem.MaxNumberControlled
+        #print "Max Speed: ", objItem.MaxSpeed
+        #print "Name: ", objItem.Name
+        #print "Net Connection ID: ", objItem.NetConnectionID
+        #print "Net Connection Status: ", objItem.NetConnectionStatus
+        #z = objItem.NetworkAddresses
+        #if z is None:
+        #    a = 1
+        #else:
+        #    for x in z:
+        #        print "Network Addresses: ", x
+        #print "Permanent Address: ", objItem.PermanentAddress
+        #print "PNP Device ID: ", objItem.PNPDeviceID
+        #z = objItem.PowerManagementCapabilities
+        #if z is None:
+        #    a = 1
+        #else:
+        #    for x in z:
+        #        print "Power Management Capabilities: ", x
+        #print "Power Management Supported: ", objItem.PowerManagementSupported
+        #print "Product Name: ", objItem.ProductName
+        #print "Service Name: ", objItem.ServiceName
+        #print "Speed: ", objItem.Speed
+        #print "Status: ", objItem.Status
+        #print "Status Info: ", objItem.StatusInfo
+        #print "System Creation Class Name: ", objItem.SystemCreationClassName
+        #print "System Name: ", objItem.SystemName
+        #print "Time Of Last Reset: ", objItem.TimeOfLastReset
+
+
 
 
 class OPEService(win32serviceutil.ServiceFramework):
@@ -83,7 +184,7 @@ class OPEService(win32serviceutil.ServiceFramework):
         make_data_folder(LOG_FOLDER)
         make_data_folder(SCREEN_SHOTS_FOLDER, True)
         
-        # Setup loggin
+        # Setup logging
         logging.basicConfig(
             filename=os.path.join(LOG_FOLDER, 'ope-service.log'),
             level=logging.DEBUG,
@@ -118,6 +219,7 @@ class OPEService(win32serviceutil.ServiceFramework):
         if control == win32service.SERVICE_CONTROL_DEVICEEVENT:
             info = win32gui_struct.UnpackDEV_BROADCAST(data)
             msg = "A device event occurred: %x - %s" % (event_type, info)
+            scanNics()
         elif control == win32service.SERVICE_CONTROL_HARDWAREPROFILECHANGE:
             msg = "A hardware profile changed: type=%s, data=%s" % (event_type, data)
         elif control == win32service.SERVICE_CONTROL_POWEREVENT:
@@ -181,6 +283,10 @@ class OPEService(win32serviceutil.ServiceFramework):
 
 
     def runScreenShotApp(self):
+        global DISABLE_SSHOT
+        if DISABLE_SSHOT == True:
+            return
+    
         # Get the session id for the console
         session_id = win32ts.WTSGetActiveConsoleSessionId()
         if session_id == 0xffffffff:
@@ -355,6 +461,10 @@ class OPEService(win32serviceutil.ServiceFramework):
         
     def main(self):
         rc = None
+        nic_scan_time = 0
+        # Need this so scanNics doesn't fail
+        pythoncom.CoInitialize()
+        
         while rc != win32event.WAIT_OBJECT_0:
             # TODO
             #logging.info("Loop...")
@@ -365,6 +475,10 @@ class OPEService(win32serviceutil.ServiceFramework):
                 #self.grabScreenShot()
                 self.runScreenShotApp()
             
+            # Scan for inserted NICS
+            if time.time() - nic_scan_time > 60:
+                scanNics()
+                nic_scan_time = time.time()
 
             # Grab event logs
 
@@ -382,6 +496,9 @@ class OPEService(win32serviceutil.ServiceFramework):
             rest = 5  # * 1000  # 24*60*60*1000
             rc = win32event.WaitForSingleObject(self.hWaitStop, rest)
             time.sleep(5)
+        
+        # Cleanup
+        pythoncom.CoUninitialize()
         
         
 if __name__ == '__main__':

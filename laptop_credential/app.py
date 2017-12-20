@@ -346,12 +346,38 @@ def listUSB():
             pass
 
 def listNics():
+    system_nics = ["WAN Miniport (IP)", "WAN Miniport (IPv6)", "WAN Miniport (Network Monitor)",
+        "WAN Miniport (PPPOE)", "WAN Miniport (PPTP)", "WAN Miniport (L2TP)", "WAN Miniport (IKEv2)",
+        "WAN Miniport (SSTP)", "Microsoft Wi-Fi Direct Virtual Adapter", "Teredo Tunneling Pseudo-Interface",
+        "Microsoft Kernel Debug Network Adapter",
+        ]
+    approved_nics = ["Realtek USB GbE Family Controller",]
+
     import win32com.client
     strComputer = "."
     objWMIService = win32com.client.Dispatch("WbemScripting.SWbemLocator")
     objSWbemServices = objWMIService.ConnectServer(strComputer,"root\cimv2")
     colItems = objSWbemServices.ExecQuery("Select * from Win32_NetworkAdapter")
     for objItem in colItems:
+        if objItem.Name in approved_nics:
+            print "***Device found - on approved list: ", objItem.Name, str(objItem.NetConnectionID)
+            continue
+        elif objItem.Name in system_nics:
+            #print "***Device found - system nic - ignoring: ", objItem.Name
+            continue
+        else:
+            print "***Device found :", objItem.Name
+            dev_id = objItem.NetConnectionID
+            if dev_id:
+                print "     ---> !!! unauthorized !!!, disabling...", str(dev_id)
+                cmd = "netsh interface set interface \"" + dev_id + "\" DISABLED"
+                #print cmd
+                os.system(cmd)
+            else:
+                #print "     ---> unauthorized, not plugged in..."
+                pass
+            continue
+		   
         print "========================================================"
         print "Adapter Type: ", objItem.AdapterType
         print "Adapter Type Id: ", objItem.AdapterTypeId
@@ -363,16 +389,16 @@ def listNics():
         print "Creation Class Name: ", objItem.CreationClassName
         print "Description: ", objItem.Description
         print "Device ID: ", objItem.DeviceID
-        print "Error Cleared: ", objItem.ErrorCleared
-        print "Error Description: ", objItem.ErrorDescription
-        print "Index: ", objItem.Index
-        print "Install Date: ", objItem.InstallDate
-        print "Installed: ", objItem.Installed
-        print "Last Error Code: ", objItem.LastErrorCode
-        print "MAC Address: ", objItem.MACAddress
+        #print "Error Cleared: ", objItem.ErrorCleared
+        #print "Error Description: ", objItem.ErrorDescription
+        #print "Index: ", objItem.Index
+        #print "Install Date: ", objItem.InstallDate
+        #print "Installed: ", objItem.Installed
+        #print "Last Error Code: ", objItem.LastErrorCode
+        #print "MAC Address: ", objItem.MACAddress
         print "Manufacturer: ", objItem.Manufacturer
-        print "Max Number Controlled: ", objItem.MaxNumberControlled
-        print "Max Speed: ", objItem.MaxSpeed
+        #print "Max Number Controlled: ", objItem.MaxNumberControlled
+        #print "Max Speed: ", objItem.MaxSpeed
         print "Name: ", objItem.Name
         print "Net Connection ID: ", objItem.NetConnectionID
         print "Net Connection Status: ", objItem.NetConnectionStatus
@@ -382,38 +408,34 @@ def listNics():
         else:
             for x in z:
                 print "Network Addresses: ", x
-        print "Permanent Address: ", objItem.PermanentAddress
+        #print "Permanent Address: ", objItem.PermanentAddress
         print "PNP Device ID: ", objItem.PNPDeviceID
-        z = objItem.PowerManagementCapabilities
-        if z is None:
-            a = 1
-        else:
-            for x in z:
-                print "Power Management Capabilities: ", x
-        print "Power Management Supported: ", objItem.PowerManagementSupported
+        #z = objItem.PowerManagementCapabilities
+        #if z is None:
+        #    a = 1
+        #else:
+        #    for x in z:
+        #        print "Power Management Capabilities: ", x
+        #print "Power Management Supported: ", objItem.PowerManagementSupported
         print "Product Name: ", objItem.ProductName
         print "Service Name: ", objItem.ServiceName
-        print "Speed: ", objItem.Speed
-        print "Status: ", objItem.Status
-        print "Status Info: ", objItem.StatusInfo
+        #print "Speed: ", objItem.Speed
+        #print "Status: ", objItem.Status
+        #print "Status Info: ", objItem.StatusInfo
         print "System Creation Class Name: ", objItem.SystemCreationClassName
         print "System Name: ", objItem.SystemName
-        print "Time Of Last Reset: ", objItem.TimeOfLastReset
+        #print "Time Of Last Reset: ", objItem.TimeOfLastReset
 
-        if objItem.Name == "Realtek USB GbE Family Controller":
-            print "--------------> Disabling Device!"
-            cmd = "netsh interface set interface \"" + objItem.NetConnectionID + "\" DISABLED"
-            print cmd
-            os.system(cmd)
 
 
 if __name__ == "__main__":
-    # Make sure this runs as admin
+    # TODO Make sure this runs as admin
     #
+    main()
 
     #deviceDetection()
     #listUSB()
-    listNics()
+    #listNics()
 
 
 """
