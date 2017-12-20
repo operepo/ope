@@ -100,6 +100,15 @@ def scanNics():
     for objItem in colItems:
         if objItem.Name in approved_nics:
             #logging.info("***Device found - on approved list: " + str(objItem.Name) + str(objItem.NetConnectionID))
+            dev_id = objItem.NetConnectionID
+            if dev_id:
+                logging.info("     ---> !!! Approved device !!!, enabling..." + str(dev_id))
+                cmd = "netsh interface set interface \"" + dev_id + "\" admin=ENABLED"
+                #print cmd
+                os.system(cmd)
+            else:
+                #print "     ---> unauthorized, not plugged in..."
+                pass
             continue
         elif objItem.Name in system_nics:
             #logging.info("***Device found - system nic - ignoring: " + str(objItem.Name))
@@ -109,7 +118,7 @@ def scanNics():
             dev_id = objItem.NetConnectionID
             if dev_id:
                 logging.info("     ---> !!! unauthorized !!!, disabling..." + str(dev_id))
-                cmd = "netsh interface set interface \"" + dev_id + "\" DISABLED"
+                cmd = "netsh interface set interface \"" + dev_id + "\" admin=DISABLED"
                 #print cmd
                 os.system(cmd)
             else:
