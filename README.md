@@ -92,6 +92,7 @@ We utilize Docker containers for micro services. You will need a machine that ca
    - Linux image ready to go (ISO - burn to DVD): http://correctionsed.com/updates/OPE_Docker.x86_64-0.0.10.preload.iso
    (broken link https://susestudio.com/a/P08rUy/ope-docker)
    - Assign a static IP address to each server and write it down
+   - Login with root (password: changeme) and use the passwd utility to change to a secure password
 
 2. From online computer, download the OPE Git project at: https://github.com/operepo/ope
    - From the GREEN button, click and choose "Download Zip".
