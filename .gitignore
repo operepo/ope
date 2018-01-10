@@ -34,3 +34,4 @@ ope.git
 /client_tools/bin/Win 10 1607 Security Baseline/Local_Script/LOGS/*.log
 /client_tools/sysprep_scripts/AppAssoc.xml
 /client_tools/sysprep_scripts/wmic.err
+/admin_app/SyncApp.spec
