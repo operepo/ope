@@ -3,6 +3,7 @@
         image: operepo/ope-dns:release
         container_name: ope-dns
         restart: always
+        network_mode: <NETWORK_MODE>
         cap_add:
             - NET_ADMIN
         command: -A /<DOMAIN>/<IP> # --log-facility=-
@@ -10,5 +11,7 @@
             - "53:53/tcp"
             - "53:53/udp"
         env_file: .env
+        #depends_on:
+        #    - ope-router
         environment:
             - IP_ADDR=<IP>

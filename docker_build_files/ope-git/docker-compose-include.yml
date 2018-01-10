@@ -3,6 +3,7 @@
         image: operepo/ope-git:release
         container_name: ope-git
         restart: always
+        network_mode: <NETWORK_MODE>
         hostname: git.<DOMAIN>
         ports:
             - "80"

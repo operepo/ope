@@ -2,6 +2,7 @@
         build: ./ope-gcf
         image: operepo/ope-gcf:release
         container_name: ope-gcf
+        network_mode: <NETWORK_MODE>
         restart: always
         ports:
             - "80"

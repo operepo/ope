@@ -47,7 +47,7 @@ RUN echo "Settings file permissions on node_modules..." \
 USER docker
 
 
-LABEL rebuild=25
+LABEL rebuild=27
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml

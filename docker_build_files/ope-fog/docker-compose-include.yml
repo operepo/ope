@@ -1,8 +1,15 @@
+
     ope-fog:
         build: ./ope-fog
         image: operepo/ope-fog:release
         container_name: ope-fog
+        #network_mode: none
         #network_mode: host
+        #network_mode: bridge
+        network_mode: <NETWORK_MODE>
+        #networks:
+        #    #- host_network
+        #    - default
         privileged: true
         restart: always
         cap_add:
@@ -33,6 +40,9 @@
             - "52764-52769:52764-52769/udp"
             - "52764-52769:52764-52769"
             - "52700-52730:52700-52730"
+            - "9000-9005:9000-9005/udp"
+            - "50102-50112:50102-50112/udp"
+            - "43145-43145/udp"
         labels:
             - fogproject="Open Source PC Imaging Server"
         volumes:
@@ -41,18 +51,22 @@
             #- ../volumes/fog/tftpboot:/tftpboot:rw
             #- ../volumes/fog/opt/fog:/opt/fog:rw
             - ../volumes/fog/mysql/data:/var/lib/mysql:rw
+            - ../volumes/gateway/conf.d:/etc/nginx/conf.d:rw
         depends_on:
             - ope-gateway
             - ope-dns
+        #    - ope-router
         env_file: .env
         environment:
             - IT_PW=${IT_PW}
             - OFFICE_PW=${OFFICE_PW}
             - VIRTUAL_HOST=fog.<DOMAIN>,fogserver,fogserver.<DOMAIN>
             - PUBLIC_IP=${PUBLIC_IP}
-            #- VIRTUAL_PORT=7480
+            - VIRTUAL_PORT=80
             # Share the default cert on the gateway
             - CERT_NAME=default
-            #- VIRTUAL_PROTO=http
+            - VIRTUAL_PROTO=http
             - HTTPS_METHOD=noredirect
-        
+            #- UPSTREAM_IP=<IP>
+            #- VIRTUAL_NETWORK=
+

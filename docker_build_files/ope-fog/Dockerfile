@@ -1,5 +1,6 @@
 FROM debian:jessie
-LABEL rebuild=20
+#FROM debian:stretch
+LABEL rebuild=22
 # ope-fog - Fogproject.org - System imaging server
 # Build with docker build -t ope-fog .
 
@@ -23,17 +24,36 @@ ENV LC_TYPE en_US.UTF-8
 ENV DEBIAN_FRONTEND=noninteractive
 
 LABEL REBULID=13
-RUN apt-get update; \
-apt-get -y upgrade
-
-RUN apt-get install -y wget net-tools nano python-pip python-dev libmysqlclient-dev git \
+RUN echo "deb http://ftp.us.debian.org/debian jessie-backports main" >> /etc/apt/sources.list \
+&& apt-get update \
+&& apt-get -y upgrade \
+&& apt-get install -y wget net-tools nano python-pip python-dev libmysqlclient-dev git \
 apache2 bc build-essential cpp curl g++ gawk gcc gzip htmldoc lftp libapache2-mod-php5 libc6 libcurl3 \
 m4 mysql-client mysql-server net-tools nfs-kernel-server openssh-server php5 php5-cli php5-curl php5-fpm \ 
 php5-gd php5-json php5-mcrypt php5-mysqlnd php-gettext sysv-rc-conf tar tftpd-hpa tftp-hpa \
 unzip vsftpd wget xinetd zlib1g dos2unix supervisor iptables syslinux nfs-kernel-server netbase locales \
-kmod
-RUN pip install MySQL-python
-RUN apt-get clean
+kmod genisoimage isolinux liblzma-dev pimd \
+&& pip install MySQL-python \
+&& apt-get clean \
+&& /usr/bin/mysql_install_db
+
+
+#RUN apt-get install -y wget nano python-pip python-dev git \
+#apache2 bc build-essential cpp curl g++ gawk gcc genisoimage gzip \ 
+#htmldoc isolinux lftp libapache2-mod-php7.0 libc6 libcurl3 liblzma-dev \
+#m4 mysql-client mysql-server net-tools nfs-kernel-server openssh-server \ 
+#php7.0 php7.0-bcmath php7.0-cli php7.0-curl php7.0-fpm php7.0-gd \
+#php7.0-json php7.0-mbstring php7.0-mcrypt php7.0-mysql php7.0-mysqlnd \
+#php-gettext sysv-rc-conf tar tftpd-hpa tftp-hpa unzip vsftpd wget xinetd \
+#zlib1g dos2unix supervisor iptables syslinux nfs-kernel-server netbase locales \
+#kmod
+
+
+#RUN apt-get install -y python-mysql.connector
+
+# Enable php-fpm
+#RUN a2enmod proxy_fcgi setenvif && \
+#a2enconf php7.0-fpm
 
 # RUN dpkg-reconfigure locales
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
@@ -50,7 +70,7 @@ RUN chmod +x /bin/pipework
 #    && chmod +x pipework
 
 
-LABEL REBUILD = 4
+LABEL REBUILD = 6
 # Load up our settings - will start things with 127.0.0.1 as the ip
 RUN mkdir -p /opt/fog
 COPY .fogsettings /opt/fog
@@ -60,17 +80,27 @@ RUN cp /opt/fog/.fogsettings /
 RUN git clone https://github.com/FOGProject/fogproject.git /fog_src; \
 cd /fog_src; \
 git checkout dev-branch; \
-git pull;
+git pull origin dev-branch;
 
 # Copy in the project certs
 COPY snapins/ssl/* /opt/fog/snapins/ssl/
 COPY other/ssl/* /var/www/fog/management/other/ssl/
 
-# Do the install for fog to pull packages
-RUN cd /fog_src/bin/; \
-./installfog.sh -y
+# Do the install for fog to pull packages (touch mysql files to force
+# copyup operation https://github.com/docker/for-linux/issues/72)
+RUN cd /fog_src/bin/ \
+&& find /var/lib/mysql -exec touch -c -a {} + \
+&& ./installfog.sh -y
 
-LABEL rebuild=34
+LABEL rebuild=63
+RUN mkdir -p /etc/nginx/conf.d
+COPY nginx.tmpl /nginx.tmpl
+RUN rm /etc/apache2/sites-enabled/000-default.conf
+#COPY 001-fog.conf /001-fog.conf.orig 
+#COPY 001-fog.conf /etc/apache2/sites-enabled/001-fog.conf
+#COPY ports.conf /ports.conf
+#COPY ports.conf /etc/apache2/ports.conf
+
 # Copy in the startup scripts
 COPY update_fog_ip.py /fog_src/bin/
 COPY supervisord.conf /etc/supervisor/supervisord.conf
@@ -98,8 +128,8 @@ RUN chmod +x /start.sh \
 COPY init.xz /var/www/fog/service/ipxe/init.xz
 COPY init_32.xz /var/www/fog/service/ipxe/init_32.xz
 
-VOLUME ["/var/lib/mysql", "/images", "/backup"]
-EXPOSE 80 443 20 21 69/udp 7000-7030/udp 111 111/udp 2049 2049/udp 4045 4045/udp 34464 34463/udp 52764-52769/udp 52764-52768 52700-52730
+VOLUME ["/var/lib/mysql", "/images", "/backup", "/etc/nginx/confg.d"]
+EXPOSE 80 443 20 21 69/udp 7000-7030/udp 111 111/udp 2049 2049/udp 4045 4045/udp 34464 34463/udp 52764-52769/udp 52764-52768 52700-52730 9000-9005/udp 50102-50110/udp 43145/udp
 CMD ["/start.sh"]
 
 # PORTS web 80, webs 443, ftp 21, tftp 69/udp, nfs 111/tcpudp 2049/tcpudp, nfslock 4045/tcpudp

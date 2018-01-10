@@ -104,7 +104,7 @@ RUN echo '#!/bin/sh\ncd /home/www-data/web2py/applications/smc\npython set_admin
 RUN chmod +x /bin/set_admin_password
 RUN chmod +x /home/www-data/web2py/applications/smc/set_admin_password.py
 
-LABEL rebuild=33
+LABEL rebuild=34
 # Take out default site
 RUN rm -f /etc/apache2/sites-enabled/*
 # Configure apache to run web2py app
@@ -122,7 +122,7 @@ RUN a2enmod wsgi
 # Add git user
 RUN useradd -ms /bin/bash  git
 
-LABEL rebuild=8
+LABEL rebuild=11
 # Copy in our start script
 COPY start.sh /start.sh
 COPY supervisord.conf /etc/supervisor/supervisord.conf

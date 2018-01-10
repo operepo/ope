@@ -3,6 +3,7 @@
         image: operepo/ope-codecombat:release
         container_name: ope-codecombat
         restart: always
+        network_mode: <NETWORK_MODE>
         ports:
             - "3000"
         volumes:

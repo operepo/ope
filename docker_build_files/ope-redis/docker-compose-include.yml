@@ -2,6 +2,7 @@
         build: ./ope-redis
         image: operepo/ope-redis:release
         container_name: ope-redis
+        network_mode: <NETWORK_MODE>
         restart: always
         ports:
             - "6379:6379"

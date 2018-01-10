@@ -2,6 +2,7 @@
         build: ./ope-freecodecamp
         image: operepo/ope-freecodecamp
         container_name: ope-freecodecamp
+        network_mode: <NETWORK_MODE>
         restart: always
         ports:
             - "80"

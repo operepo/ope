@@ -2,6 +2,7 @@
         build: ./ope-canvas
         image: operepo/ope-canvas:release
         container_name: ope-canvas
+        network_mode: <NETWORK_MODE>
         restart: always
         ports:
             - "3000"

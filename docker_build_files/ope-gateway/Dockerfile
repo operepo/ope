@@ -4,7 +4,7 @@ FROM nginx:1.11.3
 # Build: Follow instructions at https://github.com/frankyrumple/ope
 
 LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
-LABEL description="Web Gateway for Open Prison Education"
+LABEL description="Web Gateway for Open Prison Education - source files at https://github.com/operepo"
 LABEL vendor="openprisoneducation.com"
 LABEL version="0.5"
 
@@ -15,10 +15,6 @@ ENV VIRTUAL_HOST=gateway.ed
 #ENV LANG=en_US.UTF-8
 ENV LANG=C.UTF-8
 ENV TERM=xterm
-
-
-
-
 
 
 # Install wget and install/updates certificates
@@ -46,8 +42,13 @@ RUN wget https://github.com/jwilder/docker-gen/releases/download/$DOCKER_GEN_VER
  && tar -C /usr/local/bin -xvzf docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz \
  && rm /docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz
 
-
-COPY . /app/
+LABEL rebuild=12
+RUN mkdir -p /app
+#COPY fogserver.conf /etc/nginx/conf.d/
+COPY docker-entrypoint.sh /app/
+COPY nginx.tmpl /app/
+COPY forego /app/
+COPY Procfile /app/
 WORKDIR /app/
 RUN chmod +x /app/docker-entrypoint.sh
 

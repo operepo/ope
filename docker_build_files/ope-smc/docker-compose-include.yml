@@ -2,6 +2,7 @@
         build: ./ope-smc
         image: operepo/ope-smc:release
         container_name: ope-smc
+        network_mode: <NETWORK_MODE>
         restart: always
         ports:
             - "80"

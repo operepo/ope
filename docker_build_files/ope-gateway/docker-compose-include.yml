@@ -3,6 +3,7 @@
         image: operepo/ope-gateway:release
         container_name: ope-gateway
         restart: always
+        network_mode: <NETWORK_MODE>
         #command:
         ports:
             - "80:80"
@@ -12,7 +13,12 @@
             - /var/run/docker.sock:/tmp/docker.sock
             # /certs directory can be mapped if you put your certs in the volumes folder
             - ../volumes/gateway/certs:/etc/nginx/certs:rw
+            #- ../volumes/gateway/conf.d:/etc/nginx/conf.d:rw
         env_file: .env
+        depends_on:
+            - ope-router
         environment:
+            - PUBLIC_IP=${PUBLIC_IP}
             - DEFAULT_HOST=fog.<DOMAIN>
-
+            - IT_PW=${IT_PW}
+            - IS_DOCKER=true

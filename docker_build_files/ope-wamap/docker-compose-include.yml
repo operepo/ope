@@ -2,6 +2,7 @@
         build: ./ope-wamap
         image: operepo/ope-wamap:release
         container_name: ope-wamap
+        network_mode: <NETWORK_MODE>
         restart: always
         ports:
             - "80"

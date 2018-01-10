@@ -2,6 +2,7 @@
         build: ./ope-mysql
         image: operepo/ope-mysql:release
         container_name: ope-mysql
+        network_mode: <NETWORK_MODE>
         restart: always
         ports:
             - "3306:3306"
