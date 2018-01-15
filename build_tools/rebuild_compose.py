@@ -21,13 +21,34 @@ version: '2'
 
 <VOLUMES>
 
+#networks:
+#  host_network:
+#    external:
+#      name: host
+#  default:
+#    external:
+#      name: bridge
+#  default:
+#    driver: bridge
+#    name: ope
+#      driver_opts:
+#         com.docker.network.bridge.default_bridge: "true"
+#         com.docker.network.bridge.enable_icc: "true"
+#         com.docker.network.bridge.enable_ip_masquerade: "true"
+#         com.docker.network.bridge.host_binding_ipv4: "0.0.0.0"
+#         com.docker.network.bridge.name: "ope"
+#         com.docker.network.driver.mtu: "1500"
+#     internal: true
+
+
 services:
 
 """
 
 # A list of values to substitute in the docker-compose.yml file
 replacement_values = { '<DOMAIN>': '', '<IP>': '', "<VOLUMES>": '',
-    "<CANVAS_SECRET>": 'sdlkj4342ousoijalke3uosuufodsjvlckxotes'}
+    "<CANVAS_SECRET>": 'sdlkj4342ousoijalke3uosuufodsjvlckxotes',
+    "<NETWORK_MODE>": 'bridge'}
 
 # A list of volumes that need to be specified in the volumes section
 volume_list = []
