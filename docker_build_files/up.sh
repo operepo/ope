@@ -29,13 +29,17 @@ echo "ipip" > /etc/modules-load.d/ipip.conf
 #iptables -A INPUT -i $WLAN_IF -p udp --dport 69 -m state --state NEW -j ACCEPT
 
 
-echo "Rebuilding docker compose..."
-python ../build_tools/rebuild_compose.py
-
 build_flag=""
 if [ ! -z "$1" ]; then
   build_flag="$1"
 fi
+
+rebuild_param=""
+if [ "$build_flag" = "auto" ]; then
+  rebuild_param="auto"
+fi
+echo "Rebuilding docker compose..."
+python ../build_tools/rebuild_compose.py "$rebuild_param"
 
 if [ "$build_flag" = "b" ]; then
   echo "Building docker containers..."

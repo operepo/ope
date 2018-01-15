@@ -2,6 +2,14 @@
 import os, sys
 import socket
 import shutil
+import uuid
+
+# Is this script called with the auto param? Suppress prompts
+auto = False
+
+if len(sys.argv) > 1:
+    if sys.argv[1] == "auto":
+        auto = True
 
 # Rebuild the docker-compose file
 
@@ -45,10 +53,12 @@ services:
 
 """
 
-# A list of values to substitute in the docker-compose.yml file
+# A list of values to substitute in the docker-compose.yml or .env.template file
 replacement_values = { '<DOMAIN>': '', '<IP>': '', "<VOLUMES>": '',
     "<CANVAS_SECRET>": 'sdlkj4342ousoijalke3uosuufodsjvlckxotes',
-    "<NETWORK_MODE>": 'bridge'}
+    "<NETWORK_MODE>": 'bridge',
+    "<IT_PW>": '',
+    "<OFFICE_PW>": ''}
 
 # A list of volumes that need to be specified in the volumes section
 volume_list = []
@@ -102,6 +112,52 @@ def saveDomain(domain):
     f = open(domain_file, "w")
     f.write(domain)
     f.close()
+
+def getPW():
+    # Load saved pw
+    pw = ""
+    pwd = getComposeFolder()
+    pw_file = os.path.join(pwd, ".pw")
+    try:
+        f = open(pw_file, "r")
+        pw = f.read()
+        f.close()
+    except:
+        print("No saved pw!")
+    return pw.strip()
+
+def savePW(pw):
+    # Save the password for later
+    pwd = getComposeFolder()
+    file_path = os.path.join(pwd, ".pw")
+    f = open(file_path, "w")
+    f.write(pw)
+    f.close()
+
+
+def getSecret():
+    # Load secret key
+    s = ""
+    pwd = getComposeFolder()
+    s_file = os.path.join(pwd, ".secret")
+    try:
+        f = open(s_file, "r")
+        s = f.read()
+        f.close()
+    except:
+        print("No secret file!")
+    if s == "":
+        s = str(uuid.uuid4()) + "000"
+    return s.strip()
+
+def saveSecret(secret):
+    # Save the secret for later
+    pwd = getComposeFolder()
+    file_path = os.path.join(pwd, ".secret")
+    f = open(file_path, "w")
+    f.write(secret)
+    f.close()
+
 
 def getDomain():
     # Load saved domain name
@@ -182,7 +238,7 @@ def processFolder(cwd=""):
 ip = getIP()
 saved_ip = getSavedIP()
 get_new_ip = False
-if ip != saved_ip and saved_ip != "":
+if ip != saved_ip and saved_ip != "" and not auto is True:
     # Looks like your ip has changed?
     print("Possible IP change!!!")
     print("Saved IP: " + saved_ip + " - Machine IP: " + ip)
@@ -193,7 +249,7 @@ if ip != saved_ip and saved_ip != "":
         # continue with saved ip
         ip = saved_ip
 
-if saved_ip == "" or get_new_ip == True:
+if (saved_ip == "" or get_new_ip == True) and not auto is True:
     choice = raw_input("Enter public IP [enter to use " + ip + "]: ")
     choice = choice.strip()
     if (choice != ""):
@@ -203,9 +259,18 @@ replacement_values["<IP>"] = ip
 print "Using IP: " + ip + "..."
 saveIP(ip)
 
+pw = getPW()
+replacement_values["<IT_PW>"] = pw
+replacement_values["<OFFICE_PW>"] = pw
+
+secret = getSecret()
+replacement_values["<CANVAS_SECRET>"] = secret
+# make sure we save it in case it was just created
+saveSecret(secret)
+
 domain = "ed"
 saved_domain = getDomain()
-if saved_domain == "":
+if saved_domain == "" and not auto is True:
     choice = raw_input("Enter domain to use [enter to use " + domain + "]: ")
     choice = choice.strip()
     if (choice != ""):
@@ -230,7 +295,8 @@ else:
 # Make sure the .env file exists
 env_file = os.path.join(pwd, ".env")
 env_template_file = os.path.join(pwd, ".env.template")
-if (os.path.isfile(env_file) != True):
+# always rebuild env if auto is true
+if (os.path.isfile(env_file) != True or auto is True):
     # Try to copy the .env.template file
     if (os.path.isfile(os.path.join(pwd, ".env.template")) == True):
         print "\n            New environment file - change values in .env file\n"
