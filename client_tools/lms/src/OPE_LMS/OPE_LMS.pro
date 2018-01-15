@@ -88,3 +88,6 @@ HEADERS += \
 LIBS += -LC:/OpenSSL-Win64/lib # -lcrypto -lssl
 INCLUDEPATH += C:/OpenSSL-Win64/include
 
+DISTFILES += \
+    qt.conf
+
