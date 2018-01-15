@@ -69,27 +69,53 @@ kivy.require('1.10.0')
 # Clock.max_iteration = 20
 # Window.size = (900, 800)
 # Window.borderless = True
+APP_FOLDER = None
+
+# Git Repos to pull
+GIT_REPOS = {"sysprep_scripts": "https://github.com/operepo/sysprep_scripts.git",
+             "ope": "https://github.com/operepo/ope.git",
+             "ope_laptop_binaries": "https://github.com/operepo/ope_laptop_binaries.git",
+             "ope_server_sync_binaries": "https://github.com/operepo/ope_server_sync_binaries.git",
+             }
+
 
 def get_app_folder():
+    global Logger, APP_FOLDER
     ret = ""
-    # return the folder this app is running in.
-    if getattr(sys, 'frozen', False):
-        # Running in pyinstaller bundle
-        ret = sys._MEIPASS
+    # Adjusted to save APP_FOLDER - issue #6 - app_folder not returning the same folder later in the app?
+    if APP_FOLDER is None:
+        # return the folder this app is running in.
+        # Logger.info("Application: get_app_folder called...")
+        if getattr(sys, 'frozen', False):
+            # Running in pyinstaller bundle
+            ret = sys._MEIPASS
+            # Logger.info("Application: sys._MEIPASS " + sys._MEIPASS)
+            # Adjust to use sys.executable to deal with issue #6 - path different if cwd done
+            # ret = os.path.dirname(sys.executable)
+            # Logger.info("AppPath: sys.executable " + ret)
+        else:
+            ret = os.path.dirname(os.path.abspath(__file__))
+            # Logger.info("AppPath: __file__ " + ret)
+        APP_FOLDER = ret
     else:
-        ret = os.path.dirname(os.path.abspath(__file__))
-
+        ret = APP_FOLDER
     return ret
 
-# Manage multiple screens
-sm = ScreenManager()
-# Keep a reference to the main window
-MAIN_WINDOW = None
+
+# Run as app starts to make sure we save the current app folder
+# in response to issue #6
+get_app_folder()
 
 
 def get_home_folder():
     home_path = expanduser("~")
     return home_path
+
+
+# Manage multiple screens
+sm = ScreenManager()
+# Keep a reference to the main window
+MAIN_WINDOW = None
 
 # Find the base folder to store data in - use the home folder
 BASE_FOLDER = os.path.join(get_home_folder(), ".ope")
@@ -109,6 +135,7 @@ progress_widget = None
 
 
 # == Database Functions ==
+# <editor-fold desc="Database Functions">
 def connect_db(init_schema=True):
     db_file = os.path.join(BASE_FOLDER, "sync.db")
     con = DAL('sqlite://' + db_file, pool_size=10, check_reserved=['all'], lazy_tables=lazy_tables, fake_migrate=fake_migrate, fake_migrate_all=fake_migrate_all, migrate=migrate)  # fake_migrate_all=True
@@ -138,8 +165,9 @@ def init_db_schema(db=None):
 
     db.commit()
     # db.close()
+# </editor-fold>
 
-
+# <editor-fold desc="Markdown Functions">
 # Convert markdown code to bbcode tags so they draw properly in labels
 def markdown_to_bbcode(s):
     links = {}
@@ -188,8 +216,10 @@ def markdown_to_bbcode(s):
     s = re.sub(r"(?m)\[code=(\d+)]", replace_code, s)
 
     return s
+# </editor-fold>
 
 
+# <editor-fold desc="Kivy screens and controls">
 # Main screen
 class StartScreen(Screen):
     pass
@@ -287,6 +317,8 @@ class PasswordPopup(Popup):
     pw_func = None
     pass
 
+# </editor-fold>
+
 
 class MainWindow(BoxLayout):
 
@@ -300,6 +332,11 @@ class MainWindow(BoxLayout):
 
 class SyncOPEApp(App):
     use_kivy_settings = False
+
+    required_apps = ["ope-gateway", "ope-router", "ope-dns", "ope-clamav", "ope-redis", "ope-postgresql" ]
+    recommended_apps = ["ope-fog", "ope-canvas", "ope-smc"]
+    stable_apps = [ "ope-kalite" ]
+    beta_apps = ["ope-coco", "ope-freecodecamp", "ope-gcf", "ope-jsbin", "ope-rachel", "ope-stackdump", "ope-wamap"]
 
     def load_current_settings(self):
         global MAIN_WINDOW
@@ -327,6 +364,11 @@ class SyncOPEApp(App):
         pw = self.config.getdefault("Server", "auth2", "")
         e = Enc(key)
         pw = e.decrypt(pw)
+        if pw != "":
+            e = Enc(key)
+            pw = e.decrypt(pw)
+        else:
+            pw = "changeme"
         return pw
 
     def set_offline_pw(self, pw):
@@ -341,8 +383,11 @@ class SyncOPEApp(App):
         self.ensure_key()
         key = self.config.getdefault("Server", "auth1", "")
         pw = self.config.getdefault("Server", "auth3", "")
-        e = Enc(key)
-        pw = e.decrypt(pw)
+        if pw != "":
+            e = Enc(key)
+            pw = e.decrypt(pw)
+        else:
+            pw = "changeme"
         return pw
 
     def set_online_pw(self, pw):
@@ -393,25 +438,43 @@ class SyncOPEApp(App):
                            {'server_ip': '127.0.0.1',
                             'server_user': 'root',
                             'server_folder': '/ope'})
-        config.setdefaults("Selected Apps",
-                           {'ope-gateway': '1',
-                            'ope-dns': '1',
-                            'ope-clamav': '1',
-                            'ope-redis': '1',
-                            'ope-postgresql': '1',
-                            'ope-fog': '1',
-                            'ope-canvas': '1',
-                            'ope-smc': '1',
-                            'ope-coco': '0',
-                            'ope-freecodecamp': '0',
-                            'ope-gcf': '0',
-                            'ope-jsbin': '0',
-                            'ope-kalite': '0',
-                            'ope-rachel': '0',
-                            'ope-stackdump': '0',
-                            'ope-wamap': '0',
 
-                            })
+        # Generate defaults for selected apps
+        selected_apps = {}
+        # required apps
+        for item in SyncOPEApp.required_apps:
+            selected_apps[item] = '1'
+        # recommended apps
+        for item in SyncOPEApp.recommended_apps:
+            selected_apps[item] = '1'
+        # stable apps
+        for item in SyncOPEApp.stable_apps:
+            selected_apps[item] = '0'
+        # beta apps
+        for item in SyncOPEApp.stable_apps:
+            selected_apps[item] = '0'
+
+        config.setdefaults("Selected Apps",
+                           selected_apps)
+                           # {'ope-gateway': '1',
+                           #  'ope-router': '1',
+                           #  'ope-dns': '1',
+                           #  'ope-clamav': '1',
+                           #  'ope-redis': '1',
+                           #  'ope-postgresql': '1',
+                           #  'ope-fog': '1',
+                           #  'ope-canvas': '1',
+                           #  'ope-smc': '1',
+                           #  'ope-coco': '0',
+                           #  'ope-freecodecamp': '0',
+                           #  'ope-gcf': '0',
+                           #  'ope-jsbin': '0',
+                           #  'ope-kalite': '0',
+                           #  'ope-rachel': '0',
+                           #  'ope-stackdump': '0',
+                           #  'ope-wamap': '0',
+                           #
+                           #  })
 
         # config.setdefaults("Build Settings",
         #                    {'build_folder': '~',
@@ -630,7 +693,7 @@ class SyncOPEApp(App):
         folder_path = os.path.join(volume_path, folder.replace("/", os.sep))
 
         # Figure the path for the git app
-        git_path = os.path.join(root_path, "PortableGit/bin/git.exe")
+        git_path = os.path.join(root_path, "bin/bin/git.exe")
 
         # Ensure the folder exists on the USB drive
         try:
@@ -660,60 +723,118 @@ class SyncOPEApp(App):
         sftp.close()
 
     def git_pull_local(self, status_label, branch="master"):
+        global GIT_REPOS
         ret = ""
-        # Pull the latest git data to the current project folder
 
-        # Get project folder (parent folder)
+        repos = GIT_REPOS
+
+        # Pull each repo into a repo sub folder
         root_path = os.path.dirname(get_app_folder())
+        repo_path = os.path.join(root_path, "repos")
+        git_path = os.path.join(root_path, "bin/bin/git.exe")
 
-        # Figure the path for the git app
-        git_path = os.path.join(root_path, "PortableGit/bin/git.exe")
-
-        # Set current path
         os.chdir(root_path)
+        # Make sure the folder exists
+        if not os.path.isdir(repo_path) is True:
+            # Doesn't exist, create it
+            os.mkdir(repo_path)
 
-        # == Make sure we have current copy of GIT repo on USB drive
-        # make sure current store is a git repo
-        # git init - OK to run more than once, just do it
-        proc = subprocess.Popen(git_path + " init", stdout=subprocess.PIPE)
-        ret += proc.stdout.read()
+        for repo in repos:
+            status_label.text += "Pulling " + repo + "\n"
+            # Make sure the repo folder exists
+            f_path = os.path.join(repo_path, repo) + ".git"
+            if not os.path.isdir(f_path) is True:
+                os.mkdir(f_path)
+            # Make sure git init is run
+            os.chdir(f_path)
+            proc = subprocess.Popen(git_path + " init --bare", stdout=subprocess.PIPE)
+            ret += proc.stdout.read()
 
-        # Make sure we have proper remote settings
-        proc = subprocess.Popen(git_path + " remote remove ope_origin", stdout=subprocess.PIPE)
-        ret += proc.stdout.read()
-        proc = subprocess.Popen(git_path + " remote add ope_origin https://github.com/operepo/ope.git", stdout=subprocess.PIPE)
-        ret += proc.stdout.read()
+            # Make sure we have proper remote settings
+            proc = subprocess.Popen(git_path + " remote remove ope_origin", stdout=subprocess.PIPE)
+            ret += proc.stdout.read()
+            proc = subprocess.Popen(git_path + " remote add ope_origin " + repos[repo], stdout=subprocess.PIPE)
+            ret += proc.stdout.read()
 
-        # Make sure we have the current stuff
-        proc = subprocess.Popen(git_path + " pull ope_origin " + branch, stdout=subprocess.PIPE)
-        for line in proc.stdout:
-            #status_label.text += line
-            Logger.info(line)
-        #ret += proc.stdout.read()
+            # Set fetch settings to pull all heads
+            # proc = subprocess.Popen(git_path + " config remote.origin.fetch 'refs/heads/*:refs/heads/*' ", stdout=subprocess.PIPE)
+            # ret += proc.stdout.read()
 
+            # Make sure we have the current stuff from github
+            # +refs/heads/*:refs/heads/*
+            proc = subprocess.Popen(git_path + " --bare fetch ope_origin " + branch + ":master", bufsize=1, universal_newlines=True, stdout=subprocess.PIPE)
+            # for line in proc.stdout.readline():
+            for line in proc.stdout:
+                status_label.text += line
+                Logger.info(line)
+            # ret += proc.stdout.read()
+
+        ret += "Done pulling repos"
         return ret
 
     def git_push_repo(self, ssh, ssh_server, ssh_user, ssh_pass, ssh_folder, status_label, online=True, branch="master", ):
+        global GIT_REPOS
         ret = ""
+
+        repos = GIT_REPOS
+
         remote_name = "ope_online"
         if online is not True:
             remote_name = "ope_offline"
 
-        # Get project folder (parent folder)
+        # Pull each repo into a repo sub folder
         root_path = os.path.dirname(get_app_folder())
+        repo_path = os.path.join(root_path, "repos")
+        git_path = os.path.join(root_path, "bin/bin/git.exe")
 
-        # Figure the path for the git app
-        git_path = os.path.join(root_path, "PortableGit/bin/git.exe")
-
-        # Set current path
         os.chdir(root_path)
 
-        # Ensure the folder exists, is a repo, and has a sub folder (volumes/smc/ope.git) that is a bare repo
-        ret += "\n\n[b]Ensuring git repo setup properly...[/b]\n"
-        stdin, stdout, stderr = ssh.exec_command("mkdir -p " + ssh_folder + "; cd " + ssh_folder + "; git init; mkdir -p volumes/smc/git/ope.git; cd volumes/smc/git/ope.git; git init --bare;", get_pty=True)
+        # Make sure the folder exists
+        if not os.path.isdir(repo_path) is True:
+            # Doesn't exist, create it
+            os.mkdir(repo_path)
+
+        # Ensure the base folder exists (e.g. /ope) and is ready for git commands
+        stdin, stdout, stderr = ssh.exec_command("mkdir -p " + ssh_folder + "; cd " + ssh_folder + "; git init;", get_pty=True)
         stdin.close()
         for line in stdout:
             status_label.text += line
+
+        for repo in repos:
+            status_label.text += "Pushing " + repo + "\n"
+            # Make sure the repo folder exists
+            f_path = os.path.join(repo_path, repo) + ".git"
+            if not os.path.isdir(f_path) is True:
+                os.mkdir(f_path)
+
+            os.chdir(f_path)
+
+            # Ensure the folder exists, is a repo, and has a sub folder (volumes/smc/???.git) that is a bare repo
+            remote_repo_folder = os.path.join(ssh_folder, "volumes/smc/git/" + repo + ".git").replace("\\", "/")
+            ret += "\n\n[b]Ensuring git repo " + repo + " setup properly...[/b]\n"
+            stdin, stdout, stderr = ssh.exec_command("mkdir -p " + remote_repo_folder + "; cd " + remote_repo_folder + "; git init --bare; ", get_pty=True)
+            stdin.close()
+            for line in stdout:
+                status_label.text += line
+
+            # Remove existing remote - in case it is old/wrong
+            proc = subprocess.Popen(git_path + " remote remove " + repo + "_" + remote_name, stdout=subprocess.PIPE)
+            for line in proc.stdout:
+                status_label.text += line
+
+            # Add current remote address
+            proc = subprocess.Popen(git_path + " remote add " + repo + "_" + remote_name + " ssh://" + ssh_user + "@" + ssh_server + ":" + remote_repo_folder, stdout=subprocess.PIPE)
+            for line in proc.stdout:
+                status_label.text += line
+
+            # Push to the remote server
+            proc = subprocess.Popen(git_path + " push " + repo + "_" + remote_name + " " + branch, stdout=subprocess.PIPE)
+            for line in proc.stdout:
+                # status_label.text += line
+                Logger.info(line)
+
+        # Repos are in place, now make sure to checkout the main ope project in the
+        # folder on the server (e.g. cd /ope; git pull local_bare origin)
 
         # Ensure that local changes are stash/saved so that the pull works later
         stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git stash;", get_pty=True)
@@ -721,30 +842,15 @@ class SyncOPEApp(App):
         for line in stdout:
             status_label.text += line
 
-        # Make sure the remote is added to local repo
-        proc = subprocess.Popen(git_path + " remote remove " + remote_name, stdout=subprocess.PIPE)
-        for line in proc.stdout:
-            status_label.text += line
-
-        ssh_bare_repo_path = os.path.join(ssh_folder, "volumes/smc/git/ope.git").replace("\\","/")
-        proc = subprocess.Popen(git_path + " remote add " + remote_name + " ssh://" + ssh_user + "@" + ssh_server + ":" + ssh_bare_repo_path, stdout=subprocess.PIPE)
-        for line in proc.stdout:
-            status_label.text += line
-
-        # Push to the remote server
-        proc = subprocess.Popen(git_path + " push " + remote_name + " " + branch, stdout=subprocess.PIPE)
-        for line in proc.stdout:
-            #status_label.text += line
-            Logger.info(line)
-
         # Have remote server checkout from the bare repo
         stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git remote remove local_bare;", get_pty=True)
         stdin.close()
         for line in stdout:
-            #status_label.text += line
+            # status_label.text += line
             Logger.info(line)
 
-        stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git remote add local_bare volumes/smc/git/ope.git;", get_pty=True)
+        ope_local_bare = os.path.join(ssh_folder, "volumes/smc/git/ope.git").replace("\\", "/")
+        stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git remote add local_bare " + ope_local_bare + ";", get_pty=True)
         stdin.close()
         for line in stdout:
             # status_label.text += line
@@ -756,39 +862,30 @@ class SyncOPEApp(App):
             # status_label.text += line
             Logger.info(line)
 
+        ret += "Done pulling repos to USB drive"
         return ret
 
     def get_enabled_apps(self):
         # Return a list of enabled apps
 
         # Start with required apps
-        apps = ["ope-gateway", "ope-dns", "ope-clamav", "ope-redis", "ope-postgresql"]
+        enabled_apps = SyncOPEApp.required_apps[:]
 
-        # Check each item to see if it is enabled
-        if self.config.getdefault("Selected Apps", "ope-fog", "1") == "1":
-            apps.append("ope-fog")
-        if self.config.getdefault("Selected Apps", "ope-canvas", "1") == "1":
-            apps.append("ope-canvas")
-        if self.config.getdefault("Selected Apps", "ope-smc", "1") == "1":
-            apps.append("ope-smc")
-        if self.config.getdefault("Selected Apps", "ope-coco", "0") == "1":
-            apps.append("ope-coco")
-        if self.config.getdefault("Selected Apps", "ope-freecodecamp", "0") == "1":
-            apps.append("ope-freecodecamp")
-        if self.config.getdefault("Selected Apps", "ope-gcf", "0") == "1":
-            apps.append("ope-gcf")
-        if self.config.getdefault("Selected Apps", "ope-jsbin", "0") == "1":
-            apps.append("ope-jsbin")
-        if self.config.getdefault("Selected Apps", "ope-kalite", "0") == "1":
-            apps.append("ope-kalite")
-        if self.config.getdefault("Selected Apps", "ope-rachel", "0") == "1":
-            apps.append("ope-rachel")
-        if self.config.getdefault("Selected Apps", "ope-stackdump", "0") == "1":
-            apps.append("ope-stackdump")
-        if self.config.getdefault("Selected Apps", "ope-wamap", "0") == "1":
-            apps.append("ope-wamap")
+        # Check recommended apps
+        for item in SyncOPEApp.required_apps:
+            if self.config.getdefault("Selected Apps", item, "1") == "1":
+                enabled_apps.append(item)
 
-        return apps
+        # Check stable apps
+        for item in SyncOPEApp.stable_apps:
+            if self.config.getdefault("Selected Apps", item, "0") == "1":
+                enabled_apps.append(item)
+        # Check beta apps
+        for item in SyncOPEApp.beta_apps:
+            if self.config.getdefault("Selected Apps", item, "0") == "1":
+                enabled_apps.append(item)
+
+        return enabled_apps
 
     def enable_apps(self, ssh, ssh_folder, status_label):
         ret = ""
@@ -819,7 +916,7 @@ class SyncOPEApp(App):
         # Get project folder (parent folder)
         root_path = os.path.dirname(get_app_folder())
         # Make sure ssh keys exist (saved in home directory in .ssh folder on current computer)
-        bash_path = os.path.join(root_path, "PortableGit/bin/bash.exe")
+        bash_path = os.path.join(root_path, "bin/bin/bash.exe")
         # Run this to generate keys
         proc = subprocess.Popen(bash_path + " -c 'if [ ! -f ~/.ssh/id_rsa ]; then ssh-keygen -P \"\" -t rsa -f ~/.ssh/id_rsa; fi'", stdout=subprocess.PIPE, stdin=subprocess.PIPE)
         try:
@@ -839,7 +936,7 @@ class SyncOPEApp(App):
         # Get project folder (parent folder)
         root_path = os.path.dirname(get_app_folder())
         # Make sure ssh keys exist (saved in home directory in .ssh folder on current computer)
-        bash_path = os.path.join(root_path, "PortableGit/bin/bash.exe")
+        bash_path = os.path.join(root_path, "bin/bin/bash.exe")
 
         # Make sure remote server has .ssh folder
         stdin, stdout, stderr = ssh.exec_command("mkdir -p ~/.ssh; chmod 700 ~/.ssh;", get_pty=True)
@@ -887,13 +984,18 @@ class SyncOPEApp(App):
 
         return ret
 
-    def pull_docker_images(self, ssh, ssh_folder, status_label):
+    def pull_docker_images(self, ssh, ssh_folder,  status_label, ip, domain, ssh_pass):
         # Run on the online server - pull the current docker images
         ret = ""
 
         # Need to re-run the rebuild_compose.py file
+        build_path = os.path.join(ssh_folder, "docker_build_files").replace("\\", "/")
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ip + "\" > .ip; ", get_pty=True)
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; if [ ! -f .domain ]; then echo \"" + domain + "\" > .domain; fi ", get_pty=True)
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .pw; ", get_pty=True)
+
         rebuild_path = os.path.join(ssh_folder, "build_tools", "rebuild_compose.py").replace("\\", "/")
-        stdin, stdout, stderr = ssh.exec_command("python " + rebuild_path, get_pty=True)
+        stdin, stdout, stderr = ssh.exec_command("python " + rebuild_path + " auto", get_pty=True)
         try:
             # Write a couple enters in case this is the first time the script is run
             stdin.write("\n\n")
@@ -904,12 +1006,15 @@ class SyncOPEApp(App):
             status_label.text += line
 
         # Run the rebuild
+        status_label.text += "Pulling docker apps...\n"
         docker_files_path = os.path.join(ssh_folder, "docker_build_files").replace("\\", "/")
-        stdin, stdout, stderr = ssh.exec_command("cd " + docker_files_path + "; docker-compose pull;", get_pty=True)
-        stdin.close()
-        for line in stdout:
-            # status_label.text += line
-            Logger.info(line)
+        for app in self.get_enabled_apps():
+            status_label.text += "  Pulling " + app + "...\n"
+            stdin, stdout, stderr = ssh.exec_command("cd " + docker_files_path + "; docker-compose pull " + app + ";", get_pty=True)
+            stdin.close()
+            for line in stdout:
+                # status_label.text += line
+                Logger.info(line)
 
         return ret
 
@@ -938,18 +1043,22 @@ class SyncOPEApp(App):
 
         return ret
 
-    def start_apps(self, ssh, ssh_folder, status_label, ip, domain):
+    def start_apps(self, ssh, ssh_folder, ssh_pass, status_label, ip, domain):
         # Start the docker apps by calling the up.sh script
         ret = ""
 
         build_path = os.path.join(ssh_folder, "docker_build_files").replace("\\", "/")
 
-        # Make sure .ip and .domain files exist
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; if [ ! -f .ip ]; then echo \"" + ip + "\" > .ip; fi ", get_pty=True)
+        # Make sure .ip and .domain and .pw files exist
+        # CHANGE - when logging in from the sync app, always set the IP to the current ip used to login
+        #stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; if [ ! -f .ip ]; then echo \"" + ip + "\" > .ip; fi ", get_pty=True)
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ip + "\" > .ip; ", get_pty=True)
         stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; if [ ! -f .domain ]; then echo \"" + domain + "\" > .domain; fi ", get_pty=True)
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .pw; ", get_pty=True)
 
         # Run twice - sometimes compose fails, so we just rerun it
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; sh up.sh; sh up.sh; ", get_pty=True)
+        # Add auto param to up.sh - to prevent it from asking questions
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; sh up.sh auto; ", get_pty=True)
         stdin.close()
         for line in stdout.read():
             status_label.text += line
@@ -1138,21 +1247,23 @@ class SyncOPEApp(App):
         for app in apps:
             if app == "ope-canvas":
                 # Sync canvas files (student and curriculum files)
-                self.sync_volume('canvas', 'tmp/files', ssh, ssh_folder, status_label)
+                # self.sync_volume('canvas', 'tmp/files', ssh, ssh_folder, status_label)
                 # - sync canvas db (sync db dumps)
-                self.sync_volume('canvas', 'db/sync', ssh, ssh_folder, status_label)
+                # self.sync_volume('canvas', 'db/sync', ssh, ssh_folder, status_label)
 
                 # TODO - rebuild canvas assets
                 # docker exec -it ope-canvas bash -c "$GEM_HOME/bin/bundle exec rake canvas:compile_assets"
+                pass
 
             if app == "ope-smc":
                 # Sync SMC movies
-                self.sync_volume('smc', 'media', ssh, ssh_folder, status_label)
+                # self.sync_volume('smc', 'media', ssh, ssh_folder, status_label)
                 # TODO - trigger movie import
+                pass
 
             if app == "ope-fog":
                 # Sync FOG images
-                #self.sync_volume('fog', 'share_images', ssh, ssh_folder, status_label)
+                # self.sync_volume('fog', 'share_images', ssh, ssh_folder, status_label)
                 # TODO - trigger image import
                 pass
 
@@ -1161,7 +1272,7 @@ class SyncOPEApp(App):
                 cmd = "docker-compose exec ope-postgresql bash -c 'mkdir -p /db_backup/canvas/canvas_production'"
                 cmd = "docker-compose exec ope-postgresql bash -c 'pg_dump -d canvas_production -U postgres -f /db_backup/canvas/canvas_production -F d --data-only --blobs --disable-triggers --quote-all-identifiers'"
 
-                self.sync_volume('postgresql', 'canvas', ssh, ssh_folder, status_label)
+                # self.sync_volume('postgresql', 'canvas', ssh, ssh_folder, status_label)
                 pass
 
 
@@ -1214,12 +1325,12 @@ class SyncOPEApp(App):
 
             # Download the current docker images
             status_label.text += "\n\n[b]Downloading current apps[/b]\n - downloading around 10Gig the first time...\n"
-            self.pull_docker_images(ssh, ssh_folder, status_label)
+            self.pull_docker_images(ssh, ssh_folder, status_label, ssh_server, domain, ssh_pass)
             progress_bar.value = 0
 
             # Run the up command so the docker apps start
             status_label.text += "\n\n[b]Starting Apps[/b]\n - some apps may be slow to come online (e.g. canvas)...\n"
-            self.start_apps(ssh, ssh_folder, status_label, ssh_server, domain)
+            self.start_apps(ssh, ssh_folder, ssh_pass, status_label, ssh_server, domain)
 
             # Save the image binary files for syncing
             status_label.text += "\n\n[b]Save app binaries[/b]\n - will take a few minutes...\n"
@@ -1304,7 +1415,7 @@ class SyncOPEApp(App):
 
             # Run the up command so the docker apps start
             status_label.text += "\n\n[b]Starting Apps[/b]\n - some apps may be slow to come online (e.g. canvas)...\n"
-            self.start_apps(ssh, ssh_folder, status_label, ssh_server, domain)
+            self.start_apps(ssh, ssh_folder, ssh_pass, status_label, ssh_server, domain)
 
             # Start syncing volume folders
             status_label.text += "\n\n[b]Syncing Volumes[/b]\n - may take a while...\n"
@@ -1364,15 +1475,7 @@ class SyncOPEApp(App):
         ret = value
 
         # Always return true for required apps (can't turn them off)
-        if app_name == "ope-dns":
-            ret = "1"
-        elif app_name == "ope-gateway":
-            ret = "1"
-        elif app_name == "ope-clamav":
-            ret = "1"
-        elif app_name == "ope-postgresql":
-            ret = "1"
-        elif app_name == "ope-redis":
+        if app_name in SyncOPEApp.required_apps:
             ret = "1"
 
         if ret is False:
@@ -1389,15 +1492,7 @@ class SyncOPEApp(App):
         ret = self.config.getdefault("Selected Apps", app_name, "0")
 
         # Always return true for required apps
-        if app_name == "ope-dns":
-            ret = "1"
-        elif app_name == "ope-gateway":
-            ret = "1"
-        elif app_name == "ope-clamav":
-            ret = "1"
-        elif app_name == "ope-postgresql":
-            ret = "1"
-        elif app_name == "ope-redis":
+        if app_name in SyncOPEApp.required_apps:
             ret = "1"
 
         return ret

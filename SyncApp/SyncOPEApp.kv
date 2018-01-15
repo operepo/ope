@@ -491,7 +491,7 @@
 
 
                 GridLabel:
-                    text: "\n[b][color=ff0000]**[/color] Required Apps[/b]\nThese apps are always required\n- ope-gateway\n- ope-dns\n- ope-clamav\n- ope-redis\n- ope-postgresql\n\n[color=00ff00]**[/color] - Apps with a single asterisk are strongly recommended and required for normal functionality\n"
+                    text: "\n[b][color=ff0000]**[/color] Required Apps[/b] - These apps are always required\n\n[color=00ff00]**[/color] - Strongly recommended and required for normal functionality\n\n[color=0000ff]**[/color] - Apps stable and ready for use\n\n[color=ffff00]**[/color] - Apps still in beta - not fully functional\n"
                 GridLabel:
                     text: ''
                     size_hint_x: .2
@@ -503,6 +503,13 @@
                     id: gateway_on
                     disabled: True
                     active: app.is_app_active('ope-gateway')
+
+                GridLabel:
+                    text: "[b][color=ff0000]**[/color][/b] Router (ope-router) - Deals with multicast routing and firewall rules"
+                GridSwitch:
+                    id: router_on
+                    disabled: True
+                    active: app.is_app_active('ope-router')
 
                 GridLabel:
                     text: "[b][color=ff0000]**[/color][/b] DNS (ope-dns) - Deals with DNS requests - add conditional forwarder for domain to this IP"
@@ -554,56 +561,56 @@
                     on_active: app.set_app_active('ope-smc', self.active)
 
                 GridLabel:
-                    text: "Code Combat (ope-coco) - Lean to write code by scripting games in a website and solving puzzles"
-                GridSwitch:
-                    id: coco_on
-                    active: app.is_app_active('ope-coco')
-                    on_active: app.set_app_active('ope-coco', self.active)
-
-                GridLabel:
-                    text: "FreeCodeCamp (ope-freecodecamp) - Learn to code with lessons and projects from freecodecamp.com"
-                GridSwitch:
-                    id: freecodecamp_on
-                    active: app.is_app_active('ope-freecodecamp')
-                    on_active: app.set_app_active('ope-freecodecamp', self.active)
-
-                GridLabel:
-                    text: "GCFLearnFree (ope-gcf) - Learn basic computer skills - choose version available in RACHEL server"
-                GridSwitch:
-                    id: gcf_on
-                    active: app.is_app_active('ope-gcf')
-                    on_active: app.set_app_active('ope-gcf', self.active)
-
-                GridLabel:
-                    text: "JSBin (ope-jsbin) - Javascript learning environment"
-                GridSwitch:
-                    id: jsbin_on
-                    active: app.is_app_active('ope-jsbin')
-                    on_active: app.set_app_active('ope-jsbin', self.active)
-
-                GridLabel:
-                    text: "KALite (ope-kalite) - Khan Academy Lite - choose version available in RACHEL server"
+                    text: "[color=0000ff]**[/color] KALite (ope-kalite) - Khan Academy Lite - choose version available in RACHEL server"
                 GridSwitch:
                     id: kalite_on
                     active: app.is_app_active('ope-kalite')
                     on_active: app.set_app_active('ope-kalite', self.active)
 
                 GridLabel:
-                    text: "RACHEL (ope-rachel) - RACHEL Web server, large library of offline content available as modules"
+                    text: "[color=ffff00]**[/color] Code Combat (ope-coco) - Lean to write code by scripting games in a website and solving puzzles"
+                GridSwitch:
+                    id: coco_on
+                    active: app.is_app_active('ope-coco')
+                    on_active: app.set_app_active('ope-coco', self.active)
+
+                GridLabel:
+                    text: "[color=ffff00]**[/color] FreeCodeCamp (ope-freecodecamp) - Learn to code with lessons and projects from freecodecamp.com"
+                GridSwitch:
+                    id: freecodecamp_on
+                    active: app.is_app_active('ope-freecodecamp')
+                    on_active: app.set_app_active('ope-freecodecamp', self.active)
+
+                GridLabel:
+                    text: "[color=ffff00]**[/color] GCFLearnFree (ope-gcf) - Learn basic computer skills - choose version available in RACHEL server"
+                GridSwitch:
+                    id: gcf_on
+                    active: app.is_app_active('ope-gcf')
+                    on_active: app.set_app_active('ope-gcf', self.active)
+
+                GridLabel:
+                    text: "[color=ffff00]**[/color] JSBin (ope-jsbin) - Javascript learning environment"
+                GridSwitch:
+                    id: jsbin_on
+                    active: app.is_app_active('ope-jsbin')
+                    on_active: app.set_app_active('ope-jsbin', self.active)
+
+                GridLabel:
+                    text: "[color=ffff00]**[/color] RACHEL (ope-rachel) - RACHEL Web server, large library of offline content available as modules"
                 GridSwitch:
                     id: rachel_on
                     active: app.is_app_active('ope-rachel')
                     on_active: app.set_app_active('ope-rachel', self.active)
 
                 GridLabel:
-                    text: "Stack Dump (ope-stackdump) - StackDump is a copy of Stack Overflow filtered for inmate use"
+                    text: "[color=ffff00]**[/color] Stack Dump (ope-stackdump) - StackDump is a copy of Stack Overflow filtered for inmate use"
                 GridSwitch:
                     id: stackdump_on
                     active: app.is_app_active('ope-stackdump')
                     on_active: app.set_app_active('ope-stackdump', self.active)
 
                 GridLabel:
-                    text: "WAMAP (ope-wamap) - Open source math learning system with lesson materials"
+                    text: "[color=ffff00]**[/color] WAMAP (ope-wamap) - Open source math learning system with lesson materials"
                 GridSwitch:
                     id: wamap_on
                     active: app.is_app_active('ope-wamap')

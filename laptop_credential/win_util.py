@@ -134,12 +134,15 @@ def create_local_student_account(user_name, full_name, password):
 
     win32net.NetUserSetInfo(None, user_name, 3, user_data)
 
-
     # Add student to the students group
     print("\tAdding student to students group...")
     grp = accounts.LocalGroup(accounts.group(STUDENTS_GROUP).sid)
+    users_grp = accounts.LocalGroup(accounts.group("Users").sid)
     try:
+        # Add to students group
         grp.add(student)
+        # Add to users group
+        users_grp.add(student)
     except pywintypes.error as err:
         if err[2] == "The specified account name is already a member of the group.":
             pass
@@ -150,7 +153,6 @@ def create_local_student_account(user_name, full_name, password):
 
     # # home_dir = "%s\\%s" % (server_name, user_name)
     #
-
 
     return ret
 
