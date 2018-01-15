@@ -2,7 +2,8 @@
 # Ignore env files
 .env
 .idea
-
+.pw
+.secret
 images/
 volumes/
 *.pyc
