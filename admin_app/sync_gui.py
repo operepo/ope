@@ -872,7 +872,7 @@ class SyncOPEApp(App):
         enabled_apps = SyncOPEApp.required_apps[:]
 
         # Check recommended apps
-        for item in SyncOPEApp.required_apps:
+        for item in SyncOPEApp.recommended_apps:
             if self.config.getdefault("Selected Apps", item, "1") == "1":
                 enabled_apps.append(item)
 
