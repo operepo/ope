@@ -190,12 +190,15 @@ def main():
         key = win_util.create_reg_key(r"HKLM\Software\OPE\OPELMS", student_user)
         key = win_util.create_reg_key(r"HKLM\Software\OPE\OPELMS\student")
         key.canvas_access_token = canvas_access_token
+        
+        print("Canvas access granted for student.")
+        return
 
-        print("Installing Admin Services...")
+        # print("Installing Admin Services...")
 
-        print("Installing offline LMS app...")
+        # print("Installing offline LMS app...")
 
-        print ("Applying security rules...")
+        # print ("Applying security rules...")
 
         p("\tDownloading firewall rules...")
         url = api_url + "lms/get_firewall_list.json"
