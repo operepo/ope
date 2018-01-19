@@ -71,8 +71,8 @@ def load_app(app_name):
     tar_digest = get_tar_digest(app_name)
     # Load the current docker digest
     app_digest = get_app_digest(app_name)
-    
-    if app_digest != tar_digest:
+    print "Digests (tar/app): " + tar_digest + "/" + app_digest
+    if app_digest != tar_digest or app_digest == "..." or tar_digest == "..":
         # Save the binary
         print "\tApp modified, importing with docker load from: " + img_path        
         os.system("docker load -i " + img_path)
