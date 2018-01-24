@@ -37,3 +37,5 @@ ope.git
 /client_tools/sysprep_scripts/wmic.err
 /admin_app/SyncApp.spec
 /repos
+/laptop_credential/build
+/laptop_credential/dist
