@@ -1,5 +1,11 @@
 #!/bin/sh
 
+SCRIPT=$(readlink -f "$0")
+BASEDIR=$(dirname "$SCRIPT")
+ROOTDIR=$(dirname "$BASEDIR")
+
+cd "$BASEDIR"
+
 systemctl disable rpcbind
 systemctl stop rpcbind
 
@@ -39,7 +45,7 @@ if [ "$build_flag" = "auto" ]; then
   rebuild_param="auto"
 fi
 echo "Rebuilding docker compose..."
-python ../build_tools/rebuild_compose.py "$rebuild_param"
+python $ROOTDIR/build_tools/rebuild_compose.py "$rebuild_param"
 
 if [ "$build_flag" = "b" ]; then
   echo "Building docker containers..."
