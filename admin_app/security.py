@@ -2,7 +2,7 @@
 
 import re
 import uuid
-import gluon.contrib.aes as AES
+import pyaes
 import threading
 import os
 import base64
@@ -43,13 +43,13 @@ class Enc:
             try:
                 locker.acquire()
                 ur = os.urandom(16 * 1024)
-                urandom += [ur[i:i + 16] for i in xrange(16, 1024 * 16, 16)]
+                urandom += [ur[i:i + 16] for i in range(16, 1024 * 16, 16)]
                 return ur[0:16]
             finally:
                 locker.release()
 
     @staticmethod
-    def pad(s, n=32, pad_char=' '):
+    def pad(s, n=16, pad_char=' '):
         while (len(s) % n) != 0:
             s += pad_char
         return s
@@ -57,26 +57,34 @@ class Enc:
     @staticmethod
     def aes_new(key, iv=None):
         """ Returns an AES cipher object and random IV if None specified """
-        if iv is None:
-            iv = Enc.fast_urandom16()
+        # if iv is None:
+        #    iv = Enc.fast_urandom16()
 
-        return AES.new(str(key), AES.MODE_CBC, iv), iv
+        # return AES.new(str(key), AES.MODE_CBC, iv), iv
+        # return pyaes.AESModeOfOperationCBC(key.encode('utf-8'), iv=iv), iv
+        return pyaes.AESModeOfOperationCTR(key.encode('utf-8'))
 
     def encrypt(self, data):
         key = self.get_key()
-        cipher, iv = Enc.aes_new(key)
-        encrypted_data = iv + cipher.encrypt(Enc.pad(data))
-        return base64.urlsafe_b64encode(encrypted_data)
+        # cipher, iv = Enc.aes_new(key)
+        cipher = Enc.aes_new(key)
+        # encrypted_data = iv + cipher.encrypt(Enc.pad(data))
+        encrypted_data = cipher.encrypt(data)
+        return base64.urlsafe_b64encode(encrypted_data).decode('utf-8')
+        #return encrypted_data
 
     def decrypt(self, data):
         key = self.get_key()
         if data is None:
             data = ""
         # Make sure data is ascii
-        data = str(data)
-        data = base64.urlsafe_b64decode(data)
-        iv, data = data[:16], data[16:]
-        cipher, _ = Enc.aes_new(key, iv=iv)
-        data = cipher.decrypt(data)
-        data = data.rstrip(' ')
-        return data
+        # data = str(data)
+        if isinstance(data, unicode):
+            data = data.encode('utf-8')
+        decode_data = base64.urlsafe_b64decode(data)
+        #iv, data = data[:16], data[16:]
+        #cipher, _ = Enc.aes_new(key, iv=iv)
+        cipher = Enc.aes_new(key)
+        plain_text = cipher.decrypt(decode_data)
+        # data = data.rstrip(' ')
+        return plain_text.decode('utf-8')

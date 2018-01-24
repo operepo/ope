@@ -17,6 +17,7 @@ def export_table(table, con):
     # Figure out what parts to export for this table
 
     # Pull list from logged_actions table
+    pass
 
 
 def export_canvas_db(db_name="canvas_production", host="canvas.ed", user="postgres", password="changeme", port=5432):
