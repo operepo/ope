@@ -78,6 +78,7 @@ def load_app(app_name):
         os.system("docker load -i " + img_path)
         
         # Update the digest
+	app_digest = get_app_digest(app_name)
         save_app_digest(app_name, app_digest)
     else:
         # App hasn't changed
