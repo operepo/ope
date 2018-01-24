@@ -122,7 +122,7 @@ RUN a2enmod wsgi
 # Add git user
 RUN useradd -ms /bin/bash  git
 
-LABEL rebuild=11
+LABEL rebuild=12
 # Copy in our start script
 COPY start.sh /start.sh
 COPY supervisord.conf /etc/supervisor/supervisord.conf
