@@ -1219,7 +1219,7 @@ class SyncOPEApp(App):
                 try:
                     sftp.put(local_digest_file, remote_digest_file)
                 except:
-                    status_label += "Error pusing digest file to server:  " + local_digest_file
+                    status_label += "Error pushing digest file to server:  " + local_digest_file
             else:
                 status_label.text += "\nApp hasn't changed, skipping: " + app
             #
