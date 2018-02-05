@@ -942,9 +942,6 @@ class SyncOPEApp(App):
         # Find the server home folder
         stdin, stdout, stderr = ssh.exec_command("cd ~; pwd;", get_pty=True)
         stdin.close()
-        for line in stdout:
-            # status_label.text += line
-            pass
         server_home_dir = stdout.read().decode('utf-8')
         if server_home_dir is None:
             server_home_dir = ""
@@ -963,9 +960,6 @@ class SyncOPEApp(App):
         # Make sure we remove old entries
         stdin, stdout, stderr = ssh.exec_command("awk '{print $3}' ~/.ssh/id_rsa.pub.ope", get_pty=True)
         stdin.close()
-        for line in stdout:
-            # status_label.text += line
-            pass
         remove_host = stdout.read().decode('utf-8')
         stdin, stdout, stderr = ssh.exec_command("sed -i '/" + remove_host.strip() + "/d' ~/.ssh/authorized_keys", get_pty=True)
         stdin.close()
@@ -1049,7 +1043,7 @@ class SyncOPEApp(App):
         load_script = os.path.join(ssh_folder, "sync_tools", "import_docker_images.py").replace("\\", "/")
         stdin, stdout, stderr = ssh.exec_command("python " + load_script, get_pty=True)
         stdin.close()
-        for line in stdout.read():
+        for line in stdout:
             # status_label.text += line.decode('utf-8')
             #status_label.text += "."
             pass
