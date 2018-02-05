@@ -663,6 +663,8 @@ class SyncOPEApp(App):
         stdin.close()
         for line in stdout:
             status_label.text += line
+            # make sure to read all lines, even if we don't print them
+            pass
 
         status_label.text += "\n[b]Syncing Volume: [/b]" + volume + "/" + folder
         sftp = ssh.open_sftp()
@@ -769,8 +771,9 @@ class SyncOPEApp(App):
         # Ensure the base folder exists (e.g. /ope) and is ready for git commands
         stdin, stdout, stderr = ssh.exec_command("mkdir -p " + ssh_folder + "; cd " + ssh_folder + "; git init;", get_pty=True)
         stdin.close()
-        # for line in stdout:
-        #    status_label.text += line
+        for line in stdout:
+            # status_label.text += line
+            pass
 
         for repo in repos:
             status_label.text += "Pushing " + repo + " (may take several minutes)...\n"
@@ -788,8 +791,10 @@ class SyncOPEApp(App):
             print("-- Init")
             stdin, stdout, stderr = ssh.exec_command("mkdir -p " + remote_repo_folder + "; cd " + remote_repo_folder + "; git init --bare; ", get_pty=True)
             stdin.close()
-            # for line in stdout:
-            #    status_label.text += line
+            for line in stdout:
+                # status_label.text += line
+                # make sure to read all lines, even if we don't print them
+                pass
 
             # Remove existing remote - in case it is old/wrong
             print("-- Remove Remote")
@@ -819,22 +824,28 @@ class SyncOPEApp(App):
         # Ensure that local changes are stash/saved so that the pull works later
         stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git stash;", get_pty=True)
         stdin.close()
-        # for line in stdout:
-        #    status_label.text += line
+        for line in stdout:
+            # status_label.text += line
+            # make sure to read all lines, even if we don't print them
+            pass
 
         # Have remote server checkout from the bare repo
         stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git remote remove local_bare;", get_pty=True)
         stdin.close()
-        # for line in stdout:
-        #    # status_label.text += line
-        #    Logger.info(line)
+        for line in stdout:
+            # status_label.text += line
+            # Logger.info(line)
+            # make sure to read all lines, even if we don't print them
+            pass
 
         ope_local_bare = os.path.join(ssh_folder, "volumes/smc/git/ope.git").replace("\\", "/")
         stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git remote add local_bare " + ope_local_bare + ";", get_pty=True)
         stdin.close()
-        # for line in stdout:
-        #    # status_label.text += line
-        #    Logger.info(line)
+        for line in stdout:
+            # status_label.text += line
+            # Logger.info(line)
+            # make sure to read all lines, even if we don't print them
+            pass
 
         stdin, stdout, stderr = ssh.exec_command("cd " + ssh_folder + "; git pull local_bare " + branch + ";", get_pty=True)
         stdin.close()
@@ -926,10 +937,14 @@ class SyncOPEApp(App):
         stdin.close()
         for line in stdout:
             status_label.text += line
+            pass
 
         # Find the server home folder
         stdin, stdout, stderr = ssh.exec_command("cd ~; pwd;", get_pty=True)
         stdin.close()
+        for line in stdout:
+            # status_label.text += line
+            pass
         server_home_dir = stdout.read().decode('utf-8')
         if server_home_dir is None:
             server_home_dir = ""
@@ -948,17 +963,22 @@ class SyncOPEApp(App):
         # Make sure we remove old entries
         stdin, stdout, stderr = ssh.exec_command("awk '{print $3}' ~/.ssh/id_rsa.pub.ope", get_pty=True)
         stdin.close()
+        for line in stdout:
+            # status_label.text += line
+            pass
         remove_host = stdout.read().decode('utf-8')
         stdin, stdout, stderr = ssh.exec_command("sed -i '/" + remove_host.strip() + "/d' ~/.ssh/authorized_keys", get_pty=True)
         stdin.close()
         for line in stdout:
             status_label.text += line
+            pass
 
         # Add id_rsa.pub.ope to the authorized_keys file
         stdin, stdout, stderr = ssh.exec_command("cat ~/.ssh/id_rsa.pub.ope >> ~/.ssh/authorized_keys; chmod 600 ~/.ssh/authorized_keys;", get_pty=True)
         stdin.close()
         for line in stdout:
             status_label.text += line
+            pass
 
 
         # Last step - make sure that servers key is accepted here so we don't get warnings
@@ -974,8 +994,14 @@ class SyncOPEApp(App):
         # Need to re-run the rebuild_compose.py file
         build_path = os.path.join(ssh_folder, "docker_build_files").replace("\\", "/")
         stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ip + "\" > .ip; ", get_pty=True)
+        for line in stdout:
+            pass
         stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; if [ ! -f .domain ]; then echo \"" + domain + "\" > .domain; fi ", get_pty=True)
+        for line in stdout:
+            pass
         stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .pw; ", get_pty=True)
+        for line in stdout:
+            pass
 
         rebuild_path = os.path.join(ssh_folder, "build_tools", "rebuild_compose.py").replace("\\", "/")
         stdin, stdout, stderr = ssh.exec_command("python " + rebuild_path + " auto", get_pty=True)
@@ -987,6 +1013,7 @@ class SyncOPEApp(App):
         stdin.close()
         for line in stdout:
             status_label.text += line
+            pass
 
         # Run the rebuild
         status_label.text += "Pulling docker apps...\n"
@@ -1039,8 +1066,14 @@ class SyncOPEApp(App):
         # CHANGE - when logging in from the sync app, always set the IP to the current ip used to login
         # stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; if [ ! -f .ip ]; then echo \"" + ip + "\" > .ip; fi ", get_pty=True)
         stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ip + "\" > .ip; ", get_pty=True)
+        for line in stdout:
+            pass
         stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; if [ ! -f .domain ]; then echo \"" + domain + "\" > .domain; fi ", get_pty=True)
+        for line in stdout:
+            pass
         stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .pw; ", get_pty=True)
+        for line in stdout:
+            pass
 
         # Run twice - sometimes compose fails, so we just rerun it
         # Add auto param to up.sh - to prevent it from asking questions
