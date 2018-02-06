@@ -1387,6 +1387,12 @@ class SyncOPEApp(App):
             self.sync_volumes(ssh, ssh_folder, status_label)
 
             ssh.close()
+        except paramiko.ssh_exception.BadHostKeyException:
+            print("Invalid Host key!")
+            status_label.text += "\n\n[b]CONNECTION ERROR[/b]\n - Bad host key - check ~/.ssh/known_hosts"
+            if run_button is not None:
+                run_button.disabled = False
+            return False
         except Exception as ex:
             status_label.text += "\n\n[b]SYNC ERROR[/b]\n - Unable to complete sync "
             if 'Bad authentication type' in ex:
@@ -1464,6 +1470,12 @@ class SyncOPEApp(App):
             self.sync_volumes(ssh, ssh_folder, status_label)
 
             ssh.close()
+        except paramiko.ssh_exception.BadHostKeyException:
+            print("Invalid Host key!")
+            status_label.text += "\n\n[b]CONNECTION ERROR[/b]\n - Bad host key - check ~/.ssh/known_hosts"
+            if run_button is not None:
+                run_button.disabled = False
+            return False
         except Exception as ex:
             status_label.text += "\n\n[b]SYNC ERROR[/b]\n - Unable to complete sync: "
             if 'Bad authentication type' in str(ex):
@@ -1505,6 +1517,10 @@ class SyncOPEApp(App):
                 Logger.info("1 means found root: " + str(count))
 
             ssh.close()
+        except paramiko.ssh_exception.BadHostKeyException:
+            print("Invalid Host key!")
+            status_label.text += "\n\n[b]CONNECTION ERROR[/b]\n - Bad host key - check ~/.ssh/known_hosts"
+            return False
         except Exception as ex:
             status_label.text += "\n\nERROR - Unable to connect to OPE server : " + str(ex)
             Logger.info("Error connecting: " + str(ex))
