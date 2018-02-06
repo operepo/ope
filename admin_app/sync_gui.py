@@ -30,7 +30,21 @@ Config.set('graphics', 'fbo', 'software')
 import sys
 import re
 from os.path import expanduser
+import logging
 import paramiko
+# Deal with issue #12 - No handlers could be found for logger "paramiko.transport"
+paramiko.util.log_to_file("ssh.log")
+logging.raiseExceptions = False
+
+# paramiko_logger = logging.getLogger('paramiko.transport')
+# if not paramiko_logger.handlers:
+#    console_handler = logging.StreamHandler()
+#    console_handler.setFormatter(
+#        logging.Formatter('%(asctime)s | %(levelname)-8s| PARAMIKO: '
+#                      '%(lineno)03d@%(module)-10s| %(message)s')
+#    )
+# paramiko_logger.addHandler(console_handler)
+
 import uuid
 import subprocess
 import stat
