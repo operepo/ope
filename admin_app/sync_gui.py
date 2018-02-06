@@ -438,8 +438,8 @@ class SyncOPEApp(App):
         # stable apps
         for item in SyncOPEApp.stable_apps:
             selected_apps[item] = '0'
-        # beta apps
-        for item in SyncOPEApp.stable_apps:
+        # beta apps #11 fixed
+        for item in SyncOPEApp.beta_apps:
             selected_apps[item] = '0'
 
         config.setdefaults("Selected Apps",
