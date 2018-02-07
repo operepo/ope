@@ -975,7 +975,8 @@ class SyncOPEApp(App):
         stdin, stdout, stderr = ssh.exec_command("awk '{print $3}' ~/.ssh/id_rsa.pub.ope", get_pty=True)
         stdin.close()
         remove_host = stdout.read().decode('utf-8')
-        stdin, stdout, stderr = ssh.exec_command("sed -i '/" + remove_host.strip() + "/d' ~/.ssh/authorized_keys", get_pty=True)
+        # Add if/then to command to prevent error when authorized_keys file doesn't exist
+        stdin, stdout, stderr = ssh.exec_command("if [ -f ~/.ssh/authorized_keys ]; then sed -i '/" + remove_host.strip() + "/d' ~/.ssh/authorized_keys; fi", get_pty=True)
         stdin.close()
         for line in stdout:
             status_label.text += line
