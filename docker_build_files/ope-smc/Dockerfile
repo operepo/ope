@@ -69,16 +69,23 @@ RUN openssl genrsa -passout pass:$CERT_PASS 2048 > /etc/ssl/private/web2py.key &
 	openssl x509 -noout -fingerprint -text < /etc/ssl/certs/web2py.crt > /etc/ssl/web2py.info
 
 
-
+LABEL rebuild=1
 WORKDIR $W2P_DIR
 RUN chown -R www-data:www-data $W2P_DIR
 USER www-data
 
 # get and install web2py
-RUN wget http://web2py.com/examples/static/web2py_src.zip && \
-    unzip -o web2py_src.zip -d .. && \
-	rm web2py_src.zip && \	
+#RUN wget http://web2py.com/examples/static/web2py_src.zip && \
+#    unzip -o web2py_src.zip -d .. && \
+#	rm web2py_src.zip && \	
+#	mv handlers/wsgihandler.py ./wsgihandler.py && \
+#	chown -R www-data:www-data .
+# Pull from git
+RUN git clone --recursive https://github.com/web2py/web2py.git . && \
 	mv handlers/wsgihandler.py ./wsgihandler.py && \
+	cd gluon/packages/dal && \
+	git checkout master && \
+	cd ../../.. && \
 	chown -R www-data:www-data .
 
 
@@ -87,7 +94,7 @@ RUN python -c "from gluon.main import save_password; save_password('$IT_PW',80)"
 
 LABEL rebuild=6
 # Checkout release copy of SMC
-RUN git clone https://github.com/frankyrumple/smc.git $W2P_DIR/applications/smc
+RUN git clone https://github.com/operepo/smc.git $W2P_DIR/applications/smc
 RUN cp -f $W2P_DIR/applications/smc/routes.py $W2P_DIR/routes.py
 
 # Add a first run file so that next time a page is hit db migration happens
