@@ -53,15 +53,6 @@ RUN if [ -e /var/lib/gems/$RUBY_MAJOR.0/gems/bundler-* ]; then BUNDLER_INSTALL="
   && gem install bundler --no-document -v 1.15.2 \
   && find $GEM_HOME ! -user docker | xargs chown docker:docker
 
-# We will need sfnt2woff in order to build fonts
-COPY build/vendor/woff-code-latest.zip ./
-RUN unzip woff-code-latest.zip -d woff \
-  && cd woff \
-  && make \
-  && cp sfnt2woff /usr/local/bin \
-  && cd - \
-  && rm -rf woff*
-  
 # Make sure this runs during build, will also run at at startup later
 #ENV CANVAS_BUILD_CONCURRENCY=1
 
@@ -78,7 +69,18 @@ WORKDIR $APP_HOME
 #COPY yarn.lock    ${APP_HOME}
 
 RUN cd ${APP_HOME} \
-    && git clone https://github.com/instructure/canvas-lms.git .
+    && git clone https://github.com/instructure/canvas-lms.git . \
+    && git checkout release/2018-02-17.04
+
+# We will need sfnt2woff in order to build fonts
+#COPY build/vendor/woff-code-latest.zip ./
+RUN cd build/vendor \
+  && unzip woff-code-latest.zip -d woff \
+  && cd woff \
+  && make \
+  && cp sfnt2woff /usr/local/bin \
+  && cd - \
+  && rm -rf woff*
 
 RUN find gems packages -type d ! -user docker -print0 | xargs -0 chown -h docker:docker
 
