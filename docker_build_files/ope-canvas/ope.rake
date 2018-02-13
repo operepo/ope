@@ -290,6 +290,17 @@ SQLSTRING
   
   task :startup => :environment do
 	# Do all startup tasks
+    
+    puts "--> resetting encryption key hash..."
+    #$GEM_HOME/bin/bundle exec rake db:reset_encryption_key_hash
+    Rake::Task['db:reset_encryption_key_hash'].invoke
+
+    puts "--> Checking for canvas db..."
+    if not ActiveRecord::Base.connection.data_source_exists? 'versions'
+       puts "----> Canvas DB does NOT exist, creating..."
+       Rake::Task['db:initial_setup'].invoke
+    end
+    
     puts "-----> init auditing tables..."
     Rake::Task['ope:init_db'].invoke
 	
@@ -328,8 +339,8 @@ SQLSTRING
 	if (pre_migrations != post_migrations)
 		puts "-----> Migrations detected, compiling assets"
 		#$GEM_HOME/bin/bundle exec rake canvas:compile_assets
-		Rake::Task['canvas:compile_assets'].invoke
-         
+		#Rake::Task['canvas:compile_assets'].invoke
+        # NOTE: Shouldn't need recompile - should have been done in docker build
 	else
 		puts "-----> No migrations detected"
 	end
@@ -338,6 +349,12 @@ SQLSTRING
     #$GEM_HOME/bin/bundle exec rake brand_configs:generate_and_upload_all
     puts "-----> brand_configs:generate_and_upload_all..."
     Rake::Task['brand_configs:generate_and_upload_all'].invoke
+    
+    # Reset password for admin user to pw provided in the environment
+    # TODO - Test
+    p = Pseudonym.find_by unique_id: "admin@ed"
+    p.password = p.password_confirmation = ENV["IT_PW"]
+    p.save!
   end
   
   task :set_sequence_range => :environment do

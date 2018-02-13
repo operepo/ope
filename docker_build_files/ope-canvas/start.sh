@@ -1,9 +1,15 @@
 #!/bin/bash
 set -e
 
-touch /usr/src/app/log/app_starting
+rm /usr/src/app/log/app_init
+rm /usr/src/app/log/app_starting
+
+touch /usr/src/app/log/app_init
 
 APP_DIR=/usr/src/app
+
+# Make sure tmp folder exists
+mkdir /tmp/attachement_fu
 
 # Make sure the initial database is setup for canvas
 export PGPASSWORD=$IT_PW;
@@ -58,18 +64,20 @@ sed -i -- "s/5_000_000/1_000_000_000_000_000_000/g" $APP_DIR/config/initializers
 # Constraint gets altered during ope:startup
 
 # This will change, make sure to deal with it
-echo "--> resetting encryption key hash..."
-$GEM_HOME/bin/bundle exec rake db:reset_encryption_key_hash
+# NOTE: moved to ope.rake -> startup
+#echo "--> resetting encryption key hash..."
+#$GEM_HOME/bin/bundle exec rake db:reset_encryption_key_hash
 
 # Generate the initial db if a table called versions doesn't already exist
-count=`psql -d canvas_$RAILS_ENV -U postgres -h postgresql -tqc "select count(tablename) as count from pg_tables where tablename='versions'"`
+# NOTE: moved to ope.rake -> startup
+#count=`psql -d canvas_$RAILS_ENV -U postgres -h postgresql -tqc "select count(tablename) as count from pg_tables where tablename='versions'"`
 #psql -d canvas_$RAILS_ENV -U postgres -h postgresql -tc "select 1 from pg_tables where tablename='versions'" | grep -q 1 || $GEM_HOME/bin/bundle exec rake db:initial_setup
-if [ $count != '1' ]; then
-    # Run initial setup
-    echo "--> Running initial db setup..."
-    $GEM_HOME/bin/bundle exec rake db:initial_setup
-    $GEM_HOME/bin/bundle exec rake canvas:compile_assets
-fi
+#if [ $count != '1' ]; then
+#    # Run initial setup
+#    echo "--> Running initial db setup..."
+#    $GEM_HOME/bin/bundle exec rake db:initial_setup
+#    #$GEM_HOME/bin/bundle exec rake canvas:compile_assets
+#fi
 
 # Make sure brand configs are present
 #$GEM_HOME/bin/bundle exec rake brand_configs:generate_and_upload_all
@@ -94,7 +102,8 @@ $GEM_HOME/bin/bundle exec rake ope:startup --trace
 #echo "setting permissions..."
 #chown -R docker:docker $APP_DIR
 
-rm -f /usr/src/app/log/app_starting
+rm -f /usr/src/app/log/app_init
+touch /usr/src/app/log/app_starting
 
 echo "-----> launching supervisord..."
 exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
