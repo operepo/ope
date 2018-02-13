@@ -10,6 +10,7 @@
             # Normal mounts
             - ../volumes/canvas/tmp:/usr/src/app/tmp:rw
             - ../volumes/canvas/log:/usr/src/app/log:rw
+            - ../volumes/canvas/tmpfiles:/tmp:rw
         depends_on:
             - ope-gateway
             - ope-dns
