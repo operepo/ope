@@ -158,7 +158,7 @@ USER root
 
 RUN echo "Settings file permissions..." \
     && mkdir /tmp/attachment_fu \
-    && chown -R docker:docker /tmp/attachment_fu /usr/src/app/log
+    && chown -R docker:docker /tmp/attachment_fu /usr/src/app/log \
     && chmod 755 /usr/src/*.sh \
     && dos2unix /usr/src/*.sh \
     && chown -R docker:docker /usr/src/*.sh /usr/src/app/config /usr/src/app/vendor /usr/src/app/lib/tasks/ope.rake
