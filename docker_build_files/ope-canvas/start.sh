@@ -70,12 +70,15 @@ sed -i -- "s/<CANVAS_SECRET>/$CANVAS_SECRET/g" config/security.yml
 # Modify ruby/gems to push database shard id out so we can use that range for school ids
 # School ids are calculated in ope.rake startup and applied to database tables
 
-# Change the shard ID so that we can use that space to sync servers
+# Change the shard ID so that we can use that space to sync servers - essentially turn shards off
 echo "--> changing id range in shard_internal.rb..."
-sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000/g" $GEM_HOME/gems/switchman-*/app/models/switchman/shard_internal.rb
+#sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000/g" $GEM_HOME/gems/switchman-*/app/models/switchman/shard_internal.rb
+sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000_000/g" $GEM_HOME/gems/switchman-*/app/models/switchman/shard_internal.rb
 
 # Need to adjust the partitions values for version tables - tables aren't created when they should be with very large ids
-sed -i -- "s/5_000_000/1_000_000_000_000_000/g" $APP_DIR/config/initializers/simply_versioned.rb
+# essentially turn version tables off
+#sed -i -- "s/5_000_000/1_000_000_000_000_000/g" $APP_DIR/config/initializers/simply_versioned.rb
+sed -i -- "s/5_000_000/1_000_000_000_000_000_000/g" $APP_DIR/config/initializers/simply_versioned.rb
 # Constraint gets altered during ope:startup
 
 
