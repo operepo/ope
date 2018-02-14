@@ -353,8 +353,10 @@ SQLSTRING
     # Reset password for admin user to pw provided in the environment
     # TODO - Test
     p = Pseudonym.find_by unique_id: "admin@ed"
-    p.password = p.password_confirmation = ENV["IT_PW"]
-    p.save!
+    if p
+        p.password = p.password_confirmation = ENV["IT_PW"]
+        p.save!
+    end
   end
   
   task :set_sequence_range => :environment do
