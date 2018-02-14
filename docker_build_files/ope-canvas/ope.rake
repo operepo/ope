@@ -295,11 +295,11 @@ SQLSTRING
     #$GEM_HOME/bin/bundle exec rake db:reset_encryption_key_hash
     Rake::Task['db:reset_encryption_key_hash'].invoke
 
-    puts "--> Checking for canvas db..."
-    if not ActiveRecord::Base.connection.data_source_exists? 'versions'
-       puts "----> Canvas DB does NOT exist, creating..."
-       Rake::Task['db:initial_setup'].invoke
-    end
+    #puts "--> Checking for canvas db..."
+    #if not ActiveRecord::Base.connection.data_source_exists? 'versions'
+    #   puts "----> Canvas DB does NOT exist, creating..."
+    #   Rake::Task['db:initial_setup'].invoke
+    #end
     
     puts "-----> init auditing tables..."
     Rake::Task['ope:init_db'].invoke

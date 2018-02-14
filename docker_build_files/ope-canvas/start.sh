@@ -90,14 +90,14 @@ sed -i -- "s/5_000_000/1_000_000_000_000_000_000/g" $APP_DIR/config/initializers
 
 # Generate the initial db if a table called versions doesn't already exist
 # NOTE: moved to ope.rake -> startup
-#count=`psql -d canvas_$RAILS_ENV -U postgres -h postgresql -tqc "select count(tablename) as count from pg_tables where tablename='versions'"`
+count=`psql -d canvas_$RAILS_ENV -U postgres -h postgresql -tqc "select count(tablename) as count from pg_tables where tablename='versions'"`
 #psql -d canvas_$RAILS_ENV -U postgres -h postgresql -tc "select 1 from pg_tables where tablename='versions'" | grep -q 1 || $GEM_HOME/bin/bundle exec rake db:initial_setup
-#if [ $count != '1' ]; then
-#    # Run initial setup
-#    echo "--> Running initial db setup..."
-#    $GEM_HOME/bin/bundle exec rake db:initial_setup
-#    #$GEM_HOME/bin/bundle exec rake canvas:compile_assets
-#fi
+if [ $count != '1' ]; then
+    # Run initial setup
+    echo "--> Running initial db setup..."
+    $GEM_HOME/bin/bundle exec rake db:initial_setup
+    #$GEM_HOME/bin/bundle exec rake canvas:compile_assets
+fi
 
 # Make sure brand configs are present
 #$GEM_HOME/bin/bundle exec rake brand_configs:generate_and_upload_all
