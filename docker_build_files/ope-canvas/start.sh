@@ -39,29 +39,42 @@ export CANVAS_LMS_STATS_COLLECTION="opt_out"
 cd $APP_DIR
 
 echo "--> adjusting config files..."
-sed -i "s/EMAIL_DELIVERY_METHOD/${EMAIL_DELIVERY_METHOD-test}/" config/outgoing_mail.yml
-sed -i "s/SMTP_ADDRESS/${SMTP_ADDRESS-localhost}/" config/outgoing_mail.yml
-sed -i "s/SMTP_PORT/${SMTP_PORT-25}/" config/outgoing_mail.yml
-sed -i "s/SMTP_USER/${SMTP_USER-}/" config/outgoing_mail.yml
-sed -i "s/SMTP_PASS/${SMTP_PASS-}/" config/outgoing_mail.yml
+cp config/outgoing_mail.yml.tmpl config/outgoing_mail.yml
+sed -i "s/EMAIL_DELIVERY_METHOD/${EMAIL_DELIVERY_METHOD}/" config/outgoing_mail.yml
+sed -i "s/SMTP_ADDRESS/${SMTP_ADDRESS}/" config/outgoing_mail.yml
+sed -i "s/SMTP_PORT/${SMTP_PORT}/" config/outgoing_mail.yml
+sed -i "s/SMTP_USER/${SMTP_USER}/" config/outgoing_mail.yml
+sed -i "s/SMTP_PASS/${SMTP_PASS}/" config/outgoing_mail.yml
+sed -i "s/OUTGOING_ADDRESS/${ADMIN_EMAIL}/" config/outgoing_mail.yml
 
 cp config/domain.yml.tmpl config/domain.yml
 sed -i -- "s/<VIRTUAL_HOST>/$VIRTUAL_HOST/g" config/domain.yml
+cp config/database.yml.tmpl config/database.yml
 sed -i -- "s/<IT_PW>/$IT_PW/g" config/database.yml
 
 cp config/security.yml.tmpl config/security.yml
 sed -i -- "s/<CANVAS_SECRET>/$CANVAS_SECRET/g" config/security.yml
 
+
+# Javascript - uses float to store ints, so max is 53 bits instead of 64?
+# 9_223_372_036_854_775_807 - Normal Max 64 bit int - for every language but JScript
+# 0_009_007_199_254_740_991 - Max safe int for jscript (jscript, you suck in so many ways)
+# 0_00*_000_000_000_000_000 - We push DB shards to this digit (0-9 shards possible)
+# 0_000_***_***_000_000_000 - Auto set School Range based on time of initial startup (rolls over after 2 years)
+# 0_000_000_000_***_***_*** - Leaves 1 bil ids for local tables and doesn't loose data due to jscript
+
+# Modify ruby/gems to push database shard id out so we can use that range for school ids
+# School ids are calculated in ope.rake startup and applied to database tables
+
 # Change the shard ID so that we can use that space to sync servers
 echo "--> changing id range in shard_internal.rb..."
-sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000_000/g" $GEM_HOME/gems/switchman-*/app/models/switchman/shard_internal.rb
- #IDS_PER_SHARD = 10_000_000_000_000
- #IDS_PER_SHARD =  1_000_000_000_000_000_000
-                 #   30_578_000_000_000_005
-				 
+sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000/g" $GEM_HOME/gems/switchman-*/app/models/switchman/shard_internal.rb
+
 # Need to adjust the partitions values for version tables - tables aren't created when they should be with very large ids
-sed -i -- "s/5_000_000/1_000_000_000_000_000_000/g" $APP_DIR/config/initializers/simply_versioned.rb
+sed -i -- "s/5_000_000/1_000_000_000_000_000/g" $APP_DIR/config/initializers/simply_versioned.rb
 # Constraint gets altered during ope:startup
+
+
 
 # This will change, make sure to deal with it
 # NOTE: moved to ope.rake -> startup

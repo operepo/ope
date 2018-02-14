@@ -361,29 +361,50 @@ SQLSTRING
 	# If no range defined, create one and set it
 	range_file = "/usr/src/app/tmp/db_sequence_range"
 	rangestart = 0
+    # Use an epoch time (in minutes which is about 2/14/18) when we calculate a new rangestart
+    epoch_time = 25310582 # 24675840
+    school_id_range_max = 999_999  # This times the local_id_range is the full db range
+    local_id_range = 1_000_000_000 # Use this to bump the schoo_id range up
+    
 	
-	if File.file?(range_file) != true
-		# Generate a new range and save it
-		# Calculate database ID ranges based on current time.
-		# Use 24675840 as the epoch time (in minutes which is about 12/1/16)
-		# This allows us to start our range close to 0 and extend for about 19.5 years
-		# Max - 			9_223_372_036_854_775_807
-		# Shard Range - 	*_000_000_000_000_000_000  (normally set at 10trillion, but that interfered
-		#												with our range so we bump it up, this still
-		#												allows for 10 shards)
-		# School Range - 	0_***_***_*00_000_000_000 ( this gives 99 billion ids for each table and
-		#												9,999,999 facilities )
-		# Local ID Range -	0_000_000_0**_***_***_*** ( Leaves 99 billion for local ids )
-		rangestart = Time.now.to_i / 60 # Seconds since 1970 - convert to minutes
-		rangestart = rangestart - 24675840 # Subtract 12/1/16 to start range at 0
-		while rangestart > 9999999
+    # Old values
+    # *_000_000_000_000_000_000 - Shard Range
+    # 0_***_***_*00_000_000_000 - School Range
+    # 0_000_000_0**_***_***_*** - Local ID Range
+
+    # Javascript - uses float to store ints, so max is 53 bits instead of 64?
+    # 9_223_372_036_854_775_807 - Normal Max 64 bit int - for every language but JScript
+    # 0_009_007_199_254_740_991 - Max safe int for jscript (jscript, you suck in so many ways)
+    # 0_00*_000_000_000_000_000 - We push DB shards to this digit (0-9 shards possible)
+    # 0_000_***_***_000_000_000 - Auto set School Range based on time of initial startup (rolls over after 2 years)
+    # 0_000_000_000_***_***_*** - Leaves 1 bil ids for local tables and doesn't loose data due to jscript
+
+
+    # Load the current value if it exists
+    if File.file?(range_file) == true
+        File.open(range_file, 'r') do |f|
+			line = f.gets
+			rangestart = line.to_i
+		end
+		puts "--> Range already defined #{rangestart}"
+    end
+    
+    if rangestart <= 0 or rangestart > school_id_range_max
+        # Calculate new range
+        puts "--> Invalid range #{rangestart}, calculating new range"
+        rangestart = Time.now.to_i / 60 # Seconds since 1970 - convert to minutes
+		rangestart = rangestart - epoch_time # Subtract epoch to start range at 0
+        # Make sure we are 1 to school_id_range_max
+		while rangestart >= school_id_range_max
 			# If we overflow, just reset the range, odds of id conflict on the second or
 			# third time through are extremely small
-			rangestart = rangestart - 9999999
+			rangestart = (rangestart - school_id_range_max).abs
 		end
-		# Bump the range up to 100 billion (each range should have 100 billion ids)
-		rangestart = rangestart * 100000000000
-		
+        if rangestart < 0
+            puts "----> ERROR ERROR ERROR - rangestart calculated to negative number!!!!!"
+            rangestart = 1
+        end
+        
 		# Store the range in a file
 		begin
 			File.open(range_file, 'w') do |f|
@@ -393,14 +414,11 @@ SQLSTRING
 			puts "Error writing DB ID range to file #{range_file}"
 		end
 		
-	else
-		File.open(range_file, 'r') do |f|
-			line = f.gets
-			rangestart = line.to_i
-		end
-		puts "--> Range already defined #{rangestart}"
-	end
-	
+    end
+    
+    # Bump the range up to to the school range - e.g. shift it left into the billions/trillions area
+	rangestart_full = rangestart * local_id_range		
+
 	# Update the database sequences to use this range
 	ActiveRecord::Base.connection.tables.each do |table|  
 	  begin
@@ -409,13 +427,13 @@ SQLSTRING
 		seq_row.each do |row|
 			last_seq = row["nv"].to_i
 		end
-		#puts "-> #{table} current #{last_seq} -> #{rangestart}"
-		if (last_seq < rangestart || last_seq >= rangestart + 100000000000 )
-			puts "-> Last sequence outside of current range #{table} #{last_seq} -> #{rangestart}"
-			ActiveRecord::Base.connection.execute("ALTER SEQUENCE #{table}_id_seq RESTART WITH #{rangestart}")
+		puts "-> #{table} current #{last_seq} -> #{rangestart_full}"
+		if (last_seq < rangestart_full || last_seq >= rangestart_full + local_id_range )
+			puts "-> Last sequence outside of current range #{table} #{last_seq} -> #{rangestart_full}"
+			ActiveRecord::Base.connection.execute("ALTER SEQUENCE #{table}_id_seq RESTART WITH #{rangestart_full}")
 		end
 	  rescue
-		puts "---> Error setting sequence #{rangestart} on table #{table}"
+		puts "---> Error setting sequence #{rangestart_full} on table #{table}"
 	  end
 	end
 	
@@ -425,12 +443,12 @@ SQLSTRING
 	seq_row.each do |row|
 		last_seq = row["nv"].to_i
 	end
-	if (last_seq < rangestart || last_seq >= rangestart + 100000000000 )
-		puts "-> Last sequence outside of current range logged_actions_event_id_seq #{last_seq} -> #{rangestart}"
-		ActiveRecord::Base.connection.execute("ALTER SEQUENCE ope_audit.logged_actions_event_id_seq RESTART WITH #{rangestart}")
+	if (last_seq < rangestart_full || last_seq >= rangestart_full + local_id_range )
+		puts "-> Last sequence outside of current range logged_actions_event_id_seq #{last_seq} -> #{rangestart_full}"
+		ActiveRecord::Base.connection.execute("ALTER SEQUENCE ope_audit.logged_actions_event_id_seq RESTART WITH #{rangestart_full}")
 	end
 	
-	puts "--> Finished setting sequence range to #{rangestart}"
+	puts "--> Finished setting sequence range to #{rangestart_full}"
 	
 	# Make sure to change the constraint on the version tables so they don't blow up with big ids
 	begin

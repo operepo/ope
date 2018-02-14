@@ -134,7 +134,7 @@ RUN COMPILE_ASSETS_NPM_INSTALL=0 bundle exec rake canvas:compile_assets
 USER docker
 
 
-LABEL rebuild=27
+LABEL rebuild=28
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml
@@ -142,19 +142,17 @@ COPY file_store.yml config/file_store.yml
 COPY security.yml.tmpl config/security.yml.tmpl
 COPY external_migration.yml config/external_migration.yml
 
-COPY database.yml config/database.yml
+COPY database.yml.tmpl config/database.yml.tmpl
 COPY redis.yml config/redis.yml
 COPY cache_store.yml config/cache_store.yml
 COPY production-local.rb config/environments/production-local.rb
-COPY outgoing_mail.yml config/outgoing_mail.yml
+COPY outgoing_mail.yml.tmpl config/outgoing_mail.yml.tmpl
 
 COPY supervisord.conf /etc/supervisor/supervisord.conf
 COPY domain.yml.tmpl /usr/src/app/config/domain.yml.tmpl
 COPY dbinit.sh /usr/src/dbinit.sh
 COPY start.sh /usr/src/start.sh
 COPY ope.rake lib/tasks/ope.rake
-
-
 
 USER root
 
@@ -165,8 +163,6 @@ RUN echo "Settings file permissions..." \
     && dos2unix /usr/src/*.sh \
     && chown -R docker:docker /usr/src/*.sh /usr/src/app/config /usr/src/app/vendor /usr/src/app/lib/tasks/ope.rake
     
-
-
 # Stay root at the end - supervisor will switch back to docker user
 VOLUME ["/usr/src/app/tmp", "/usr/src/app/log", "/tmp"]
 EXPOSE 3000

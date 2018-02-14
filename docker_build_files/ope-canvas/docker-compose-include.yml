@@ -29,6 +29,12 @@
             - CERT_NAME=default
             - VIRTUAL_PROTO=http
             #- HTTPS_METHOD=noredirect
+            # Params for the start script
+            - EMAIL_DELIVERY_METHOD=test
+            - SMTP_ADDRESS=localhost
+            - SMTP_PORT=25
+            - SMTP_USER=smtp_user
+            - SMTP_PASS=smtp_pass
         links:
             - ope-postgresql:postgresql
             - ope-redis:redis
