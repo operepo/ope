@@ -1,8 +1,12 @@
 #!/bin/bash
 set -e
 
-rm /usr/src/app/log/app_init
-rm /usr/src/app/log/app_starting
+if [ -f /usr/src/app/log/app_init ]; then
+    rm /usr/src/app/log/app_init
+fi
+if [ -f /usr/src/app/log/app_starting ]; then
+    rm /usr/src/app/log/app_starting
+fi
 
 touch /usr/src/app/log/app_init
 
