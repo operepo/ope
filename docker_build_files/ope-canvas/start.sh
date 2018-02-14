@@ -13,7 +13,7 @@ touch /usr/src/app/log/app_init
 APP_DIR=/usr/src/app
 
 # Make sure tmp folder exists
-mkdir /tmp/attachement_fu
+mkdir -p /tmp/attachement_fu
 
 # Make sure the initial database is setup for canvas
 export PGPASSWORD=$IT_PW;
