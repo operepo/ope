@@ -60,6 +60,10 @@ cp config/security.yml.tmpl config/security.yml
 sed -i -- "s/<CANVAS_SECRET>/$CANVAS_SECRET/g" config/security.yml
 
 
+# Fix ::int4[] instead of ::int8[] in app/models/assignment.rb (line 2477, issue #1238)
+sed -i -- "s/\:\:int4\[\]/\:\:int8\[\]/g" app/models/assignment.rb
+
+
 # Javascript - uses float to store ints, so max is 53 bits instead of 64?
 # 9_223_372_036_854_775_807 - Normal Max 64 bit int - for every language but JScript
 # 0_009_007_199_254_740_991 - Max safe int for jscript (jscript, you suck in so many ways)
