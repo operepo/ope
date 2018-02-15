@@ -70,7 +70,8 @@ WORKDIR $APP_HOME
 
 RUN cd ${APP_HOME} \
     && git clone https://github.com/instructure/canvas-lms.git . \
-    && git checkout release/2018-02-17.04
+    && git checkout stable
+#   release/2018-02-17.04
 
 # We will need sfnt2woff in order to build fonts
 #COPY build/vendor/woff-code-latest.zip ./

@@ -72,13 +72,13 @@ sed -i -- "s/<CANVAS_SECRET>/$CANVAS_SECRET/g" config/security.yml
 
 # Change the shard ID so that we can use that space to sync servers - essentially turn shards off
 echo "--> changing id range in shard_internal.rb..."
-#sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000/g" $GEM_HOME/gems/switchman-*/app/models/switchman/shard_internal.rb
-sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000_000/g" $GEM_HOME/gems/switchman-*/app/models/switchman/shard_internal.rb
+sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000/g" $GEM_HOME/gems/switchman-*/app/models/switchman/shard_internal.rb
+#sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000_000/g" $GEM_HOME/gems/switchman-*/app/models/switchman/shard_internal.rb
 
 # Need to adjust the partitions values for version tables - tables aren't created when they should be with very large ids
 # essentially turn version tables off
-#sed -i -- "s/5_000_000/1_000_000_000_000_000/g" $APP_DIR/config/initializers/simply_versioned.rb
-sed -i -- "s/5_000_000/1_000_000_000_000_000_000/g" $APP_DIR/config/initializers/simply_versioned.rb
+sed -i -- "s/5_000_000/1_000_000_000_000_000/g" $APP_DIR/config/initializers/simply_versioned.rb
+#sed -i -- "s/5_000_000/1_000_000_000_000_000_000/g" $APP_DIR/config/initializers/simply_versioned.rb
 # Constraint gets altered during ope:startup
 
 
