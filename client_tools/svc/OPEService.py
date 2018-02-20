@@ -26,21 +26,52 @@ import ctypes
 
 # TODO - Set recovery options for service so it restarts on failure
 
-# Disable ALL nics if this is set
-DISABLE_ALL_NICS = True
-# Disable sshot if this is set
-DISABLE_SSHOT = False
-
 # Most event notification support lives around win32gui
 GUID_DEVINTERFACE_USB_DEVICE = "{A5DCBF10-6530-11D2-901F-00C04FB951ED}"
 
-LOG_FOLDER = os.path.join(shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_APPDATA, None, 0), "ope")
-SCREEN_SHOTS_FOLDER = os.path.join(LOG_FOLDER, "screen_shots")
+ROOT_FOLDER = os.path.join(shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_APPDATA, None, 0), "ope")
+LOG_FOLDER = os.path.join(ROOT_FOLDER, "tmp\\log")
+SCREEN_SHOTS_FOLDER = os.path.join(ROOT_FOLDER, "tmp\\screen_shots")
 
 EVERYONE, domain, type = win32security.LookupAccountName("", "Everyone")
 ADMINISTRATORS, domain, type = win32security.LookupAccountName("", "Administrators")
-CURRENT_USER, domain, type = win32security.LookupAccountName("", win32api.GetUserName())
+# CURRENT_USER, domain, type = win32security.LookupAccountName("", win32api.GetUserName())
+CURRENT_USER = None
+try:
+    CURRENT_USER, domain, type = win32security.LookupAccountName("", "huskers")
+except:
+    CURRENT_USER = None
+if CURRENT_USER is None:
+    try:
+        CURRENT_USER, domain, type = win32security.LookupAccountName("", "ray")
+    except:
+        CURRENT_USER = None
 SYSTEM_USER, domain, type = win32security.LookupAccountName("", "System")
+
+
+# Disable ALL nics if this is set
+DISABLE_ALL_NICS = False
+DEBUG_NICS = False
+if os.path.isfile(os.path.join(ROOT_FOLDER, ".debug_nics")):
+    DEBUG_NICS = True
+# Disable sshot if this is set
+DISABLE_SSHOT = False
+if os.path.isfile(os.path.join(ROOT_FOLDER, ".disable_sshot")):
+    DISABLE_SSHOT = True
+
+system_nics = ["WAN Miniport (IP)", "WAN Miniport (IPv6)", "WAN Miniport (Network Monitor)",
+                   "WAN Miniport (PPPOE)", "WAN Miniport (PPTP)", "WAN Miniport (L2TP)", "WAN Miniport (IKEv2)",
+                   "WAN Miniport (SSTP)", "Microsoft Wi-Fi Direct Virtual Adapter", "Teredo Tunneling Pseudo-Interface",
+                   "Microsoft Kernel Debug Network Adapter",
+                  ]
+approved_nics = ["Realtek USB GbE Family Controller", ]
+if DEBUG_NICS is True:
+    # Add these nics so we don't cut off network on our dev machines
+    approved_nics.append("Intel(R) 82579LM Gigabit Network Connection")
+    approved_nics.append("150Mbps Wireless 802.11bgn Nano USB Adapter")
+    approved_nics.append("Intel(R) PRO/1000 MT Network Connection")
+    approved_nics.append("Intel(R) Centrino(R) Wireless-N 1000")
+
 
 def show_cacls(filename):
     print
@@ -48,46 +79,74 @@ def show_cacls(filename):
     for line in os.popen("cacls %s" % filename).read().splitlines():
         print line
 
-def make_data_folder(folder, allow_add_file=False):
-    try:
-        os.makedirs(folder)
-    except:
-        pass
-    
+
+def set_ope_permissions():
+    global ROOT_FOLDER, LOG_FOLDER, SCREEN_SHOTS_FOLDER
+
+    # Make sure folders exits
+    if not os.path.isdir(ROOT_FOLDER):
+        os.makedirs(ROOT_FOLDER)
+    if not os.path.isdir(LOG_FOLDER):
+        os.makedirs(LOG_FOLDER)
+    if not os.path.isdir(SCREEN_SHOTS_FOLDER):
+        os.makedirs(SCREEN_SHOTS_FOLDER)
+
+    # --- Set permissions on OPE folder - viewable by not writable
     # Set inheritance flags
     flags = win32security.OBJECT_INHERIT_ACE | win32security.CONTAINER_INHERIT_ACE
-    # Set permissions on this folder so that it isn't viewable by students
-    sd = win32security.GetFileSecurity(folder, win32security.DACL_SECURITY_INFORMATION)
-    
+    sd = win32security.GetFileSecurity(ROOT_FOLDER, win32security.DACL_SECURITY_INFORMATION)
     # Create the blank DACL and add our ACE's
     dacl = win32security.ACL()
-    #dacl.AddAccessAllowedAce(win32security.ACL_REVISION, ntsecuritycon.FILE_GENERIC_READ, EVERYONE)
-    # Setup a folder where sshot running as the student can add pics, but can't delete/modify anythin
-    if allow_add_file == True:
-        dacl.AddAccessAllowedAce(win32security.ACL_REVISION, ntsecuritycon.FILE_ADD_FILE, EVERYONE)
-    #dacl.AddAccessAllowedAce(win32security.ACL_REVISION, ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_WRITE, CURRENT_USER)
     dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
-    #dacl.AddAccessAllowedAce(win32security.ACL_REVISION, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
     dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
-    #dacl.AddAccessAllowedAce(win32security.ACL_REVISION, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
-    
+    if not CURRENT_USER is None:
+        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, CURRENT_USER)
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_READ_DATA, EVERYONE)
     # Set our ACL
     sd.SetSecurityDescriptorDacl(1, dacl, 0)
-    win32security.SetFileSecurity(folder, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
-    #win32security.TreeSetNamedSecurityInfo(folder, win32security.SE_FILE_OBJECT, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, None, None, sd, None)
-   
+    win32security.SetFileSecurity(ROOT_FOLDER, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
+
+    # --- Set permissions on the log folder - create file or append only
+    # Set inheritance flags
+    flags = win32security.OBJECT_INHERIT_ACE | win32security.CONTAINER_INHERIT_ACE
+    sd = win32security.GetFileSecurity(LOG_FOLDER, win32security.DACL_SECURITY_INFORMATION)
+    # Create the blank DACL and add our ACE's
+    dacl = win32security.ACL()
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
+    if not CURRENT_USER is None:
+        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, CURRENT_USER)
+    dacl.AddAccessAllowedAce(win32security.ACL_REVISION, ntsecuritycon.FILE_ADD_FILE, EVERYONE)
+    # Set our ACL
+    sd.SetSecurityDescriptorDacl(1, dacl, 0)
+    win32security.SetFileSecurity(LOG_FOLDER, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
+
+    # --- Set permissions on the sshot folder - let students create but not modify/delete sshots
+    # Set inheritance flags
+    flags = win32security.OBJECT_INHERIT_ACE | win32security.CONTAINER_INHERIT_ACE
+    sd = win32security.GetFileSecurity(SCREEN_SHOTS_FOLDER, win32security.DACL_SECURITY_INFORMATION)
+
+    # Create the blank DACL and add our ACE's
+    dacl = win32security.ACL()
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
+    if not CURRENT_USER is None:
+        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, CURRENT_USER)
+    dacl.AddAccessAllowedAce(win32security.ACL_REVISION, ntsecuritycon.FILE_ADD_FILE, EVERYONE)
+    # Set our ACL
+    sd.SetSecurityDescriptorDacl(1, dacl, 0)
+    win32security.SetFileSecurity(SCREEN_SHOTS_FOLDER, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
+
+    # Possible to set whole tree?
+    # win32security.TreeSetNamedSecurityInfo(folder, win32security.SE_FILE_OBJECT, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, None, None, sd, None)
+
 
 def scanNics():
     # May need to call this before calling this function so that COM works
-    #pythoncom.CoInitialize()
-    global DISABLE_ALL_NICS
-    system_nics = ["WAN Miniport (IP)", "WAN Miniport (IPv6)", "WAN Miniport (Network Monitor)",
-        "WAN Miniport (PPPOE)", "WAN Miniport (PPTP)", "WAN Miniport (L2TP)", "WAN Miniport (IKEv2)",
-        "WAN Miniport (SSTP)", "Microsoft Wi-Fi Direct Virtual Adapter", "Teredo Tunneling Pseudo-Interface",
-        "Microsoft Kernel Debug Network Adapter",
-        ]
-    approved_nics = ["Realtek USB GbE Family Controller",]
-    if DISABLE_ALL_NICS == True:
+    # pythoncom.CoInitialize() - called in the main function
+    global DISABLE_ALL_NICS, system_nics, approved_nics
+
+    if DISABLE_ALL_NICS is True:
         approved_nics = []
 
     logging.info("scanning for unauthorized nics...")
@@ -99,87 +158,85 @@ def scanNics():
     colItems = objSWbemServices.ExecQuery("Select * from Win32_NetworkAdapter")
     for objItem in colItems:
         if objItem.Name in approved_nics:
-            #logging.info("***Device found - on approved list: " + str(objItem.Name) + str(objItem.NetConnectionID))
+            # logging.info("***Device found - on approved list: " + str(objItem.Name) + str(objItem.NetConnectionID))
             dev_id = objItem.NetConnectionID
             if dev_id:
                 logging.info("     ---> !!! Approved device !!!, enabling..." + str(dev_id))
                 cmd = "netsh interface set interface \"" + dev_id + "\" admin=ENABLED"
-                #print cmd
+                # print cmd
                 os.system(cmd)
             else:
-                #print "     ---> unauthorized, not plugged in..."
+                # print "     ---> unauthorized, not plugged in..."
                 pass
             continue
         elif objItem.Name in system_nics:
-            #logging.info("***Device found - system nic - ignoring: " + str(objItem.Name))
+            # logging.info("***Device found - system nic - ignoring: " + str(objItem.Name))
             continue
         else:
-            #logging.info("***Device found :" + str(objItem.Name))
+            # logging.info("***Device found :" + str(objItem.Name))
             dev_id = objItem.NetConnectionID
             if dev_id:
                 logging.info("     ---> !!! unauthorized !!!, disabling..." + str(dev_id))
                 cmd = "netsh interface set interface \"" + dev_id + "\" admin=DISABLED"
-                #print cmd
+                # print cmd
                 os.system(cmd)
             else:
-                #print "     ---> unauthorized, not plugged in..."
+                # print "     ---> unauthorized, not plugged in..."
                 pass
             continue
-		   
-        #print "========================================================"
-        #print "Adapter Type: ", objItem.AdapterType
-        #print "Adapter Type Id: ", objItem.AdapterTypeId
-        #print "AutoSense: ", objItem.AutoSense
-        #print "Availability: ", objItem.Availability
-        #print "Caption: ", objItem.Caption
-        #print "Config Manager Error Code: ", objItem.ConfigManagerErrorCode
-        #print "Config Manager User Config: ", objItem.ConfigManagerUserConfig
-        #print "Creation Class Name: ", objItem.CreationClassName
-        #print "Description: ", objItem.Description
-        #print "Device ID: ", objItem.DeviceID
-        #print "Error Cleared: ", objItem.ErrorCleared
-        #print "Error Description: ", objItem.ErrorDescription
-        #print "Index: ", objItem.Index
-        #print "Install Date: ", objItem.InstallDate
-        #print "Installed: ", objItem.Installed
-        #print "Last Error Code: ", objItem.LastErrorCode
-        #print "MAC Address: ", objItem.MACAddress
-        #print "Manufacturer: ", objItem.Manufacturer
-        #print "Max Number Controlled: ", objItem.MaxNumberControlled
-        #print "Max Speed: ", objItem.MaxSpeed
-        #print "Name: ", objItem.Name
-        #print "Net Connection ID: ", objItem.NetConnectionID
-        #print "Net Connection Status: ", objItem.NetConnectionStatus
-        #z = objItem.NetworkAddresses
-        #if z is None:
+
+        # print "========================================================"
+        # print "Adapter Type: ", objItem.AdapterType
+        # print "Adapter Type Id: ", objItem.AdapterTypeId
+        # print "AutoSense: ", objItem.AutoSense
+        # print "Availability: ", objItem.Availability
+        # print "Caption: ", objItem.Caption
+        # print "Config Manager Error Code: ", objItem.ConfigManagerErrorCode
+        # print "Config Manager User Config: ", objItem.ConfigManagerUserConfig
+        # print "Creation Class Name: ", objItem.CreationClassName
+        # print "Description: ", objItem.Description
+        # print "Device ID: ", objItem.DeviceID
+        # print "Error Cleared: ", objItem.ErrorCleared
+        # print "Error Description: ", objItem.ErrorDescription
+        # print "Index: ", objItem.Index
+        # print "Install Date: ", objItem.InstallDate
+        # print "Installed: ", objItem.Installed
+        # print "Last Error Code: ", objItem.LastErrorCode
+        # print "MAC Address: ", objItem.MACAddress
+        # print "Manufacturer: ", objItem.Manufacturer
+        # print "Max Number Controlled: ", objItem.MaxNumberControlled
+        # print "Max Speed: ", objItem.MaxSpeed
+        # print "Name: ", objItem.Name
+        # print "Net Connection ID: ", objItem.NetConnectionID
+        # print "Net Connection Status: ", objItem.NetConnectionStatus
+        # z = objItem.NetworkAddresses
+        # if z is None:
         #    a = 1
-        #else:
+        # else:
         #    for x in z:
         #        print "Network Addresses: ", x
-        #print "Permanent Address: ", objItem.PermanentAddress
-        #print "PNP Device ID: ", objItem.PNPDeviceID
-        #z = objItem.PowerManagementCapabilities
-        #if z is None:
+        # print "Permanent Address: ", objItem.PermanentAddress
+        # print "PNP Device ID: ", objItem.PNPDeviceID
+        # z = objItem.PowerManagementCapabilities
+        # if z is None:
         #    a = 1
-        #else:
+        # else:
         #    for x in z:
         #        print "Power Management Capabilities: ", x
-        #print "Power Management Supported: ", objItem.PowerManagementSupported
-        #print "Product Name: ", objItem.ProductName
-        #print "Service Name: ", objItem.ServiceName
-        #print "Speed: ", objItem.Speed
-        #print "Status: ", objItem.Status
-        #print "Status Info: ", objItem.StatusInfo
-        #print "System Creation Class Name: ", objItem.SystemCreationClassName
-        #print "System Name: ", objItem.SystemName
-        #print "Time Of Last Reset: ", objItem.TimeOfLastReset
-
-
+        # print "Power Management Supported: ", objItem.PowerManagementSupported
+        # print "Product Name: ", objItem.ProductName
+        # print "Service Name: ", objItem.ServiceName
+        # print "Speed: ", objItem.Speed
+        # print "Status: ", objItem.Status
+        # print "Status Info: ", objItem.StatusInfo
+        # print "System Creation Class Name: ", objItem.SystemCreationClassName
+        # print "System Name: ", objItem.SystemName
+        # print "Time Of Last Reset: ", objItem.TimeOfLastReset
 
 
 class OPEService(win32serviceutil.ServiceFramework):
     _svc_name_ = 'OPEService'
-    _svc_desplay_name_ = 'OPEService'
+    _svc_display_name_ = 'OPEService'
     _svc_description_ = "Open Prison Education Service"
     
     def __init__(self, args):
@@ -189,10 +246,9 @@ class OPEService(win32serviceutil.ServiceFramework):
         socket.setdefaulttimeout(60)
         self.isAlive = True
         
-        # Setup data folders
-        make_data_folder(LOG_FOLDER)
-        make_data_folder(SCREEN_SHOTS_FOLDER, True)
-        
+        # Setup data folders and set permissions
+        set_ope_permissions()
+
         # Setup logging
         logging.basicConfig(
             filename=os.path.join(LOG_FOLDER, 'ope-service.log'),
@@ -248,7 +304,6 @@ class OPEService(win32serviceutil.ServiceFramework):
                 (msg, '')
                 )
 
-                                    
     def SvcStop(self):
         self.isAlive = False
         self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
@@ -290,10 +345,9 @@ class OPEService(win32serviceutil.ServiceFramework):
         # Make this token target our session
         win32security.SetTokenInformation(token2, win32security.TokenSessionId, session_id)
 
-
     def runScreenShotApp(self):
         global DISABLE_SSHOT
-        if DISABLE_SSHOT == True:
+        if DISABLE_SSHOT is True:
             return
     
         # Get the session id for the console
@@ -320,21 +374,21 @@ class OPEService(win32serviceutil.ServiceFramework):
         win32security.SetTokenInformation(user_token_copy, win32security.TokenSessionId, session_id)
 
         # Switch to the user
-        #win32security.ImpersonateLoggedOnUser(user_token)
-        #logging.info("Impersonating " + win32api.GetUserName())
+        # win32security.ImpersonateLoggedOnUser(user_token)
+        # logging.info("Impersonating " + win32api.GetUserName())
 
         # Run the screen shot app
         app_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
-        #cmd = os.path.join(app_path, "sshot\\dist\\sshot.exe")
-        cmd = "c:\\programdata\\ope\\bin\\sshot.exe"
-        #cmd = "cmd.exe"
+        # cmd = os.path.join(app_path, "sshot\\dist\\sshot.exe")
+        cmd = os.path.join(ROOT_FOLDER, "ope_laptop_binaries\\sshot\\sshot.exe")  # "c:\\programdata\\ope\\bin\\sshot.exe"
+        # cmd = "cmd.exe"
         logging.info("Running sshot app " + cmd)
 
         # Use win create process function
         si = win32process.STARTUPINFO()
         si.dwFlags = win32process.STARTF_USESHOWWINDOW
         si.wShowWindow = win32con.SW_NORMAL
-        #si.lpDesktop = "WinSta0\Default"
+        # si.lpDesktop = "WinSta0\Default"
         si.lpDesktop = ""
 
         try:
@@ -354,10 +408,10 @@ class OPEService(win32serviceutil.ServiceFramework):
         except Exception as e:
             logging.info("Error launching process: " + str(e))
 
-        #logging.info(os.system(cmd))
+        # logging.info(os.system(cmd))
 
         # Return us to normal security
-        #win32security.RevertToSelf()
+        # win32security.RevertToSelf()
 
         # Cleanup
         win32ts.WTSCloseServer(svr)
@@ -382,10 +436,10 @@ class OPEService(win32serviceutil.ServiceFramework):
         user_token = win32ts.WTSQueryUserToken(console_id)
         logging.info("User Token " + str(user_token))
 
-        #hwnd = win32gui.GetDC(win32con.HWND_DESKTOP)  # win32gui.GetDesktopWindow()
-        #dc = ctypes.windll.user32.GetDC(win32con.HWND_DESKTOP)
-        #logging.info("DC before impersonation " + str(dc))
-        #win32gui.ReleaseDC(win32con.HWND_DESKTOP, dc)
+        # hwnd = win32gui.GetDC(win32con.HWND_DESKTOP)  # win32gui.GetDesktopWindow()
+        # dc = ctypes.windll.user32.GetDC(win32con.HWND_DESKTOP)
+        # logging.info("DC before impersonation " + str(dc))
+        # win32gui.ReleaseDC(win32con.HWND_DESKTOP, dc)
 
         # Switch to the user
         win32security.ImpersonateLoggedOnUser(user_token)
@@ -396,8 +450,8 @@ class OPEService(win32serviceutil.ServiceFramework):
         logging.info("Running sshot app " + cmd)
         logging.info(os.system(cmd))
 
-        #hwnd = ctypes.windll.user32.GetDC(win32con.HWND_DESKTOP)
-        #logging.info("HWND after impersonation " + str(hwnd))
+        # hwnd = ctypes.windll.user32.GetDC(win32con.HWND_DESKTOP)
+        # logging.info("HWND after impersonation " + str(hwnd))
         # ps_list = win32ts.WTSEnumerateProcesses(svr, 1, 0)
         # for ps in ps_list:
         #    logging.info("PS " + str(ps))
@@ -407,7 +461,6 @@ class OPEService(win32serviceutil.ServiceFramework):
         win32security.RevertToSelf()
         user_token.close()
 
-
         return
 
     def grabScreenShot(self):
@@ -415,7 +468,7 @@ class OPEService(win32serviceutil.ServiceFramework):
         # Get the hwnd for the current desktop window
         try:
             hwnd = win32gui.GetDesktopWindow()
-            #hwnd = self.getDesktopHWND()
+            # hwnd = self.getDesktopHWND()
             l, t, r, b = win32gui.GetWindowRect(hwnd)
             w = r - l
             h = b - t
@@ -428,7 +481,7 @@ class OPEService(win32serviceutil.ServiceFramework):
             drawDC = dcObj.CreateCompatibleDC()
             logging.info("drawDC " + str(drawDC))
             
-            #cDC = dcObj.CreateCompatibleDC() # Do we need this since it is the desktop dc?
+            # cDC = dcObj.CreateCompatibleDC() # Do we need this since it is the desktop dc?
             bm = win32ui.CreateBitmap()
             bm.CreateCompatibleBitmap(dcObj, w, h)
             drawDC.SelectObject(bm)
@@ -457,17 +510,16 @@ class OPEService(win32serviceutil.ServiceFramework):
             # dcObj.DeleteDC()
             # cDC.DeleteDC()
             # win32gui.ReleaseDC(hwnd, dc)
-            #win32gui.DeleteObject(bm.GetHandle())
+            # win32gui.DeleteObject(bm.GetHandle())
         except Exception as ex:
             logging.info("Error grabbing screenshot: " + str(ex))
         
-        #m = ImageGrab.grab()
+        # m = ImageGrab.grab()
 
         # Save the file
-        #p = os.path.join(SCREEN_SHOTS_FOLDER, str(datetime.datetime.now()) + ".png")
-        #im.save(p, optimize=True)
-        
-        
+        # p = os.path.join(SCREEN_SHOTS_FOLDER, str(datetime.datetime.now()) + ".png")
+        # im.save(p, optimize=True)
+
     def main(self):
         rc = None
         nic_scan_time = 0
@@ -476,13 +528,16 @@ class OPEService(win32serviceutil.ServiceFramework):
         
         while rc != win32event.WAIT_OBJECT_0:
             # TODO
-            #logging.info("Loop...")
+            # logging.info("Loop...")
 
             # Grab screen shots
             i = random.randint(0, 2)
             if i == 1:
-                #self.grabScreenShot()
-                self.runScreenShotApp()
+                # self.grabScreenShot()
+                try:
+                    self.runScreenShotApp()
+                except Exception as ex:
+                    logging.error("Error grabbing screen shot: " + str(ex))
             
             # Scan for inserted NICS
             if time.time() - nic_scan_time > 60:
@@ -498,7 +553,6 @@ class OPEService(win32serviceutil.ServiceFramework):
             # Security checks - is current user the correct user?
 
             # Is online?
-
 
             # block for 24*60*60 seconds and wait for a stop event
             # it is used for a one-day loop

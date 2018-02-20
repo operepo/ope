@@ -989,7 +989,6 @@ class SyncOPEApp(App):
             status_label.text += line
             pass
 
-
         # Last step - make sure that servers key is accepted here so we don't get warnings
         known_hosts_path = os.path.join(home_folder, ".ssh", "known_hosts" )
         ssh.save_host_keys(known_hosts_path)

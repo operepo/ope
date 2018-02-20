@@ -22,9 +22,10 @@ This project consists of building and staging of apps, easy deployment into faci
 - Product Testing:
     - Mike Huse <mdhuse@DOC1.WA.GOV>
     - Daniel Gonzales <dgonzales@DOC1.WA.GOV>
+    - Robert Deans <rpdeans@DOC1.WA.GOV>
 - Docker App Development:
     - Kris Gonyo <kristophergonyo@gmail.com>
-- Fabrication
+- Fabrication - Secure sync boxes
     - Kristopher Margart <kwmargart@DOC1.WA.GOV>
 
 

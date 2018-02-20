@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['sshot.py'],
-             pathex=['C:\\Users\\ray\\Desktop\\git_projects\\ope\\client_tools\\sshot'],
+             pathex=['C:\\users\\ray\\Desktop\\git_projects\\ope\\ope\\client_tools\\sshot'],
              binaries=[],
              datas=[],
              hiddenimports=[],
@@ -23,7 +23,7 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=True,
-          console=True , icon='logo_icon.ico')
+          console=False , icon='logo_icon.ico')
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
