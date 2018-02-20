@@ -92,7 +92,7 @@ RUN git clone --recursive https://github.com/web2py/web2py.git . && \
 RUN python -c "from gluon.main import save_password; save_password('$IT_PW',80)" && \
 	python -c "from gluon.main import save_password; save_password('$IT_PW',443)"
 
-LABEL rebuild=6
+LABEL rebuild=7
 # Checkout release copy of SMC
 RUN git clone https://github.com/operepo/smc.git $W2P_DIR/applications/smc
 RUN cp -f $W2P_DIR/applications/smc/routes.py $W2P_DIR/routes.py
@@ -129,7 +129,7 @@ RUN a2enmod wsgi
 # Add git user
 RUN useradd -ms /bin/bash  git
 
-LABEL rebuild=12
+LABEL rebuild=13
 # Copy in our start script
 COPY start.sh /start.sh
 COPY supervisord.conf /etc/supervisor/supervisord.conf
