@@ -16,7 +16,8 @@ from winsys import accounts, registry, security
 STUDENTS_GROUP = "OPEStudents"
 
 
-import gluon.contrib.aes as AES
+#import gluon.contrib.aes as AES
+import pyaes as AES
 import threading
 import base64
 

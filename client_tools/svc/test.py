@@ -22,9 +22,26 @@ import win32ts
 import PIL
 import pyscreenshot as ImageGrab
 
-LOG_FOLDER = os.path.join(shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_APPDATA, None, 0), "ope")
-SCREEN_SHOTS_FOLDER = os.path.join(LOG_FOLDER, "screen_shots")
-print LOG_FOLDER
+ROOT_FOLDER = os.path.join(shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_APPDATA, None, 0), "ope")
+TMP_FOLDER = os.path.join(ROOT_FOLDER, "tmp")
+LOG_FOLDER = os.path.join(TMP_FOLDER, "log")
+SCREEN_SHOTS_FOLDER = os.path.join(TMP_FOLDER, "screen_shots")
+BINARIES_FOLDER = os.path.join(ROOT_FOLDER, "ope_laptop_binaries")
+
+EVERYONE, domain, type = win32security.LookupAccountName("", "Everyone")
+ADMINISTRATORS, domain, type = win32security.LookupAccountName("", "Administrators")
+# CURRENT_USER, domain, type = win32security.LookupAccountName("", win32api.GetUserName())
+CURRENT_USER = None
+try:
+    CURRENT_USER, domain, type = win32security.LookupAccountName("", "huskers")
+except:
+    CURRENT_USER = None
+if CURRENT_USER is None:
+    try:
+        CURRENT_USER, domain, type = win32security.LookupAccountName("", "ray")
+    except:
+        CURRENT_USER = None
+SYSTEM_USER, domain, type = win32security.LookupAccountName("", "System")
 
 # Setup loggin
 logging.basicConfig(
@@ -34,11 +51,6 @@ logging.basicConfig(
 )
 
 
-# Get SID for everyone, admin groups and current user
-EVERYONE, domain, type = win32security.LookupAccountName("", "Everyone")
-ADMINISTRATORS, domain, type = win32security.LookupAccountName("", "Administrators")
-CURRENT_USER, domain, type = win32security.LookupAccountName("", win32api.GetUserName())
-SYSTEM_USER, domain, type = win32security.LookupAccountName("", "System")
 
 def show_cacls(filename):
     print
@@ -155,7 +167,7 @@ def getDesktopWindow():
     return hwnd
     
 #cs = getDesktopWindow()
-grabScreenShot()
+#grabScreenShot()
 #print cs
 
 # Make the folders
@@ -197,3 +209,153 @@ grabScreenShot()
 #// don't forget to
 #ReleaseDC( HWND_DESKTOP, desktopDC ) ;
 #// when you're done!
+
+
+def set_ope_permissions():
+    global ROOT_FOLDER, LOG_FOLDER, SCREEN_SHOTS_FOLDER, BINARIES_FOLDER, TMP_FOLDER
+
+    # Make sure folders exits
+    if not os.path.isdir(ROOT_FOLDER):
+        os.makedirs(ROOT_FOLDER)
+    if not os.path.isdir(TMP_FOLDER):
+        os.makedirs(TMP_FOLDER)
+    if not os.path.isdir(LOG_FOLDER):
+        os.makedirs(LOG_FOLDER)
+    if not os.path.isdir(SCREEN_SHOTS_FOLDER):
+        os.makedirs(SCREEN_SHOTS_FOLDER)
+    if not os.path.isdir(BINARIES_FOLDER):
+        os.makedirs(BINARIES_FOLDER)
+
+    # Make sure the ope-sshot.log file exists so we can set permissions on it later
+    if not os.path.isfile(os.path.join(LOG_FOLDER, "ope-sshot.log")):
+        f = open(os.path.join(LOG_FOLDER, "ope-sshot.log"), "w")
+        f.close()
+
+    # --- Set permissions on OPE folder - viewable by not writable
+    # Set inheritance flags
+    flags = win32security.OBJECT_INHERIT_ACE | win32security.CONTAINER_INHERIT_ACE
+    sd = win32security.GetFileSecurity(ROOT_FOLDER, win32security.DACL_SECURITY_INFORMATION)
+    # Create the blank DACL and add our ACE's
+    dacl = win32security.ACL()
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
+    if not CURRENT_USER is None:
+        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, CURRENT_USER)
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags,
+                               ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE,
+                               EVERYONE)
+    # Set our ACL
+    sd.SetSecurityDescriptorDacl(1, dacl, 0)
+    win32security.SetFileSecurity(ROOT_FOLDER, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
+
+    # --- Set permissions on TMP folder - viewable by not writable
+    # Set inheritance flags
+    flags = win32security.OBJECT_INHERIT_ACE | win32security.CONTAINER_INHERIT_ACE
+    sd = win32security.GetFileSecurity(TMP_FOLDER, win32security.DACL_SECURITY_INFORMATION)
+    # Create the blank DACL and add our ACE's
+    dacl = win32security.ACL()
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
+    if not CURRENT_USER is None:
+        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, CURRENT_USER)
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags,
+                               ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE,
+                               EVERYONE)
+    # Set our ACL
+    sd.SetSecurityDescriptorDacl(1, dacl, 0)
+    win32security.SetFileSecurity(TMP_FOLDER, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
+
+
+    # --- Set permissions on ope_laptop_binaries folder - viewable by not writable
+    # Set inheritance flags
+    flags = win32security.OBJECT_INHERIT_ACE | win32security.CONTAINER_INHERIT_ACE
+    sd = win32security.GetFileSecurity(BINARIES_FOLDER, win32security.DACL_SECURITY_INFORMATION)
+    # Create the blank DACL and add our ACE's
+    dacl = win32security.ACL()
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
+    if not CURRENT_USER is None:
+        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, CURRENT_USER)
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags,
+                               ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE,
+                               EVERYONE)
+    # Set our ACL
+    sd.SetSecurityDescriptorDacl(1, dacl, 0)
+    # Set on all folders
+    win32security.SetFileSecurity(BINARIES_FOLDER, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
+    for root, dirs, files in os.walk(BINARIES_FOLDER, topdown=False):
+        for f in files:
+            try:
+                win32security.SetFileSecurity(os.path.join(root, f), win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
+            except:
+                logging.info("Error setting file permissions " + os.path.join(root, f))
+        for d in dirs:
+            try:
+                win32security.SetFileSecurity(os.path.join(root, d), win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
+            except:
+                logging.info("Error setting folder permissions " + os.path.join(root, d))
+
+    # win32security.TreeSetNamedSecurityInfo(BINARIES_FOLDER, win32security.SE_FILE_OBJECT, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, None, None, sd, None)
+
+
+    # --- Set permissions on the log folder - create file or append only
+    # Set inheritance flags
+    flags = win32security.OBJECT_INHERIT_ACE | win32security.CONTAINER_INHERIT_ACE
+    sd = win32security.GetFileSecurity(LOG_FOLDER, win32security.DACL_SECURITY_INFORMATION)
+    # Create the blank DACL and add our ACE's
+    dacl = win32security.ACL()
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
+    if not CURRENT_USER is None:
+        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, CURRENT_USER)
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION, flags,
+                             ntsecuritycon.FILE_ADD_FILE | ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE,
+                             EVERYONE)
+    # Set our ACL
+    sd.SetSecurityDescriptorDacl(1, dacl, 0)
+    win32security.SetFileSecurity(LOG_FOLDER, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
+
+
+    # --- Set permissions on the log file for screen shots - append only
+    # Set inheritance flags
+    flags = win32security.OBJECT_INHERIT_ACE | win32security.CONTAINER_INHERIT_ACE
+    sd = win32security.GetFileSecurity(os.path.join(LOG_FOLDER, "ope-sshot.log"), win32security.DACL_SECURITY_INFORMATION)
+    # Create the blank DACL and add our ACE's
+    dacl = win32security.ACL()
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
+    if not CURRENT_USER is None:
+        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, CURRENT_USER)
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION, flags,
+                             ntsecuritycon.FILE_APPEND_DATA | ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE,
+                             EVERYONE)
+    # Set our ACL
+    sd.SetSecurityDescriptorDacl(1, dacl, 0)
+    win32security.SetFileSecurity(os.path.join(LOG_FOLDER, "ope-sshot.log"), win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
+
+
+
+    # --- Set permissions on the sshot folder - let students create but not modify/delete sshots
+    # Set inheritance flags
+    flags = win32security.OBJECT_INHERIT_ACE | win32security.CONTAINER_INHERIT_ACE
+    sd = win32security.GetFileSecurity(SCREEN_SHOTS_FOLDER, win32security.DACL_SECURITY_INFORMATION)
+
+    # Create the blank DACL and add our ACE's
+    dacl = win32security.ACL()
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
+    if not CURRENT_USER is None:
+        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, CURRENT_USER)
+    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION, flags,
+                             ntsecuritycon.FILE_ADD_FILE  | ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE,
+                             EVERYONE)
+    # Set our ACL
+    sd.SetSecurityDescriptorDacl(1, dacl, 0)
+    win32security.SetFileSecurity(SCREEN_SHOTS_FOLDER, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
+
+    # Possible to set whole tree?
+    # win32security.TreeSetNamedSecurityInfo(folder, win32security.SE_FILE_OBJECT, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, None, None, sd, None)
+
+
+set_ope_permissions()
+
