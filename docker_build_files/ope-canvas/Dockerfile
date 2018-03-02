@@ -4,7 +4,7 @@ FROM instructure/ruby-passenger:2.4
 LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
 LABEL description="Canvas LMS by Instructure - Image for Open Prison Education"
 LABEL vendor="openprisoneducation.com"
-LABEL version="0.5"
+LABEL version="0.6"
 
 # ope-canvas - Canvas LMS System
 # Build with docker build -t ope-canvas .
@@ -71,6 +71,7 @@ WORKDIR $APP_HOME
 RUN cd ${APP_HOME} \
     && git clone https://github.com/instructure/canvas-lms.git . \
     && git checkout stable
+    #&& git checkout release/2018-03-10.06
 #   release/2018-02-17.04
 
 # We will need sfnt2woff in order to build fonts
