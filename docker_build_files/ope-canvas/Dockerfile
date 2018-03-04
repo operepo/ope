@@ -1,4 +1,5 @@
 FROM instructure/ruby-passenger:2.4
+#FROM instructure/ruby-passenger:2.4
 ##FROM instructure/canvas-lms:stable
 
 LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
@@ -17,7 +18,7 @@ LABEL version="0.6"
 
 ENV APP_HOME /usr/src/app/
 ENV RAILS_ENV "production"
-ENV NGINX_MAX_UPLOAD_SIZE 10g
+ENV NGINX_MAX_UPLOAD_SIZE 50g
 ENV YARN_VERSION 1.3.2-1
 
 # Work around github.com/zertosh/v8-compile-cache/issues/2
@@ -156,6 +157,7 @@ COPY dbinit.sh /usr/src/dbinit.sh
 COPY start.sh /usr/src/start.sh
 COPY ope.rake lib/tasks/ope.rake
 COPY puma.rb /usr/src/app/config/puma.rb
+COPY rack.rb /usr/src/app/config/initializers/rack.rb
 
 USER root
 
