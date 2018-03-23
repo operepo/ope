@@ -42,7 +42,7 @@ RUN wget https://github.com/jwilder/docker-gen/releases/download/$DOCKER_GEN_VER
  && tar -C /usr/local/bin -xvzf docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz \
  && rm /docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz
 
-LABEL rebuild=12
+LABEL rebuild=14
 RUN mkdir -p /app
 #COPY fogserver.conf /etc/nginx/conf.d/
 COPY docker-entrypoint.sh /app/
@@ -54,7 +54,7 @@ RUN chmod +x /app/docker-entrypoint.sh
 
 # Make public_certs folder so we can make it easy to grab crt file
 RUN mkdir /public_certs \
-    && chmod 744 /public_certs
+    && chmod 755 /public_certs
 
 # Set upload params higher
 RUN { \
