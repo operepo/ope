@@ -52,10 +52,14 @@ COPY Procfile /app/
 WORKDIR /app/
 RUN chmod +x /app/docker-entrypoint.sh
 
+# Make public_certs folder so we can make it easy to grab crt file
+RUN mkdir /public_certs \
+    && chmod 744 /public_certs
+
 # Set upload params higher
 RUN { \
       echo 'server_tokens off;'; \
-      echo 'client_max_body_size 1000m;'; \
+      echo 'client_max_body_size 30000m;'; \
     } > /etc/nginx/conf.d/uploads.conf
 
 ENV DOCKER_HOST unix:///tmp/docker.sock

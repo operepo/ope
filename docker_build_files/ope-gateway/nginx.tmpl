@@ -226,7 +226,11 @@ server {
 	server_name {{ $host }};
 	listen 443 ssl http2 {{ $default_server }};
 	access_log /var/log/nginx/access.log vhost;
+    {{ if (eq $host "gateway.ed") }}
+    root /public_certs/;
+    {{ else }}
 	return 500;
+    {{ end }}
 
 	ssl_certificate /etc/nginx/certs/default.crt;
 	ssl_certificate_key /etc/nginx/certs/default.key;
