@@ -1,14 +1,8 @@
 #!/bin/bash
 set -e
 
-# Remove certs from before 3/22/18
-find /etc/nginx/certs/default.* ! -newermt "2018-03-23 00:00:00" | xargs rm -rf
-
-# Make sure there is a default cert that is a wildcard for *.ed
-if [ -e /etc/nginx/certs/default.crt ]; then echo "certs exist"; else echo "generating default cert"; openssl req -newkey rsa:4096 -x509 -nodes -days 1780 -reqexts SAN -extensions SAN -subj "/C=US/ST=Washington/L=Port Angeles/O=OpenPrisonEducation/CN=*.ed" -keyout /etc/nginx/certs/default.key -out /etc/nginx/certs/default.crt -config <(cat /etc/ssl/openssl.cnf; printf "[SAN]\nsubjectAltName=DNS:*.ed"); fi
-
-# Copy the public cert to the server
-cp /etc/nginx/certs/default.crt /public_certs/
+# Make sure certs are setup
+/app/init_certs.sh
 
 
 # Warn if the DOCKER_HOST socket does not exist
