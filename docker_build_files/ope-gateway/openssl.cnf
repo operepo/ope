@@ -99,5 +99,11 @@ authorityInfoAccess	= OCSP;URI:http://ocsp.gateway.ed
 
 
 [altNames]
-DNS.1 = *.ed
+DNS.1 = ed
+DNS.2 = gateway.ed
+DNS.3 = canvas.ed
+DNS.4 = smc.ed
+DNS.5 = *.ed
+DNS.6 = *.ed.dev
+DNS.7 = *.correctionsed.com
 

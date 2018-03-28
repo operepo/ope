@@ -69,6 +69,7 @@ WORKDIR $APP_HOME
 #COPY package.json ${APP_HOME}
 #COPY yarn.lock    ${APP_HOME}
 
+LABEL rebuild=1
 RUN cd ${APP_HOME} \
     && git clone https://github.com/instructure/canvas-lms.git . \
     && git checkout stable
@@ -137,7 +138,7 @@ RUN COMPILE_ASSETS_NPM_INSTALL=0 bundle exec rake canvas:compile_assets
 USER docker
 
 
-LABEL rebuild=35
+LABEL rebuild=36
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml

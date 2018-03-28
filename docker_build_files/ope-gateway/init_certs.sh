@@ -28,7 +28,7 @@ else
     # make the crt
     openssl req -newkey rsa:4096 -x509 -new -nodes -days 10780 -sha256 -reqexts v3_req -extensions v3_ca \
        -out $CERT_PATH/ca.crt -keyout $CERT_PATH/ca.key \
-       -subj "/C=US/ST=Washington/L=Port Angeles/OU=IT/O=OpenPrisonEducation/CN=gateway.ed" \
+       -subj "/C=US/ST=Washington/L=Port Angeles/OU=IT/O=OpenPrisonEducation/CN=ed" \
        -config $APP_PATH/openssl.cnf
 
 fi
@@ -44,7 +44,7 @@ else
 
     openssl req -newkey rsa:4096 -new -nodes -days 10780 -sha256 -extensions v3_req  \
        -out $CERT_PATH/default.csr -keyout $CERT_PATH/default.key \
-       -subj "/C=US/ST=Washington/L=Port Angeles/OU=IT/O=OpenPrisonEducation/CN=*.ed" \
+       -subj "/C=US/ST=Washington/L=Port Angeles/OU=IT/O=OpenPrisonEducation/CN=ed" \
        -config $APP_PATH/openssl.cnf
 
 
