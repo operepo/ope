@@ -45,6 +45,7 @@ RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - \
        fontforge \
        dos2unix \
        supervisor \
+       nano \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* \
   && mkdir -p /home/docker/.gem/ruby/$RUBY_MAJOR.0
@@ -138,7 +139,7 @@ RUN COMPILE_ASSETS_NPM_INSTALL=0 bundle exec rake canvas:compile_assets
 USER docker
 
 
-LABEL rebuild=36
+LABEL rebuild=42
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml

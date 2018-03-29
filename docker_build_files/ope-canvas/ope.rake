@@ -1,7 +1,7 @@
 namespace :ope do
   desc "Deal with OPE specific startup and configuration tasks"
   
-  task :init_db => :environment do
+  task :init_auditing => :environment do
     # Add the audit scheme/etc...
 	ActiveRecord::Base.connection.execute( <<-SQLSTRING
 
@@ -274,101 +274,198 @@ SQLSTRING
 		# Don't add triggers to certain tables that we don't want to merge
 		# TODO - ruby way to test against an array of table names?
 		if (table != "delayed_jobs" && table != "failed_jobs")
-			puts "Enabling auditing on #{table}"
 			ActiveRecord::Base.connection.execute("select ope_audit.ope_audit_table('#{table}');")
+			print "#{table} ENABLED, "
 		else
 			# Make sure to remove trigger if it exists
-			puts "Disabling auditing on #{table}"
 			ActiveRecord::Base.connection.execute("select ope_audit.ope_audit_table_disable('#{table}');")
+			print "#{table} DISABLED, "
 		end
 	  rescue
-		puts "---> Error enabling auditing on #{table}"
+		print "#{table} -- ERROR --, "
 	  end
 	end
-	
+  end
+
+  task :startup do
+    # Make sure we have info in our environment
+    if (ENV["CANVAS_LMS_ACCOUNT_NAME"] || "").empty?
+        puts "==== ERR - CANVAS_LMS_ACCOUNT_NAME empty ===="
+        ENV["CANVAS_LMS_ACCOUNT_NAME"] = "Open Prison Education"
+    end
+
+    if (ENV["CANVAS_LMS_ADMIN_EMAIL"] || "").empty?
+        puts "==== ERR - CANVAS_LMS_ADMIN_EMAIL empty ===="
+        ENV["CANVAS_LMS_ADMIN_EMAIL"] = "admin@ed"
+    end
+
+    if (ENV["CANVAS_LMS_ADMIN_PASSWORD"] || "").empty?
+        puts "==== ERR - CANVAS_LMS_ADMIN_PASSWORD empty ===="
+        ENV["CANVAS_LMS_ADMIN_PASSWORD"] = "changeme331"
+    end
+    
+    if (ENV["CANVAS_LMS_STATS_COLLECTION"] || "").empty?
+        ENV["CANVAS_LMS_STATS_COLLECTION"] = "opt_out"
+    end
+
+    # See if file .db_init_done exists - if it doesn't, run db:initial_setup
+    db_init_done_file = "/usr/src/app/tmp/db_init_done"
+    if File.file?(db_init_done_file) == true
+        puts "==== DB Init done - skipping ===="
+    else
+        puts "==== Canvas DB does NOT exist, creating ===="
+        Rake::Task['db:initial_setup'].invoke
+        # Save the file so we show db init finished
+        begin
+            File.open(db_init_done_file, 'w') do |f|
+                f.puts "DB Init Run"
+            end
+        rescue
+            puts "=== ERROR - writing #{db_init_done_file}"
+        end
+        puts "==== END Canvas DB does NOT exist, creating ===="
+    end
+    
+    puts "==== OPE:starup_stage2 ===="
+    Rake::Task['ope:startup_stage2'].invoke
+    puts "==== END OPE:starup_stage2 ===="
+
   end
   
-  task :startup => :environment do
-	# Do all startup tasks
+  task :startup_stage2 => :environment do
+    # Do all startup tasks
     
-    puts "--> resetting encryption key hash..."
-    #$GEM_HOME/bin/bundle exec rake db:reset_encryption_key_hash
-    Rake::Task['db:reset_encryption_key_hash'].invoke
-
-    #puts "--> Checking for canvas db..."
-    #if not ActiveRecord::Base.connection.data_source_exists? 'versions'
-    #   puts "----> Canvas DB does NOT exist, creating..."
-    #   Rake::Task['db:initial_setup'].invoke
-    #end
+    # ==== Init DB if not already done
+    db_changed = 0
     
-    puts "-----> init auditing tables..."
-    Rake::Task['ope:init_db'].invoke
-	
-	# Get the number of schema migrations so we can see if db:migrate changes anything
-	pre_migrations = 0
-	post_migrations = 0
-	
-	sql_row = ActiveRecord::Base.connection.exec_query("select count(*) as cnt from schema_migrations")
-	sql_row.each do |row|
-		pre_migrations = row["cnt"].to_i
-	end
+    # ==== Run db migrate	
+    # Get the number of schema migrations so we can see if db:migrate changes anything
+    pre_migrations = 0
+    post_migrations = 0
+    
+    sql_row = ActiveRecord::Base.connection.exec_query("select count(*) as cnt from schema_migrations")
+    sql_row.each do |row|
+        pre_migrations = row["cnt"].to_i
+    end
 		
-	# Make sure we are at the current table version
-	#$GEM_HOME/bin/bundle exec rake db:migrate
-    puts "-----> running db:migrate..."
+    puts "==== Running db:migrate ===="
     Rake::Task['db:migrate'].invoke
+    puts "==== END Running db:migrate ===="
     
-	
-	# Get the number after migrations
-	sql_row = ActiveRecord::Base.connection.exec_query("select count(*) as cnt from schema_migrations")
-	sql_row.each do |row|
-		post_migrations = row["cnt"].to_i
-	end
+    # Get the number after migrations
+    sql_row = ActiveRecord::Base.connection.exec_query("select count(*) as cnt from schema_migrations")
+    sql_row.each do |row|
+        post_migrations = row["cnt"].to_i
+    end
 
-	# Load the unique sequence range for this install to avoid ID conflicts
-	#$GEM_HOME/bin/bundle exec rake ope:set_sequence_range
-    puts "-----> running ope:set_sequence_range..."
-	Rake::Task['ope:set_sequence_range'].invoke
+    if (pre_migrations != post_migrations)
+        db_changed = 1
+    end
 
-	# Make sure that we have loaded and enabled the audit stuff
-	#$GEM_HOME/bin/bundle exec rake ope:enable_auditing
-    puts "-----> enabling audting - ope:enable_auditing..."
-	Rake::Task['ope:enable_auditing'].invoke
-
-	# Make sure that the assets are properly compiled (run this each time as a migrate may require a recompile)
-	if (pre_migrations != post_migrations)
-		puts "-----> Migrations detected, compiling assets"
-		#$GEM_HOME/bin/bundle exec rake canvas:compile_assets
-		#Rake::Task['canvas:compile_assets'].invoke
-        # NOTE: Shouldn't need recompile - should have been done in docker build
-	else
-		puts "-----> No migrations detected"
-	end
+    # Make sure that the assets are properly compiled (run this each time as a migrate may require a recompile)
+    if (db_changed == 1)
+        puts "==== DB Migrations detected ===="
+        # Rake::Task['canvas:compile_assets'].invoke
+        # NOTE: Shouldn't need recompile - should have been done in docker build, just do brand_configs
+        puts "====> brand_configs:generate_and_upload_all..."
+        Rake::Task['brand_configs:generate_and_upload_all'].invoke
+        puts "====> END brand_configs:generate_and_upload_all..."
+    else
+        puts "====> No DB migrations detected"
+    end
     
-    # Make sure brand configs are present
-    #$GEM_HOME/bin/bundle exec rake brand_configs:generate_and_upload_all
-    puts "-----> brand_configs:generate_and_upload_all..."
-    Rake::Task['brand_configs:generate_and_upload_all'].invoke
+    puts "==== Resetting encryption key hash ===="
+    Rake::Task['db:reset_encryption_key_hash'].invoke
+    puts "==== END Resetting encryption key hash ===="
+
+
+    # Build db to track changes to data
+    puts "==== ope:init_auditing ===="
+    Rake::Task['ope:init_auditing'].invoke
+    puts "==== END ope:init_auditing ===="
+    
+    # Load the unique sequence range for this install to avoid ID conflicts
+    puts "==== Running ope:set_sequence_range ===="
+    Rake::Task['ope:set_sequence_range'].invoke
+    puts "==== END Running ope:set_sequence_range ===="
+
+    # Make sure that we have loaded and enabled the audit stuff
+    puts "==== ope:enabling audting ===="
+    Rake::Task['ope:enable_auditing'].invoke
+    puts "==== END ope:enabling audting ===="
+
+    # Make sure admin account exists - should always be id 1
+    #puts "==== Ensuring Admin Account Exists ===="
+
+    #account = Account.find_by(id: 1)
+    #if (account)
+    #    puts "==== Admin account exists ===="
+    #else
+    #    puts "==== Admin account not found - loading initial data ===="
+    #    #Rake::Task['db:initial_setup'].invoke
+    #    Rake::Task['db:load_initial_data'].invoke
+    #    puts "==== END Admin account not found - loading initial data ===="
+    #end
+
+    #account = Account.find_by(id: 1)
+    #if (account)
+    #    puts "==== Admin account exists ===="
+    #else
+    #    puts "==== Admin account not found - creating ===="
+    #    ActiveRecord::Base.transaction do
+    #      begin
+    #          # Create the user
+    #          account = Account.create!(
+    #              id: 1,
+    #              name: acct_name,
+    #          )
+    #          user = User.create!(
+    #              name: acct_name,
+    #              short_name: acct_name,
+    #              sortable_name: acct_name
+    #          )
+    #          # Create the pseudonym for login
+    #          pseudonym = Pseudonym.create!(
+    #              :account => account,
+    #              :unique_id => acct_email,
+    #              :user => user
+    #          )
+    #          pseudonym.password = pseudonym.password_confirmation = acct_pw
+    #          pseudonym.save!
+    #
+    #          puts "==== Admin Account Created - login with #{acct_email} ===="
+    #      rescue => e
+    #          puts "====> ERROR Creating Admin Account ===="
+    #          puts e
+    #          raise ActiveRecord::Rollback
+    #      end
+    #    end
+    #end
+    #puts "==== END Ensuring Admin Account Exists ===="
     
     # Reset password for admin user to pw provided in the environment
-    # TODO - Test
-    p = Pseudonym.find_by unique_id: "admin@ed"
+    puts "==== Resetting admin password ===="
+    p = Pseudonym.find_by unique_id: ENV["CANVAS_LMS_ADMIN_EMAIL"]
     if p
-        p.password = p.password_confirmation = ENV["IT_PW"]
+        p.password = p.password_confirmation = ENV["CANVAS_LMS_ADMIN_PASSWORD"]
         p.save!
+    else
+        puts "====> ERROR - no admin user found! ===="
     end
+    puts "==== END Resetting admin password ===="
+
   end
   
   task :set_sequence_range => :environment do
-	# If no range defined, create one and set it
-	range_file = "/usr/src/app/tmp/db_sequence_range"
-	rangestart = 0
+    # If no range defined, create one and set it
+    range_file = "/usr/src/app/tmp/db_sequence_range"
+    rangestart = 0
     # Use an epoch time (in minutes which is about 2/14/18) when we calculate a new rangestart
     epoch_time = 25310582 # 24675840
     school_id_range_max = 999_999  # This times the local_id_range is the full db range
     local_id_range = 1_000_000_000 # Use this to bump the schoo_id range up
     
-	
+    
     # Old values
     # *_000_000_000_000_000_000 - Shard Range
     # 0_***_***_*00_000_000_000 - School Range
@@ -385,83 +482,81 @@ SQLSTRING
     # Load the current value if it exists
     if File.file?(range_file) == true
         File.open(range_file, 'r') do |f|
-			line = f.gets
-			rangestart = line.to_i
-		end
-		puts "--> Range already defined #{rangestart}"
+            line = f.gets
+            rangestart = line.to_i
+        end
+        puts "===== Range already defined #{rangestart}"
     end
     
     if rangestart <= 0 or rangestart > school_id_range_max
         # Calculate new range
-        puts "--> Invalid range #{rangestart}, calculating new range"
+        puts "===== Invalid range #{rangestart}, calculating new range"
         rangestart = Time.now.to_i / 60 # Seconds since 1970 - convert to minutes
-		rangestart = rangestart - epoch_time # Subtract epoch to start range at 0
+        rangestart = rangestart - epoch_time # Subtract epoch to start range at 0
         # Make sure we are 1 to school_id_range_max
-		while rangestart >= school_id_range_max
-			# If we overflow, just reset the range, odds of id conflict on the second or
-			# third time through are extremely small
-			rangestart = (rangestart - school_id_range_max).abs
-		end
+        while rangestart >= school_id_range_max
+            # If we overflow, just reset the range, odds of id conflict on the second or
+            # third time through are extremely small
+            rangestart = (rangestart - school_id_range_max).abs
+        end
         if rangestart < 0
-            puts "----> ERROR ERROR ERROR - rangestart calculated to negative number!!!!!"
+            puts "=====> ERROR ERROR ERROR - rangestart calculated to negative number!!!!!"
             rangestart = 1
         end
         
-		# Store the range in a file
-		begin
-			File.open(range_file, 'w') do |f|
-				f.puts rangestart
-			end
-		rescue
-			puts "Error writing DB ID range to file #{range_file}"
-		end
-		
+        # Store the range in a file
+        begin
+            File.open(range_file, 'w') do |f|
+                f.puts rangestart
+            end
+        rescue
+            puts "Error writing DB ID range to file #{range_file}"
+        end
     end
     
     # Bump the range up to to the school range - e.g. shift it left into the billions/trillions area
-	rangestart_full = rangestart * local_id_range		
+    rangestart_full = rangestart * local_id_range		
 
-	# Update the database sequences to use this range
-	ActiveRecord::Base.connection.tables.each do |table|  
-	  begin
-		last_seq = 0
-		seq_row = ActiveRecord::Base.connection.exec_query("select nextval('#{table}_id_seq'::regclass) as nv")
-		seq_row.each do |row|
-			last_seq = row["nv"].to_i
-		end
-		puts "-> #{table} current #{last_seq} -> #{rangestart_full}"
-		if (last_seq < rangestart_full || last_seq >= rangestart_full + local_id_range )
-			puts "-> Last sequence outside of current range #{table} #{last_seq} -> #{rangestart_full}"
-			ActiveRecord::Base.connection.execute("ALTER SEQUENCE #{table}_id_seq RESTART WITH #{rangestart_full}")
-		end
-	  rescue
-		puts "---> Error setting sequence #{rangestart_full} on table #{table}"
-	  end
-	end
-	
-	# Set the logged_actions table sequence too
-	last_seq = 0
-	seq_row = ActiveRecord::Base.connection.exec_query("select nextval('ope_audit.logged_actions_event_id_seq'::regclass) as nv")
-	seq_row.each do |row|
-		last_seq = row["nv"].to_i
-	end
-	if (last_seq < rangestart_full || last_seq >= rangestart_full + local_id_range )
-		puts "-> Last sequence outside of current range logged_actions_event_id_seq #{last_seq} -> #{rangestart_full}"
-		ActiveRecord::Base.connection.execute("ALTER SEQUENCE ope_audit.logged_actions_event_id_seq RESTART WITH #{rangestart_full}")
-	end
-	
-	puts "--> Finished setting sequence range to #{rangestart_full}"
-	
-	# Make sure to change the constraint on the version tables so they don't blow up with big ids
-	begin
-		ActiveRecord::Base.connection.exec_query("alter table versions_0 drop constraint versions_0_versionable_id_check;")
-	rescue
-	end
-	begin
-		ActiveRecord::Base.connection.exec_query("alter table versions_1 drop constraint versions_1_versionable_id_check;")
-	rescue
-	end
+    # Update the database sequences to use this range
+    ActiveRecord::Base.connection.tables.each do |table|  
+        begin
+            last_seq = 0
+            seq_row = ActiveRecord::Base.connection.exec_query("select nextval('#{table}_id_seq'::regclass) as nv")
+            seq_row.each do |row|
+                last_seq = row["nv"].to_i
+            end
+            print "#{table} #{last_seq} -> #{rangestart_full}, "
+            if (last_seq < rangestart_full || last_seq >= rangestart_full + local_id_range )
+                # puts "=====> Last sequence outside of current range #{table} #{last_seq} -> #{rangestart_full}"
+                ActiveRecord::Base.connection.execute("ALTER SEQUENCE #{table}_id_seq RESTART WITH #{rangestart_full}")
+            end
+        rescue
+            puts "#{table} ERROR, "
+        end
+    end
+
+    # Set the logged_actions table sequence too
+    last_seq = 0
+    seq_row = ActiveRecord::Base.connection.exec_query("select nextval('ope_audit.logged_actions_event_id_seq'::regclass) as nv")
+    seq_row.each do |row|
+        last_seq = row["nv"].to_i
+    end
+    if (last_seq < rangestart_full || last_seq >= rangestart_full + local_id_range )
+        #puts "=====> Last sequence outside of current range logged_actions_event_id_seq #{last_seq} -> #{rangestart_full}"
+        ActiveRecord::Base.connection.execute("ALTER SEQUENCE ope_audit.logged_actions_event_id_seq RESTART WITH #{rangestart_full}")
+    end
+
+    puts "=====> Finished setting sequence range to #{rangestart_full}"
+    # Make sure to change the constraint on the version tables so they don't blow up with big ids
+    begin
+        ActiveRecord::Base.connection.exec_query("alter table versions_0 drop constraint versions_0_versionable_id_check;")
+    rescue
+    end
+    begin
+        ActiveRecord::Base.connection.exec_query("alter table versions_1 drop constraint versions_1_versionable_id_check;")
+    rescue
+    end
+  
   end
     
 end
-
