@@ -7,6 +7,7 @@ chown -R www-data:www-data /home/www-data/web2py/applications/smc/databases
 chown -R www-data:www-data /home/www-data/web2py/applications/smc/errors
 chown -R www-data:www-data /home/www-data/web2py/applications/smc/private
 chown -R www-data:www-data /home/www-data/web2py/applications/smc/uploads
+chown www-data:www-data /home/www-data/web2py/applications/smc/static/media
 
 # Make sure admin password is set
 cd /home/www-data/web2py

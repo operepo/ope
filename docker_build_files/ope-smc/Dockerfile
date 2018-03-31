@@ -69,7 +69,7 @@ RUN openssl genrsa -passout pass:$CERT_PASS 2048 > /etc/ssl/private/web2py.key &
 	openssl x509 -noout -fingerprint -text < /etc/ssl/certs/web2py.crt > /etc/ssl/web2py.info
 
 
-LABEL rebuild=1
+LABEL rebuild=2
 WORKDIR $W2P_DIR
 RUN chown -R www-data:www-data $W2P_DIR
 USER www-data
@@ -129,7 +129,7 @@ RUN a2enmod wsgi
 # Add git user
 RUN useradd -ms /bin/bash  git
 
-LABEL rebuild=13
+LABEL rebuild=14
 # Copy in our start script
 COPY start.sh /start.sh
 COPY supervisord.conf /etc/supervisor/supervisord.conf
