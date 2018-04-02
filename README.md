@@ -23,6 +23,7 @@ This project consists of building and staging of apps, easy deployment into faci
     - Mike Huse <mdhuse@DOC1.WA.GOV>
     - Daniel Gonzales <dgonzales@DOC1.WA.GOV>
     - Robert Deans <rpdeans@DOC1.WA.GOV>
+    - Ian Thomas <IThomas@clark.edu>
 - Docker App Development:
     - Kris Gonyo <kristophergonyo@gmail.com>
 - Fabrication - Secure sync boxes

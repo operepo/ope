@@ -11,7 +11,7 @@ import "App.js" as App
 
 Page {
     signal refreshPage();
-    signal loadPage(string page_url);
+    signal loadPage(string page_url, string page_type);
 
     onRefreshPage: {
         console.log("RefreshPagesCalled");
@@ -82,10 +82,10 @@ Page {
                     onEntered: { parent.color="lightsteelblue" }
                     onExited: { parent.color="lightgrey" }
                     onClicked: {
-                        var item_url = App.getFieldValue(assignmentsList.model, index, "url");
+                        var item_url = App.getFieldValue(assignmentsList.model, index, "html_url");
                         console.log("Loading Assignment: " + item_url);
                         // TODO - load assignment
-                        //loadPage(item_url);
+                        loadPage(item_url, "AssignmentPage");
                         console.log("Assignment clicked...");
                     }
                 }

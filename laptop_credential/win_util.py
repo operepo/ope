@@ -62,7 +62,7 @@ def AES_new(key, iv=None):
     # Util.aes = pyaes.AESModeOfOperationCBC(key, iv = iv)
     # plaintext = "TextMustBe16Byte"
     # ciphertext = aes.encrypt(plaintext)
-    return AES.AESModeOfOperationCBC(key, iv = iv), iv
+    return AES.AESModeOfOperationOFB(key, iv = iv), iv
 
 
 def encrypt(data, key):
@@ -142,6 +142,14 @@ def create_local_student_account(user_name, full_name, password):
     try:
         # Add to students group
         grp.add(student)
+    except pywintypes.error as err:
+        if err[2] == "The specified account name is already a member of the group.":
+            pass
+        else:
+            # Unexpected error
+            print(str(err))
+            ret = False
+    try:
         # Add to users group
         users_grp.add(student)
     except pywintypes.error as err:

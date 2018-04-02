@@ -1,5 +1,5 @@
-QT += qml quick sql network quickcontrols2 networkauth webengine webenginewidgets
-# webengine quick-private webview-private
+QT += qml quick sql network quickcontrols2 networkauth webengine webenginewidgets webview
+# webengine webenginewidgets quick-private webview-private webview
 
 CONFIG += c++11
 
@@ -30,7 +30,8 @@ SOURCES += main.cpp \
     external/ex_canvas.cpp \
     external/ex_ldap.cpp \
     appmodule.cpp \
-    db.cpp
+    db.cpp \
+    openetworkaccessmanagerfactory.cpp
 
 RESOURCES += qml.qrc
 
@@ -83,7 +84,8 @@ HEADERS += \
     external/ex_canvas.h \
     external/ex_ldap.h \
     appmodule.h \
-    db.h
+    db.h \
+    openetworkaccessmanagerfactory.h
 
 LIBS += -LC:/OpenSSL-Win64/lib # -lcrypto -lssl
 INCLUDEPATH += C:/OpenSSL-Win64/include

@@ -3,6 +3,22 @@
 AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
 {
     exit_early = false;
+    engine = parent;
+    nam_factory = new OPENetworkAccessManagerFactory;
+
+    parent->setNetworkAccessManagerFactory(nam_factory);
+    parent->rootContext()->engine()->setNetworkAccessManagerFactory(nam_factory);
+
+    //QObject *root = engine->rootObjects().first();
+    //root->setParent("networkAccess", parent->networkAccessManager());
+
+    // Connect the SSL errors to our handler
+    QNetworkAccessManager *nam = parent->networkAccessManager();
+    qDebug() << "Current nam " << nam;
+    //qDebug() << "Current signals " << nam-
+    //QObject::connect(nam, SIGNAL(sslErrors(QNetworkReply*,QList<QSslError>)),
+    //        this, SLOT(sslErrorHandler(QNetworkReply*,QList<QSslError>)));
+
 
     // Settings
     //QSettings::setPath(QSettings::IniFormat, QSettings::SystemScope, QCoreApplication::organizationName() + "/" + QCoreApplication::applicationName());
@@ -16,25 +32,6 @@ AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
 
     _app_settings->sync();
     //qDebug() << "App Settings: " << _app_settings->fileName();
-
-
-    // Relax ssl config as we will be running through test certs
-    QSslConfiguration sslconf = QSslConfiguration::defaultConfiguration();
-    QList<QSslCertificate> cert_list = sslconf.caCertificates();
-    QList<QSslCertificate> cert_new = QSslCertificate::fromData("CaCertificates");
-    cert_list += cert_new;
-    sslconf.setCaCertificates(cert_list);
-    sslconf.setProtocol(QSsl::AnyProtocol);
-    sslconf.setPeerVerifyMode(QSslSocket::VerifyNone);
-    QSslConfiguration::setDefaultConfiguration(sslconf);
-
-//    // Setup the custom network access policy object
-//    CustomNetworkManagerFactory *factory = new CustomNetworkManagerFactory;
-//    //qDebug() << factory;
-//    parent->setNetworkAccessManagerFactory(factory);
-//    parent->rootContext()->engine()->setNetworkAccessManagerFactory(factory);
-//    //parent->networkAccessManager = NULL;
-//    //qDebug() << parent->networkAccessManager();
 
 
     // Expose this object to the QML engine
@@ -62,6 +59,22 @@ AppModule::~AppModule()
         _app_settings->setValue("app/running", false);
         _app_settings->sync();
         _app_settings->deleteLater();
+    }
+
+}
+
+void AppModule::debugPrint(QString msg)
+{
+    if (msg.length() > 0) { qDebug() << msg; }
+
+    QList<QNetworkAccessManager *> all_nams = engine->findChildren<QNetworkAccessManager *>();
+    qDebug() << "-- NAMS " << all_nams;
+
+    //all_nams = engine->rootObjects()->findChildren<QNetworkAccessManager*>();
+    QList<QObject*> objs = engine->rootObjects();
+    foreach (QObject *o , objs) {
+        qDebug() << "--- Root Object " << o;
+        qDebug() << "------ Children " << o->findChildren<QNetworkAccessManager*>();
     }
 
 }
@@ -355,10 +368,10 @@ void AppModule::syncLMS(QString lms)
 
 void AppModule::setupLoginWebView(QObject *wv)
 {
-    QWebEngineView *v = qobject_cast<QWebEngineView*>(wv);
+    //QWebEngineView *v = qobject_cast<QWebEngineView*>(wv);
     //qDebug() << " NAM: " << v->page()-
-    wv->dumpObjectInfo();
-    wv->dumpObjectTree();
+    //wv->dumpObjectInfo();
+    //wv->dumpObjectTree();
     //QQuickWebView *w;
 return;
     QObject *page = wv->property("page").value<QObject*>();
@@ -376,23 +389,3 @@ void AppModule::sslErrorHandler(QNetworkReply *reply, QList<QSslError> errors)
     reply->ignoreSslErrors(errors);
 }
 
-CustomNetworkManagerFactory::CustomNetworkManagerFactory(QObject *parent): QObject(parent)
-{
-    //
-    qDebug() << "----Constructor - CustomNetworkManagerFactory";
-}
-
-QNetworkAccessManager *CustomNetworkManagerFactory::create(QObject *parent)
-{
-    qDebug() << "----CustomNetworkManagerFactory::create";
-    m_networkManager = new QNetworkAccessManager(parent);
-    QObject::connect(m_networkManager, SIGNAL(sslErrors(QNetworkReply*,QList<QSslError>)),
-            this, SLOT(ignoreSSLErrors(QNetworkReply*,QList)));
-    return m_networkManager;
-}
-
-void CustomNetworkManagerFactory::ignoreSSLErrors(QNetworkReply *reply, QList<QSslError> errors)
-{
-    qDebug() << "-- Ignoring Ssl errors...";
-    reply->ignoreSslErrors(errors);
-}

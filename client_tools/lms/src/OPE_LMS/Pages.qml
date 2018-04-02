@@ -11,7 +11,7 @@ import "App.js" as App
 
 Page {
     signal refreshPage();
-    signal loadPage(string page_url);
+    signal loadPage(string page_url, string page_type);
 
     onRefreshPage: {
         console.log("RefreshPagesCalled");
@@ -84,7 +84,7 @@ Page {
                     onClicked: {
                         var item_url = App.getFieldValue(pagesList.model, index, "url");
                         console.log("Loading Page: " + item_url);
-                        loadPage(item_url);
+                        loadPage(item_url, "CanvasPage");
                     }
                 }
             }

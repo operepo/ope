@@ -3,15 +3,15 @@ import QtQuick.Controls 1.4
 import QtQuick.Controls 2.2
 import QtQuick.Controls.Material 2.2
 import QtQuick.Layouts 1.0
-//import QtWebView 1.1
-import QtWebEngine 1.4
+import QtWebView 1.1
+//import QtWebEngine 1.4
 
 import com.openprisoneducation.ope 1.0
 import "App.js" as App
 
 Page {
     signal refreshPage();
-    signal loadPage(string page_url);
+    signal loadPage(string page_url, string page_type);
 
     onRefreshPage: {
         console.log("RefreshPageCalled");
@@ -29,10 +29,16 @@ Page {
             page = App.getFieldValue(m, i, "body").toString("404 - Page Not Found");
         }
 
-        App.setHTML(webView, page);
+        // Webengine - need to write jscript to set the page
+        //App.setHTML(webView, page);
+        //webView.url = "https://localhost";
+        webView.loadHtml(page);
+        //webView.url = "https://canvas.correctionsed.com/login"
+        //webView.url = "https://google.com"
     }
 
     Component.onCompleted: {
+
         loadCanvasPage();
 
 
@@ -45,17 +51,44 @@ Page {
         padding: 6
     }
 
+    /*
     WebEngineView {
         anchors.fill: parent
         id: webView
         focus: true
 
         onCertificateError: {
+            console.log("Ignoring cert error - webengine")
             error.ignoreCertificateError();
         }
 
 
     }
+    */
 
+
+    WebView {
+        anchors.fill: parent
+        id: webView
+        focus: true
+        //loadProgress: 0
+
+        onLoadingChanged: {
+            var err = loadRequest.errorString
+            var status = loadRequest.status
+            console.log("Loading changed..." + status)
+        }
+
+
+
+    }
+
+    footer: Button {
+        text: "Debug Print"
+        onClicked: {
+            console.log("Calling debugPrint")
+            mainWidget.debugPrint("");
+        }
+    }
 
 }

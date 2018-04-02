@@ -11,9 +11,9 @@
 #include <QDesktopServices>
 #include <QStandardPaths>
 //#include <QtWebView>
-#include <QtWebEngine>
-#include <QWebEngineView>
-#include <QWebEnginePage>
+//#include <QtWebEngine>
+//#include <QWebEngineView>
+//#include <QWebEnginePage>
 #include <QSettings>
 
 #include <QNetworkAccessManager>
@@ -28,6 +28,7 @@
 #include <QAndroidJniEnvironment>
 #endif
 
+#include "openetworkaccessmanagerfactory.h"
 #include "cm/cm_sequentialguid.h"
 #include "cm/cm_httpserver.h"
 #include "cm/cm_users.h"
@@ -35,29 +36,6 @@
 #include "db.h"
 
 #include "external/ex_canvas.h"
-
-
-
-/**
- * @brief The CustomNetworkManagerFactory class
- * A class to deal with network manager settings within QML
- *
- */
-class CustomNetworkManagerFactory: public QObject, public QQmlNetworkAccessManagerFactory
-{
-    Q_OBJECT
-public:
-    explicit CustomNetworkManagerFactory(QObject *parent = 0);
-    virtual QNetworkAccessManager *create(QObject *parent);
-
-public slots:
-    void ignoreSSLErrors(QNetworkReply *reply, QList<QSslError> errors);
-private:
-    QNetworkAccessManager* m_networkManager;
-
-};
-
-
 
 
 /**
@@ -70,6 +48,12 @@ class AppModule : public QObject
     Q_OBJECT
 
 private:
+    // Main qml engine object
+    QQmlApplicationEngine *engine;
+
+    // NAM Factory
+    OPENetworkAccessManagerFactory *nam_factory;
+
     // Database object
     APP_DB *_database;
 
@@ -110,6 +94,8 @@ signals:
     void canvasChanged();
 
 public slots:
+    // Print debug info
+    void debugPrint(QString msg);
 
     // Launch a file or URL using desktop services
     bool desktopLaunch(QString url);
@@ -158,6 +144,7 @@ public slots:
 
 
     void setupLoginWebView(QObject *wv);
+
     void sslErrorHandler(QNetworkReply *reply, QList<QSslError> errors);
 
 

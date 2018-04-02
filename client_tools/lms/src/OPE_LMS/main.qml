@@ -1,9 +1,9 @@
-import QtQuick 2.7
+import QtQuick 2.9
 import QtQuick.Controls 1.4
-import QtQuick.Controls 2.2
+import QtQuick.Controls 2.3
 import QtQuick.Controls.Material 2.2
-import QtQuick.Layouts 1.0
-//import QtWebView 1.1
+import QtQuick.Layouts 1.3
+import QtWebView 1.1
 import QtWebEngine 1.4
 
 import "App.js" as App
@@ -18,8 +18,10 @@ ApplicationWindow {
 
 
     Component.onCompleted: {
+        console.log("Need_sync ");
+        console.log(need_sync);
         // if first run, open up the first run drawer
-        if (mainWidget.isAppCredentialed() === false) {
+        if (need_sync === true || mainWidget.isAppCredentialed() === false) {
             syncDrawer.open();
             //firstRunDrawer.open();
         }
@@ -42,7 +44,8 @@ ApplicationWindow {
         onLoadPage: {
             console.log("Load Page Called: " + page_url);
             App.current_page_url = page_url;
-            pageLoader.setSource("CanvasPage.qml");
+            pageLoader.setSource(page_type + ".qml");
+
         }
     }
 
@@ -62,6 +65,10 @@ ApplicationWindow {
                     }
                 }
             }
+
+
+
+
 
             ToolButton {
                 text: qsTr("Resources");
@@ -549,7 +556,7 @@ ApplicationWindow {
                                 ListElement { name: "Home"; order: 0; enabled: true }
                                 ListElement { name: "Modules"; order: 1; enabled: true }
                                 ListElement { name: "Pages"; order: 2; enabled: true }
-                                //ListElement { name: "Assignments"; order: 3; enabled: true }
+                                ListElement { name: "Assignments"; order: 3; enabled: true }
                                 //ListElement { name: "Quizzes"; order: 4; enabled: true }
                                 //ListElement { name: "Inbox"; order: 5; enabled: true }
                                 //ListElement { name: "Calendar"; order: 6; enabled: false }
