@@ -443,6 +443,265 @@ SQLSTRING
     #end
     #puts "==== END Ensuring Admin Account Exists ===="
     
+    # Set canvas options
+    admin_account = Account.find_by(name: ENV["CANVAS_LMS_ACCOUNT_NAME"] )
+    site_admin_account = Account.find_by(name: "Site Admin" )
+    if (admin_account && site_admin_account)
+        puts "==== Setting Canvas Config Settings ===="
+
+        admin_account.default_time_zone = "Pacific Time (US & Canada)"
+        site_admin_account.default_time_zone = "Pacific Time (US & Canada)"
+        admin_account.allow_sis_import = true
+        site_admin_account.allow_sis_import = true
+
+        # Disable web services
+        admin_account.disable_service("google_docs_previews")
+        admin_account.disable_service("skype")
+        admin_account.disable_service("delicious")
+        site_admin_account.disable_service("google_docs_previews")
+        site_admin_account.disable_service("skype")
+        site_admin_account.disable_service("delicious")
+
+        # Allow admin account to change / set passwords - needed by SMC
+        site_admin_account.settings[:admins_can_change_passwords] = admin_account.settings[:admins_can_change_passwords] = true
+        site_admin_account.settings[:edit_institution_email] = admin_account.settings[:edit_institution_email] = false
+        site_admin_account.settings[:admins_can_view_notifications] = admin_account.settings[:admins_can_view_notifications] = true
+        site_admin_account.settings[:allow_invitation_previews] = admin_account.settings[:allow_invitation_previews] = false
+        site_admin_account.settings[:allow_sending_scores_in_emails] = admin_account.settings[:allow_sending_scores_in_emails] = false
+        site_admin_account.settings[:author_email_in_notifications] = admin_account.settings[:author_email_in_notifications] = false
+        site_admin_account.settings[:enable_alerts] = admin_account.settings[:enable_alerts] = false
+        site_admin_account.settings[:enable_portfolios] = admin_account.settings[:enable_portfolios] = false
+        site_admin_account.settings[:enable_offline_web_export] = admin_account.settings[:enable_offline_web_export] = false
+        site_admin_account.settings[:enable_profiles] = admin_account.settings[:enable_profiles] = false
+        site_admin_account.settings[:enable_gravatar] = admin_account.settings[:enable_gravatar] = false
+        site_admin_account.settings[:enable_turnitin] = admin_account.settings[:enable_turnitin] = false
+        site_admin_account.settings[:global_includes] = admin_account.settings[:global_includes] = false
+        site_admin_account.settings[:include_students_in_global_survey] = admin_account.settings[:include_students_in_global_survey] = false
+        site_admin_account.settings[:lock_all_announcements] = admin_account.settings[:lock_all_announcements] = true
+        site_admin_account.settings[:mfa_settings] = admin_account.settings[:mfa_settings] = "disabled"
+        site_admin_account.settings[:no_enrollments_can_create_courses] = admin_account.settings[:no_enrollments_can_create_courses] = false
+        site_admin_account.settings[:open_registration] = admin_account.settings[:open_registration] = false
+        site_admin_account.settings[:prevent_course_renaming_by_teachers] = admin_account.settings[:prevent_course_renaming_by_teachers] = false
+        site_admin_account.settings[:restrict_quiz_questions] = admin_account.settings[:restrict_quiz_questions] = true
+        site_admin_account.settings[:restrict_student_future_listing] = admin_account.settings[:restrict_student_future_listing] = false
+        site_admin_account.settings[:restrict_student_future_view] = admin_account.settings[:restrict_student_future_view] = true
+        site_admin_account.settings[:restrict_student_past_view] = admin_account.settings[:restrict_student_past_view] = true
+        site_admin_account.settings[:show_scheduler] = admin_account.settings[:show_scheduler] = false
+        site_admin_account.settings[:students_can_create_courses] = admin_account.settings[:students_can_create_courses] = false
+        site_admin_account.settings[:sub_accunt_includes] = admin_account.settings[:sub_accunt_includes] = false
+        site_admin_account.settings[:teachers_can_create_courses] = admin_account.settings[:teachers_can_create_courses] = false
+        site_admin_account.settings[:users_can_edit_name] = admin_account.settings[:users_can_edit_name] = false
+        site_admin_account.settings[:login_handle_name] = admin_account.settings[:login_handle_name] = "Student ID (default is s + DOC number - s113412)"
+        site_admin_account.settings[:self_enrollment] = admin_account.settings[:self_enrollment] = "Never"
+
+
+
+        # Default storage quotas
+        admin_account.default_storage_quota_mb=5000
+        admin_account.default_user_storage_quota_mb=1
+        admin_account.default_group_storage_quota_mb=1
+        site_admin_account.default_storage_quota_mb=5000
+        site_admin_account.default_user_storage_quota_mb=1
+        site_admin_account.default_group_storage_quota_mb=1
+        
+        # Lock down permissions
+        student_role = Role.get_built_in_role("StudentEnrollment")
+        ta_role = Role.get_built_in_role("TaEnrollment")
+
+        # Calendar access
+        admin_account.role_overrides.where(role: student_role, permission: :manage_calendar).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :manage_calendar)
+        admin_account.role_overrides.where(role: ta_role, permission: :manage_calendar).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :manage_calendar)
+
+        # Add / Remove teachers
+        admin_account.role_overrides.where(role: student_role, permission: :manage_admins).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :manage_admins)
+        admin_account.role_overrides.where(role: ta_role, permission: :manage_admins).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :manage_admins)
+
+        # Add / Remove students
+        admin_account.role_overrides.where(role: student_role, permission: :manage_students).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :manage_students)
+        admin_account.role_overrides.where(role: ta_role, permission: :manage_students).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :manage_students)
+
+        # Change chourse state
+        admin_account.role_overrides.where(role: student_role, permission: :change_course_state).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :change_course_state)
+        admin_account.role_overrides.where(role: ta_role, permission: :change_course_state).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :change_course_state)
+
+        # Manage Ruberics
+        admin_account.role_overrides.where(role: student_role, permission: :manage_rubrics).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :manage_rubrics)
+        admin_account.role_overrides.where(role: ta_role, permission: :manage_rubrics).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :manage_rubrics)
+
+        # Manage student collaborations
+        admin_account.role_overrides.where(role: student_role, permission: :create_collaborations).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :create_collaborations)
+        admin_account.role_overrides.where(role: ta_role, permission: :create_collaborations).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :create_collaborations)
+        
+        # Mange web conferences
+        admin_account.role_overrides.where(role: student_role, permission: :create_conferences).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :create_conferences)
+        admin_account.role_overrides.where(role: ta_role, permission: :create_conferences).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :create_conferences)
+
+        # Edit Grades
+        admin_account.role_overrides.where(role: student_role, permission: :manage_grades).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :manage_grades)
+        admin_account.role_overrides.where(role: ta_role, permission: :manage_grades).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :manage_grades)
+
+        # Manage LTI
+        admin_account.role_overrides.where(role: student_role, permission: :lti_add_edit).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :lti_add_edit)
+        admin_account.role_overrides.where(role: ta_role, permission: :lti_add_edit).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :lti_add_edit)
+
+        # Manages Assignments and Quizzes
+        admin_account.role_overrides.where(role: student_role, permission: :manage_assignments).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :manage_assignments)
+        admin_account.role_overrides.where(role: ta_role, permission: :manage_assignments).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: true, permission: :manage_assignments)
+
+        # Manage course files
+        admin_account.role_overrides.where(role: student_role, permission: :manage_files).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :manage_files)
+        admin_account.role_overrides.where(role: ta_role, permission: :manage_files).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: true, permission: :manage_files)
+
+        # Manage Pages
+        admin_account.role_overrides.where(role: student_role, permission: :manage_wiki).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :manage_wiki)
+        admin_account.role_overrides.where(role: ta_role, permission: :manage_wiki).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: true, permission: :manage_wiki)
+
+        # Manage sections
+        admin_account.role_overrides.where(role: student_role, permission: :manage_sections).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :manage_sections)
+        admin_account.role_overrides.where(role: ta_role, permission: :manage_sections).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: true, permission: :manage_sections)
+
+        # Manage Groups
+        admin_account.role_overrides.where(role: student_role, permission: :manage_groups).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :manage_groups)
+        admin_account.role_overrides.where(role: ta_role, permission: :manage_groups).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :manage_groups)
+
+        # Manage Alerts
+        admin_account.role_overrides.where(role: student_role, permission: :manage_interaction_alerts).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :manage_interaction_alerts)
+        admin_account.role_overrides.where(role: ta_role, permission: :manage_interaction_alerts).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :manage_interaction_alerts)
+
+        # Manage all other course content
+        admin_account.role_overrides.where(role: student_role, permission: :manage_content).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :manage_content)
+        admin_account.role_overrides.where(role: ta_role, permission: :manage_content).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: true, permission: :manage_content)
+
+        # Mange learning outcomes
+        admin_account.role_overrides.where(role: student_role, permission: :manage_outcomes).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :manage_outcomes)
+        admin_account.role_overrides.where(role: ta_role, permission: :manage_outcomes).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :manage_outcomes)
+
+        # Moderate Grades
+        admin_account.role_overrides.where(role: student_role, permission: :moderate_grades).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :moderate_grades)
+        admin_account.role_overrides.where(role: ta_role,  permission: :moderate_grades).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :moderate_grades)
+
+        # Moderate Discussions
+        admin_account.role_overrides.where(role: student_role, permission: :moderate_forum).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :moderate_forum)
+        admin_account.role_overrides.where(role: ta_role, permission: :moderate_forum).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :moderate_forum)
+
+        # Post to discussions
+        admin_account.role_overrides.where(role: student_role, permission: :post_to_forum).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :post_to_forum)
+        admin_account.role_overrides.where(role: ta_role, permission: :post_to_forum).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :post_to_forum)
+
+        # Read SIS data
+        admin_account.role_overrides.where(role: student_role, permission: :read_sis).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :read_sis)
+        admin_account.role_overrides.where(role: ta_role, permission: :read_sis).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :read_sis)
+
+        # See list of users
+        admin_account.role_overrides.where(role: student_role, permission: :read_roster).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :read_roster)
+        admin_account.role_overrides.where(role: ta_role, permission: :read_roster).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :read_roster)
+
+        # Send messages to individual course memebers
+        admin_account.role_overrides.where(role: student_role, permission: :send_messages).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :send_messages)
+        admin_account.role_overrides.where(role: ta_role, permission: :send_messages).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :send_messages)
+
+        # Send messages to entire class
+        admin_account.role_overrides.where(role: student_role, permission: :send_messages_all).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :send_messages_all)
+        admin_account.role_overrides.where(role: ta_role, permission: :send_messages_all).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :send_messages_all)
+
+        # View grades
+        admin_account.role_overrides.where(role: student_role, permission: :view_all_grades).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :view_all_grades)
+        admin_account.role_overrides.where(role: ta_role, permission: :view_all_grades).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :view_all_grades)
+
+        # View submissions and make comments
+        admin_account.role_overrides.where(role: student_role, permission: :comment_on_others_submissions).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :comment_on_others_submissions)
+        admin_account.role_overrides.where(role: ta_role, permission: :comment_on_others_submissions).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :comment_on_others_submissions)
+
+        # View and link question banks
+        admin_account.role_overrides.where(role: student_role, permission: :read_question_banks).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :read_question_banks)
+        admin_account.role_overrides.where(role: ta_role, permission: :read_question_banks).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: true, permission: :read_question_banks)
+
+        # View announcements
+        admin_account.role_overrides.where(role: student_role, permission: :read_announcements).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: true, permission: :read_announcements)
+        admin_account.role_overrides.where(role: ta_role, permission: :read_announcements).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: true, permission: :read_announcements)
+
+        # View discussions
+        admin_account.role_overrides.where(role: student_role, permission: :read_forum).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :read_forum)
+        admin_account.role_overrides.where(role: ta_role, permission: :read_forum).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :read_forum)
+
+        # View group pages
+        admin_account.role_overrides.where(role: student_role, permission: :view_group_pages).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :view_group_pages)
+        admin_account.role_overrides.where(role: ta_role, permission: :view_group_pages).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :view_group_pages)
+
+        # View usage reports
+        admin_account.role_overrides.where(role: student_role, permission: :read_reports).destroy_all
+        admin_account.role_overrides.create(role: student_role, enabled: false, permission: :read_reports)
+        admin_account.role_overrides.where(role: ta_role, permission: :read_reports).destroy_all
+        admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :read_reports)
+
+
+
+        admin_account.save
+        site_admin_account.save
+    else
+        puts "==== ERROR - Unable to find root account! ===="
+    end
+
     # Reset password for admin user to pw provided in the environment
     puts "==== Resetting admin password ===="
     p = Pseudonym.find_by unique_id: ENV["CANVAS_LMS_ADMIN_EMAIL"]
