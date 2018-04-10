@@ -5,8 +5,8 @@
         network_mode: <NETWORK_MODE>
         restart: always
         ports:
-            - "8000"
-            #- "443"
+            - "80"
+            - "443"
             # git daemon
             - "9418:9418"
         volumes:
@@ -30,12 +30,11 @@
             - CANVAS_SECRET=${CANVAS_SECRET}
             - CANVAS_SERVER=https://canvas.<DOMAIN>
             - VIRTUAL_HOST=smc.<DOMAIN>,admin.<DOMAIN>,videos.<DOMAIN>,media.<DOMAIN>
-            - VIRTUAL_PORT=8000
+            - VIRTUAL_PORT=443
             # Share the default cert on the gateway
             - CERT_NAME=default
-            #- VIRTUAL_PROTO=https
-            - VIRTUAL_PROTO=uwsgi
-            - HTTPS_METHOD=redirect
+            - VIRTUAL_PROTO=https
+            #- HTTPS_METHOD=noredirect
         links:
             - ope-postgresql:postgresql
             # Send canvas connections through the gateway
