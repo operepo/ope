@@ -22,7 +22,6 @@ int main(int argc, char *argv[])
     QSslConfiguration::setDefaultConfiguration(sslconf);
 
 
-
     //QTextCodec::setCodecForLocale(QTextCodec::codecForName("UTF-8"));
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QGuiApplication app(argc, argv);

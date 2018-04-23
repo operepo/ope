@@ -12,6 +12,7 @@
 #include <QUrl>
 #include <QDateTime>
 #include <QFile>
+#include <QFileInfo>
 
 
 class CM_WebRequest : public QObject
@@ -24,7 +25,7 @@ signals:
     void progress(qint64 bytesRead, qint64 totalBytes);
 
 public slots:
-    QByteArray NetworkCall(QString url, QString method = "GET", QHash<QString, QString> *p = NULL, QHash<QString, QString> *headers = NULL, QString content_type = "text/html");
+    QByteArray NetworkCall(QString url, QString method = "GET", QHash<QString, QString> *p = NULL, QHash<QString, QString> *headers = NULL, QString content_type = "text/html", QString post_file="");
     bool DownloadFile(QString url, QString local_path);
 
     QString ConvertHashToQueryString(QHash<QString, QString> *arr);

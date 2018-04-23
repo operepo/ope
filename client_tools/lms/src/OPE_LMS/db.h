@@ -42,6 +42,8 @@ public slots:
     QString getColumnName(int col_index);
     int getColumnIndex(QString col_name);
 
+    void sortOn(QString col_name, Qt::SortOrder order = Qt::AscendingOrder);
+
 
 private:
     void generateRoleNames();
@@ -52,6 +54,8 @@ private:
     QString m_sql_select;
     QString m_filter;
     bool m_combine_filter_w_and;
+    QString m_sort_column;
+    int m_sort_type;
 };
 
 
@@ -75,6 +79,7 @@ public slots:
     QHash<QString, QVariant> getRecord(int row) const;
     QString getColumnName(int col_index);
     int getColumnIndex(QString col_name);
+    void sortOn(QString col_name, Qt::SortOrder order = Qt::AscendingOrder);
 
 private:
     void generateRoleNames();

@@ -13,6 +13,7 @@ Page {
     property string current_course_id: App.current_course;
     signal refreshPage();
     signal loadPage(string page_url);
+    padding: 3
 
     onRefreshPage: {
         console.log("RefreshPageCalled");

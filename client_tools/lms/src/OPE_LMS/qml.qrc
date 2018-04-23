@@ -22,4 +22,7 @@
         <file>dropTest.qml</file>
         <file>AssignmentPage.qml</file>
     </qresource>
+    <qresource prefix="/images">
+        <file>blue-folder.png</file>
+    </qresource>
 </RCC>

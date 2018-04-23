@@ -157,6 +157,37 @@ bool APP_DB::init_db()
         // Add to the table models list
         model = new GenericTableModel(this, "module_items", _db);
 
+        // ===========================================
+        // Create folders table - holds folders for files
+        sql = "CREATE TABLE IF NOT EXISTS `folders` ( \
+                `id`            TEXT NOT NULL DEFAULT '', \
+                `name`          TEXT NOT NULL DEFAULT '', \
+                `full_name`     TEXT NOT NULL DEFAULT '', \
+                `context_id`    TEXT NOT NULL DEFAULT '', \
+                `context_type`  TEXT NOT NULL DEFAULT '', \
+                `parent_folder_id` TEXT NOT NULL DEFAULT '', \
+                `created_at`    TEXT NOT NULL DEFAULT '', \
+                `updated_at`    TEXT NOT NULL DEFAULT '', \
+                `lock_at`       TEXT NOT NULL DEFAULT '', \
+                `unlock_at`     TEXT NOT NULL DEFAULT '', \
+                `position`      TEXT NOT NULL DEFAULT '', \
+                `locked`        TEXT NOT NULL DEFAULT '', \
+                `folders_url`   TEXT NOT NULL DEFAULT '', \
+                `files_url`     TEXT NOT NULL DEFAULT '', \
+                `files_count`   TEXT NOT NULL DEFAULT '', \
+                `folders_count` TEXT NOT NULL DEFAULT '', \
+                `hidden`        TEXT NOT NULL DEFAULT '', \
+                `locked_for_user` TEXT NOT NULL DEFAULT '', \
+                `hidden_for_user` TEXT NOT NULL DEFAULT '', \
+                `for_submissions` TEXT NOT NULL DEFAULT '' \
+              );";
+
+         if (!query.exec(sql)) {
+             qDebug() << "DB Error: " << query.lastError().text();
+             ret = false;
+         }
+         // Add to the table models list
+         model = new GenericTableModel(this, "folders", _db);
 
         // ===========================================
         // Create files table - holds file info
@@ -191,7 +222,6 @@ bool APP_DB::init_db()
         }
         // Add to the table models list
         model = new GenericTableModel(this, "files", _db);
-
 
 
         // ===========================================
@@ -279,6 +309,26 @@ bool APP_DB::init_db()
         // Add to the table models list
         model = new GenericTableModel(this, "messages", _db);
 
+        // Create assignment_submissions table
+        // assignment_type = file (upload), url, text, none, on_paper, external
+        sql = "CREATE TABLE IF NOT EXISTS `assignment_submissions` ( \
+                `assignment_type` TEXT NOT NULL DEFAULT 'file', \
+                `submission_text` TEXT NOT NULL DEFAULT '', \
+                `queue_url`     TEXT NOT NULL DEFAULT '', \
+                `origin_url`    TEXT NOT NULL DEFAULT '', \
+                `file_size`     TEXT NOT NULL DEFAULT '', \
+                `assignment_id` TEXT NOT NULL DEFAULT '', \
+                `course_id`     TEXT NOT NULL DEFAULT '', \
+                `queued_on`     TEXT NOT NULL DEFAULT '', \
+                `synced_on`     TEXT NOT NULL DEFAULT '' \
+              );";
+
+        if (!query.exec(sql)) {
+            qDebug() << "DB Error: " << query.lastError().text();
+            ret = false;
+        }
+        // Add to the table models list
+        model = new GenericTableModel(this, "assignment_submissions", _db);
 
         // Create the assignments table
         sql = "CREATE TABLE IF NOT EXISTS `assignments` ( \
@@ -355,9 +405,14 @@ bool APP_DB::init_db()
 
 
         // Now create views
-        sql = "SELECT module_items.*, modules.name, modules.course_id from module_items, modules WHERE modules.id=module_items.module_id";
+
+        // Query to join modules and module_items
+        sql = "SELECT module_items.*, modules.name, modules.course_id, (modules.position || \"_\" || module_items.position) as sort_order  FROM module_items, modules WHERE modules.id=module_items.module_id ";
         GenericQueryModel *view = new GenericQueryModel(this, "module_items", sql, _db);
 
+        // Query to join folders and files
+        sql = "SELECT files.*, folders.name, (folders.name || \"_\" || files.display_name) as sort_order FROM folders, files WHERE folders.id=files.folder_id";
+        view = new GenericQueryModel(this, "file_folders", sql, _db);
 
     }
 
@@ -541,6 +596,13 @@ int GenericTableModel::getColumnIndex(QString col_name)
     return ret;
 }
 
+void GenericTableModel::sortOn(QString col_name, Qt::SortOrder order)
+{
+    // Lookup column index
+    int col_index = getColumnIndex(col_name);
+    sort(col_index, order);
+}
+
 void GenericTableModel::generateRoleNames()
 {
     m_roleNames.clear();
@@ -552,6 +614,8 @@ void GenericTableModel::generateRoleNames()
 
 GenericQueryModel::GenericQueryModel(APP_DB *parent, QString query_name, QString query, QSqlDatabase db)
 {
+    m_sort_column = "";
+    m_sort_type = Qt::AscendingOrder;
     m_filter = "";
     m_combine_filter_w_and = true;
     m_sql_select = query;
@@ -650,6 +714,13 @@ int GenericQueryModel::getColumnIndex(QString col_name)
     return ret;
 }
 
+void GenericQueryModel::sortOn(QString col_name, Qt::SortOrder order)
+{
+    m_sort_column = col_name;
+    m_sort_type = order;
+    setCombinedQuery();
+}
+
 void GenericQueryModel::generateRoleNames()
 {
     m_roleNames.clear();
@@ -678,6 +749,14 @@ void GenericQueryModel::setCombinedQuery()
         } else {
             // No where clause, append it with the filter
             q += " WHERE " + m_filter;
+        }
+    }
+    if (m_sort_column != "") {
+        q += " ORDER BY " + m_sort_column;
+        if (m_sort_type == Qt::AscendingOrder) {
+            q += " ASC";
+        } else {
+            q += " DESC";
         }
     }
 

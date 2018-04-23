@@ -16,7 +16,6 @@ ApplicationWindow {
     height: 600
     title: qsTr("OPE - Learning Resource System")
 
-
     Component.onCompleted: {
         console.log("Need_sync ");
         console.log(need_sync);
@@ -31,6 +30,7 @@ ApplicationWindow {
         console.log(App.current_course);
         pageLoader.item.refreshPage();
     }
+
 
     Connections {
 //        target: mainWidget
@@ -296,6 +296,12 @@ ApplicationWindow {
                 if (r === false) { progressLabel.text += "\n  ERROR pulling student info"; }
                 syncProgress.value = .1;
 
+                // Push assignments to the server
+                progressLabel.text += "\nPushing Assignment Submissions...";
+                syncProgress.value = 0.15;
+                r = mainWidget.canvas.pushAssignments();
+                if (r === false) { progressLabel.text += "\n ERROR pushing assingment submissions"; }
+
                 // Pull classes
                 progressLabel.text += "\nPulling courses from canvas...";
                 r = mainWidget.canvas.pullCourses();
@@ -311,6 +317,11 @@ ApplicationWindow {
                 r = mainWidget.canvas.pullModuleItems();
                 if (r === false) { progressLabel.text += "\n  ERROR pulling item info"; }
                 syncProgress.value = .4;
+
+                progressLabel.text += "\nPulling Folder info for courses...";
+                r = mainWidget.canvas.pullCourseFileFolders()
+                if (r === false) { progressLabel.text += "\n  ERROR pulling folders info"; }
+                syncProgress.value = .45;
 
                 progressLabel.text += "\nPulling file info for courses...";
                 r = mainWidget.canvas.pullCourseFilesInfo();
@@ -507,12 +518,15 @@ ApplicationWindow {
                             spacing: 4
                             highlightFollowsCurrentItem: true
 
+                            ScrollBar.vertical: ScrollBar {}
+
                             highlight: Rectangle {
                                 width: parent.width
                                 height: 30
                                 color: "steelblue"
                                 radius: 3
                             }
+
 
                             delegate: Component {
                                 Rectangle {
@@ -607,3 +621,38 @@ ApplicationWindow {
 
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

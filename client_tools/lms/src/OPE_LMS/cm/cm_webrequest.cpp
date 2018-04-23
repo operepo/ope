@@ -19,7 +19,7 @@ CM_WebRequest::CM_WebRequest(QObject *parent) :
 }
 
 
-QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString, QString> *parameters, QHash<QString, QString> *headers, QString content_type)
+QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString, QString> *parameters, QHash<QString, QString> *headers, QString content_type, QString post_file)
 {
     // Clear current data
     http_reply_data.clear();
@@ -75,20 +75,61 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
     }
     else if  (content_type == "multipart/form-data" && (method.toUpper() == "POST" || method.toUpper() == "PUT"))
     {
-        //// TODO: Debug this???
-        QHttpMultiPart *parts = new QHttpMultiPart(QHttpMultiPart::MixedType);
-        // This makes parts get deleted when reply does
-        parts->setParent(http_reply);
-        // File upload post with mime headers
-        QHttpPart textPart;
-          //textPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("text/json")); // QVariant("form-data; name=\"text\""));
-        //textPart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("text/json"));
-        QString send = ConvertHashToQueryString(parameters);
-        textPart.setBody(send.toLocal8Bit());
-        qDebug() << "Query String: " << send;
+        // Make sure to setup a proper boundary
+        QString boundary = "-----------------------lksjfjLDSAkjfelwkjfkdjfslkjesahrAKHFD";
+        // Reset the header w the boundary
+        wr.setHeader(QNetworkRequest::ContentTypeHeader,
+                     "multipart/form-data; boundary=" + boundary);
 
-        parts->append(textPart);
+        //QHttpMultiPart *parts = new QHttpMultiPart(QHttpMultiPart::MixedType);
+        QHttpMultiPart *parts = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+        parts->setBoundary(boundary.toLocal8Bit());
+
+        // File upload post with mime headers
+        // Loop through params and add a part for each
+        foreach(QString key, parameters->keys()) {
+            QHttpPart part;
+            part.setHeader(QNetworkRequest::ContentDispositionHeader,
+                           QVariant("form-data; name=\"" + key +"\""));
+            part.setBody(parameters->value(key).toLocal8Bit());
+            parts->append(part);
+        }
+
+        //QHttpPart textPart;
+        //textPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("text/json")); // QVariant("form-data; name=\"text\""));
+        //textPart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("text/json"));
+        //textPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data;"));
+        //QString send = ConvertHashToQueryString(parameters);
+        //textPart.setBody(send.toLocal8Bit());
+        //qDebug() << "Query String: " << send;
+        //parts->append(textPart);
+
+        QFile *file_io = NULL;
+        QHttpPart file_part;
+        if (post_file != "" && QFile::exists(post_file)) {
+            // Add the file
+            file_io = new QFile(post_file);
+            file_io->open(QIODevice::ReadOnly);
+            QFileInfo fi = QFileInfo(post_file);
+
+            // Set the name
+            file_part.setHeader(QNetworkRequest::ContentDispositionHeader,
+                                QVariant("form-data; name=\"file\"; filename=\"" + fi.fileName()  + "\""));
+            //file_part.setHeader(QNetworkRequest::ContentTypeHeader,
+            //                    QVariant("application/octet-stream"));
+
+            file_part.setBodyDevice(file_io);
+            parts->append(file_part);
+        }
+
+        qDebug() << "Posting Parts: " << parts;
         http_reply = http_manager.post(wr, parts);
+
+        // Set parents that don't get deleted right away
+        //if (file_part != NULL) { file_part->setParent(http_reply); }
+        if (file_io != NULL) { file_io->setParent(http_reply); }
+        //textPart->setParent(http_reply);
+        parts->setParent(http_reply);
 
     }
     else if (method.toUpper() == "GET")
@@ -325,14 +366,11 @@ void CM_WebRequest::httpFinished()
 //        statusLabel->setText(tr("Downloaded %1 to %2.").arg(fileName).arg(QDir::currentPath()));
 //        downloadButton->setEnabled(true);
 
-    }
-
-    // Make sure we use delete later for the reply object
-//    http_reply->deleteLater();
-//    http_reply = 0;
+    }    
 
 //    qDebug() << "HTTP Request Complete: " << http_reply_data;
 
+    // Make sure we use delete later for the reply object
     http_reply->deleteLater();
     http_reply = 0;
 

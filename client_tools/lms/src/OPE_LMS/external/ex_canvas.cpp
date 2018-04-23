@@ -121,6 +121,9 @@ bool EX_Canvas::pullStudentInfo()
 bool EX_Canvas::pullCourses()
 {
     bool ret =  false;
+    QString sql = "";
+    QSqlQuery query;
+
     if (_app_db == NULL) {
        return ret;
     }
@@ -142,6 +145,14 @@ bool EX_Canvas::pullCourses()
     // Loop through the courses and add them to the database
     if (doc.isArray())
     {
+        // Clear current courses so we don't keeep adding and so that
+        // if the student has been pulled from a course they are not
+        // still listed
+        sql = "DELETE FROM courses";
+        if (!query.exec(sql)) {
+            qDebug() << "DB Error: " << query.lastError().text();
+        }
+
         // JSON Pulled:
         // id":26664700000000082,"name":"Auto Create - CSE100","account_id":1,
         //"start_at":"2017-06-08T22:29:59Z","grading_standard_id":null,
@@ -423,6 +434,120 @@ bool EX_Canvas::pullModuleItems()
                model->setFilter(""); // clear the filter
 
                //qDebug() << "Module item " << o["title"].toString("");
+               model->database().commit();
+               //qDebug() << model->lastError();
+
+            }
+        }
+    }
+
+    return ret;
+}
+
+bool EX_Canvas::pullCourseFileFolders()
+{
+    // Grab a list of files for each course (Non Binaries)
+    bool ret = false;
+    if (_app_db == NULL) { return ret; }
+
+    // Get the list of courses for this student
+    GenericTableModel *courses_model = _app_db->getTable("courses");
+    GenericTableModel *model = _app_db->getTable("folders");
+
+    if (courses_model == NULL || model == NULL) {
+        qDebug() << "Unable to get models for courses or folders!";
+        return false;
+    }
+
+    // Pull all folder info for all courses
+    courses_model->setFilter("");
+    ret = true;
+    for (int i=0; i<courses_model->rowCount(); i++) {
+        // Get folders for this course
+        QSqlRecord course_record = courses_model->record(i);
+        QString course_id = course_record.value("id").toString();
+        //qDebug() << "Retrieving folder info for " << course_id;
+        QHash<QString,QString> p;
+        p["per_page"] = "10000"; // Cuts down number of calls significantly
+        QJsonDocument doc = CanvasAPICall("/api/v1/courses/" + course_id + "/folders", "GET", &p);
+
+        if (doc.isArray()) {
+            //qDebug() << "\tFolder info for course:";
+            // Should be an array of folders
+            QJsonArray arr = doc.array();
+            foreach(QJsonValue val, arr) {
+                //qDebug() << "got item...";
+                // This should be a module
+                QJsonObject o = val.toObject();
+
+                QString id = o["id"].toString("");
+                //qDebug() << "File ID " << id;
+
+                model->setFilter("id = " + id);
+                model->select();
+                QSqlRecord record;
+                bool is_insert = false;
+
+                if (model->rowCount() == 1) {
+                    // Row exists, update with current info
+                    record = model->record(0);
+                    is_insert = false;
+                    qDebug() << "\t\tUpdating folder info..." << id << o["full_name"].toString("");
+                } else {
+                    // Need to clear the filter to insert
+                    model->setFilter("");
+                    record = model->record();
+                    is_insert = true;
+                    qDebug() << "\t\tImporting folder info..." << id << o["full_name"].toString("");
+
+                }
+
+                // JSON - list of objects
+                // {"id":999999000000068,"name":"course files",
+                // "full_name":"course files","context_id":999999000000068,
+                // "context_type":"Course","parent_folder_id":null,
+                // "created_at":"2018-02-22T21:48:37Z",
+                // "updated_at":"2018-02-22T21:48:37Z","lock_at":null,
+                // "unlock_at":null,"position":null,"locked":false,
+                // "folders_url":"https://canvas.ed/api/v1/folders/999999000000068/folders",
+                // "files_url":"https://canvas.ed/api/v1/folders/999999000000068/files",
+                // "files_count":0,"folders_count":4,"hidden":null,
+                // "locked_for_user":false,"hidden_for_user":false,
+                // "for_submissions":false}
+
+                record.setValue("id", o["id"].toString(""));
+                record.setValue("name", o["name"].toString(""));
+                record.setValue("full_name", o["full_name"].toString(""));
+                record.setValue("context_id", o["context_id"].toString(""));
+                record.setValue("context_type", o["context_type"].toString(""));
+                record.setValue("parent_folder_id", o["parent_folder_id"].toString(""));
+                record.setValue("created_at", o["created_at"].toString(""));
+                record.setValue("updated_at", o["updated_at"].toString(""));
+                record.setValue("lock_at", o["lock_at"].toString(""));
+                record.setValue("unlock_at", o["unlock_at"].toString(""));
+                record.setValue("position", o["position"].toString(""));
+                record.setValue("locked", o["locked"].toBool(false));
+                record.setValue("folders_url", o["folders_url"].toString(""));
+                record.setValue("files_url", o["files_url"].toString(""));
+                record.setValue("files_count", o["files_count"].toString("0"));
+                record.setValue("folders_count", o["folders_count"].toString("0"));
+                record.setValue("hidden", o["hidden"].toBool(false));
+                record.setValue("locked_for_user", o["locked_for_user"].toBool(false));
+                record.setValue("hidden_for_user", o["hidden_for_user"].toBool(false));
+                record.setValue("for_submissions", o["for_submissions"].toBool(false));
+
+               if (is_insert) {
+                   model->insertRecord(-1, record);
+               } else {
+                   // Filter should be set so 0 should be current record
+                   model->setRecord(0, record);
+               }
+               // Write changes
+               if (!model->submitAll()) { ret = false; }
+
+               model->setFilter(""); // clear the filter
+
+               //qDebug() << "File info " << o["display_name"].toString("");
                model->database().commit();
                //qDebug() << model->lastError();
 
@@ -959,10 +1084,10 @@ bool EX_Canvas::pullAssignments()
         p["per_page"] = "10000"; // cut number of calls
         QJsonDocument doc = CanvasAPICall("/api/v1/courses/" + course_id + "/assignments", "GET", &p);
 
-        qDebug() << "JSON Doc: " << doc;
-        qDebug() << "Is Array: " << doc.isArray();
-        qDebug() << "Is Object: " << doc.isObject();
-        qDebug() << "Is Null: " << doc.isNull();
+        //qDebug() << "JSON Doc: " << doc;
+        //qDebug() << "Is Array: " << doc.isArray();
+        //qDebug() << "Is Object: " << doc.isObject();
+        //qDebug() << "Is Null: " << doc.isNull();
         //qDebug() << "JSON: " << doc.toJson();
 
         if (doc.isArray()) {
@@ -1042,7 +1167,14 @@ bool EX_Canvas::pullAssignments()
                 record.setValue("secure_params", o["secure_params"].toString(""));
                 record.setValue("course_id", o["course_id"].toString(""));
                 record.setValue("name", o["name"].toString(""));
-                record.setValue("submission_types", o["submission_types"].toString(""));
+                // Submisisons is an array, convert to comma delim string
+                QJsonArray a = o["submission_types"].toArray();
+                QString submission_types = "";
+                foreach (QVariant v, a.toVariantList() ) {
+                    if (submission_types != "") { submission_types += ","; }
+                    submission_types += v.toString();
+                }
+                record.setValue("submission_types", submission_types);
                 record.setValue("has_submitted_submissions", o["has_submitted_submissions"].toBool(false));
                 record.setValue("due_date_required", o["due_date_required"].toBool(false));
                 record.setValue("max_name_length", o["max_name_length"].toString(""));
@@ -1084,6 +1216,95 @@ bool EX_Canvas::pushAssignments()
     // Push any submitted assignments back to canvas
     bool ret = false;
 
+    if (_app_db == NULL) { return false; }
+    QSqlRecord record;
+    GenericTableModel *model = NULL;
+
+    // Get a list of assignments waiting to be submitted
+    model = _app_db->getTable("assignment_submissions");
+    if (!model) {
+        qDebug() << "Unable to get assignment_submissions model!";
+        return false;
+    }
+
+    qDebug() << "-- Pushing assignment submissions...";
+    // Find submissions that have no sync date
+    model->setFilter("synced_on=''");
+    for (int i=0; i < model->rowCount(); i++) {
+        record = model->record(i);
+        qDebug() << "--- Submitting assignment file " << record.value("course_id").toString() << " " << record.value("assignment_id").toString() << " " << record.value("origin_url").toString() << "/" << record.value("queue_url").toString();
+        QString course_id = record.value("course_id").toString();
+        QString assignment_id = record.value("assignment_id").toString();
+        QString post_file = record.value("queue_url").toString();
+
+        QHash<QString, QString> p;
+        QFileInfo fi = QFileInfo(post_file);
+        p["name"] = fi.fileName();
+        p["size"] = QString::number(fi.size());
+
+
+        // Post to the canvas server
+        // TODO
+        // Get upload link
+        QJsonDocument doc = CanvasAPICall("/api/v1/courses/" + course_id
+                        + "/assignments/" + assignment_id
+                        + "/submissions/self/files", "POST", &p);
+
+        // Should now have the upload link
+        if (doc.isObject()) {
+            p.clear();
+            QJsonObject o = doc.object();
+            QString next_url = o["upload_url"].toString();
+            QJsonObject params = o["upload_params"].toObject();
+            foreach(QString key, params.keys()) {
+                p[key] = params[key].toString();
+            }
+            QJsonDocument doc2 = CanvasAPICall(next_url, "POST", &p,
+                            "multipart/form-data", post_file);
+            if (doc2.isObject()) {
+                // Will end up with a 201 or 301 and location header to follow
+                // NetworkCall will see that and follow the link
+
+                // Pull the file id
+                QJsonObject o = doc2.object();
+                QString file_id = o["id"].toString();
+
+                // We should now have a json object with a file id, we need
+                // to link it to the assignment so it shows up for the teacher
+                p.clear();
+                // Docs here - https://canvas.instructure.com/doc/api/submissions.html
+                p["comment[text_comment]"] = "Submitted via OPE LMS App";
+                p["submission[submission_type]"] = "online_upload";
+                p["submission[file_ids][]"] = file_id;
+//TODO - This isn't coming back with valid json document?? it gets a 201 code ?
+                QJsonDocument doc3 = CanvasAPICall("/api/v1/courses/" + course_id
+                        + "/assignments/" + assignment_id
+                        + "/submissions", "POST", &p);
+                if (doc3.isObject()) {
+                    // Valid submission
+                    qDebug() << "Assignment pushed - TODO";
+                } else {
+                    qDebug() << "Problem linking uploaded file with assignment " << doc3;
+                }
+
+            } else {
+                // Invalid response??
+                qDebug() << "Invalid response for upload link! " << assignment_id;
+                continue; // Jump to next assignmment
+            }
+
+        } else {
+            qDebug() << "Invalid json object: pushAssignments ";
+        }
+
+        // Update the database
+        // TODO
+        record.setValue("synced_on", QDateTime::currentDateTime().toString());
+        model->setRecord(i, record);
+    }
+    model->submitAll();
+    ret = model->database().commit();
+
     return ret;
 }
 
@@ -1102,6 +1323,93 @@ bool EX_Canvas::pushFiles()
     bool ret = false;
 
     return ret;
+}
+
+bool EX_Canvas::queueAssignmentFile(QString course_id, QString assignment_id, QString submission_text, QString file_url)
+{
+    if (_app_db == NULL) { return false; }
+    QSqlRecord record;
+    GenericTableModel *model = NULL;
+
+    // If there is a file url, try to copy it and queue it, if not, queue the text
+    if (course_id == "" || assignment_id == "") { return false; }
+
+    if (file_url != "") {
+        // Convert file url (file:///) to local path
+        file_url = QUrl(file_url).toLocalFile();
+        submission_text = ""; // Ignore submission text if we have a file
+        // See if the file exists
+        if (QFile::exists(file_url)) {
+            // Copy file to a temp location
+            qDebug() << "Assignment file queuing up...";
+
+            // Get the temp path for saving assignments
+            QDir cache_path;
+            cache_path.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/file_cache/assignment_files");
+            // Make sure the base folder exists
+            cache_path.mkpath(cache_path.path());
+
+            QFileInfo fi = QFileInfo(file_url);
+
+            QString tmp_file = QString::number(QDateTime::currentSecsSinceEpoch()) + "_" +fi.fileName();
+
+            QString tmp_file_path = cache_path.absolutePath() + "/" + tmp_file;
+            // Copy file to temp location
+            QFile::copy(file_url, tmp_file_path);
+
+            // Add the submission to the database
+            model = _app_db->getTable("assignment_submissions");
+            if (model == NULL) {
+                qDebug() << "Unable to get model for assignment_submissions!";
+                return false;
+            }
+
+            // Check if this assignment already has a submission
+            // TODO - Check if assignment has already been submitted?
+
+            // Create a new record for this assignment
+            model->setFilter("");
+            record = model->record();
+
+            record.setValue("assignment_type", "file");
+            record.setValue("submission_text", submission_text);
+            record.setValue("queue_url", tmp_file_path);
+            record.setValue("origin_url", file_url);
+            record.setValue("file_size", QString::number(fi.size()));
+            record.setValue("assignment_id", assignment_id);
+            record.setValue("course_id", course_id);
+            record.setValue("queued_on", QDateTime::currentDateTime().toString());
+            record.setValue("synced_on", "");
+
+            model->insertRecord(-1, record);
+
+            if (!model->submitAll()) {
+                qDebug() << "Error queueing assignment file in database " << model->lastError();
+                model->revertAll();
+                return false;
+            }
+            model->setFilter("");
+            model->database().commit();
+
+            return true;
+        } else {
+            // Invalid file submited
+            qDebug() << "Submitted file doesn't exist! " << file_url;
+            return false;
+        }
+    } else if (submission_text != "") {
+        // Submitting a short answer/text response
+        qDebug() << "Text answer being subbmitted";
+        // TODO - Store submission text
+        return true;
+    } else {
+        // Invalid submission?
+        qDebug() << "Invalid Assignment Submission!";
+        return false;
+    }
+
+    // If we get here, something isn't valid
+    return false;
 }
 
 
@@ -1201,7 +1509,7 @@ void EX_Canvas::FinalizeLinkToCanvas(CM_HTTPRequest *request, CM_HTTPResponse *r
 }
 
 
-QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<QString, QString> *p)
+QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<QString, QString> *p, QString content_type, QString post_file)
 {
     // Network call will recursivly call the canvas api until it runs out of link headers
     QHash<QString,QString> headers;
@@ -1209,15 +1517,21 @@ QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<Q
     headers["User-Agent"] = "OPE LMS";
     headers["Accept-Language"] = "en-US,en;q=0.8";
 
-    QString json = NetworkCall(canvas_server + api_call, method, p, &headers);
+    QString call_url = api_call;
+    // Don't append canvas server if full address is already present
+    if (!api_call.toLower().startsWith("http")) {
+        call_url = canvas_server + api_call;
+    }
+
+    QString json = NetworkCall(call_url, method, p, &headers, content_type, post_file);
 
     QJsonParseError *err = new QJsonParseError();
     QJsonDocument d2(QJsonDocument::fromJson(json.toUtf8(), err));
-    qDebug() << "\tJSON Parse Err: " << err->errorString() << err->offset;
-    qDebug() << "\tJSON Doc: " << d2;
-    qDebug() << "\tIs Array: " << d2.isArray();
-    qDebug() << "\tIs Object: " << d2.isObject();
-    qDebug() << "\tIs Null: " << d2.isNull();
+    //qDebug() << "\tJSON Parse Err: " << err->errorString() << err->offset;
+    //qDebug() << "\tJSON Doc: " << d2;
+    //qDebug() << "\tIs Array: " << d2.isArray();
+    //qDebug() << "\tIs Object: " << d2.isObject();
+    //qDebug() << "\tIs Null: " << d2.isNull();
 
     //http_reply_data = "{\"default_time_zone\":\"Pacific Time (US \u0026 Canada)\",\"id\":1,\"name\":\"Admin\",\"parent_account_id\":null,\"root_account_id\":null,\"default_storage_quota_mb\":5000,\"default_user_storage_quota_mb\":50}";
 
@@ -1233,28 +1547,44 @@ QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<Q
     err = new QJsonParseError();
     QJsonDocument d(QJsonDocument::fromJson(json.toUtf8(), err));
 
-    qDebug() << "JSON: " << json;
-    qDebug() << "JSON Parse Err: " << err->errorString() << err->offset;
-    qDebug() << "JSON Doc: " << d;
-    qDebug() << "Is Array: " << d.isArray();
-    qDebug() << "Is Object: " << d.isObject();
-    qDebug() << "Is Null: " << d.isNull();
+    //qDebug() << "JSON: " << json;
+    //qDebug() << "JSON Parse Err: " << err->errorString() << err->offset;
+    //qDebug() << "JSON Doc: " << d;
+    //qDebug() << "Is Array: " << d.isArray();
+    //qDebug() << "Is Object: " << d.isObject();
+    //qDebug() << "Is Null: " << d.isNull();
     //qDebug() << "JSON: " << d.toJson();
 
     delete err;
     return d;
 }
 
-QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QString> *p, QHash<QString, QString> *headers)
+QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QString> *p, QHash<QString, QString> *headers, QString content_type, QString post_file)
 {
     QString ret;
 
-    ret = web_request->NetworkCall(url, method, p, headers);
+    ret = web_request->NetworkCall(url, method, p, headers, content_type, post_file);
     //QByteArray bin_ret = web_request->NetworkCall(url, method, p, headers);
     //ret = QString::fromUtf8(bin_ret);
 
+    // If this is a file push - canvas needs us to follow the 301 or 201 response
+    // that should be set in the location header
+    QString location_header = web_request->GetHeader("Location");
+    if ((method.toUpper() == "POST" || method.toUpper() == "PUT") &&
+            location_header != "") {
+
+        // Hit the next link
+        headers->clear();
+        (*headers)["Authorization"] = "Bearer " + canvas_access_token;
+        (*headers)["User-Agent"] = "OPE LMS";
+        (*headers)["Accept-Language"] = "en-US,en;q=0.8";
+        p->clear();
+        return web_request->NetworkCall(location_header, "POST", p, headers);
+    }
+
     QString link_header = web_request->GetHeader("Link");
 
+    // For multiple pages - we follow the link header to the next page automatically
     if (link_header != "")
     {
         //qDebug() << "Link header: " << link_header;
@@ -1275,7 +1605,7 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
         if (next_url != "")
         {
             //qDebug() << "Nested API call: " << next_url;
-            QString next = web_request->NetworkCall(next_url, method, p, headers);
+            QString next = web_request->NetworkCall(next_url, method, p, headers, content_type, post_file);
             next = next.trimmed();
             if (next != "" && next != "[]")
             {

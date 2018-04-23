@@ -13,6 +13,7 @@ Page {
     id: modulesPage
     signal refreshPage();
     signal loadPage(string page_url);
+    padding: 3;
 
     onRefreshPage: {
         console.log("RefreshModulesCalled");
@@ -24,9 +25,10 @@ Page {
 
     function loadModules() {
         // Load the list of modules with sub items
-        var m = modulesList.model
+        var m = module_items_query //modulesList.model
         m.modifyFilter("course_id=" + App.current_course)
-
+        m.sortOn("sort_order");
+        //m.select();
     }
 
     header: Text {
@@ -38,12 +40,16 @@ Page {
 
     ListView {
         id: modulesList
-        width: parent.width
-        height: parent.height
+        anchors.fill: parent
+        //width: parent.width
+        //height: parent.height
         interactive: false
         focus: true
         spacing: 4
         highlightFollowsCurrentItem: false
+        clip: true;
+
+        ScrollBar.vertical: ScrollBar {}
 
         model: module_items_query
 
@@ -54,7 +60,8 @@ Page {
             Rectangle {
                 width: parent.width
                 height: childrenRect.height
-                color: "steelblue"
+                color: "lightsteelblue"
+                radius: 3
                 Text {
                     height: 30
                     text: section

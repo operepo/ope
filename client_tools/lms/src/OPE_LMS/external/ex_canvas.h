@@ -15,6 +15,7 @@
 #include "cm/cm_webrequest.h"
 #include "cm/cm_users.h"
 
+
 class EX_Canvas : public QObject
 {
     Q_OBJECT
@@ -36,6 +37,8 @@ public slots:
     bool pullModules();
     // Get the list of pages for each module in all courses
     bool pullModuleItems();
+    // Get list of file folders
+    bool pullCourseFileFolders();
     // Get list of files to pull
     bool pullCourseFilesInfo();
     // Pull a file binary
@@ -57,6 +60,9 @@ public slots:
     bool pushFiles();
     
     
+    // Queue a file so it can be synced and turned in later
+    bool queueAssignmentFile(QString course_id, QString assignment_id, QString submission_text="", QString file_url="");
+
 
 
     // OLD - used if you use the full OAUTH cycle to login and get a auth token
@@ -67,9 +73,9 @@ public slots:
     // =================================================
     // Core network calls - used to call canvas APIs
     // Build the API url and insert auth tokens
-    QJsonDocument CanvasAPICall(QString api_call, QString method = "GET", QHash<QString, QString> *p = NULL);
+    QJsonDocument CanvasAPICall(QString api_call, QString method = "GET", QHash<QString, QString> *p = NULL, QString content_type="text/html", QString post_file=NULL);
     // Low level network call - make the actual connection to canvas, auto pull additional pages - BLOCKING
-    QString NetworkCall(QString url, QString method = "GET", QHash<QString, QString> *p = NULL, QHash<QString, QString> *headers = NULL);
+    QString NetworkCall(QString url, QString method = "GET", QHash<QString, QString> *p = NULL, QHash<QString, QString> *headers = NULL, QString content_type="text/html", QString post_file="");
     // Download a file to a local path
     bool DownloadFile(QString url, QString local_path, QString item_name = "");
     void downloadProgress(qint64 bytesRead, qint64 totalBytes);

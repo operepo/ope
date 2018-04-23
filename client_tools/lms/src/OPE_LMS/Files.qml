@@ -12,6 +12,7 @@ import "App.js" as App
 Page {
     signal refreshPage();
     signal loadPage(string page_url);
+    padding: 3
 
     onRefreshPage: {
         console.log("RefreshPagesCalled");
@@ -22,10 +23,15 @@ Page {
     }
 
     function loadFiles() {
-        // Load the list of Files
-        var m = filesList.model
-        m.modifyFilter("course_id=" + App.current_course)
-        m.select()
+        // Load the list of Folders
+
+        //var m = filesList.model
+        //m.modifyFilter("course_id=" + App.current_course)
+        //m.select()
+        var m = file_folders_query; //foldersList.model;
+        m.modifyFilter("course_id=" + App.current_course);
+        m.sortOn("sort_order");
+        m.select();
 
     }
 
@@ -44,14 +50,35 @@ Page {
         focus: true
         spacing: 4
         highlightFollowsCurrentItem: false
+        clip: true
 
+        ScrollBar.vertical: ScrollBar {}
 
-        model: files_model
+        //model: files_model
+        model: file_folders_query
+
+        section.property: "name"
+        section.criteria: ViewSection.FullString
+        section.delegate: Component {
+            id: sectionHeading
+            Rectangle {
+                width: parent.width
+                height: childrenRect.height
+                color: "lightsteelblue"
+                radius: 3
+                Text {
+                    height: 30
+                    text: section
+                    font.bold: true
+                    font.pixelSize: 17
+                }
+            }
+        }
 
         highlight: Rectangle {
             width: filesList.width;
             height: 30
-            color: "lightgrey"
+            color: "steelblue" // "lightgrey"
             radius: 3
             opacity: 0;
         }
@@ -83,10 +110,18 @@ Page {
                     onExited: { parent.color="lightgrey" }
                     onClicked: {
                         var item_name = App.getFieldValue(filesList.model, index, "display_name");
+                        var pull_file = App.getFieldValue(filesList.model, index, "pull_file");
+                        if (pull_file === "") {
+                            console.log("File not downloaded! " + item_name);
+                            return;
+                        }
+                        var local_url = "file:///" + mainWidget.fileCacheFolder() + pull_file
+
                         console.log("Loading file: " + item_name);
                         // TODO - load file
                         //loadPage(item_url);
-                        console.log("File clicked...");
+                        mainWidget.desktopLaunch(local_url);
+
                     }
                 }
             }

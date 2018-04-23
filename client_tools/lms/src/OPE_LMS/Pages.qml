@@ -12,6 +12,7 @@ import "App.js" as App
 Page {
     signal refreshPage();
     signal loadPage(string page_url, string page_type);
+    padding: 3
 
     onRefreshPage: {
         console.log("RefreshPagesCalled");
@@ -23,9 +24,10 @@ Page {
 
     function loadPages() {
         // Load the list of pages
-        var m = pagesList.model
-        m.modifyFilter("course_id=" + App.current_course)
-        m.select()
+        var m = pagesList.model;
+        m.modifyFilter("course_id=" + App.current_course);
+        m.sortOn("title");
+        m.select();
 
     }
 
@@ -44,7 +46,9 @@ Page {
         focus: true
         spacing: 4
         highlightFollowsCurrentItem: false
+        clip: true;
 
+        ScrollBar.vertical: ScrollBar {}
 
         model: pages_model
 
