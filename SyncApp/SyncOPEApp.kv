@@ -1,5 +1,4 @@
 
-
 <MainWindow>:
     BoxLayout:
         orientation: 'vertical'
@@ -278,6 +277,9 @@
         Button:
             text: "Offline Mode - Setup or sync with apps on inmate network"
             on_press: root.manager.current="offline_mode"
+        Button:
+            text: "Manage Fog Images - Import, export, or download windows images"
+            on_press: root.manager.current="manage_fog"
         #Button:
         #    text: "Login test"
         #    on_press: root.manager.current="login_screen"
@@ -294,6 +296,368 @@
                 markup: True
                 text: log_console.text
                 valign: 'top'
+
+<ManageFogScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Admin Tool - Manage FOG Images'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+
+                ActionButton:
+                    text: "<-- Back"
+                    on_press: root.manager.current="start"
+
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+
+        Button:
+            text: 'Settings - Ensure settings for Online or Offline server are properly set before this will work'
+            on_press: app.show_settings_panel("Online Settings")
+
+        Button:
+            text: 'Download FOG Image - Download a FOG image from the OPE repo\nWill need to use the Import button later to push into your local FOG server'
+            on_press: root.manager.current="fog_download"
+        Button:
+            text: 'Export FOG Image - Pull an image to the local USB drive'
+            on_press: root.manager.current="fog_export"
+        Button:
+            text: 'Import FOG Image - Push an image from the local USB drive to the FOG server'
+            on_press: root.manager.current="fog_import"
+
+        Button:
+            text: 'Upload FOG Image - Upload to OPE Repo \nNOTE: This option is not available for normal users'
+            on_press: root.manager.current="fog_upload"
+<FogImportScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Admin Tool - Import FOG Images from USB drive'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+
+                ActionButton:
+                    text: "<-- Back"
+                    on_press: root.manager.current="manage_fog"
+
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+
+
+        Label:
+            text: "[b]Import to Online server (off means use offline server):[/b] "
+            halign: 'left'
+            text_size: self.size
+            markup: True
+        Switch:
+            id: fog_import_server_mode
+            text: "Online"
+            group: "server_type"
+            active: True
+            on_active: app.toggle_server_mode(fog_import_server_mode, None)
+        Label:
+            text: "[b]Image To Import from USB drive:[/b] "
+            halign: 'left'
+            text_size: self.size
+            markup: True
+        FileChooserListView:
+            id: fog_import_from_usb_image
+            #filters: ['*.fog_image']
+            multiselect: False
+            #file_system: app.get_fog_import_image_list()
+            #path: "."
+            rootpath: app.get_fog_images_folder()
+            #on_selection: fog_upload_file = self.selection and self.selection[0] or ''
+            height: 200
+            size_hint_y: None
+        Button:
+            id: fog_import_from_usb_button
+            text: 'Import Image'
+            on_press: app.start_fog_import_from_usb(fog_import_server_mode, fog_import_from_usb_image, fog_import_from_usb_button, fog_image_import_progress, fog_image_import_error_message )
+        Label:
+            id: fog_image_import_error_message
+            text: ""
+            height: 15
+            halign: 'left'
+            text_size: self.size
+            markup: True
+        ProgressBar:
+            id: fog_image_import_progress
+            #size_hint_y: .05
+
+<FogExportScreen>:
+    on_enter: fog_export_to_usb_image.file_system = app.get_fog_export_image_list(); fog_export_to_usb_image._update_files()
+    BoxLayout:
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Admin Tool - Export FOG Images to USB drive'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+
+                ActionButton:
+                    text: "<-- Back"
+                    on_press: root.manager.current="manage_fog"
+
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+
+
+        Label:
+            text: "[b]Export from Online server (off means use offline server):[/b] "
+            halign: 'left'
+            text_size: self.size
+            markup: True
+        Switch:
+            id: fog_export_server_mode
+            text: "Online"
+            group: "server_type"
+            active: True
+            on_active: app.toggle_server_mode(fog_export_server_mode, fog_export_to_usb_image)
+        Label:
+            text: "[b]Image To Export to USB drive:[/b] "
+            halign: 'left'
+            text_size: self.size
+            markup: True
+        FileChooserListView:
+            id: fog_export_to_usb_image
+            #filters: ['*.fog_image']
+            multiselect: False
+            #file_system: app.get_fog_export_image_list()
+            file_system: app.get_empty_fog_export_image_list()
+            #path: "."
+            #rootpath: app.get_fog_downloads_folder()
+            #on_selection: fog_upload_file = self.selection and self.selection[0] or ''
+            height: 200
+            size_hint_y: None
+        Button:
+            id: fog_export_to_usb_button
+            text: 'Export Image'
+            on_press: app.start_fog_export_to_usb(fog_export_server_mode, fog_export_to_usb_image, fog_export_to_usb_button, fog_image_export_progress, fog_image_export_error_message )
+        Label:
+            id: fog_image_export_error_message
+            text: ""
+            height: 15
+            halign: 'left'
+            text_size: self.size
+            markup: True
+        ProgressBar:
+            id: fog_image_export_progress
+            #size_hint_y: .05
+
+
+<FogDownloadScreen>:
+    on_enter: fog_image_download_file.file_system = app.get_fog_image_list()
+    BoxLayout:
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Admin Tool - Download FOG Images'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+
+                ActionButton:
+                    text: "<-- Back"
+                    on_press: root.manager.current="manage_fog"
+
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+
+
+        Label:
+            text: "[b]Enter download url:[/b] "
+            halign: 'left'
+            text_size: self.size
+            markup: True
+        TextInput:
+            id: fog_image_download_url
+            text: app.ope_fog_images_url
+            multiline: False
+            height: 15
+            write_tab: False
+
+        Label:
+            text: "[b]Image To Download:[/b] "
+            halign: 'left'
+            text_size: self.size
+            markup: True
+        FileChooserListView:
+            id: fog_image_download_file
+            filters: ['*.fog_image']
+            multiselect: False
+            file_system: app.get_fog_image_list()
+            #path: "."
+            #rootpath: app.get_fog_downloads_folder()
+            #on_selection: fog_upload_file = self.selection and self.selection[0] or ''
+            height: 120
+            size_hint_y: None
+        Button:
+            id: fog_image_download_button
+            text: 'Get File'
+            on_press: app.start_fog_image_download(fog_image_download_url, fog_image_download_file, fog_image_download_button, fog_image_download_progress, fog_image_download_error_message )
+        Label:
+            id: fog_image_download_error_message
+            text: ""
+            height: 15
+            halign: 'left'
+            text_size: self.size
+            markup: True
+        ProgressBar:
+            id: fog_image_download_progress
+            #size_hint_y: .05
+
+<FogUploadScreen>:
+    on_enter: fog_image_upload_username.focus = True
+    BoxLayout:
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Admin Tool - Upload FOG Images'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+
+                ActionButton:
+                    text: "<-- Back"
+                    on_press: root.manager.current="manage_fog"
+
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+
+
+        Label:
+            text: "[b]Enter upload address:[/b] "
+            halign: 'left'
+            text_size: self.size
+            markup: True
+        TextInput:
+            id: fog_image_upload_server
+            text: "dl.correctionsed.com"
+            multiline: False
+            height: 15
+            write_tab: False
+        Label:
+            text: "[b]Upload Folder:[/b] "
+            halign: 'left'
+            text_size: self.size
+            markup: True
+        TextInput:
+            id: fog_image_upload_folder
+            text: "/var/www/html/ope_lt_images"
+            multiline: False
+            height: 15
+            write_tab: False
+        Label:
+            text: "[b]Username:[/b] "
+            halign: 'left'
+            text_size: self.size
+            markup: True
+        TextInput:
+            id: fog_image_upload_username
+            text: ""
+            hint_text: "[ enter username ]"
+            multiline: False
+            height: 15
+            write_tab: False
+        Label:
+            text: "[b]Password:[/b] "
+            halign: 'left'
+            text_size: self.size
+            markup: True
+        TextInput:
+            id: fog_image_upload_password
+            text: ""
+            hint_text: "[ enter password ]"
+            password: True
+            height: 15
+            write_tab: False
+        Label:
+            text: "[b]Local Image To Upload:[/b] "
+            halign: 'left'
+            text_size: self.size
+            markup: True
+        FileChooserListView:
+            id: fog_image_upload_file
+            filters: ['*.fog_image']
+            multiselect: False
+            #path: "."
+            rootpath: app.get_fog_images_folder()
+            #on_selection: fog_upload_file = self.selection and self.selection[0] or ''
+            height: 120
+            size_hint_y: None
+        Button:
+            id: fog_image_upload_send_button
+            text: 'Send File'
+            on_press: app.start_fog_image_upload(fog_image_upload_server, fog_image_upload_folder, fog_image_upload_username, fog_image_upload_password, fog_image_upload_file, fog_image_upload_send_button, fog_image_upload_progress, fog_image_upload_error_message )
+        Label:
+            id: fog_image_upload_error_message
+            text: ""
+            height: 15
+            halign: 'left'
+            text_size: self.size
+            markup: True
+        ProgressBar:
+            id: fog_image_upload_progress
+            #size_hint_y: .05
+
+
 
 <OnlineModeScreen>:
     BoxLayout:

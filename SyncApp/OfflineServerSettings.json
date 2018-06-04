@@ -27,6 +27,13 @@
     "desc": "Location on the server where the OPE files are located. Default is /ope",
     "section": "Offline Settings",
     "key": "server_folder"
+  },
+  {
+    "type": "string",
+    "title": "Domain",
+    "desc": "Extension to use (e.g use ed for canvas.ed)",
+    "section": "Offline Settings",
+    "key": "domain"
   }
 
 ]

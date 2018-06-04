@@ -11,3 +11,5 @@ kivy
 pyaes
 json
 uuid
+requests
+re

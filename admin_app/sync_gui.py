@@ -2,6 +2,9 @@ from __future__ import print_function
 
 import json
 import os
+import requests
+import re
+from functools import partial
 
 # try glew + gles or sdl2?
 os.environ["KIVY_GL_BACKEND"] = "glew" # "angle_sdl2"  # gl, glew, sdl2, angle_sdl2, mock
@@ -26,7 +29,6 @@ Config.set('graphics', 'fbo', 'software')
 # Config.set('graphics', 'resizeable', '0')
 # Config.set('graphics', 'borderless', '1')
 
-
 import sys
 import re
 from os.path import expanduser
@@ -35,6 +37,10 @@ import paramiko
 # Deal with issue #12 - No handlers could be found for logger "paramiko.transport"
 paramiko.util.log_to_file("ssh.log")
 logging.raiseExceptions = False
+
+# Use transfer friendly cipher
+paramiko.Transport._preferred_ciphers = ('blowfish-cbc', 'aes128-gcm', 'aes128-ctr', 'aes192-ctr', 'aes256-ctr', 'aes128-cbc', 'aes192-cbc', 'aes256-cbc', '3des-cbc')
+# 'aes128-ctr', 'aes192-ctr', 'aes256-ctr', 'aes128-cbc', 'aes192-cbc', 'aes256-cbc', 'blowfish-cbc', '3des-cbc'
 
 # paramiko_logger = logging.getLogger('paramiko.transport')
 # if not paramiko_logger.handlers:
@@ -56,7 +62,7 @@ from security import Enc
 
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # from gluon import DAL, Field
 # from gluon.validators import *
@@ -64,7 +70,10 @@ from datetime import datetime
 import kivy
 
 from kivy.app import App
+from kivy.properties import ObjectProperty
 Config.set('graphics', 'multisamples', '0')
+from kivy.clock import Clock
+from kivy.factory import Factory
 from kivy.network.urlrequest import UrlRequest
 from kivy.uix.label import Label
 from scrolllabel import ScrollLabel
@@ -83,6 +92,7 @@ from kivy.logger import Logger
 from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.core.window import Window
+from kivy.uix.filechooser import FileChooser, FileChooserListView, FileChooserIconView, FileSystemAbstract
 kivy.require('1.10.0')
 
 # TODO TODO TODO - [CRITICAL] [Clock       ] Warning, too much iteration done before the next frame. Check your code, or increase the Clock.max_iteration attribute
@@ -97,6 +107,18 @@ GIT_REPOS = {"sysprep_scripts": "https://github.com/operepo/sysprep_scripts.git"
              "ope_laptop_binaries": "https://github.com/operepo/ope_laptop_binaries.git",
              "ope_server_sync_binaries": "https://github.com/operepo/ope_server_sync_binaries.git",
              }
+
+
+def get_human_file_size(size):
+    sizes = ["B", "K", "M", "G", "T"]
+    count = 0
+    t = size
+    while t > 1024:
+        t /= 1024
+        count += 1
+
+    ret = "{0:.2f}".format(t) + " " + sizes[count]
+    return ret
 
 
 def get_app_folder():
@@ -152,6 +174,9 @@ migrate = True
 
 # Progress bar used by threaded apps
 progress_widget = None
+sftp_progress_widget = None
+sftp_progress_message = None
+sftp_progress_last_update = time.time()
 
 
 # <editor-fold desc="Markdown Functions">
@@ -206,6 +231,160 @@ def markdown_to_bbcode(s):
 # </editor-fold>
 
 
+# Custom FileChooser File System - for SFTP image folders
+class FogSFTPFileSystem(FileSystemAbstract):
+    def __init__(self, ssh_server="", ssh_user="", ssh_pass="", ssh_folder=""):
+        # Pull a list of images from the online or offline server.
+        self.ssh_server = ssh_server
+        self.ssh_user = ssh_user
+        self.ssh_pass = ssh_pass
+        self.ssh_folder = ssh_folder
+        self.file_list = dict()
+        self.pullimagelist()
+
+    def pullimagelist(self):
+        # self.server_mode = SyncOPEApp.server_mode
+        # print("server mode " + self.server_mode)
+
+        # Reset file list
+        self.file_list = dict()
+
+        if self.ssh_server != "" and self.ssh_user != "" and self.ssh_pass != "" and self.ssh_folder != "":
+            # Connect to server
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            try:
+                # Connect to the server
+                ssh.connect(self.ssh_server, username=self.ssh_user,
+                            password=self.ssh_pass, compress=True, look_for_keys=False, timeout=3)
+
+                # remote path
+                remote_images_path = os.path.join(self.ssh_folder, "volumes/fog/images").replace("\\", "/")
+                # Use DU command to pull the whole list quickly
+                cmd = "du -sb " + remote_images_path + "/*/"
+
+                stdin, stdout, stderr = ssh.exec_command(cmd, get_pty=True)
+                stdin.close()
+                for line in stdout:
+                    parts = line.split("\t")
+                    dsize = int(parts[0].strip())
+                    dname = os.path.basename(parts[1].strip().strip("/"))
+                    if dname != "dev":
+                        self.file_list[dname] = dsize
+                ssh.close()
+            except paramiko.ssh_exception.BadHostKeyException:
+                print("Invalid Host key!")
+                # error_message.text = "\n\n[b]CONNECTION ERROR[/b]\n - Bad host key - check ~/.ssh/known_hosts"
+                # fog_image_upload_send_button.disabled = False
+                pass
+            except paramiko.ssh_exception.BadAuthenticationType:
+                # error_message.text = "[b]INVALID LOGIN[/b]"
+                # fog_image_upload_send_button.disabled = False
+                print("Invalid Login!")
+                pass
+            except Exception as ex:
+                print("Unknown ERROR!")
+                # error_message.text = "[b]Unknown ERROR[/b]\n" + str(ex)
+                # fog_image_upload_send_button.disabled = False
+                pass
+
+        # Need an empty place holder if nothing is there
+        if len(self.file_list) < 1:
+            self.file_list['no images available'] = 0
+
+        return
+
+    def listdir(self, fn):
+        # print("getting files " + str(self.file_list.keys()))
+        return self.file_list.keys()
+
+    def getsize(self, fn):
+        ret = 0
+        # has a leading \ ??
+        file_name = fn.strip("\\")
+        # print("looking for size of " + str(file_name))
+        if file_name in self.file_list.keys():
+            # print("found file size " + str(file_name))
+            ret = self.file_list[file_name]
+        return ret
+
+    def is_hidden(self, fn):
+        return False
+
+    def is_dir(self, fn):
+        return False
+
+
+# Custom FileChooser File System - Pull list from HTTP download page
+class FogDownloadFileSystem(FileSystemAbstract):
+    def __init__(self):
+        self.file_list = dict()
+        self.getwebdir(SyncOPEApp.ope_fog_images_url)
+
+    def getwebdir(self, url):
+        # Pull the URL
+        try:
+            response = requests.get(url)
+        except Exception as ex:
+            logging.info("Not able to connect to " + str(url) + " to pull list of fog images")
+            self.file_list = dict()
+            # self.file_list[".fog_image"] = 0
+            return
+        if not response.ok:
+            logging.warn("ERROR pulling list of fog images from OPE server " + url)
+            return
+
+        # Parse the html for links and file sizes
+        html = response.text
+
+        matches = re.findall(r'a href=[\'"]?([^\'" >]+)[\'"]>.*</a></td><td[^\>]*>([^<]+)</td><td[^\>]*>([^<]+)</td>', html)
+        for item in matches:
+            # Skip / entry
+            if item[0] != "/":
+                # Figure out real size in bytes
+                s = self.parsesizeinbytes(item[2])
+                self.file_list[item[0]] = s
+
+        return
+
+    def parsesizeinbytes(self, size):
+        # Comes in with a size like 100M which needs to be converted to bytes
+        ret = 0
+        matches = re.search("(\d)+", size)
+        if matches.group(0):
+            ret = int(matches.group(0))
+
+        # Pick out the letter
+        if 'M' in size.upper():
+            ret = ret * 1024 * 1024
+        if 'K' in size.upper():
+            ret = ret * 1024
+        if 'G' in size.upper():
+            ret = ret * 1024 * 1024 * 1024
+
+        return ret
+
+    def listdir(self, fn):
+        # print("getting files " + str(self.file_list.keys()))
+        return self.file_list.keys()
+
+    def getsize(self, fn):
+        ret = 0
+        # has a leading \ ??
+        file_name = fn.strip("\\")
+        # print("looking for size of " + str(file_name))
+        if file_name in self.file_list.keys():
+            # print("found file size " + str(file_name))
+            ret = self.file_list[file_name]
+        return ret
+
+    def is_hidden(self, fn):
+        return False
+
+    def is_dir(self, fn):
+        return False
+
+
 # <editor-fold desc="Kivy screens and controls">
 # Main screen
 class StartScreen(Screen):
@@ -238,6 +417,26 @@ class OnlineUpdateScreen(Screen):
 
 
 class OfflineUpdateScreen(Screen):
+    pass
+
+
+class ManageFogScreen(Screen):
+    pass
+
+
+class FogDownloadScreen(Screen):
+    pass
+
+
+class FogUploadScreen(Screen):
+    pass
+
+
+class FogImportScreen(Screen):
+    pass
+
+
+class FogExportScreen(Screen):
     pass
 
 
@@ -321,6 +520,10 @@ class MainWindow(BoxLayout):
 
 
 class SyncOPEApp(App):
+    # URL to download fog images from
+    ope_fog_images_url = "http://dl.correctionsed.com/ope_lt_images"
+    server_mode = 'online'  # Start in online mode?
+
     use_kivy_settings = False
 
     required_apps = ["ope-gateway", "ope-router", "ope-dns", "ope-clamav", "ope-redis", "ope-postgresql" ]
@@ -410,6 +613,11 @@ class SyncOPEApp(App):
         sm.add_widget(LoginScreen(name="login_screen"))
         sm.add_widget(OnlineUpdateScreen(name="online_update"))
         sm.add_widget(OfflineUpdateScreen(name="offline_update"))
+        sm.add_widget(ManageFogScreen(name="manage_fog"))
+        sm.add_widget(FogDownloadScreen(name="fog_download"))
+        sm.add_widget(FogUploadScreen(name="fog_upload"))
+        sm.add_widget(FogImportScreen(name="fog_import"))
+        sm.add_widget(FogExportScreen(name="fog_export"))
 
         sm.current = "start"
         return sm  # MAIN_WINDOW
@@ -421,11 +629,13 @@ class SyncOPEApp(App):
         config.setdefaults("Online Settings",
                            {'server_ip': '127.0.0.1',
                             'server_user': 'root',
-                            'server_folder': '/ope'})
+                            'server_folder': '/ope',
+                            'domain': 'ed'})
         config.setdefaults("Offline Settings",
                            {'server_ip': '127.0.0.1',
                             'server_user': 'root',
-                            'server_folder': '/ope'})
+                            'server_folder': '/ope',
+                            'domain': 'ed'})
 
         # Generate defaults for selected apps
         selected_apps = {}
@@ -552,7 +762,7 @@ class SyncOPEApp(App):
         # TODO - follow symlinks for folders/files
         for f in sftp.listdir_attr(remote_path):
             if stat.S_ISDIR(f.st_mode):
-                #status_label.text += "\n" + depth_str + "Found Dir: " + f.filename
+                # status_label.text += "\n" + depth_str + "Found Dir: " + f.filename
                 n_remote_path = os.path.join(remote_path, f.filename).replace("\\", "/")
                 n_local_path = os.path.join(local_path, f.filename)
                 self.sftp_pull_files(n_remote_path, n_local_path, sftp, status_label, depth+1)
@@ -651,6 +861,581 @@ class SyncOPEApp(App):
             else:
                 # Non regular file
                 status_label.text += "\n" + depth_str + "NonReg File - skipping: " + enc_item.encode('ascii', 'ignore')
+
+    def get_fog_image_list(self):
+        return FogDownloadFileSystem()
+
+    def get_fog_export_image_list(self):
+        ssh_server = ""
+        ssh_user = ""
+        ssh_pass = ""
+        ssh_folder = ""
+
+        if SyncOPEApp.server_mode == 'online':
+            ssh_server = self.config.getdefault("Online Settings", "server_ip", "127.0.0.1")
+            ssh_user = self.config.getdefault("Online Settings", "server_user", "root")
+            ssh_pass = self.get_online_pw()  # self.config.getdefault("Online Settings", "server_password", "changeme")
+            ssh_folder = self.config.getdefault("Online Settings", "server_folder", "/ope")
+        else:
+            ssh_server = self.config.getdefault("Offline Settings", "server_ip", "127.0.0.1")
+            ssh_user = self.config.getdefault("Offline Settings", "server_user", "root")
+            ssh_pass = self.get_offline_pw()  # self.config.getdefault("Offline Settings", "server_password", "changeme")
+            ssh_folder = self.config.getdefault("Offline Settings", "server_folder", "/ope")
+
+        return FogSFTPFileSystem(ssh_server, ssh_user, ssh_pass, ssh_folder)
+
+    def get_empty_fog_export_image_list(self):
+        # Send back an empty SFTP file system
+        return FogSFTPFileSystem()
+
+    def toggle_server_mode(self, fog_export_server_mode, fog_export_to_usb_image):
+        if fog_export_server_mode.active:
+            SyncOPEApp.server_mode = 'online'
+        else:
+            SyncOPEApp.server_mode = 'offline'
+
+        if fog_export_to_usb_image is not None:
+            # fog_export_to_usb_image.file_system.pullimagelist()
+            fog_export_to_usb_image.file_system = self.get_fog_export_image_list()
+            fog_export_to_usb_image._update_files()
+
+        return
+
+    def start_fog_import_from_usb(self, fog_import_server_mode, fog_import_from_usb_image,
+                                  fog_import_from_usb_button, fog_image_import_progress,
+                                  error_message ):
+        error_message.text = ""
+        # Verify import settings
+        if (not fog_import_from_usb_image.selection or not fog_import_from_usb_image.selection[0] or
+                fog_import_from_usb_image.selection[0] == 'no images available'):
+            error_message.text = "[b][color=ff0000]Please choose a valid image to import.[/color][/b]"
+            return
+
+        fog_import_from_usb_button.disabled = True
+
+        threading.Thread(target=self.fog_import_from_usb_thread, args=(fog_import_server_mode, fog_import_from_usb_image,
+                            fog_import_from_usb_button, fog_image_import_progress,
+                            error_message)).start()
+
+    def fog_import_from_usb_thread(self, fog_import_server_mode, fog_import_from_usb_image,
+                                    fog_import_from_usb_button, fog_image_import_progress,
+                                    error_message):
+        fog_image_import_progress.value = 0
+
+        # Connect to the server
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        # ssh.get_transport().window_size = 2147483647
+
+        ssh_server = ""
+        ssh_user = ""
+        ssh_pass = ""
+        ssh_folder = ""
+
+        if SyncOPEApp.server_mode == 'online':
+            ssh_server = self.config.getdefault("Online Settings", "server_ip", "127.0.0.1")
+            ssh_user = self.config.getdefault("Online Settings", "server_user", "root")
+            ssh_pass = self.get_online_pw()  # self.config.getdefault("Online Settings", "server_password", "changeme")
+            ssh_folder = self.config.getdefault("Online Settings", "server_folder", "/ope")
+        else:
+            ssh_server = self.config.getdefault("Offline Settings", "server_ip", "127.0.0.1")
+            ssh_user = self.config.getdefault("Offline Settings", "server_user", "root")
+            ssh_pass = self.get_offline_pw()  # self.config.getdefault("Offline Settings", "server_password", "changeme")
+            ssh_folder = self.config.getdefault("Offline Settings", "server_folder", "/ope")
+
+        try:
+            # Connect to the server
+            ssh.connect(ssh_server, username=ssh_user,
+                        password=ssh_pass, compress=True, look_for_keys=False)
+        except paramiko.ssh_exception.BadHostKeyException:
+            print("Invalid Host key!")
+            error_message.text = "\n\n[b]CONNECTION ERROR[/b]\n - Bad host key - check ~/.ssh/known_hosts"
+            fog_import_from_usb_button.disabled = False
+            return
+        except paramiko.ssh_exception.BadAuthenticationType:
+            error_message.text = "[b]INVALID LOGIN[/b]"
+            fog_import_from_usb_button.disabled = False
+            return
+        except Exception as ex:
+            error_message.text = "[b]UPLOAD ERROR[/b]\n" + str(ex)
+            fog_import_from_usb_button.disabled = False
+            return
+
+        image_name = os.path.basename(fog_import_from_usb_image.selection[0].replace("C:\\", "").strip("/"))  # Comes in with c:\\test....
+        image_basename = image_name.replace(".fog_image", "")
+        remote_path = os.path.join(ssh_folder, "volumes/fog/images/", image_basename).replace("\\", "/")
+        remote_info_file = os.path.join(remote_path, image_basename + ".info").replace("\\", "/")
+        remote_images_folder = os.path.join(ssh_folder, "volumes/fog/images/").replace("\\", "/")
+        remote_tar_file = os.path.join(remote_images_folder, image_name).replace("\\", "/")
+        local_file_path = os.path.join(self.get_fog_images_folder(), image_name)
+
+        error_message.text = "Uploading " + image_basename + "."
+
+        total_size = os.path.getsize(local_file_path)
+        current_pos = 0
+        last_update = time.time()
+        dots = "."
+
+        # open local file
+        local_f = open(local_file_path, 'rb')
+        # Push file to server
+        sftp = ssh.open_sftp()
+
+        start_time = time.time()
+        end_time = 0
+
+        with sftp.file(remote_tar_file, mode="wb", bufsize=8192) as remote_f:
+            remote_f.set_pipelined()
+            while True:
+                data = local_f.read(8192)
+                if not data:
+                    break
+                remote_f.write(data)
+                current_pos += len(data)
+                fog_image_import_progress.value = int(float(current_pos) / float(total_size) * 100)
+                if time.time() - last_update > 1:
+                    dots += "."
+                    if len(dots) > 5:
+                        dots = "."
+                    upload_speed = ""
+                    elapsed_time = time.time() - start_time
+                    transfer_speed = float(current_pos / elapsed_time)
+                    if transfer_speed == 0:
+                        transfer_speed = 1
+                    if int(elapsed_time) != 0:
+                        upload_speed = get_human_file_size(transfer_speed) + "/s"
+                    still_queued = total_size - current_pos
+                    time_left = str(timedelta(seconds=int(still_queued / transfer_speed)))
+
+                    error_message.text = "Uploading " + image_basename + "    " + upload_speed + "  " + time_left + dots
+                    last_update = time.time()
+
+        fog_image_import_progress.value = 100
+        sftp.close()
+        local_f.close()
+
+        # Need to untar file
+        error_message.text = "Unzipping " + image_name + " (will take several minutes)."
+        # start a clock so it can show the dots and not look frozen
+        progress_clock = Clock.schedule_interval(partial(self.fog_image_unzip_progress, error_message), 1.0)
+        cmd = "cd " + remote_images_folder + "; tar xvf " + image_name + "; rm -Rf " + remote_tar_file + ";"
+        stdin, stdout, stderr = ssh.exec_command(cmd, get_pty=True)
+        stdin.close()
+        for line in stdout:
+            # causes it to read all lines
+            print("> " + line)
+            pass
+        # Stop the progress clock
+        progress_clock.cancel()
+
+        # Clear current record for this image
+        cmd = """docker exec -it ope-fog mysql -e "DELETE FROM fog.images WHERE imageName='""" + image_basename + """' LIMIT 1;" """
+        stdin, stdout, stderr = ssh.exec_command(cmd, get_pty=True)
+        stdin.close()
+        for line in stdout:
+            # causes it to read all lines
+            print("> " + line)
+            pass
+
+        # Copy the info file into the /var/lib/mysql-files so we can import it
+        cmd = """docker exec -it ope-fog /bin/bash -c "rm /var/lib/mysql-files/""" + image_basename + """.info; cp /images/""" + image_basename + "/" + image_basename + """.info /var/lib/mysql-files/""" + image_basename + """.info; " """
+        stdin, stdout, stderr = ssh.exec_command(cmd, get_pty=True)
+        stdin.close()
+        for line in stdout:
+            # causes it to read all lines
+            print("> " + line)
+            pass
+
+        # Import database info from .info file
+        cmd = """docker exec -it ope-fog mysql -e "LOAD DATA INFILE  '/var/lib/mysql-files/""" + image_basename + """.info'  INTO TABLE fog.images FIELDS TERMINATED BY ',' ENCLOSED BY '\\"' LINES TERMINATED BY '\\n' (imageName, imageDesc, imagePath, imageProtect, imageMagnetUri, imageDateTime, imageCreateBy, imageBuilding, imageSize, imageTypeID, imagePartitionTypeID, imageOSID, imageFormat, imageLastDeploy, imageCompress, imageEnabled, imageReplicate, imageServerSize)" """
+        # FROM fog.images WHERE imageName='""" + image_name + """' INTO OUTFILE '/var/lib/mysql-files/""" + image_name + """.info' FIELDS TERMINATED BY ',' ENCLOSED BY '\\"' LINES TERMINATED BY '\\n'";"""
+        stdin, stdout, stderr = ssh.exec_command(cmd, get_pty=True)
+        stdin.close()
+        for line in stdout:
+            # causes it to read all lines
+            print("> " + line)
+            pass
+
+        ssh.close()
+
+        fog_import_from_usb_button.disabled = False
+        fog_image_import_progress.value = 100
+        error_message.text = "Done!"
+
+        return
+
+    def fog_image_unzip_progress(self, error_message, *largs):
+        # Update the message with dots.
+        if error_message.text.endswith("....."):
+            error_message.text = error_message.text.strip(".")
+        error_message.text += "."
+
+    def start_fog_export_to_usb(self, fog_export_server_mode, fog_export_to_usb_image,
+                                fog_export_to_usb_button, fog_image_export_progress,
+                                error_message):
+        error_message.text = ""
+        # Verify export settings
+        if (not fog_export_to_usb_image.selection or not fog_export_to_usb_image.selection[0] or
+                fog_export_to_usb_image.selection[0] == 'no images available'):
+            error_message.text = "[b][color=ff0000]Please choose a valid image to export.[/color][/b]"
+            return
+
+        fog_export_to_usb_button.disabled = True
+
+        threading.Thread(target=self.fog_export_to_usb_thread, args=(fog_export_server_mode, fog_export_to_usb_image,
+                                fog_export_to_usb_button, fog_image_export_progress,
+                                error_message)).start()
+
+    def fog_export_to_usb_thread(self, fog_export_server_mode, fog_export_to_usb_image,
+                                fog_export_to_usb_button, fog_image_export_progress,
+                                error_message):
+
+        fog_image_export_progress.value = 0
+
+        # Connect to the server
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        ssh_server = ""
+        ssh_user = ""
+        ssh_pass = ""
+        ssh_folder = ""
+
+        if SyncOPEApp.server_mode == 'online':
+            ssh_server = self.config.getdefault("Online Settings", "server_ip", "127.0.0.1")
+            ssh_user = self.config.getdefault("Online Settings", "server_user", "root")
+            ssh_pass = self.get_online_pw()  # self.config.getdefault("Online Settings", "server_password", "changeme")
+            ssh_folder = self.config.getdefault("Online Settings", "server_folder", "/ope")
+        else:
+            ssh_server = self.config.getdefault("Offline Settings", "server_ip", "127.0.0.1")
+            ssh_user = self.config.getdefault("Offline Settings", "server_user", "root")
+            ssh_pass = self.get_offline_pw()  # self.config.getdefault("Offline Settings", "server_password", "changeme")
+            ssh_folder = self.config.getdefault("Offline Settings", "server_folder", "/ope")
+
+        try:
+            # Connect to the server
+            ssh.connect(ssh_server, username=ssh_user,
+                        password=ssh_pass, look_for_keys=False, compress=True)
+        except paramiko.ssh_exception.BadHostKeyException:
+            print("Invalid Host key!")
+            error_message.text = "\n\n[b]CONNECTION ERROR[/b]\n - Bad host key - check ~/.ssh/known_hosts"
+            fog_export_to_usb_button.disabled = False
+            return
+        except paramiko.ssh_exception.BadAuthenticationType:
+            error_message.text = "[b]INVALID LOGIN[/b]"
+            fog_export_to_usb_button.disabled = False
+            return
+        except Exception as ex:
+            error_message.text = "[b]UPLOAD ERROR[/b]\n" + str(ex)
+            fog_export_to_usb_button.disabled = False
+            return
+
+        # print("Security Options: " + str(ssh.get_transport().get_security_options().ciphers))
+
+        image_name = fog_export_to_usb_image.selection[0].replace("C:\\", "").strip("/")  # Comes in with c:\\test....
+        remote_path = os.path.join(ssh_folder, "volumes/fog/images/", image_name).replace("\\", "/")
+        remote_images_folder = os.path.join(ssh_folder, "volumes/fog/images/").replace("\\", "/")
+        local_file_path = os.path.join(self.get_fog_images_folder(), image_name + ".fog_image")
+
+        error_message.text = "Downloading " + image_name
+
+        # -- DUMP database data into the image folder for later import
+        # - remove old mysql file, dump data and copy it to the images folder
+        cmd = """docker exec -it ope-fog /bin/bash -c "rm /var/lib/mysql-files/""" + image_name + """.info;" """
+        stdin, stdout, stderr = ssh.exec_command(cmd, get_pty=True)
+        stdin.close()
+        for line in stdout:
+            # print(":: " + line)
+            pass
+
+        # Dump file to mysql-files location
+        cmd = """docker exec -it ope-fog mysql -e "SELECT imageName, imageDesc, imagePath, imageProtect, imageMagnetUri, imageDateTime, imageCreateBy, imageBuilding, imageSize, imageTypeID, imagePartitionTypeID, imageOSID, imageFormat, imageLastDeploy, imageCompress, imageEnabled, imageReplicate, imageServerSize FROM fog.images WHERE imageName='""" + image_name + """' INTO OUTFILE '/var/lib/mysql-files/""" + image_name + """.info' FIELDS TERMINATED BY ',' ENCLOSED BY '\\"' LINES TERMINATED BY '\\n'";"""
+        stdin, stdout, stderr = ssh.exec_command(cmd, get_pty=True)
+        stdin.close()
+        for line in stdout:
+            # causes it to read all lines
+            print(": " + line)
+            pass
+
+        # Move dump file to image folder
+        cmd = """docker exec -it ope-fog bash -c "cp /var/lib/mysql-files/""" + image_name + """.info /images/""" + image_name + """/; ";"""
+        stdin, stdout, stderr = ssh.exec_command(cmd, get_pty=True)
+        stdin.close()
+        for line in stdout:
+            # causes it to read all lines
+            print(": " + line)
+            pass
+
+        # Pull the dir size for this image...
+        total_size = 1
+        current_pos = 0
+
+        # Figure out approx size of directory so we can show progress
+        cmd = "du -sb " + remote_path + " | awk '{print $1}'"
+        stdin, stdout, stderr = ssh.exec_command(cmd, get_pty=True)
+        stdin.close()
+        for line in stdout:
+            try:
+                total_size = int(line.strip())
+            except Exception as ex:
+                print("Error getting image size: " + str(ex))
+                total_size = 1
+
+        # Shave a little off due to gzip - an image that is already gzipped will not shave off much
+        if total_size > 1:
+            # With GZip, transfer size should be larger, so cut it down a bit so progress bar looks more accurate
+            total_size = int(total_size * 1.0)
+
+        # Now tar/gzip the folder and send it to the USB drive
+        cmd = "cd " + remote_images_folder + "; tar cvf - " + image_name + " 2> /dev/null | gzip -fqc "
+        # ssh.get_transport().window_size = 2147483647
+        chan = ssh.get_transport().open_session()  # window_size=64000, max_packet_size=8192)
+        chan.settimeout(10800)
+
+        chan.exec_command(cmd)
+        f = open(local_file_path, 'wb')
+        chan_f = chan.makefile()
+        chan_f._set_mode(mode="rb", bufsize=32768)
+
+        last_update = time.time()
+        dots = "."
+        start_time = time.time()
+
+        for line in chan_f:
+            f.write(line)
+            current_pos += len(line)
+            fog_image_export_progress.value = int(float(current_pos) / float(total_size) * 100)
+
+            if time.time() - last_update > 1:
+                    dots += "."
+                    if len(dots) > 5:
+                        dots = "."
+                    upload_speed = ""
+                    elapsed_time = time.time() - start_time
+                    transfer_speed = float(current_pos / elapsed_time)
+                    if transfer_speed == 0:
+                        transfer_speed = 1
+                    if int(elapsed_time) != 0:
+                        upload_speed = get_human_file_size(transfer_speed) + "/s"
+                    still_queued = total_size - current_pos
+                    time_left = str(timedelta(seconds=int(still_queued / transfer_speed)))
+
+                    error_message.text = "Uploading " + image_name + "    " + upload_speed + "  " + time_left + dots
+                    last_update = time.time()
+
+        chan_f.close()
+        chan.close()
+        f.close()
+        ssh.close()
+
+        fog_export_to_usb_button.disabled = False
+        fog_image_export_progress.value = 100
+        error_message.text = "Done!"
+
+        pass
+
+    def start_fog_image_download(self, fog_image_download_url, fog_image_download_file,
+                                 fog_image_download_button, fog_image_download_progress,
+                                 error_message):
+        error_message.text = ""
+        # Verify the upload settings
+        if fog_image_download_url.text == "":
+            error_message.text = "[b][color=ff0000]Please fill out all the fields.[/color][/b]"
+            return
+
+        if not fog_image_download_file.selection or not fog_image_download_file.selection[0]:
+            error_message.text = "[b][color=ff0000]Please choose an image to download.[/color][/b]"
+            return
+
+        fog_image_download_button.disabled = True
+
+        threading.Thread(target=self.fog_image_download_thread, args=(fog_image_download_url, fog_image_download_file,
+                            fog_image_download_button, fog_image_download_progress,
+                            error_message)).start()
+
+    def fog_image_download_thread(self, fog_image_download_url, fog_image_download_file,
+                                    fog_image_download_button, fog_image_download_progress,
+                                    error_message):
+
+        fog_image_download_progress.value = 0
+        dl_name = fog_image_download_file.selection[0].replace("C:\\", "")  # Comes in with c:\\test....
+        full_url = fog_image_download_url.text + "/" + dl_name
+        local_file = os.path.join(self.get_fog_images_folder(), dl_name)
+
+        # Grab the file...
+        start_time = time.time()
+        r = requests.get(full_url, stream=True)
+        total_size = 1
+        try:
+            total_size = int(r.headers.get('content-length'))
+        except Exception as ex:
+            pass
+        if total_size is None:
+            total_size = 1
+        current_pos = 0
+
+        last_update = time.time()-3
+        dots = "."
+        start_time = time.time()
+
+        with open(local_file, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                if chunk:  # filter out keep alive chunks
+                    f.write(chunk)
+                    current_pos += len(chunk)
+                if total_size == 0:
+                    fog_image_download_progress.value = 0
+                else:
+                    fog_image_download_progress.value = int(float(current_pos) / float(total_size) * 100)
+
+                if time.time() - last_update > 1:
+                    dots += "."
+                    if len(dots) > 5:
+                        dots = "."
+                    upload_speed = ""
+                    elapsed_time = time.time() - start_time
+                    transfer_speed = float(current_pos / elapsed_time)
+                    if transfer_speed == 0:
+                        transfer_speed = 1
+                    if int(elapsed_time) != 0:
+                        upload_speed = get_human_file_size(transfer_speed) + "/s"
+                    still_queued = total_size - current_pos
+                    time_left = str(timedelta(seconds=int(still_queued / transfer_speed)))
+
+                    error_message.text = "Uploading " + dl_name + "    " + upload_speed + "  " + time_left + dots
+                    last_update = time.time()
+
+        fog_image_download_button.disabled = False
+        error_message.text = "Done!"
+
+    def start_fog_image_upload(self, fog_image_upload_server, fog_image_upload_folder, fog_image_upload_username,
+                               fog_image_upload_password, fog_image_upload_file, fog_image_upload_send_button,
+                               fog_image_upload_progress, error_message):
+
+        error_message.text = ""
+        # Verify the upload settings
+        if (fog_image_upload_server.text == "" or fog_image_upload_folder.text == "" or
+                fog_image_upload_username.text == "" or fog_image_upload_password.text == ""):
+            error_message.text = "[b][color=ff0000]Please fill out all the fields.[/color][/b]"
+            return
+
+        if not fog_image_upload_file.selection or not fog_image_upload_file.selection[0]:
+            error_message.text = "[b][color=ff0000]Please choose an image to upload.[/color][/b]"
+            return
+
+        fog_image_upload_send_button.disabled = True
+
+        threading.Thread(target=self.fog_image_upload_thread, args=(fog_image_upload_server, fog_image_upload_folder, fog_image_upload_username,
+                               fog_image_upload_password, fog_image_upload_file, fog_image_upload_send_button,
+                               fog_image_upload_progress, error_message)).start()
+
+    def fog_image_upload_thread(self, fog_image_upload_server, fog_image_upload_folder, fog_image_upload_username,
+                               fog_image_upload_password, fog_image_upload_file, fog_image_upload_send_button,
+                               fog_image_upload_progress, error_message):
+
+        # Connect to the server
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        try:
+            # Connect to the server
+            ssh.connect(fog_image_upload_server.text, username=fog_image_upload_username.text,
+                        password=fog_image_upload_password.text, compress=True, look_for_keys=False)
+        except paramiko.ssh_exception.BadHostKeyException:
+            print("Invalid Host key!")
+            error_message.text = "\n\n[b]CONNECTION ERROR[/b]\n - Bad host key - check ~/.ssh/known_hosts"
+            fog_image_upload_send_button.disabled = False
+            return
+        except paramiko.ssh_exception.BadAuthenticationType:
+            error_message.text = "[b]INVALID LOGIN[/b]"
+            fog_image_upload_send_button.disabled = False
+            return
+        except Exception as ex:
+            error_message.text = "[b]UPLOAD ERROR[/b]\n" + str(ex)
+            fog_image_upload_send_button.disabled = False
+            return
+
+        push_file_name = os.path.basename(fog_image_upload_file.selection[0])
+
+        # Start SFTP session
+        sftp = ssh.open_sftp()
+
+        # Set the progress widget and start the upload
+        error_message.text = "Uploading " + push_file_name
+        global sftp_progress_widget
+        global sftp_progress_message
+        sftp_progress_widget = fog_image_upload_progress
+        sftp_progress_message = error_message
+        # sftp.put(fog_image_upload_file.selection[0],
+        #         os.path.join(fog_image_upload_folder.text, push_file_name).replace("\\", "/"),
+        #         callback=self.sftp_copy_progress_callback)
+
+        total_size = os.path.getsize(fog_image_upload_file.selection[0])
+        current_pos = 0
+        last_update = time.time()
+        dots = "."
+
+        # open local file
+        local_f = open(fog_image_upload_file.selection[0], 'rb')
+        # Push file to server
+        sftp = ssh.open_sftp()
+
+        start_time = time.time()
+        end_time = 0
+
+        remote_file = os.path.join(fog_image_upload_folder.text, push_file_name).replace("\\", "/")
+
+        with sftp.file(remote_file, mode="wb", bufsize=8192) as remote_f:
+            remote_f.set_pipelined()
+            while True:
+                data = local_f.read(8192)
+                if not data:
+                    break
+                remote_f.write(data)
+                current_pos += len(data)
+                fog_image_upload_progress.value = int(float(current_pos) / float(total_size) * 100)
+                if time.time() - last_update > 1:
+                    dots += "."
+                    if len(dots) > 5:
+                        dots = "."
+                    upload_speed = ""
+                    elapsed_time = time.time() - start_time
+                    transfer_speed = float(current_pos / elapsed_time)
+                    if transfer_speed == 0:
+                        transfer_speed = 1
+                    if int(elapsed_time) != 0:
+                        upload_speed = get_human_file_size(transfer_speed) + "/s"
+                    still_queued = total_size - current_pos
+                    time_left = str(timedelta(seconds=int(still_queued / transfer_speed)))
+
+                    error_message.text = "Uploading " + push_file_name + "    " + upload_speed + "  " + time_left + dots
+                    last_update = time.time()
+
+        fog_image_upload_progress.value = 100
+        sftp.close()
+        local_f.close()
+
+        error_message.text = "[b]Done![/b]"
+        fog_image_upload_send_button.disabled = False
+
+        # Cleanup ssh stuff
+        sftp.close()
+        ssh.close()
+
+        return
+
+    def get_fog_images_folder(self):
+        # Find the folder for fog images
+        root_path = os.path.dirname(get_app_folder())
+        volumes_path = os.path.join(root_path, "volumes")
+        fog_path = os.path.join(volumes_path, "fog")
+        fog_images_path = os.path.join(fog_path, "images").replace("/", os.sep)
+
+        # Make sure the path exists
+        if not os.path.isdir(fog_images_path):
+            os.makedirs(fog_images_path)
+            
+        return fog_images_path
 
     def sync_volume(self, volume, folder, ssh, ssh_folder, status_label, branch="master"):
         # Sync files on the online server with the USB drive
@@ -1007,7 +1792,7 @@ class SyncOPEApp(App):
         stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; if [ ! -f .domain ]; then echo \"" + domain + "\" > .domain; fi ", get_pty=True)
         for line in stdout:
             pass
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .pw; ", get_pty=True)
+        stdin, stdout, stderr = ssh.exec_command("""cd """ + build_path + """; echo """ + ssh_pass + """ > .pw; """, get_pty=True)
         for line in stdout:
             pass
 
@@ -1163,6 +1948,26 @@ class SyncOPEApp(App):
 
         sftp.close()
         return ret
+
+    def sftp_copy_progress_callback(self, transferred, total):
+        global sftp_progress_widget
+        global sftp_progress_message
+        global sftp_progress_last_update
+
+        if sftp_progress_widget  is None:
+            return
+
+        # Logger.info("XFerred: " + str(transferred) + "/" + str(total))
+        if total == 0:
+            sftp_progress_widget.value = 0
+        else:
+            sftp_progress_widget.value = int(float(transferred) / float(total) * 100)
+
+        if not sftp_progress_message is None and time.time() - sftp_progress_last_update > 1:
+            sftp_progress_message.text += "."
+            if sftp_progress_message.text.endswith("....."):
+                sftp_progress_message.text = sftp_progress_message.text.strip(".")
+            sftp_progress_last_update = time.time()
 
     def copy_docker_images_to_usb_drive_progress_callback(self, transferred, total):
         global progress_widget
@@ -1346,7 +2151,7 @@ class SyncOPEApp(App):
 
         try:
             # Connect to the server
-            ssh.connect(ssh_server, username=ssh_user, password=ssh_pass, compress=True)
+            ssh.connect(ssh_server, username=ssh_user, password=ssh_pass, compress=True, look_for_keys=False)
 
             # Make sure we have an SSH key to use for logins
             self.generate_local_ssh_key(status_label)
@@ -1500,7 +2305,7 @@ class SyncOPEApp(App):
     def verify_ope_server_worker(self, status_label):
         ssh_server = self.config.getdefault("Online Settings", "server_ip", "127.0.0.1")
         ssh_user = self.config.getdefault("Online Settings", "server_user", "root")
-        ssh_pass = self.config.getdefault("Online Settings", "server_password", "")
+        ssh_pass = self.get_offline_pw()  # self.config.getdefault("Online Settings", "server_password", "")
         ssh_folder = self.config.getdefault("Online Settings", "server_folder", "/ope")
 
         status_label.text = "Checking connection..."
@@ -1586,6 +2391,9 @@ class SyncOPEApp(App):
         # content.current_uid = curr_p.uid
         # menu.selected_uid = self._app_settings.children[0].content.current_uid
 
+
+# Register Objects for use in KV files
+#Factory.register('FogSFTPFileSystem', cls=FogSFTPFileSystem)
 
 if __name__ == "__main__":
     # Start the app
