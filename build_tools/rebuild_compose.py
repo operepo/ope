@@ -3,6 +3,7 @@ import os, sys
 import socket
 import shutil
 import uuid
+import commands
 
 # Is this script called with the auto param? Suppress prompts
 auto = False
@@ -73,12 +74,14 @@ def getComposeFolder():
 # Find the local/public ip of the machine
 def getIP():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    IP = '127.0.0.1'
+    IP = ''
     try:
         s.connect(('10.255.255.255', 0))
         IP = s.getsockname()[0]
     except:
-        IP = '127.0.0.1'
+        # IP = '127.0.0.1'
+        # try using hostname -i
+        IP = commands.getoutput('hostname -i')
     finally:
         s.close()
     return IP
