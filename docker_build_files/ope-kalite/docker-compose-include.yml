@@ -6,11 +6,6 @@
         restart: always
         ports:
             - "8008"
-        labels:
-            - "traefik.backend=kalite"
-            - "traefik.frontend.rule=Host:kalite.<DOMAIN>, khan.<DOMAIN>"
-            - "traefik.port=8008"
-            - "traefik.frontend.entryPoints=http"
         volumes:
             - ../volumes/kalite:/root/.kalite:rw
         depends_on:
