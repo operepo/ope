@@ -19,7 +19,8 @@ LABEL version="0.6"
 ENV APP_HOME /usr/src/app/
 ENV RAILS_ENV "production"
 ENV NGINX_MAX_UPLOAD_SIZE 50g
-ENV YARN_VERSION 1.3.2-1
+#ENV YARN_VERSION 1.3.2-1
+ENV YARN_VERSION 1.7.0-1
 
 # Work around github.com/zertosh/v8-compile-cache/issues/2
 # This can be removed once yarn pushes a release including the fixed version
@@ -139,7 +140,7 @@ RUN COMPILE_ASSETS_NPM_INSTALL=0 bundle exec rake canvas:compile_assets
 USER docker
 
 
-LABEL rebuild=45
+LABEL rebuild=46
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml
