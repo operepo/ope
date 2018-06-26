@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+re_quote() {
+        sed 's/[\/&]/\\&/g' <<< "$*"
+}
+
 echo "=== RUNNING start.sh ==="
 if [ -f /usr/src/app/log/app_init ]; then
     rm /usr/src/app/log/app_init
@@ -49,13 +53,15 @@ sed -i "s/EMAIL_DELIVERY_METHOD/${EMAIL_DELIVERY_METHOD}/" config/outgoing_mail.
 sed -i "s/SMTP_ADDRESS/${SMTP_ADDRESS}/" config/outgoing_mail.yml
 sed -i "s/SMTP_PORT/${SMTP_PORT}/" config/outgoing_mail.yml
 sed -i "s/SMTP_USER/${SMTP_USER}/" config/outgoing_mail.yml
-sed -i "s/SMTP_PASS/${SMTP_PASS}/" config/outgoing_mail.yml
+ESC_SMTP_PASS=$(re_quote "${SMTP_PASS}")
+sed -i "s/SMTP_PASS/ESC_SMTP_PASS/" config/outgoing_mail.yml
 sed -i "s/OUTGOING_ADDRESS/${ADMIN_EMAIL}/" config/outgoing_mail.yml
 
 cp config/domain.yml.tmpl config/domain.yml
 sed -i -- "s/<VIRTUAL_HOST>/$VIRTUAL_HOST/g" config/domain.yml
 cp config/database.yml.tmpl config/database.yml
-sed -i -- "s/<IT_PW>/$IT_PW/g" config/database.yml
+ESC_IT_PW=$(re_quote "$IT_PW")
+sed -i -- "s/<IT_PW>/$ESC_IT_PW/g" config/database.yml
 
 cp config/security.yml.tmpl config/security.yml
 sed -i -- "s/<CANVAS_SECRET>/$CANVAS_SECRET/g" config/security.yml
