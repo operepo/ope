@@ -209,7 +209,7 @@ Page {
                     horizontalAlignment: Qt.AlignHCenter
                 }
                 Image {
-                    source: "/images/blue-folder.png"
+                    source: "/images/upload.png"
                     width: 60
                     height: 60
                 }

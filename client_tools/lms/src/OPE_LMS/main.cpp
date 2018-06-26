@@ -4,6 +4,7 @@
 #include <QTextCodec>
 #include <QtWebView/QtWebView>
 #include <QtWebEngine/qtwebengineglobal.h>
+#include <QIcon>
 
 #include "openetworkaccessmanagerfactory.h"
 #include "appmodule.h"
@@ -28,12 +29,16 @@ int main(int argc, char *argv[])
 
     // NOTE: Need this right after GUI App creation
     QtWebView::initialize();
-    QtWebEngine::initialize();
+    //QtWebEngine::initialize();
+
+    app.setWindowIcon(QIcon(":/images/logo_icon.ico"));
 
     // Set global app parameters - used by settings later
     QCoreApplication::setOrganizationName("OPE");
     QCoreApplication::setOrganizationDomain("openprisoneducation.com");
     QCoreApplication::setApplicationName("OPELMS");
+
+    QLoggingCategory::setFilterRules(QStringLiteral("qt.qml.binding.removal.info=true"));
 
     QQmlApplicationEngine engine;
 
@@ -52,7 +57,7 @@ int main(int argc, char *argv[])
     context->setContextProperty(QStringLiteral("need_sync"), need_sync);
 
     //engine.load(QUrl(QLatin1String("qrc:/dropTest.qml")));
-    engine.load(QUrl(QLatin1String("qrc:/main.qml")));
+    engine.load(QUrl(QLatin1String("qrc:/lms.qml")));
 
     return app.exec();
 }

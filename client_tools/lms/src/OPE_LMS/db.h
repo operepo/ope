@@ -26,11 +26,12 @@ class GenericQueryModel : public QSqlQueryModel {
     Q_OBJECT
 public:
     explicit GenericQueryModel(APP_DB *parent=0, QString query_name="", QString query="", QSqlDatabase db = QSqlDatabase());
-    void refresh();
+
 
 signals:
 
 public slots:
+    void refresh();
 
     QVariant data(const QModelIndex &index, int role) const;
     QHash<int, QByteArray> roleNames() const { return m_roleNames; }
@@ -80,6 +81,8 @@ public slots:
     QString getColumnName(int col_index);
     int getColumnIndex(QString col_name);
     void sortOn(QString col_name, Qt::SortOrder order = Qt::AscendingOrder);
+
+    GenericTableModel *copy();
 
 private:
     void generateRoleNames();

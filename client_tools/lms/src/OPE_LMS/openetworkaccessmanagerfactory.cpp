@@ -3,13 +3,13 @@
 
 QNetworkAccessManager *OPENetworkAccessManagerFactory::create(QObject *parent)
 {
-    qDebug() << "------> OPENAM Factory Create Called";
+    //qDebug() << "------> OPENAM Factory Create Called";
     return new OPENetworkAccessManager(parent); // QNetworkAccessManager(parent);
 }
 
 OPENetworkAccessManager::OPENetworkAccessManager(QObject *parent)
 {
-    qDebug() << "----> NEW OPENAM";
+    //qDebug() << "----> NEW OPENAM";
     //QObject::connect(this, SIGNAL(sslErrors(QNetworkReply*,QList<QSslError>)),
     //                 this, SLOT(ignoreSSLErrors(QNetworkReply*,QList<QSslError>)));
 

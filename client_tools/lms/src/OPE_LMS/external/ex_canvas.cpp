@@ -145,10 +145,8 @@ bool EX_Canvas::pullCourses()
     // Loop through the courses and add them to the database
     if (doc.isArray())
     {
-        // Clear current courses so we don't keeep adding and so that
-        // if the student has been pulled from a course they are not
-        // still listed
-        sql = "DELETE FROM courses";
+        // Hide courses - re-enable them during sync
+        sql = "UPDATE course SET is_active='false'";
         if (!query.exec(sql)) {
             qDebug() << "DB Error: " << query.lastError().text();
         }
@@ -227,6 +225,7 @@ bool EX_Canvas::pullCourses()
                     record.setValue("enrollment_role_id", enrollment["role_id"].toString(""));
                     record.setValue("enrollment_state", enrollment["state"].toString(""));
                     record.setValue("enrollment_user_id", o["user_id"].toString(""));
+                    record.setValue("is_active", "true");
 
                     if(is_insert) {
                         model->insertRecord(-1, record);
@@ -422,6 +421,13 @@ bool EX_Canvas::pullModuleItems()
                 record.setValue("page_url", o["page_url"].toString(""));
                 record.setValue("url", o["url"].toString(""));
                 record.setValue("published", o["published"].toBool(false));
+                record.setValue("content_id", o["content_id"].toString(""));
+                record.setValue("external_url", o["external_url"].toString(""));
+                record.setValue("new_tab", o["new_tab"].toBool(false));
+                // TODO - this is an array
+                record.setValue("completion_requirement", o["completion_requirement"].toString(""));
+                // TOOD - also an array
+                record.setValue("content_details", o["content_details"].toString(""));
 
                if (is_insert) {
                    model->insertRecord(-1, record);
@@ -1209,6 +1215,222 @@ bool EX_Canvas::pullAssignments()
     }
 
     return ret;
+}
+
+bool EX_Canvas::pullAnnouncements()
+{
+    // Grab a list of announcements for each course
+    bool ret = false;
+    if (_app_db == NULL) { return ret; }
+
+    // Get the list of courses for this student
+    GenericTableModel *courses_model = _app_db->getTable("courses");
+    GenericTableModel *model = _app_db->getTable("announcements");
+
+    if (courses_model == NULL || model == NULL) {
+        qDebug() << "Unable to get models for courses or announcements!";
+        return false;
+    }
+
+    // Pull all announcements for all courses
+    courses_model->setFilter("");
+    ret = true;
+    for (int i=0; i<courses_model->rowCount(); i++) {
+        // Get pages for this course
+        QSqlRecord course_record = courses_model->record(i);
+        QString course_id = course_record.value("id").toString();
+        qDebug() << "Retrieving page info for " << course_id;
+        QHash<QString,QString> p;
+        p["per_page"] = "10000"; // Cuts down number of calls significantly
+        p["context_codes[]"]="course_" + course_id;
+        QJsonDocument doc = CanvasAPICall("/api/v1/announcements", "GET", &p);
+
+        if (doc.isArray()) {
+            qDebug() << "\tAnnouncements for course:";
+            // Should be an array of discussion topics
+            QJsonArray arr = doc.array();
+            foreach(QJsonValue val, arr) {
+                //qDebug() << "got item...";
+                // Got an item
+                QJsonObject o = val.toObject();
+
+                QString id = o["id"].toString("");
+
+                model->setFilter("id = " + id);
+                model->select();
+                QSqlRecord record;
+                bool is_insert = false;
+
+                if (model->rowCount() == 1) {
+                    // Row exists, update with current info
+                    record = model->record(0);
+                    is_insert = false;
+                    qDebug() << "\t\tUpdating announcemnt..." << id << o["title"].toString("");
+                } else {
+                    // Need to clear the filter to insert
+                    model->setFilter("");
+                    record = model->record();
+                    is_insert = true;
+                    qDebug() << "\t\tImporting announcemnt..." << id << o["title"].toString("");
+                }
+
+                // JSON - list of objects
+                /*
+                 * // A discussion topic
+                    {
+                      // The ID of this topic.
+                      "id": 1,
+                      // The topic title.
+                      "title": "Topic 1",
+                      // The HTML content of the message body.
+                      "message": "<p>content here</p>",
+                      // The URL to the discussion topic in canvas.
+                      "html_url": "https://<canvas>/courses/1/discussion_topics/2",
+                      // The datetime the topic was posted. If it is null it hasn't been posted yet. (see
+                      // delayed_post_at)
+                      "posted_at": "2037-07-21T13:29:31Z",
+                      // The datetime for when the last reply was in the topic.
+                      "last_reply_at": "2037-07-28T19:38:31Z",
+                      // If true then a user may not respond to other replies until that user has made an
+                      // initial reply. Defaults to false.
+                      "require_initial_post": false,
+                      // Whether or not posts in this topic are visible to the user.
+                      "user_can_see_posts": true,
+                      // The count of entries in the topic.
+                      "discussion_subentry_count": 0,
+                      // The read_state of the topic for the current user, 'read' or 'unread'.
+                      "read_state": "read",
+                      // The count of unread entries of this topic for the current user.
+                      "unread_count": 0,
+                      // Whether or not the current user is subscribed to this topic.
+                      "subscribed": true,
+                      // (Optional) Why the user cannot subscribe to this topic. Only one reason will be
+                      // returned even if multiple apply. Can be one of: 'initial_post_required': The
+                      // user must post a reply first; 'not_in_group_set': The user is not in the group
+                      // set for this graded group discussion; 'not_in_group': The user is not in this
+                      // topic's group; 'topic_is_announcement': This topic is an announcement
+                      "subscription_hold": "not_in_group_set",
+                      // The unique identifier of the assignment if the topic is for grading, otherwise
+                      // null.
+                      "assignment_id": null,
+                      // The datetime to publish the topic (if not right away).
+                      "delayed_post_at": null,
+                      // Whether this discussion topic is published (true) or draft state (false)
+                      "published": true,
+                      // The datetime to lock the topic (if ever).
+                      "lock_at": null,
+                      // Whether or not the discussion is 'closed for comments'.
+                      "locked": false,
+                      // Whether or not the discussion has been 'pinned' by an instructor
+                      "pinned": false,
+                      // Whether or not this is locked for the user.
+                      "locked_for_user": true,
+                      // (Optional) Information for the user about the lock. Present when locked_for_user
+                      // is true.
+                      "lock_info": null,
+                      // (Optional) An explanation of why this is locked for the user. Present when
+                      // locked_for_user is true.
+                      "lock_explanation": "This discussion is locked until September 1 at 12:00am",
+                      // The username of the topic creator.
+                      "user_name": "User Name",
+                      // DEPRECATED An array of topic_ids for the group discussions the user is a part
+                      // of.
+                      "topic_children": [5, 7, 10],
+                      // An array of group discussions the user is a part of. Fields include: id,
+                      // group_id
+                      "group_topic_children": [{"id":5,"group_id":1}, {"id":7,"group_id":5}, {"id":10,"group_id":4}],
+                      // If the topic is for grading and a group assignment this will point to the
+                      // original topic in the course.
+                      "root_topic_id": null,
+                      // If the topic is a podcast topic this is the feed url for the current user.
+                      "podcast_url": "/feeds/topics/1/enrollment_1XAcepje4u228rt4mi7Z1oFbRpn3RAkTzuXIGOPe.rss",
+                      // The type of discussion. Values are 'side_comment', for discussions that only
+                      // allow one level of nested comments, and 'threaded' for fully threaded
+                      // discussions.
+                      "discussion_type": "side_comment",
+                      // The unique identifier of the group category if the topic is a group discussion,
+                      // otherwise null.
+                      "group_category_id": null,
+                      // Array of file attachments.
+                      "attachments": null,
+                      // The current user's permissions on this topic.
+                      "permissions": {"attach":true},
+                      // Whether or not users can rate entries in this topic.
+                      "allow_rating": true,
+                      // Whether or not grade permissions are required to rate entries.
+                      "only_graders_can_rate": true,
+                      // Whether or not entries should be sorted by rating.
+                      "sort_by_rating": true
+                    }
+                 *
+                 */
+
+                record.setValue("id", o["id"].toString(""));
+                record.setValue("title", o["title"].toString(""));
+                record.setValue("message", o["message"].toString(""));
+                record.setValue("html_url", o["html_url"].toString(""));
+                record.setValue("posted_at", o["posted_at"].toString(""));
+                record.setValue("last_reply_at", o["last_reply_at"].toString(""));
+                record.setValue("require_initial_post", o["require_initial_post"].toBool(false));
+                record.setValue("user_can_see_posts", o["user_can_see_posts"].toBool(true));
+                record.setValue("discussion_subentry_count", o["discussion_subentry_count"].toString(""));
+                record.setValue("read_state", o["read_state"].toString(""));
+                record.setValue("unread_count", o["unread_count"].toString(""));
+                record.setValue("subscribed", o["subscribed"].toString(""));
+                record.setValue("subscription_hold", o["subscription_hold"].toString(""));
+                record.setValue("assignment_id", o["assignment_id"].toString(""));
+                record.setValue("delayed_post_at", o["delayed_post_at"].toString(""));
+                record.setValue("published", o["published"].toBool(false));
+                record.setValue("lock_at", o["lock_at"].toString(""));
+                record.setValue("locked", o["locked"].toBool(true));
+                record.setValue("pinned", o["pinned"].toBool(false));
+                record.setValue("locked_for_user", o["locked_for_user"].toBool(true));
+                record.setValue("lock_info", o["lock_info"].toString(""));
+                record.setValue("lock_explanation", o["lock_explanation"].toString(""));
+                record.setValue("user_name", o["user_name"].toString(""));
+                // this is an array [5, 7, 10]
+                record.setValue("topic_children", QJsonDocument(o["topic_children"].toArray()).toJson());
+                // Array of objects [{id:5, group_id:1},]
+                record.setValue("group_topic_children", QJsonDocument(o["group_topic_children"].toArray()).toJson());
+                record.setValue("root_topic_id", o["root_topic_id"].toString(""));
+                record.setValue("podcast_url", o["podcast_url"].toString(""));
+                record.setValue("discussion_type", o["discussion_type"].toString(""));
+                record.setValue("group_category_id", o["group_category_id"].toString(""));
+                // array
+                record.setValue("attachments", QJsonDocument(o["attachments"].toArray()).toJson());
+                // array
+                record.setValue("permissions", QJsonDocument(o["permissions"].toArray()).toJson());
+                record.setValue("allow_rating", o["allow_rating"].toBool(true));
+                record.setValue("only_graders_can_rate", o["only_graders_can_rate"].toBool(true));
+                record.setValue("sort_by_rating", o["sort_by_rating"].toBool(true));
+                record.setValue("context_code", o["context_code"].toString(""));
+                // Set this item as active
+                record.setValue("active", "true");
+                record.setValue("course_id", course_id);
+
+                if (is_insert) {
+                   model->insertRecord(-1, record);
+                } else {
+                   // Filter should be set so 0 should be current record
+                   model->setRecord(0, record);
+                }
+                // Write changes
+                if (!model->submitAll()) { ret = false; }
+
+                model->setFilter(""); // clear the filter
+
+                //qDebug() << "Announcement " << o["title"].toString("");
+                model->database().commit();
+                //qDebug() << model->lastError();
+
+            }
+        } else {
+            qDebug() << "Invalid Response for Announcement: " <<  doc;
+        }
+    }
+
+    return ret;
+
 }
 
 bool EX_Canvas::pushAssignments()

@@ -13,8 +13,8 @@ AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
     //root->setParent("networkAccess", parent->networkAccessManager());
 
     // Connect the SSL errors to our handler
-    QNetworkAccessManager *nam = parent->networkAccessManager();
-    qDebug() << "Current nam " << nam;
+    //QNetworkAccessManager *nam = parent->networkAccessManager();
+    //qDebug() << "Current nam " << nam;
     //qDebug() << "Current signals " << nam-
     //QObject::connect(nam, SIGNAL(sslErrors(QNetworkReply*,QList<QSslError>)),
     //        this, SLOT(sslErrorHandler(QNetworkReply*,QList<QSslError>)));

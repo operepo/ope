@@ -1,23 +1,22 @@
-import QtQuick 2.7
-import QtQuick.Controls 1.4
-import QtQuick.Controls 2.2
+import QtQuick 2.10
+import QtQuick.Controls 2.3
 import QtQuick.Controls.Material 2.2
-import QtQuick.Layouts 1.0
-//import QtWebView 1.1
-import QtWebEngine 1.4
+import QtQuick.Controls.Universal 2.2
+import QtQuick.Controls.Styles 1.4
+import QtQuick.Controls.Imagine 2.3
+import QtQuick.Layouts 1.3
 
 import com.openprisoneducation.ope 1.0
 import "App.js" as App
 
+
 Page {
-    signal refreshPage();
-    signal loadPage(string page_url);
+
+    property QtObject global;
+    property string current_course_id: "";
+
     padding: 3
 
-    onRefreshPage: {
-        console.log("RefreshPagesCalled");
-        loadFiles();
-    }
     Component.onCompleted:  {
         loadFiles();
     }
@@ -29,7 +28,7 @@ Page {
         //m.modifyFilter("course_id=" + App.current_course)
         //m.select()
         var m = file_folders_query; //foldersList.model;
-        m.modifyFilter("course_id=" + App.current_course);
+        m.modifyFilter("course_id=" + current_course_id);
         m.sortOn("sort_order");
         m.refresh();
 
@@ -40,6 +39,7 @@ Page {
         font.bold: true;
         font.pixelSize: 26
         padding: 6
+        color: "steelblue";
     }
 
     ListView {
@@ -128,3 +128,4 @@ Page {
         }
     }
 }
+

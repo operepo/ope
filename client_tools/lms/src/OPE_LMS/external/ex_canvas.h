@@ -49,6 +49,8 @@ public slots:
     bool pullMessages(QString scope="inbox");
     // Pull list of assignments
     bool pullAssignments();
+    // Pull list of announcements
+    bool pullAnnouncements();
 
     // =================================================
     // push data to canvas - used during sync

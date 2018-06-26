@@ -1,12 +1,16 @@
 .pragma library
 
-var current_course = "";
-var current_course_name = "";
-var current_page_url = "";
+//var current_course = "";
+//var current_course_name = "";
+//var current_page_url = "";
 
 
 function getFieldValue(model, row, field_name) {
     var ret = undefined;
+    if (model === undefined){
+        console.log("Error! bad model " + field_name );
+        return ret;
+    }
     var i =  model.getColumnIndex(field_name);
     var index = model.index(row, i);
     ret = model.data(index, Qt.DisplayRole);

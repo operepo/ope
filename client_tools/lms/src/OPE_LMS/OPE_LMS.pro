@@ -1,4 +1,4 @@
-QT += qml quick sql network quickcontrols2 networkauth webengine webenginewidgets webview
+QT += qml quick sql network quickcontrols2 networkauth webview
 # webengine webenginewidgets quick-private webview-private webview
 
 CONFIG += c++11
@@ -90,7 +90,24 @@ HEADERS += \
 LIBS += -LC:/OpenSSL-Win64/lib # -lcrypto -lssl
 INCLUDEPATH += C:/OpenSSL-Win64/include
 
+RC_ICONS = logo_icon.ico
+
 DISTFILES += \
     qt.conf \
-    blue-folder.png
+    blue-folder.png \
+    Scratch.txt \
+    blue_sync.png \
+    upload_file.png \
+    sync.png \
+    logo_icon.png \
+    logo_icon.ico \
+    down_arrow.png \
+    up_arrow.png
+
+# Rules to force qrc rebuild each time - deal with bug where qml files aren't updated on next run
+update_qml.target = qml.qrc
+update_qml.commands = echo>>$${update_qml.target} # same as touch
+update_qml.depends = $$files($${PWD}/*.qml, true) # recurse into subdirs
+QMAKE_EXTRA_TARGETS += update_qml
+PRE_TARGETDEPS += $${update_qml.target}
 

@@ -100,6 +100,7 @@ kivy.require('1.10.0')
 # Window.size = (900, 800)
 # Window.borderless = True
 APP_FOLDER = None
+APP_RUNNING = True
 
 # Git Repos to pull
 GIT_REPOS = {"sysprep_scripts": "https://github.com/operepo/sysprep_scripts.git",
@@ -174,6 +175,7 @@ migrate = True
 
 # Progress bar used by threaded apps
 progress_widget = None
+progress_widget_label = None
 sftp_progress_widget = None
 sftp_progress_message = None
 sftp_progress_last_update = time.time()
@@ -325,25 +327,27 @@ class FogDownloadFileSystem(FileSystemAbstract):
         # Pull the URL
         try:
             response = requests.get(url)
+
+            if not response.ok:
+                logging.warn("ERROR pulling list of fog images from OPE server " + url)
+            else:
+                # Parse the html for links and file sizes
+                html = response.text
+
+                matches = re.findall(r'a href=[\'"]?([^\'" >]+)[\'"]>.*</a></td><td[^\>]*>([^<]+)</td><td[^\>]*>([^<]+)</td>', html)
+                for item in matches:
+                    # Skip / entry
+                    if item[0] != "/":
+                        # Figure out real size in bytes
+                        s = self.parsesizeinbytes(item[2])
+                        self.file_list[item[0]] = s
+
         except Exception as ex:
             logging.info("Not able to connect to " + str(url) + " to pull list of fog images")
-            self.file_list = dict()
-            # self.file_list[".fog_image"] = 0
-            return
-        if not response.ok:
-            logging.warn("ERROR pulling list of fog images from OPE server " + url)
-            return
 
-        # Parse the html for links and file sizes
-        html = response.text
-
-        matches = re.findall(r'a href=[\'"]?([^\'" >]+)[\'"]>.*</a></td><td[^\>]*>([^<]+)</td><td[^\>]*>([^<]+)</td>', html)
-        for item in matches:
-            # Skip / entry
-            if item[0] != "/":
-                # Figure out real size in bytes
-                s = self.parsesizeinbytes(item[2])
-                self.file_list[item[0]] = s
+        # Need an empty place holder if nothing is there
+        if len(self.file_list) < 1:
+            self.file_list['no images available'] = 0
 
         return
 
@@ -528,7 +532,7 @@ class SyncOPEApp(App):
 
     required_apps = ["ope-gateway", "ope-router", "ope-dns", "ope-clamav", "ope-redis", "ope-postgresql" ]
     recommended_apps = ["ope-fog", "ope-canvas", "ope-smc"]
-    stable_apps = [ "ope-kalite" ]
+    stable_apps = ["ope-kalite"]
     beta_apps = ["ope-coco", "ope-freecodecamp", "ope-gcf", "ope-jsbin", "ope-rachel", "ope-stackdump", "ope-wamap"]
 
     def load_current_settings(self):
@@ -742,7 +746,9 @@ class SyncOPEApp(App):
 
     def copy_callback(self, transferred, total):
         global progress_widget
+        # print("call back....")
         if progress_widget is None:
+            # print("no progress widget set")
             return
         # Logger.info("XFerred: " + str(transferred) + "/" + str(total))
         if total == 0:
@@ -757,17 +763,24 @@ class SyncOPEApp(App):
                 progress_widget.value = val
 
     def sftp_pull_files(self, remote_path, local_path, sftp, status_label, depth=1):
+        global progress_widget_label, APP_RUNNING
+        if progress_widget_label is None:
+            progress_widget_label = Label()
+
         # Recursive Walk through the folder and pull changed files
         depth_str = " " * depth
         # TODO - follow symlinks for folders/files
         for f in sftp.listdir_attr(remote_path):
+            if APP_RUNNING is not True:
+                print("Exiting Early...")
+                return
             if stat.S_ISDIR(f.st_mode):
                 # status_label.text += "\n" + depth_str + "Found Dir: " + f.filename
                 n_remote_path = os.path.join(remote_path, f.filename).replace("\\", "/")
                 n_local_path = os.path.join(local_path, f.filename)
                 self.sftp_pull_files(n_remote_path, n_local_path, sftp, status_label, depth+1)
             elif stat.S_ISREG(f.st_mode):
-                status_label.text += "\n" + depth_str + "Found File: " + os.path.abspath(f.filename)
+                # status_label.text += "\n" + depth_str + "Found File: " + remote_path  # f.filename
                 # Try to copy it to the local folder
                 try:
                     # Make sure the local folder exists
@@ -788,19 +801,25 @@ class SyncOPEApp(App):
                     # If there is an error, go with a 0 for local mtime
                     pass
                 if f.st_mtime == l_mtime:
-                    status_label.text += "\n" + depth_str + "Files the same - skipping: " + f.filename
+                    # status_label.text += "\n" + depth_str + "Files the same - skipping: " + f.filename
+                    progress_widget_label.text = f.filename + " (skip) "
                 elif f.st_mtime > l_mtime:
-                    status_label.text += "\n" + depth_str + "Remote file newer, downloading: " + f.filename
+                    # status_label.text += "\n" + depth_str + "Remote file newer, downloading: " + f.filename
+                    progress_widget_label.text = f.filename + " (dl) "
                     sftp.get(r_file, l_file, callback=self.copy_callback)
                     os.utime(l_file, (f.st_mtime, f.st_mtime))
                 else:
-                    status_label.text += "\n" + depth_str + "local file newer, skipping: " + f.filename
+                    progress_widget_label.text = f.filename + " (newer, skip) "
+                    # status_label.text += "\n" + depth_str + "local file newer, skipping: " + f.filename
 
             else:
                 # Non regular file
-                status_label.text += "\n" + depth_str + "NonReg File - skipping: " + f.filename
+                progress_widget_label.text = f.filename + " (no reg file - skip)"
 
     def sftp_push_files(self, remote_path, local_path, sftp, status_label, depth=1):
+        global progress_widget_label, APP_RUNNING
+        if progress_widget_label is None:
+            progress_widget_label = Label()
         # Recursive Walk through the folder and push changed files
         depth_str = " " * depth
 
@@ -808,6 +827,9 @@ class SyncOPEApp(App):
         enc_local_path = local_path.decode(sys.getfilesystemencoding())
 
         for item in os.listdir(local_path):
+            if APP_RUNNING is not True:
+                print("Exiting Early...")
+                return
             enc_item = item
             try:
                 enc_item = item.decode(sys.getfilesystemencoding())
@@ -816,7 +838,7 @@ class SyncOPEApp(App):
                 pass
             l_path = os.path.join(enc_local_path, enc_item)
             if os.path.isdir(l_path):
-                #status_label.text += "\n" + depth_str + "Found Dir: " + enc_item.encode('ascii', 'ignore')
+                # status_label.text += "\n" + depth_str + "Found Dir: " + enc_item.encode('ascii', 'ignore')
                 n_remote_path = os.path.join(remote_path, enc_item).replace("\\", "/")
                 n_local_path = os.path.join(enc_local_path, enc_item)
                 # Make sure the directory exists on the remote system
@@ -828,7 +850,7 @@ class SyncOPEApp(App):
                     pass
                 self.sftp_push_files(n_remote_path, n_local_path, sftp, status_label, depth+1)
             elif os.path.isfile(l_path):
-                status_label.text += "\n" + depth_str + "Found File: " + enc_item.encode('ascii', 'ignore')
+                # status_label.text += "\n" + depth_str + "Found File: " + enc_item.encode('ascii', 'ignore')
                 # Try to copy it to the remote folder
 
                 r_file = os.path.join(remote_path, enc_item).replace("\\", "/")
@@ -850,17 +872,21 @@ class SyncOPEApp(App):
                 except:
                     pass
                 if r_mtime == l_mtime:
-                    status_label.text += " - Files the same - skipping. "
+                    progress_widget_label.text = enc_item.encode('ascii', 'ignore') + " (skip) "
+                    # status_label.text += " - Files the same - skipping. "
                 elif l_mtime > r_mtime:
-                    status_label.text += " - Local file newer, uploading..."
+                    progress_widget_label.text = enc_item.encode('ascii', 'ignore') + " (uploading) "
+                    # status_label.text += " - Local file newer, uploading..."
                     sftp.put(l_file, r_file, callback=self.copy_callback)
                     sftp.utime(r_file, (l_mtime, l_mtime))
                 else:
-                    status_label.text += " - Remote file newer, skipping. "
+                    progress_widget_label.text = enc_item.encode('ascii', 'ignore') + " (remote newer - skip) "
+                    # status_label.text += " - Remote file newer, skipping. "
 
             else:
                 # Non regular file
-                status_label.text += "\n" + depth_str + "NonReg File - skipping: " + enc_item.encode('ascii', 'ignore')
+                # progress_widget_label.text = enc_item.encode('ascii', 'ignore') + " (non reg file - skip)"
+                pass
 
     def get_fog_image_list(self):
         return FogDownloadFileSystem()
@@ -1247,6 +1273,10 @@ class SyncOPEApp(App):
             error_message.text = "[b][color=ff0000]Please choose an image to download.[/color][/b]"
             return
 
+        if fog_image_download_file.selection[0].replace("C:\\", "") == 'no images available':
+            error_message.text = "[b][color=ff0000]Please choose an image to download.[/color][/b]"
+            return
+
         fog_image_download_button.disabled = True
 
         threading.Thread(target=self.fog_image_download_thread, args=(fog_image_download_url, fog_image_download_file,
@@ -1434,10 +1464,10 @@ class SyncOPEApp(App):
         # Make sure the path exists
         if not os.path.isdir(fog_images_path):
             os.makedirs(fog_images_path)
-            
+
         return fog_images_path
 
-    def sync_volume(self, volume, folder, ssh, ssh_folder, status_label, branch="master"):
+    def sync_volume(self, volume, folder, ssh, ssh_folder, status_label, branch="master", sync_type="sync"):
         # Sync files on the online server with the USB drive
 
         # Get project folder (parent folder)
@@ -1469,14 +1499,19 @@ class SyncOPEApp(App):
         sftp = ssh.open_sftp()
 
         # Copy remote files to the USB drive
-        status_label.text += "\nDownloading new files..."
-        self.sftp_pull_files(remote_folder_path, folder_path, sftp, status_label)
+        if sync_type == "sync" or sync_type == "dl":
+            status_label.text += "\nDownloading new files..."
+            self.sftp_pull_files(remote_folder_path, folder_path, sftp, status_label)
 
-        # Walk the local folder and see if there are files that don't exist that should be copied
-        status_label.text += "\nUploading new files..."
-        self.sftp_push_files(remote_folder_path, folder_path, sftp, status_label)
+        if sync_type == "sync" or sync_type == "ul":
+            # Walk the local folder and see if there are files that don't exist that should be copied
+            status_label.text += "\nUploading new files..."
+            self.sftp_push_files(remote_folder_path, folder_path, sftp, status_label)
 
         sftp.close()
+        global progress_widget_label
+        if progress_widget_label is not None:
+            progress_widget_label.text = ""
 
     def git_pull_local(self, status_label, branch="master"):
         global GIT_REPOS
@@ -1789,7 +1824,7 @@ class SyncOPEApp(App):
         stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ip + "\" > .ip; ", get_pty=True)
         for line in stdout:
             pass
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; if [ ! -f .domain ]; then echo \"" + domain + "\" > .domain; fi ", get_pty=True)
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + domain + "\" > .domain; ", get_pty=True)
         for line in stdout:
             pass
         stdin, stdout, stderr = ssh.exec_command("""cd """ + build_path + """; echo """ + ssh_pass + """ > .pw; """, get_pty=True)
@@ -2084,7 +2119,7 @@ class SyncOPEApp(App):
         else:
             progress_widget.value = int(float(transferred) / float(total) * 100)
 
-    def sync_volumes(self, ssh, ssh_folder, status_label):
+    def sync_volumes(self, ssh, ssh_folder, status_label, online_state='online'):
         # Sync volumes of offline OR online server to USB drive
         # TODO - check enabled apps first
 
@@ -2120,17 +2155,25 @@ class SyncOPEApp(App):
                 # self.sync_volume('postgresql', 'canvas', ssh, ssh_folder, status_label)
                 pass
 
+            if app == "ope-kalite":
+                sync_type = 'dl'
+                if online_state == 'offline':
+                     sync_type = 'ul'
+                # Sync video files
+                self.sync_volume('kalite', 'content', ssh, ssh_folder, status_label, sync_type=sync_type)
+                # TODO - Do we need to sync other folders? locale?
 
-    def update_online_server(self, status_label, run_button=None, progress_bar=None):
+    def update_online_server(self, status_label, run_button=None, progress_bar=None, progress_label=None):
         if run_button is not None:
             run_button.disabled = True
         # Start a thread to do the work
         status_label.text = "[b]Starting Update[/b]..."
-        threading.Thread(target=self.update_online_server_worker, args=(status_label, run_button, progress_bar)).start()
+        threading.Thread(target=self.update_online_server_worker, args=(status_label, run_button, progress_bar, progress_label)).start()
 
-    def update_online_server_worker(self, status_label, run_button=None, progress_bar=None):
-        global progress_widget
+    def update_online_server_worker(self, status_label, run_button=None, progress_bar=None, progress_label=None):
+        global progress_widget, progress_widget_label
         progress_widget = progress_bar
+        progress_widget_label = progress_label
 
         # Get project folder (parent folder)
         root_path = os.path.dirname(get_app_folder())
@@ -2189,7 +2232,7 @@ class SyncOPEApp(App):
 
             # Start syncing volume folders
             status_label.text += "\n\n[b]Syncing Volumes[/b]\n - may take a while...\n"
-            self.sync_volumes(ssh, ssh_folder, status_label)
+            self.sync_volumes(ssh, ssh_folder, status_label, 'online')
 
             ssh.close()
         except paramiko.ssh_exception.BadHostKeyException:
@@ -2214,16 +2257,17 @@ class SyncOPEApp(App):
 
         pass
 
-    def update_offline_server(self, status_label, run_button=None, progress_bar=None):
+    def update_offline_server(self, status_label, run_button=None, progress_bar=None, progress_label=None):
         if run_button is not None:
             run_button.disabled = True
         # Start a thread to do the work
         status_label.text = "[b]Starting Update[/b]..."
-        threading.Thread(target=self.update_offline_server_worker, args=(status_label, run_button, progress_bar)).start()
+        threading.Thread(target=self.update_offline_server_worker, args=(status_label, run_button, progress_bar, progress_label)).start()
 
-    def update_offline_server_worker(self, status_label, run_button=None, progress_bar=None):
-        global progress_widget
+    def update_offline_server_worker(self, status_label, run_button=None, progress_bar=None, progress_label=None):
+        global progress_widget, progress_widget_label
         progress_widget = progress_bar
+        progress_widget_label = progress_label
 
         # Get project folder (parent folder)
         root_path = os.path.dirname(get_app_folder())
@@ -2272,7 +2316,7 @@ class SyncOPEApp(App):
 
             # Start syncing volume folders
             status_label.text += "\n\n[b]Syncing Volumes[/b]\n - may take a while...\n"
-            self.sync_volumes(ssh, ssh_folder, status_label)
+            self.sync_volumes(ssh, ssh_folder, status_label, 'offline')
 
             ssh.close()
         except paramiko.ssh_exception.BadHostKeyException:
@@ -2333,6 +2377,9 @@ class SyncOPEApp(App):
         # status_label.text += " done."
 
     def close_app(self):
+        global APP_RUNNING
+        # Signals threads/etc that app is stopping
+        APP_RUNNING = False
         App.get_running_app().stop()
 
     def set_app_active(self, app_name, value):
@@ -2393,7 +2440,7 @@ class SyncOPEApp(App):
 
 
 # Register Objects for use in KV files
-#Factory.register('FogSFTPFileSystem', cls=FogSFTPFileSystem)
+# Factory.register('FogSFTPFileSystem', cls=FogSFTPFileSystem)
 
 if __name__ == "__main__":
     # Start the app

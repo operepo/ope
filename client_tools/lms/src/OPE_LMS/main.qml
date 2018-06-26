@@ -4,7 +4,7 @@ import QtQuick.Controls 2.3
 import QtQuick.Controls.Material 2.2
 import QtQuick.Layouts 1.3
 import QtWebView 1.1
-import QtWebEngine 1.4
+//import QtWebEngine 1.4
 
 import "App.js" as App
 
@@ -25,11 +25,17 @@ ApplicationWindow {
             //firstRunDrawer.open();
         }
 
+        var m = courses_model;
+        courses_model.modifyFilter("is_active='true'");
+        courses_model.sortOn('name');
+
         // Make sure we set the current course
         App.current_course = App.getFieldValue(selectedCourse.model, selectedCourse.currentIndex, "id");
         console.log(App.current_course);
         pageLoader.item.refreshPage();
     }
+
+
 
 
     Connections {
@@ -101,127 +107,6 @@ ApplicationWindow {
 
             }
         }
-    }
-
-    Drawer
-    {
-        id: loginDrawer
-        y: 0; //header.height
-        width: window.width * 1.0
-        height: window.height; //window.height - header.height
-        edge: Qt.LeftEdge
-        dragMargin: 0
-
-        ColumnLayout
-        {
-            Label {
-                text: "Login To Canvas"
-                font.bold: true;
-                font.pixelSize: 24;
-                color: "darkblue";
-            }
-            GridLayout
-            {
-                columns: 2
-
-                Label { text: "User Name:"; }
-                TextField {
-                    id: user_name;
-                    placeholderText: qsTr("Enter User Name")
-                }
-
-                Label { text: "Password:"; }
-                TextField {
-                    id: password
-                    placeholderText: qsTr("Enter Password")
-                    passwordCharacter: "*"
-                    echoMode: TextInput.Password
-                }
-
-                Button {
-                    text: "Login"
-                    onClicked: {
-                        //var ret = database.auth_student(user_name.text, password.text);
-                        var ret = mainWidget.canvasAuthenticateUser(user_name.text, password.text);
-                        if (ret === true) {
-                            // Login succeeded
-                            loginMessage.text = "Found local account - welcome";
-                        } else {
-                            // Login failed
-                            loginMessage.text = "Invalid username or password!";
-                        }
-                    }
-                }
-                Button {
-                    text: "Cancel"
-                    onClicked: loginDrawer.close();
-                }
-            }
-            Label {
-                id: loginMessage
-                text: ""
-                color: "#ff0000"
-
-            }
-            Label {
-                text: loginWebView.url
-            }
-
-            Label {
-                text: loginWebView.title
-            }
-
-            Rectangle
-            {
-                color: "darkblue"
-                width: 600
-                height: 300
-
-
-                WebEngineView {
-                   anchors.fill: parent
-                   id: loginWebView
-                   objectName: "loginWebView"
-                   width: 800
-                   height: 300
-                   //url: 'https://canvas.correctionsed.com/login/oauth2/auth?client_id=10000000000004&redirect_uri=http://localhost:1337/cb&response_type=code&scope&state=GlzDhlij'
-                   //url: "https://canvas.correctionsed.com/login";
-
-                   //Component.onCompleted: { loginWebView.loadHtml("HELLO"); }
-                   Component.onCompleted: {
-                       //mainWidget.setupLoginWebView(loginWebView);
-                   }
-
-                   onCertificateError:
-                   {
-                       // Allow test certs
-                       //console.log("Ignore ssl error?");
-                       error.ignoreCertificateError();
-                       return true;
-                   }
-
-                   onLoadingChanged: {
-                       console.log("Loading changed..." + loadRequest.url);
-                       console.log("Status: " + loadRequest.status + " -- Start: " +
-                                   WebEngineView.LoadStartedStatus + ", Stopped: " + WebEngineView.LoadStoppedStatus +
-                                   ", Success: " + WebEngineView.LoadSucceededStatus + ", Failed: " + WebEngineView.LoadFailedStatus);
-                       if (loadRequest.errorString)
-                           console.error("Error String: " + loadRequest.errorString);
-                       console.log(loginWebView.Page);
-                       if (loadRequest.status === WebEngineLoadRequest.LoadSuccessStatus) {
-                           if (loadRequest.url.indexOf("localhost:1337/cb?code=") !== -1) {
-                               // Confirm?
-                               console.log("Confirm login");
-                           }
-                       }
-                   }
-
-               }
-            }
-
-
-        }
-
     }
 
     Drawer
@@ -415,54 +300,6 @@ ApplicationWindow {
         }
     }
 
-    Drawer
-    {
-        id: syncDrawerOld
-        y: header.height
-        width: window.width * 0.6
-        height: window.height - header.height
-        edge: Qt.RightEdge
-        dragMargin: 0
-
-        ColumnLayout
-        {
-            Label { text: "Sync..."; }
-
-            WebEngineView {
-               anchors.fill: parent
-               id: syncWebView
-               objectName: "syncWebView"
-               width: 800
-               height: 300
-               //url: 'https://canvas.correctionsed.com/login/oauth2/auth?client_id=10000000000004&redirect_uri=http://localhost:1337/cb&response_type=code&scope&state=GlzDhlij'
-               //url: "https://canvas.correctionsed.com/login";
-
-               onCertificateError:
-               {
-                   // Allow test certs
-                   error.ignoreCertificateError();
-                   return true;
-               }
-
-               onLoadingChanged: {
-                   console.log("Loading changed..." + loadRequest.url);
-                   console.log("Status: " + loadRequest.status + " -- Start: " +
-                               WebEngineView.LoadStartedStatus + ", Stopped: " + WebEngineView.LoadStoppedStatus +
-                               ", Success: " + WebEngineView.LoadSucceededStatus + ", Failed: " + WebEngineView.LoadFailedStatus);
-                   if (loadRequest.errorString)
-                       console.error("Error String: " + loadRequest.errorString);
-                   if (loadRequest.status === WebEngineLoadRequest.LoadSuccessStatus) {
-                       if (loadRequest.url.indexOf("localhost:1337/cb?code=") !== -1) {
-                           // Confirm?
-                           console.log("Confirm login");
-                       }
-                   }
-               }
-            }
-        }
-
-    }
-
 
     Page {
         id: mainPage
@@ -582,6 +419,7 @@ ApplicationWindow {
 
                             }
                         }
+
                     }
 
 

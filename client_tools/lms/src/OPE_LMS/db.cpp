@@ -110,6 +110,19 @@ bool APP_DB::init_db()
         // Add to the table models list
         model = new GenericTableModel(this, "courses", _db);
 
+        // Modify table - add is_active field to mark courses that are active
+        if (model->getColumnIndex("is_active") == -1)  {
+            // Column doesn't exit
+            qDebug() << "Adding is_active column to courses";
+            sql = "ALTER TABLE courses ADD COLUMN `is_active` TEXT NOT NULL DEFAULT ''";
+            if (!query.exec(sql)) {
+                qDebug() << "DB Error: " << query.lastError().text();
+            }
+            // Reload the model with the latest changes
+            model->select();
+        }
+
+
 
         // ===========================================
         // Create modules  table
@@ -154,8 +167,30 @@ bool APP_DB::init_db()
             qDebug() << "DB Error: " << query.lastError().text();
             ret = false;
         }
+
         // Add to the table models list
         model = new GenericTableModel(this, "module_items", _db);
+
+        // Modify table - add missing colunms
+        if (model->getColumnIndex("content_id") == -1)  {
+            // Column doesn't exit
+            QStringList add_columns;
+            add_columns << "ALTER TABLE module_items ADD COLUMN `content_id` TEXT NOT NULL DEFAULT ''";
+            add_columns << "ALTER TABLE module_items ADD COLUMN `external_url` TEXT NOT NULL DEFAULT ''";
+            add_columns << "ALTER TABLE module_items ADD COLUMN `new_tab`    TEXT NOT NULL DEFAULT ''";
+            add_columns << "ALTER TABLE module_items ADD COLUMN `completion_requirement` TEXT NOT NULL DEFAULT ''";
+            add_columns << "ALTER TABLE module_items ADD COLUMN `content_details` TEXT NOT NULL DEFAULT ''";
+            qDebug() << "Adding columns to module_items to courses";
+            foreach (sql, add_columns) {
+                if (!query.exec(sql)) {
+                    qDebug() << "DB Error: " << query.lastError().text();
+                }
+            }
+
+            // Reload the model with the latest changes
+            model->select();
+        }
+
 
         // ===========================================
         // Create folders table - holds folders for files
@@ -380,6 +415,53 @@ bool APP_DB::init_db()
         }
         model = new GenericTableModel(this, "assignments", _db);
 
+        // Create Announcements table
+        sql = "CREATE TABLE IF NOT EXISTS `announcements` ( \
+                `id`        TEXT NOT NULL DEFAULT '', \
+                `title`     TEXT NOT NULL DEFAULT '', \
+                `message`   TEXT NOT NULL DEFAULT '', \
+                `html_url`  TEXT NOT NULL DEFAULT '', \
+                `posted_at` TEXT NOT NULL DEFAULT '', \
+                `last_reply_at` TEXT NOT NULL DEFAULT '', \
+                `require_initial_post`  TEXT NOT NULL DEFAULT '', \
+                `user_can_see_posts`    TEXT NOT NULL DEFAULT '', \
+                `discussion_subentry_count` TEXT NOT NULL DEFAULT '', \
+                `read_state`    TEXT NOT NULL DEFAULT '', \
+                `unread_count`  TEXT NOT NULL DEFAULT '', \
+                `subscribed`    TEXT NOT NULL DEFAULT '', \
+                `subscription_hold` TEXT NOT NULL DEFAULT '', \
+                `assignment_id` TEXT NOT NULL DEFAULT '', \
+                `delayed_post_at`   TEXT NOT NULL DEFAULT '', \
+                `published`     TEXT NOT NULL DEFAULT '', \
+                `lock_at`       TEXT NOT NULL DEFAULT '', \
+                `locked`        TEXT NOT NULL DEFAULT '', \
+                `pinned`        TEXT NOT NULL DEFAULT '', \
+                `locked_for_user`   TEXT NOT NULL DEFAULT '', \
+                `lock_info`     TEXT NOT NULL DEFAULT '', \
+                `lock_explanation`  TEXT NOT NULL DEFAULT '', \
+                `user_name`     TEXT NOT NULL DEFAULT '', \
+                `topic_children`    TEXT NOT NULL DEFAULT '', \
+                `group_topic_children`  TEXT NOT NULL DEFAULT '', \
+                `root_topic_id`     TEXT NOT NULL DEFAULT '', \
+                `podcast_url`       TEXT NOT NULL DEFAULT '', \
+                `discussion_type`   TEXT NOT NULL DEFAULT '', \
+                `group_category_id` TEXT NOT NULL DEFAULT '', \
+                `attachments`       TEXT NOT NULL DEFAULT '', \
+                `permissions`       TEXT NOT NULL DEFAULT '', \
+                `allow_rating`      TEXT NOT NULL DEFAULT '', \
+                `only_graders_can_rate` TEXT NOT NULL DEFAULT '', \
+                `sort_by_rating`    TEXT NOT NULL DEFAULT '', \
+                `context_code`      TEXT NOT NULL DEFAULT '', \
+                `course_id`         TEXT NOT NULL DEFAULT '', \
+                `active`            TEXT NOT NULL DEFAULT '' \
+               );";
+        if (!query.exec(sql)) {
+            qDebug() << "DB Error: " << query.lastError().text();
+            ret = false;
+        }
+        // Add to the table models list
+        model = new GenericTableModel(this, "announcements", _db);
+
 
         // Create the resources table
         sql = "CREATE TABLE IF NOT EXISTS `resources` ( \
@@ -601,6 +683,15 @@ void GenericTableModel::sortOn(QString col_name, Qt::SortOrder order)
     // Lookup column index
     int col_index = getColumnIndex(col_name);
     sort(col_index, order);
+}
+
+GenericTableModel *GenericTableModel::copy()
+{
+    // Generate a copy of this table model
+    GenericTableModel *m = new GenericTableModel(NULL, this->tableName(), database());
+    m->setFilter(this->filter());
+
+    return m;
 }
 
 void GenericTableModel::generateRoleNames()

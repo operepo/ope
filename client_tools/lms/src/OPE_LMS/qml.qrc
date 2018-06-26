@@ -5,7 +5,7 @@
         <file>sync.qml</file>
         <file>lms.qml</file>
         <file>CanvasSync.qml</file>
-        <file>Home.qml</file>
+        <file>HomePage.qml</file>
         <file>Modules.qml</file>
         <file>Pages.qml</file>
         <file>Assignments.qml</file>
@@ -21,8 +21,26 @@
         <file>CanvasPage.qml</file>
         <file>dropTest.qml</file>
         <file>AssignmentPage.qml</file>
+        <file>AppSideBar.qml</file>
+        <file>AppCourseSelector.qml</file>
+        <file>AppSyncPage.qml</file>
+        <file>AppAssignments.qml</file>
+        <file>AppHomePage.qml</file>
+        <file>AppWikiPage.qml</file>
+        <file>AppAssignmentPage.qml</file>
+        <file>AppModules.qml</file>
+        <file>AppPages.qml</file>
+        <file>AppFiles.qml</file>
+        <file>AppAnnouncements.qml</file>
     </qresource>
     <qresource prefix="/images">
         <file>blue-folder.png</file>
+        <file>blue_sync.png</file>
+        <file>upload_file.png</file>
+        <file>sync.png</file>
+        <file>logo_icon.png</file>
+        <file>logo_icon.ico</file>
+        <file>up_arrow.png</file>
+        <file>down_arrow.png</file>
     </qresource>
 </RCC>
