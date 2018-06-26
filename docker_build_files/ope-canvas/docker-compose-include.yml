@@ -20,7 +20,7 @@
         environment:
             - IT_PW=${IT_PW}
             - OFFICE_PW=${OFFICE_PW}
-            - VIRTUAL_HOST=canvas.<DOMAIN>
+            - VIRTUAL_HOST=canvas.<DOMAIN>,<DOMAIN>
             - CANVAS_LMS_ADMIN_PASSWORD=${IT_PW}
             - CANVAS_LMS_ADMIN_EMAIL=${ADMIN_EMAIL}
             - CANVAS_LMS_ACCOUNT_NAME=${LMS_ACCOUNT_NAME}
