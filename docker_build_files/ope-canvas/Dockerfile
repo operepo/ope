@@ -140,7 +140,7 @@ RUN COMPILE_ASSETS_NPM_INSTALL=0 bundle exec rake canvas:compile_assets
 USER docker
 
 
-LABEL rebuild=51
+LABEL rebuild=52
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml
@@ -156,11 +156,15 @@ COPY outgoing_mail.yml.tmpl config/outgoing_mail.yml.tmpl
 
 COPY supervisord.conf /etc/supervisor/supervisord.conf
 COPY domain.yml.tmpl /usr/src/app/config/domain.yml.tmpl
+COPY puma.rb /usr/src/app/config/puma.rb
+COPY rack.rb /usr/src/app/config/initializers/rack.rb
+
+LABEL rebuild=6
 COPY dbinit.sh /usr/src/dbinit.sh
 COPY start.sh /usr/src/start.sh
 COPY ope.rake lib/tasks/ope.rake
-COPY puma.rb /usr/src/app/config/puma.rb
-COPY rack.rb /usr/src/app/config/initializers/rack.rb
+
+
 
 USER root
 
