@@ -140,7 +140,7 @@ RUN COMPILE_ASSETS_NPM_INSTALL=0 bundle exec rake canvas:compile_assets
 USER docker
 
 
-LABEL rebuild=46
+LABEL rebuild=51
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml
