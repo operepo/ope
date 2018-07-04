@@ -530,10 +530,10 @@ class SyncOPEApp(App):
 
     use_kivy_settings = False
 
-    required_apps = ["ope-gateway", "ope-router", "ope-dns", "ope-clamav", "ope-redis", "ope-postgresql" ]
-    recommended_apps = ["ope-fog", "ope-canvas", "ope-smc"]
-    stable_apps = ["ope-kalite"]
-    beta_apps = ["ope-coco", "ope-freecodecamp", "ope-gcf", "ope-jsbin", "ope-rachel", "ope-stackdump", "ope-wamap"]
+    required_apps = ["ope-gateway", "ope-router", "ope-dns", "ope-redis", "ope-postgresql"]
+    recommended_apps = ["ope-fog", "ope-canvas", "ope-smc", "ope-clamav"]
+    stable_apps = ["ope-kalite", "ope-codecombat", "ope-gcf"]
+    beta_apps = ["ope-freecodecamp", "ope-jsbin", "ope-rachel", "ope-stackdump", "ope-wamap", "ope-wsl"]
 
     def load_current_settings(self):
         global MAIN_WINDOW
@@ -2160,7 +2160,15 @@ class SyncOPEApp(App):
                 if online_state == 'offline':
                      sync_type = 'ul'
                 # Sync video files
+                self.sync_volume('kalite', 'database/content_khan_en.sqlite', ssh, ssh_folder, status_label,
+                                 sync_type=sync_type)
+                self.sync_volume('kalite', 'secretkey.txt', ssh, ssh_folder, status_label, sync_type=sync_type)
+                self.sync_volume('kalite', 'settings.py', ssh, ssh_folder, status_label, sync_type=sync_type)
                 self.sync_volume('kalite', 'content', ssh, ssh_folder, status_label, sync_type=sync_type)
+                self.sync_volume('kalite', 'locale', ssh, ssh_folder, status_label, sync_type=sync_type)
+                self.sync_volume('kalite', 'httpsrv', ssh, ssh_folder, status_label, sync_type=sync_type)
+
+
                 # TODO - Do we need to sync other folders? locale?
 
     def update_online_server(self, status_label, run_button=None, progress_bar=None, progress_label=None):
