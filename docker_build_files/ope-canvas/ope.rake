@@ -444,8 +444,8 @@ SQLSTRING
     #puts "==== END Ensuring Admin Account Exists ===="
     
     # Set canvas options
-    admin_account = Account.find_by(name: ENV["CANVAS_LMS_ACCOUNT_NAME"] )
-    site_admin_account = Account.find_by(name: "Site Admin" )
+    admin_account = Account.where(name: ENV["CANVAS_LMS_ACCOUNT_NAME"] ).first
+    site_admin_account = Account.where(name: "Site Admin" ).first
     if (admin_account && site_admin_account)
         puts "==== Setting Canvas Config Settings ===="
 
@@ -471,11 +471,12 @@ SQLSTRING
         site_admin_account.settings[:author_email_in_notifications] = admin_account.settings[:author_email_in_notifications] = false
         site_admin_account.settings[:enable_alerts] = admin_account.settings[:enable_alerts] = false
         site_admin_account.settings[:enable_portfolios] = admin_account.settings[:enable_portfolios] = false
+        site_admin_account.settings[:enable_eportfolios] = admin_account.settings[:enable_eportfolios] = false
         site_admin_account.settings[:enable_offline_web_export] = admin_account.settings[:enable_offline_web_export] = false
         site_admin_account.settings[:enable_profiles] = admin_account.settings[:enable_profiles] = false
         site_admin_account.settings[:enable_gravatar] = admin_account.settings[:enable_gravatar] = false
         site_admin_account.settings[:enable_turnitin] = admin_account.settings[:enable_turnitin] = false
-        site_admin_account.settings[:global_includes] = admin_account.settings[:global_includes] = false
+        site_admin_account.settings[:global_includes] = admin_account.settings[:global_includes] = true
         site_admin_account.settings[:include_students_in_global_survey] = admin_account.settings[:include_students_in_global_survey] = false
         site_admin_account.settings[:lock_all_announcements] = admin_account.settings[:lock_all_announcements] = true
         site_admin_account.settings[:mfa_settings] = admin_account.settings[:mfa_settings] = "disabled"
@@ -526,7 +527,7 @@ SQLSTRING
         admin_account.role_overrides.where(role: ta_role, permission: :manage_students).destroy_all
         admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :manage_students)
 
-        # Change chourse state
+        # Change course state
         admin_account.role_overrides.where(role: student_role, permission: :change_course_state).destroy_all
         admin_account.role_overrides.create(role: student_role, enabled: false, permission: :change_course_state)
         admin_account.role_overrides.where(role: ta_role, permission: :change_course_state).destroy_all

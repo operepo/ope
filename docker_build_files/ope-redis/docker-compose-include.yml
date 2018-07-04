@@ -4,6 +4,7 @@
         container_name: ope-redis
         network_mode: <NETWORK_MODE>
         restart: always
+        command: redis-server --appendonly yes
         ports:
             - "6379:6379"
         volumes:
