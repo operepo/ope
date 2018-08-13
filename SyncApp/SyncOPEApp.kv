@@ -118,7 +118,7 @@
         Button:
             text: 'Run Update'
             size_hint_y: .1
-            on_press: app.update_online_server(status_label_sl, self, online_progress)
+            on_press: app.update_online_server(status_label_sl, self, online_progress, online_progress_label)
         ScrollLabel:
             id: status_label_sl
             text: 'Click "Run Update" button to start'
@@ -142,6 +142,10 @@
 #                text: 'Click "Run Update" button to start'
 #                id: status_label
 #                on_text: status_label_sv.scroll_y = 0
+        Label:
+            id: online_progress_label
+            size_hint_y: .05
+            text: ' '
         ProgressBar:
             id: online_progress
             size_hint_y: .05
@@ -177,7 +181,7 @@
         Button:
             text: 'Run Update'
             size_hint_y: .1
-            on_press: app.update_offline_server(status_label_sl, self, offline_progress)
+            on_press: app.update_offline_server(status_label_sl, self, offline_progress, offline_progress_label)
         ScrollLabel:
             id: status_label_sl
             text: 'Click "Run Update" button to start'
@@ -201,6 +205,10 @@
 #                text: 'Click "Run Update" button to start'
 #                id: status_label
 #                on_text: status_label_sv.scroll_y = 0
+        Label:
+            id: offline_progress_label
+            size_hint_y: .05
+            text: ' '
         ProgressBar:
             id: offline_progress
             size_hint_y: .05
@@ -341,6 +349,7 @@
         Button:
             text: 'Upload FOG Image - Upload to OPE Repo \nNOTE: This option is not available for normal users'
             on_press: root.manager.current="fog_upload"
+
 <FogImportScreen>:
     BoxLayout:
         orientation: 'vertical'
@@ -483,7 +492,7 @@
 
 
 <FogDownloadScreen>:
-    on_enter: fog_image_download_file.file_system = app.get_fog_image_list()
+    # on_enter: fog_image_download_file.file_system = app.get_fog_image_list(); fog_image_download_file._update_files()
     BoxLayout:
         orientation: 'vertical'
         ActionBar:
@@ -530,7 +539,7 @@
             markup: True
         FileChooserListView:
             id: fog_image_download_file
-            filters: ['*.fog_image']
+            # filters: ['*.fog_image']
             multiselect: False
             file_system: app.get_fog_image_list()
             #path: "."
@@ -883,13 +892,6 @@
                     active: app.is_app_active('ope-dns')
 
                 GridLabel:
-                    text: "[b][color=ff0000]**[/color][/b] Clam Anti-virus (ope-clamav) - Holds anti-virus patterns for your network"
-                GridSwitch:
-                    id: clamv_on
-                    disabled: True
-                    active: app.is_app_active('ope-clamav')
-
-                GridLabel:
                     text: "[b][color=ff0000]**[/color][/b] Redis (ope-redis) - Memory caching server, used by Canvas and other apps"
                 GridSwitch:
                     id: redis_on
@@ -925,6 +927,14 @@
                     on_active: app.set_app_active('ope-smc', self.active)
 
                 GridLabel:
+                    text: "[b][color=00ff00]**[/color][/b] Clam Anti-virus (ope-clamav) - Holds anti-virus patterns for your network"
+                GridSwitch:
+                    id: clamv_on
+                    #disabled: True
+                    active: app.is_app_active('ope-clamav')
+                    on_active: app.set_app_active('ope-clamav', self.active)
+
+                GridLabel:
                     text: "[color=0000ff]**[/color] KALite (ope-kalite) - Khan Academy Lite - choose version available in RACHEL server"
                 GridSwitch:
                     id: kalite_on
@@ -932,11 +942,19 @@
                     on_active: app.set_app_active('ope-kalite', self.active)
 
                 GridLabel:
-                    text: "[color=ffff00]**[/color] Code Combat (ope-coco) - Lean to write code by scripting games in a website and solving puzzles"
+                    text: "[color=0000ff]**[/color] Code Combat (ope-codecombat) - Lean to write code by scripting games in a website and solving puzzles"
                 GridSwitch:
                     id: coco_on
-                    active: app.is_app_active('ope-coco')
-                    on_active: app.set_app_active('ope-coco', self.active)
+                    active: app.is_app_active('ope-codecombat')
+                    on_active: app.set_app_active('ope-codecombat', self.active)
+
+                GridLabel:
+                    text: "[color=0000ff]**[/color] GCFLearnFree (ope-gcf) - Learn basic computer skills - (version also available in RACHEL server)"
+                GridSwitch:
+                    id: gcf_on
+                    active: app.is_app_active('ope-gcf')
+                    on_active: app.set_app_active('ope-gcf', self.active)
+
 
                 GridLabel:
                     text: "[color=ffff00]**[/color] FreeCodeCamp (ope-freecodecamp) - Learn to code with lessons and projects from freecodecamp.com"
@@ -944,13 +962,6 @@
                     id: freecodecamp_on
                     active: app.is_app_active('ope-freecodecamp')
                     on_active: app.set_app_active('ope-freecodecamp', self.active)
-
-                GridLabel:
-                    text: "[color=ffff00]**[/color] GCFLearnFree (ope-gcf) - Learn basic computer skills - choose version available in RACHEL server"
-                GridSwitch:
-                    id: gcf_on
-                    active: app.is_app_active('ope-gcf')
-                    on_active: app.set_app_active('ope-gcf', self.active)
 
                 GridLabel:
                     text: "[color=ffff00]**[/color] JSBin (ope-jsbin) - Javascript learning environment"
@@ -979,6 +990,13 @@
                     id: wamap_on
                     active: app.is_app_active('ope-wamap')
                     on_active: app.set_app_active('ope-wamap', self.active)
+
+                GridLabel:
+                    text: "[color=ffff00]**[/color] WSL Wiki (ope-wsl) - WA State Library wiki with re-entry resources"
+                GridSwitch:
+                    id: wsl_on
+                    active: app.is_app_active('ope-wsl')
+                    on_active: app.set_app_active('ope-wsl', self.active)
 
 
 <LoginScreen>:

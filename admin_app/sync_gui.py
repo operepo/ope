@@ -762,15 +762,26 @@ class SyncOPEApp(App):
             if val != progress_widget.value:
                 progress_widget.value = val
 
-    def sftp_pull_files(self, remote_path, local_path, sftp, status_label, depth=1):
+    def sftp_pull_files(self, remote_path, local_path, sftp, status_label, depth=1, filename=""):
         global progress_widget_label, APP_RUNNING
         if progress_widget_label is None:
             progress_widget_label = Label()
 
+        # Adjust remote path if it is a file
+        list_path = remote_path
+        items = []
+        if filename != "":
+            list_path = os.path.join(remote_path, filename).replace("\\", "/")
+            s = sftp.stat(list_path)
+            s.filename = filename  # Make sure to add extra attrib filename so it matches what listdir_attr returns
+            items.append(s)
+        else:
+            items = sftp.listdir_attr(list_path)
+
         # Recursive Walk through the folder and pull changed files
         depth_str = " " * depth
         # TODO - follow symlinks for folders/files
-        for f in sftp.listdir_attr(remote_path):
+        for f in items:  # sftp.listdir_attr(list_path):
             if APP_RUNNING is not True:
                 print("Exiting Early...")
                 return
@@ -802,7 +813,8 @@ class SyncOPEApp(App):
                     pass
                 if f.st_mtime == l_mtime:
                     # status_label.text += "\n" + depth_str + "Files the same - skipping: " + f.filename
-                    progress_widget_label.text = f.filename + " (skip) "
+                    # progress_widget_label.text = f.filename + " (skip) "
+                    pass
                 elif f.st_mtime > l_mtime:
                     # status_label.text += "\n" + depth_str + "Remote file newer, downloading: " + f.filename
                     progress_widget_label.text = f.filename + " (dl) "
@@ -816,7 +828,7 @@ class SyncOPEApp(App):
                 # Non regular file
                 progress_widget_label.text = f.filename + " (no reg file - skip)"
 
-    def sftp_push_files(self, remote_path, local_path, sftp, status_label, depth=1):
+    def sftp_push_files(self, remote_path, local_path, sftp, status_label, depth=1, filename=""):
         global progress_widget_label, APP_RUNNING
         if progress_widget_label is None:
             progress_widget_label = Label()
@@ -826,7 +838,13 @@ class SyncOPEApp(App):
         # Need to decode unicode/mbcs encoded paths
         enc_local_path = local_path.decode(sys.getfilesystemencoding())
 
-        for item in os.listdir(local_path):
+        items = []
+        if filename != "":
+            items.append(filename)
+        else:
+            items = os.listdir(local_path)
+
+        for item in items:  # os.listdir(local_path):
             if APP_RUNNING is not True:
                 print("Exiting Early...")
                 return
@@ -872,8 +890,9 @@ class SyncOPEApp(App):
                 except:
                     pass
                 if r_mtime == l_mtime:
-                    progress_widget_label.text = enc_item.encode('ascii', 'ignore') + " (skip) "
+                    # progress_widget_label.text = enc_item.encode('ascii', 'ignore') + " (skip) "
                     # status_label.text += " - Files the same - skipping. "
+                    pass
                 elif l_mtime > r_mtime:
                     progress_widget_label.text = enc_item.encode('ascii', 'ignore') + " (uploading) "
                     # status_label.text += " - Local file newer, uploading..."
@@ -1025,6 +1044,8 @@ class SyncOPEApp(App):
                         dots = "."
                     upload_speed = ""
                     elapsed_time = time.time() - start_time
+                    if elapsed_time == 0:
+                        elapsed_time = 1
                     transfer_speed = float(current_pos / elapsed_time)
                     if transfer_speed == 0:
                         transfer_speed = 1
@@ -1238,6 +1259,8 @@ class SyncOPEApp(App):
                         dots = "."
                     upload_speed = ""
                     elapsed_time = time.time() - start_time
+                    if elapsed_time == 0:
+                        elapsed_time = 1
                     transfer_speed = float(current_pos / elapsed_time)
                     if transfer_speed == 0:
                         transfer_speed = 1
@@ -1246,7 +1269,7 @@ class SyncOPEApp(App):
                     still_queued = total_size - current_pos
                     time_left = str(timedelta(seconds=int(still_queued / transfer_speed)))
 
-                    error_message.text = "Uploading " + image_name + "    " + upload_speed + "  " + time_left + dots
+                    error_message.text = "Downloading " + image_name + "    " + upload_speed + "  " + time_left + dots
                     last_update = time.time()
 
         chan_f.close()
@@ -1300,7 +1323,7 @@ class SyncOPEApp(App):
             total_size = int(r.headers.get('content-length'))
         except Exception as ex:
             pass
-        if total_size is None:
+        if total_size is None or total_size == 0:
             total_size = 1
         current_pos = 0
 
@@ -1324,6 +1347,8 @@ class SyncOPEApp(App):
                         dots = "."
                     upload_speed = ""
                     elapsed_time = time.time() - start_time
+                    if elapsed_time == 0:
+                        elapsed_time = 1
                     transfer_speed = float(current_pos / elapsed_time)
                     if transfer_speed == 0:
                         transfer_speed = 1
@@ -1332,7 +1357,7 @@ class SyncOPEApp(App):
                     still_queued = total_size - current_pos
                     time_left = str(timedelta(seconds=int(still_queued / transfer_speed)))
 
-                    error_message.text = "Uploading " + dl_name + "    " + upload_speed + "  " + time_left + dots
+                    error_message.text = "Downloading " + dl_name + "    " + upload_speed + "  " + time_left + dots
                     last_update = time.time()
 
         fog_image_download_button.disabled = False
@@ -1430,6 +1455,8 @@ class SyncOPEApp(App):
                         dots = "."
                     upload_speed = ""
                     elapsed_time = time.time() - start_time
+                    if elapsed_time == 0:
+                        elapsed_time = 1
                     transfer_speed = float(current_pos / elapsed_time)
                     if transfer_speed == 0:
                         transfer_speed = 1
@@ -1467,14 +1494,15 @@ class SyncOPEApp(App):
 
         return fog_images_path
 
-    def sync_volume(self, volume, folder, ssh, ssh_folder, status_label, branch="master", sync_type="sync"):
-        # Sync files on the online server with the USB drive
+    def sync_volume(self, volume, folder, ssh, ssh_folder, status_label, branch="master", sync_type="sync", filename=""):
+        # Sync files on the server with the USB drive
 
         # Get project folder (parent folder)
         root_path = os.path.dirname(get_app_folder())
         volumes_path = os.path.join(root_path, "volumes")
         volume_path = os.path.join(volumes_path, volume)
         folder_path = os.path.join(volume_path, folder.replace("/", os.sep))
+        local_file_path = os.path.join(folder_path, filename)
 
         # Figure the path for the git app
         git_path = os.path.join(root_path, "bin/bin/git.exe")
@@ -1488,6 +1516,7 @@ class SyncOPEApp(App):
 
         # Ensure the folder exists on the server
         remote_folder_path = os.path.join(ssh_folder, "volumes", volume, folder).replace("\\", "/")
+        remote_file_path = os.path.join(remote_folder_path, filename).replace("\\", "/")
         stdin, stdout, stderr = ssh.exec_command("mkdir -p " + remote_folder_path, get_pty=True)
         stdin.close()
         for line in stdout:
@@ -1501,12 +1530,12 @@ class SyncOPEApp(App):
         # Copy remote files to the USB drive
         if sync_type == "sync" or sync_type == "dl":
             status_label.text += "\nDownloading new files..."
-            self.sftp_pull_files(remote_folder_path, folder_path, sftp, status_label)
+            self.sftp_pull_files(remote_folder_path, folder_path, sftp, status_label, filename=filename)
 
         if sync_type == "sync" or sync_type == "ul":
             # Walk the local folder and see if there are files that don't exist that should be copied
             status_label.text += "\nUploading new files..."
-            self.sftp_push_files(remote_folder_path, folder_path, sftp, status_label)
+            self.sftp_push_files(remote_folder_path, folder_path, sftp, status_label, filename=filename)
 
         sftp.close()
         global progress_widget_label
@@ -1824,10 +1853,27 @@ class SyncOPEApp(App):
         stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ip + "\" > .ip; ", get_pty=True)
         for line in stdout:
             pass
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + domain + "\" > .domain; ", get_pty=True)
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + domain + "\" > .domain; ",
+                                                 get_pty=True)
         for line in stdout:
             pass
-        stdin, stdout, stderr = ssh.exec_command("""cd """ + build_path + """; echo """ + ssh_pass + """ > .pw; """, get_pty=True)
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .pw; ",
+                                                 get_pty=True)
+        for line in stdout:
+            pass
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + domain + "\" > .DOMAIN; ",
+                                                 get_pty=True)
+        for line in stdout:
+            pass
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ip + "\" > .IP; ", get_pty=True)
+        for line in stdout:
+            pass
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .IT_PW; ",
+                                                 get_pty=True)
+        for line in stdout:
+            pass
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .OFFICE_PW; ",
+                                                 get_pty=True)
         for line in stdout:
             pass
 
@@ -1896,10 +1942,22 @@ class SyncOPEApp(App):
         stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ip + "\" > .ip; ", get_pty=True)
         for line in stdout:
             pass
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; if [ ! -f .domain ]; then echo \"" + domain + "\" > .domain; fi ", get_pty=True)
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + domain + "\" > .domain; ", get_pty=True)
         for line in stdout:
             pass
         stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .pw; ", get_pty=True)
+        for line in stdout:
+            pass
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + domain + "\" > .DOMAIN; ", get_pty=True)
+        for line in stdout:
+            pass
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ip + "\" > .IP; ", get_pty=True)
+        for line in stdout:
+            pass
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .IT_PW; ", get_pty=True)
+        for line in stdout:
+            pass
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .OFFICE_PW; ", get_pty=True)
         for line in stdout:
             pass
 
@@ -2160,10 +2218,12 @@ class SyncOPEApp(App):
                 if online_state == 'offline':
                      sync_type = 'ul'
                 # Sync video files
-                self.sync_volume('kalite', 'database/content_khan_en.sqlite', ssh, ssh_folder, status_label,
-                                 sync_type=sync_type)
-                self.sync_volume('kalite', 'secretkey.txt', ssh, ssh_folder, status_label, sync_type=sync_type)
-                self.sync_volume('kalite', 'settings.py', ssh, ssh_folder, status_label, sync_type=sync_type)
+                self.sync_volume('kalite', 'database', ssh, ssh_folder, status_label,
+                                 sync_type=sync_type, filename='content_khan_en.sqlite')
+                self.sync_volume('kalite', '', ssh, ssh_folder, status_label,
+                                 sync_type=sync_type, filename='secretkey.txt')
+                self.sync_volume('kalite', '', ssh, ssh_folder, status_label,
+                                 sync_type=sync_type, filename='settings.py')
                 self.sync_volume('kalite', 'content', ssh, ssh_folder, status_label, sync_type=sync_type)
                 self.sync_volume('kalite', 'locale', ssh, ssh_folder, status_label, sync_type=sync_type)
                 self.sync_volume('kalite', 'httpsrv', ssh, ssh_folder, status_label, sync_type=sync_type)
