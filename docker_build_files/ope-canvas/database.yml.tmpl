@@ -6,14 +6,16 @@ test:
   port: 5432
   username: postgres
   password: "<IT_PW>"
-  timeout: 5000
+  timeout: 50000
+  pool: 150
 
 login: &login
   adapter: postgresql
   encoding: utf8
-  timeout: 5000
+  timeout: 50000
   username: "postgres"
   password: "<IT_PW>"
+  pool: 150
 
 development:
   <<: *login
