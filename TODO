@@ -10,6 +10,7 @@ BUG Canvas database config - connection pool timeout.
 	- Dropped delayed_worker count to 2 from 4
 	- Update dastabase.yml to have a pool parameter which ups the connection pool from 5
 
+BUG Codecombat doesn't copy dump.tar.gz and import it properly offline - volume not syncing?
 
 
 - ADD START_BOOT -> FINISH_BOOT status file for each container so we can see when things like canvas are actually online and ready

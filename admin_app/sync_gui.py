@@ -2162,6 +2162,14 @@ class SyncOPEApp(App):
                 # Sync video files
                 self.sync_volume('kalite', 'content', ssh, ssh_folder, status_label, sync_type=sync_type)
                 # TODO - Do we need to sync other folders? locale?
+			
+			if app == "ope-codecombat":
+				sync_type = 'dl'
+				if online_state == 'offline':
+					sync_type = 'ul'
+				# Sync dump.tar.gz file so we have a database to import
+				self.sync_volume('codecombat', 'data', ssh, ssh_folder, status_label, sync_type=sync_type, filename='dump.tar.gz')
+				# TODO - decide if we need to remove the data/.db_updated file to cause a re-import
 
     def update_online_server(self, status_label, run_button=None, progress_bar=None, progress_label=None):
         if run_button is not None:
