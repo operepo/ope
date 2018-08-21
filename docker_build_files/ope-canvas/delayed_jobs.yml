@@ -3,8 +3,8 @@ production:
   - queue: canvas_queue
     workers: 2
     max_priority: 10
-  - queue: canvas_queue
-    workers: 4
+  #- queue: canvas_queue
+  #  workers: 4
   # if set, workers will process this many jobs and then die, causing the pool
   # to spawn another worker. this can help return memory to the OS.
   # worker_max_job_count: 20
