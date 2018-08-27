@@ -2162,14 +2162,42 @@ class SyncOPEApp(App):
                 # Sync video files
                 self.sync_volume('kalite', 'content', ssh, ssh_folder, status_label, sync_type=sync_type)
                 # TODO - Do we need to sync other folders? locale?
-			
-			if app == "ope-codecombat":
-				sync_type = 'dl'
-				if online_state == 'offline':
-					sync_type = 'ul'
-				# Sync dump.tar.gz file so we have a database to import
-				self.sync_volume('codecombat', 'data', ssh, ssh_folder, status_label, sync_type=sync_type, filename='dump.tar.gz')
-				# TODO - decide if we need to remove the data/.db_updated file to cause a re-import
+            
+            if app == "ope-codecombat":
+                # open sftp connection and move to the codecombat data folder
+                sftp = ssh.open_sftp()
+                server_path = os.path.join(ssh_folder, "volumes/codecombat/data").replace("\\", "/)
+                sftp.cddir(server_path)
+                
+                if online_state == "online":
+                    # ONLINE
+                    # Wait for .dl_complete file to show up, then download the dump.tar.gz file
+                    TODO - need if file exists?
+                    dl_complete_found = False
+                    while not dl_complete_found:
+                        # Grab a list of files
+                        f_list = sftp.listdir_attr(server_path)
+                        for f_item in f_list:
+                            if f_item.filename == ".dl_complete":
+                                dl_complete_found = True
+                        # waiting for database to download and unpack
+                        echo "waiting for db to dl..."
+                        sleep(3)
+                    
+                    self.sync_volume('codecombat', 'data', ssh, ssh_folder, status_label, sync_type='dl', filename='dump.tar.gz')
+                else:
+                    # OFFLINE TODO
+                    # Copy dump.tar.gz file
+                    # unpack file 
+                    # touch  .unpacked file to signal that db is ready for import
+                    self.sync_volume('codecombat', 'data', ssh, ssh_folder, status_label, sync_type='ul', filename='dump.tar.gz')
+                    ssh_command = "cd " + ssh_folder + "/volumes/codecombat/data; tar xzf dump.tar.gz; touch .unpacked;"
+                    stdin, stdout, stderr = ssh.exec_command(ssh_command, get_pty=True)
+                    stdin.close()
+                    out = stdout.read().decode('utf-8').strip()
+                
+                sftp.close()
+                
 
     def update_online_server(self, status_label, run_button=None, progress_bar=None, progress_label=None):
         if run_button is not None:

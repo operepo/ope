@@ -1,6 +1,8 @@
 
 8/14/18
 BUG SMC - Student attempt to change password, AD error saying "unable to change pw on non existent account"
+    - AD._ldap - Being init, but not connected results in all future connection attempts to bypass actual bind call
+        Setting _ldap back to null on connect exception should cause full connection attempt next time around.
 
 BUG Canvas database config - connection pool timeout.
     - Set at 5000 (5 sec). Upped to 50000 helps, trying 300000.
@@ -11,6 +13,8 @@ BUG Canvas database config - connection pool timeout.
 	- Update dastabase.yml to have a pool parameter which ups the connection pool from 5
 
 BUG Codecombat doesn't copy dump.tar.gz and import it properly offline - volume not syncing?
+
+BUG Canvas importing imscc > 600 meg - timeout - seems to work with direct connection to canvas port, seems to be nginx/gateway timeout issue
 
 
 - ADD START_BOOT -> FINISH_BOOT status file for each container so we can see when things like canvas are actually online and ready
@@ -71,3 +75,5 @@ CANVAS
 https://cdn.mathjax.org/mathjax/2.1-latest/MathJax.js?config=TeX-AMS_HTML.js&_=1485206720072
 
 test
+
+
