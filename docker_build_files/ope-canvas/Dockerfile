@@ -164,6 +164,7 @@ COPY dbinit.sh /usr/src/dbinit.sh
 COPY start.sh /usr/src/start.sh
 COPY ope.rake lib/tasks/ope.rake
 
+COPY ViewerJS public/vendor/
 
 
 USER root

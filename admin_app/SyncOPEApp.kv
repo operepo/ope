@@ -1,5 +1,6 @@
 
 <MainWindow>:
+    # NOT USED - Look for StartScreen
     BoxLayout:
         orientation: 'vertical'
         ActionBar:
@@ -15,8 +16,7 @@
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
                 ActionLabel:
-                    id: label1
-                    text: "Label"
+                    text: "V" + app.APP_VERSION
                 ActionButton:
                     text: "Settings (F1)"
                     on_release: app.open_settings()
@@ -95,7 +95,7 @@
             pos_hint: { 'top': 1}
             ActionView:
                 ActionPrevious:
-                    title: 'OPE Admin Tool - Updating online server'
+                    title: 'OPE Admin Tool - Online Update'
                     with_previous: False
                     app_icon: "logo_icon.png"
                 ActionOverflow:
@@ -103,6 +103,9 @@
                 #    text: 'Btn0'
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
 
                 ActionButton:
                     text: "<-- Back"
@@ -166,6 +169,9 @@
                 #    text: 'Btn0'
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
 
                 ActionButton:
                     text: "<-- Back"
@@ -231,6 +237,9 @@
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
 
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
+
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="start"
@@ -265,6 +274,9 @@
                 #    text: 'Btn0'
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
 
                 ActionButton:
                     text: "Settings (F1)"
@@ -321,6 +333,9 @@
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
 
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
+
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="start"
@@ -366,6 +381,9 @@
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
 
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
+
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="manage_fog"
@@ -404,6 +422,8 @@
             #on_selection: fog_upload_file = self.selection and self.selection[0] or ''
             height: 200
             size_hint_y: None
+            # Needed because of bug - https://github.com/kivy/kivy/issues/5595
+            show_hidden: True
         Button:
             id: fog_import_from_usb_button
             text: 'Import Image'
@@ -435,6 +455,9 @@
                 #    text: 'Btn0'
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
 
                 ActionButton:
                     text: "<-- Back"
@@ -475,6 +498,8 @@
             #on_selection: fog_upload_file = self.selection and self.selection[0] or ''
             height: 200
             size_hint_y: None
+            # Needed because of bug - https://github.com/kivy/kivy/issues/5595
+            show_hidden: True
         Button:
             id: fog_export_to_usb_button
             text: 'Export Image'
@@ -507,6 +532,9 @@
                 #    text: 'Btn0'
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
 
                 ActionButton:
                     text: "<-- Back"
@@ -547,6 +575,8 @@
             #on_selection: fog_upload_file = self.selection and self.selection[0] or ''
             height: 120
             size_hint_y: None
+            # Needed because of bug - https://github.com/kivy/kivy/issues/5595
+            show_hidden: True
         Button:
             id: fog_image_download_button
             text: 'Get File'
@@ -578,6 +608,9 @@
                 #    text: 'Btn0'
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
 
                 ActionButton:
                     text: "<-- Back"
@@ -651,6 +684,8 @@
             #on_selection: fog_upload_file = self.selection and self.selection[0] or ''
             height: 120
             size_hint_y: None
+            # Needed because of bug - https://github.com/kivy/kivy/issues/5595
+            show_hidden: True
         Button:
             id: fog_image_upload_send_button
             text: 'Send File'
@@ -683,6 +718,9 @@
                 #    text: 'Btn0'
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
 
                 ActionButton:
                     text: "<-- Back"
@@ -722,6 +760,9 @@
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
 
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
+
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="start"
@@ -758,6 +799,9 @@
                 #    text: 'Btn0'
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
 
                 ActionButton:
                     text: "<-- Back"
@@ -830,6 +874,9 @@
                 #    text: 'Btn0'
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
 
                 ActionButton:
                     text: "<-- Back"

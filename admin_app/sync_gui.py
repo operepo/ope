@@ -5,20 +5,86 @@ import os
 import requests
 import re
 from functools import partial
+import sys
+import re
+from os.path import expanduser
+import logging
+
 
 # try glew + gles or sdl2?
-os.environ["KIVY_GL_BACKEND"] = "glew" # "angle_sdl2"  # gl, glew, sdl2, angle_sdl2, mock
+os.environ["KIVY_GL_BACKEND"] = "angle_sdl2"  # "glew" # "angle_sdl2"  # gl, glew, sdl2, angle_sdl2, mock
 os.environ["KIVY_GRAPHICS"] = "gles"  # "gles"
 # os.environ["KIVY_GL_DEBUG"] = "1"
 # os.environ["USE_SDL2"] = "1"
-# os.environ["KIVY_WINDOW"] = "pygame"  # "sdl2" "pygame"
+# os.environ["KIVY_WINDOW"] = "sdl2"  # "sdl2" "pygame"
 # os.environ["KIVY_IMAGE"] = "sdl2"  # img_tex, img_dds, img_sdl2, img_ffpyplayer, img_gif, img_pil
+# os.environ["KIVY_TEXT"] = "sdl2"
+
+APP_FOLDER = None
+APP_RUNNING = True
+# LOAD THIS VERSION
+APP_VERSION = "0.0"
+
+
+def get_app_folder():
+    global Logger, APP_FOLDER
+    ret = ""
+    # Adjusted to save APP_FOLDER - issue #6 - app_folder not returning the same folder later in the app?
+    if APP_FOLDER is None:
+        # return the folder this app is running in.
+        # Logger.info("Application: get_app_folder called...")
+        if getattr(sys, 'frozen', False):
+            # Running in pyinstaller bundle
+            ret = sys._MEIPASS
+            # Logger.info("Application: sys._MEIPASS " + sys._MEIPASS)
+            # Adjust to use sys.executable to deal with issue #6 - path different if cwd done
+            # ret = os.path.dirname(sys.executable)
+            # Logger.info("AppPath: sys.executable " + ret)
+
+        else:
+            ret = os.path.dirname(os.path.abspath(__file__))
+            # Logger.info("AppPath: __file__ " + ret)
+        APP_FOLDER = ret
+        # Add this folder to the os path so that resources can be found more reliably
+        print("-- ADJUSTING SYS PATH -- " + ret)
+        text_dir = os.path.join(APP_FOLDER, "kivy\\core\\text")
+        os.environ["PATH"] = os.environ["PATH"] + ";" + ret + ";" + text_dir
+
+    else:
+        ret = APP_FOLDER
+    return ret
+
+
+# Run as app starts to make sure we save the current app folder
+# in response to issue #6
+get_app_folder()
+print("APP FOLDER " + APP_FOLDER)
+
+VERSION_FILE = os.path.join(APP_FOLDER, "version.json")
+if os.path.isfile(VERSION_FILE):
+    try:
+        f = open(VERSION_FILE, "r")
+        json_str = f.read()
+        f.close()
+        j_arr = json.loads(json_str)
+        APP_VERSION = j_arr['version']
+    except:
+        APP_VERSION = "ERR"
+
 
 from kivy.config import Config
 Config.set('kivy', 'exit_on_escape', '0')
 Config.set('graphics', 'multisamples', '0')
 Config.set('graphics', 'fbo', 'software')
-#Config.set('KIVY_GRAPHICS', 'gles')
+Config.set('kivy', 'log_level', 'debug')  # ''trace')
+
+#[kivy]
+#log_level = info
+#log_enable = 1
+#log_dir = logs
+#log_name = kivy_%y-%m-%d_%_.txt
+#log_maxfiles = 100
+# Config.set('KIVY_GRAPHICS', 'gles')
 # Adjust kivy config to change window look/behavior
 # Config.set('graphics','borderless',1)
 # Config.set('graphics','resizable',0)
@@ -29,10 +95,7 @@ Config.set('graphics', 'fbo', 'software')
 # Config.set('graphics', 'resizeable', '0')
 # Config.set('graphics', 'borderless', '1')
 
-import sys
-import re
-from os.path import expanduser
-import logging
+
 import paramiko
 # Deal with issue #12 - No handlers could be found for logger "paramiko.transport"
 paramiko.util.log_to_file("ssh.log")
@@ -69,9 +132,21 @@ from datetime import datetime, timedelta
 
 import kivy
 
+if 'KIVY_DATA_DIR' in os.environ:
+    print("KIVY_DATA_DIR " + os.environ['KIVY_DATA_DIR'])
+if 'KIVY_MODULES_DIR' in os.environ:
+    print("KIVY_MODULES_DIR " + os.environ['KIVY_MODULES_DIR'])
+if 'KIVY_HOME' in os.environ:
+    print("KIVY_HOME " + os.environ['KIVY_HOME'])
+if 'KIVY_SDL2_PATH' in os.environ:
+    print("KIVY_SDL2_PATH " + os.environ['KIVY_SDL2_PATH'])
+if 'PYTHONPATH' in os.environ:
+    print("PYTHONPATH " + os.environ['PYTHONPATH'])
+for p in sys.path:
+    print("P " + str(p))
+
 from kivy.app import App
 from kivy.properties import ObjectProperty
-Config.set('graphics', 'multisamples', '0')
 from kivy.clock import Clock
 from kivy.factory import Factory
 from kivy.network.urlrequest import UrlRequest
@@ -93,14 +168,13 @@ from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.core.window import Window
 from kivy.uix.filechooser import FileChooser, FileChooserListView, FileChooserIconView, FileSystemAbstract
-kivy.require('1.10.0')
-
+kivy.require('1.10.1')
+# Add this path to the resources path
+kivy.resources.resource_add_path(APP_FOLDER)
 # TODO TODO TODO - [CRITICAL] [Clock       ] Warning, too much iteration done before the next frame. Check your code, or increase the Clock.max_iteration attribute
 # Clock.max_iteration = 20
 # Window.size = (900, 800)
 # Window.borderless = True
-APP_FOLDER = None
-APP_RUNNING = True
 
 # Git Repos to pull
 GIT_REPOS = {"sysprep_scripts": "https://github.com/operepo/sysprep_scripts.git",
@@ -120,35 +194,6 @@ def get_human_file_size(size):
 
     ret = "{0:.2f}".format(t) + " " + sizes[count]
     return ret
-
-
-def get_app_folder():
-    global Logger, APP_FOLDER
-    ret = ""
-    # Adjusted to save APP_FOLDER - issue #6 - app_folder not returning the same folder later in the app?
-    if APP_FOLDER is None:
-        # return the folder this app is running in.
-        # Logger.info("Application: get_app_folder called...")
-        if getattr(sys, 'frozen', False):
-            # Running in pyinstaller bundle
-            ret = sys._MEIPASS
-            # Logger.info("Application: sys._MEIPASS " + sys._MEIPASS)
-            # Adjust to use sys.executable to deal with issue #6 - path different if cwd done
-            # ret = os.path.dirname(sys.executable)
-            # Logger.info("AppPath: sys.executable " + ret)
-        else:
-            ret = os.path.dirname(os.path.abspath(__file__))
-            # Logger.info("AppPath: __file__ " + ret)
-        APP_FOLDER = ret
-    else:
-        ret = APP_FOLDER
-    return ret
-
-
-# Run as app starts to make sure we save the current app folder
-# in response to issue #6
-get_app_folder()
-
 
 def get_home_folder():
     home_path = expanduser("~")
@@ -325,6 +370,7 @@ class FogDownloadFileSystem(FileSystemAbstract):
 
     def getwebdir(self, url):
         # Pull the URL
+
         try:
             response = requests.get(url)
 
@@ -524,6 +570,7 @@ class MainWindow(BoxLayout):
 
 
 class SyncOPEApp(App):
+    APP_VERSION = APP_VERSION
     # URL to download fog images from
     ope_fog_images_url = "http://dl.correctionsed.com/ope_lt_images"
     server_mode = 'online'  # Start in online mode?
@@ -2230,18 +2277,19 @@ class SyncOPEApp(App):
 
 
                 # TODO - Do we need to sync other folders? locale?
-			
-			if app == "ope-codecombat":
-				sync_type = 'dl'
-				if online_state == 'offline':
-					sync_type = 'ul'
+            
+            if app == "ope-codecombat":
+                sync_type = 'dl'
+                if online_state == 'offline':
+                    sync_type = 'ul'
                 else:
+                    pass
                     # Make sure there is a dump.tar.gz file downloaded
                     # TODO
-				# Sync dump.tar.gz file so we have a database to import
-				self.sync_volume('codecombat', 'data', ssh, ssh_folder, status_label,
+                #  Sync dump.tar.gz file so we have a database to import
+                self.sync_volume('codecombat', 'data', ssh, ssh_folder, status_label,
                                  sync_type=sync_type, filename='dump.tar.gz')
-				# TODO - decide if we need to remove the data/.db_updated file to cause a re-import
+                # TODO - decide if we need to remove the data/.db_updated file to cause a re-import
 
     def update_online_server(self, status_label, run_button=None, progress_bar=None, progress_label=None):
         if run_button is not None:
@@ -2525,6 +2573,7 @@ class SyncOPEApp(App):
 if __name__ == "__main__":
     # Start the app
     SyncOPEApp().run()
+
 
 
 # === Build process ===
