@@ -1,3 +1,7 @@
+Canvas File Uploads: https://community.canvaslms.com/thread/17201-upload-files-to-canvas-using-python
+Assignment Submission: https://community.canvaslms.com/thread/12970-submit-assignment-via-api
+
+
 
 Drawer
 {

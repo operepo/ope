@@ -6,6 +6,7 @@ import pyaes
 import threading
 import os
 import base64
+import sys
 
 
 class Enc:
@@ -79,11 +80,16 @@ class Enc:
             data = ""
         # Make sure data is ascii
         # data = str(data)
-        if isinstance(data, unicode):
-            data = data.encode('utf-8')
+        if sys.version_info >= (3, 0, 0):
+            # Python 3+
+            # All strings are already unicode
+            pass
+        else:
+            if isinstance(data, unicode):
+                data = data.encode('utf-8')
         decode_data = base64.urlsafe_b64decode(data)
-        #iv, data = data[:16], data[16:]
-        #cipher, _ = Enc.aes_new(key, iv=iv)
+        # iv, data = data[:16], data[16:]
+        # cipher, _ = Enc.aes_new(key, iv=iv)
         cipher = Enc.aes_new(key)
         plain_text = cipher.decrypt(decode_data)
         # data = data.rstrip(' ')

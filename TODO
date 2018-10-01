@@ -4,6 +4,8 @@ BUG SMC - Student attempt to change password, AD error saying "unable to change 
     - AD._ldap - Being init, but not connected results in all future connection attempts to bypass actual bind call
         Setting _ldap back to null on connect exception should cause full connection attempt next time around.
 
+BUG SMC - Task - schedule refresh all logins - timing out - shouldn't run when ad is disabled.
+
 BUG Canvas database config - connection pool timeout.
     - Set at 5000 (5 sec). Upped to 50000 helps, trying 300000.
     - Why slow connection pool? Specifically on large course import (400+ meg).

@@ -1,5 +1,6 @@
 
 <MainWindow>:
+    # NOT USED - Look for StartScreen
     BoxLayout:
         orientation: 'vertical'
         ActionBar:
@@ -15,8 +16,7 @@
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
                 ActionLabel:
-                    id: label1
-                    text: "Label"
+                    text: "V" + app.APP_VERSION
                 ActionButton:
                     text: "Settings (F1)"
                     on_release: app.open_settings()
@@ -95,7 +95,7 @@
             pos_hint: { 'top': 1}
             ActionView:
                 ActionPrevious:
-                    title: 'OPE Admin Tool - Updating online server'
+                    title: 'OPE Admin Tool - Online Update'
                     with_previous: False
                     app_icon: "logo_icon.png"
                 ActionOverflow:
@@ -103,6 +103,9 @@
                 #    text: 'Btn0'
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
 
                 ActionButton:
                     text: "<-- Back"
@@ -166,6 +169,9 @@
                 #    text: 'Btn0'
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
 
                 ActionButton:
                     text: "<-- Back"
@@ -231,6 +237,9 @@
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
 
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
+
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="start"
@@ -265,6 +274,9 @@
                 #    text: 'Btn0'
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
 
                 ActionButton:
                     text: "Settings (F1)"
@@ -321,6 +333,9 @@
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
 
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
+
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="start"
@@ -366,6 +381,9 @@
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
 
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
+
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="manage_fog"
@@ -404,6 +422,8 @@
             #on_selection: fog_upload_file = self.selection and self.selection[0] or ''
             height: 200
             size_hint_y: None
+            # Needed because of bug - https://github.com/kivy/kivy/issues/5595
+            show_hidden: True
         Button:
             id: fog_import_from_usb_button
             text: 'Import Image'
@@ -435,6 +455,9 @@
                 #    text: 'Btn0'
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
 
                 ActionButton:
                     text: "<-- Back"
@@ -475,6 +498,8 @@
             #on_selection: fog_upload_file = self.selection and self.selection[0] or ''
             height: 200
             size_hint_y: None
+            # Needed because of bug - https://github.com/kivy/kivy/issues/5595
+            show_hidden: True
         Button:
             id: fog_export_to_usb_button
             text: 'Export Image'
@@ -507,6 +532,9 @@
                 #    text: 'Btn0'
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
 
                 ActionButton:
                     text: "<-- Back"
@@ -547,6 +575,8 @@
             #on_selection: fog_upload_file = self.selection and self.selection[0] or ''
             height: 120
             size_hint_y: None
+            # Needed because of bug - https://github.com/kivy/kivy/issues/5595
+            show_hidden: True
         Button:
             id: fog_image_download_button
             text: 'Get File'
@@ -578,6 +608,9 @@
                 #    text: 'Btn0'
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
 
                 ActionButton:
                     text: "<-- Back"
@@ -651,6 +684,8 @@
             #on_selection: fog_upload_file = self.selection and self.selection[0] or ''
             height: 120
             size_hint_y: None
+            # Needed because of bug - https://github.com/kivy/kivy/issues/5595
+            show_hidden: True
         Button:
             id: fog_image_upload_send_button
             text: 'Send File'
@@ -683,6 +718,9 @@
                 #    text: 'Btn0'
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
 
                 ActionButton:
                     text: "<-- Back"
@@ -722,6 +760,9 @@
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
 
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
+
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="start"
@@ -758,6 +799,9 @@
                 #    text: 'Btn0'
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
 
                 ActionButton:
                     text: "<-- Back"
@@ -831,6 +875,9 @@
                 #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
                 #    on_release: app.populate()
 
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
+
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="start"
@@ -892,13 +939,6 @@
                     active: app.is_app_active('ope-dns')
 
                 GridLabel:
-                    text: "[b][color=ff0000]**[/color][/b] Clam Anti-virus (ope-clamav) - Holds anti-virus patterns for your network"
-                GridSwitch:
-                    id: clamv_on
-                    disabled: True
-                    active: app.is_app_active('ope-clamav')
-
-                GridLabel:
                     text: "[b][color=ff0000]**[/color][/b] Redis (ope-redis) - Memory caching server, used by Canvas and other apps"
                 GridSwitch:
                     id: redis_on
@@ -934,6 +974,14 @@
                     on_active: app.set_app_active('ope-smc', self.active)
 
                 GridLabel:
+                    text: "[b][color=00ff00]**[/color][/b] Clam Anti-virus (ope-clamav) - Holds anti-virus patterns for your network"
+                GridSwitch:
+                    id: clamv_on
+                    #disabled: True
+                    active: app.is_app_active('ope-clamav')
+                    on_active: app.set_app_active('ope-clamav', self.active)
+
+                GridLabel:
                     text: "[color=0000ff]**[/color] KALite (ope-kalite) - Khan Academy Lite - choose version available in RACHEL server"
                 GridSwitch:
                     id: kalite_on
@@ -941,11 +989,19 @@
                     on_active: app.set_app_active('ope-kalite', self.active)
 
                 GridLabel:
-                    text: "[color=ffff00]**[/color] Code Combat (ope-coco) - Lean to write code by scripting games in a website and solving puzzles"
+                    text: "[color=0000ff]**[/color] Code Combat (ope-codecombat) - Lean to write code by scripting games in a website and solving puzzles"
                 GridSwitch:
                     id: coco_on
-                    active: app.is_app_active('ope-coco')
-                    on_active: app.set_app_active('ope-coco', self.active)
+                    active: app.is_app_active('ope-codecombat')
+                    on_active: app.set_app_active('ope-codecombat', self.active)
+
+                GridLabel:
+                    text: "[color=0000ff]**[/color] GCFLearnFree (ope-gcf) - Learn basic computer skills - (version also available in RACHEL server)"
+                GridSwitch:
+                    id: gcf_on
+                    active: app.is_app_active('ope-gcf')
+                    on_active: app.set_app_active('ope-gcf', self.active)
+
 
                 GridLabel:
                     text: "[color=ffff00]**[/color] FreeCodeCamp (ope-freecodecamp) - Learn to code with lessons and projects from freecodecamp.com"
@@ -953,13 +1009,6 @@
                     id: freecodecamp_on
                     active: app.is_app_active('ope-freecodecamp')
                     on_active: app.set_app_active('ope-freecodecamp', self.active)
-
-                GridLabel:
-                    text: "[color=ffff00]**[/color] GCFLearnFree (ope-gcf) - Learn basic computer skills - choose version available in RACHEL server"
-                GridSwitch:
-                    id: gcf_on
-                    active: app.is_app_active('ope-gcf')
-                    on_active: app.set_app_active('ope-gcf', self.active)
 
                 GridLabel:
                     text: "[color=ffff00]**[/color] JSBin (ope-jsbin) - Javascript learning environment"
@@ -988,6 +1037,13 @@
                     id: wamap_on
                     active: app.is_app_active('ope-wamap')
                     on_active: app.set_app_active('ope-wamap', self.active)
+
+                GridLabel:
+                    text: "[color=ffff00]**[/color] WSL Wiki (ope-wsl) - WA State Library wiki with re-entry resources"
+                GridSwitch:
+                    id: wsl_on
+                    active: app.is_app_active('ope-wsl')
+                    on_active: app.set_app_active('ope-wsl', self.active)
 
 
 <LoginScreen>:
