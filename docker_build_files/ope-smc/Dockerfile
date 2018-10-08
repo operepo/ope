@@ -2,7 +2,7 @@ FROM alpine:3.4
 MAINTAINER Ray Pulspher <ray@cmagic.biz>
 LABEL Description="Student Management Console - Image for Open Prison Education"
 LABEL Vendor="openprisoneducation.com"
-LABEL Version="0.3"
+LABEL Version="0.4"
 
 # install base
 RUN apk add --update --no-cache \
@@ -13,7 +13,7 @@ RUN apk add --update --no-cache \
         python python-dev mysql-client libxml2-dev py-pip \
         unzip wget net-tools git git-daemon unzip \
         openssl zip postgresql-dev openldap-dev \
-        supervisor \
+        supervisor libffi-dev\
     && pip install --upgrade pip \
     && pip install --upgrade setuptools python-ldap pycrypto crypto PyMySQL psycopg2-binary uwsgi uwsgitop \
 # matplotlib reportlab ldap
