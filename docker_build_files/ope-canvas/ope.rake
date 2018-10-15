@@ -453,6 +453,14 @@ SQLSTRING
         site_admin_account.default_time_zone = "Pacific Time (US & Canada)"
         admin_account.allow_sis_import = true
         site_admin_account.allow_sis_import = true
+        
+        # Feature.definitions['common_cartridge_page_conversion']
+        # admin_account.feature_disabled(:common_cartridge_page_conversion)
+        # admin_account.feature_disabled(:rich_content_service)
+        # admin_account.disable_feature!(:rich_content_service_high_risk)
+        # rails console
+        # a = Account.site_admin
+        # a.enable_feature!(:...) or disable_feature! or allow_feature!
 
         # Disable web services
         admin_account.disable_service("google_docs_previews")

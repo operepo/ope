@@ -2281,13 +2281,13 @@ class SyncOPEApp(App):
             if app == "ope-codecombat":
                 # open sftp connection and move to the codecombat data folder
                 sftp = ssh.open_sftp()
-                server_path = os.path.join(ssh_folder, "volumes/codecombat/data").replace("\\", "/)
+                server_path = os.path.join(ssh_folder, "volumes/codecombat/data").replace("\\", "/")
                 sftp.cddir(server_path)
                 
                 if online_state == "online":
                     # ONLINE
                     # Wait for .dl_complete file to show up, then download the dump.tar.gz file
-                    TODO - need if file exists?
+                    # TODO - need if file exists?
                     dl_complete_found = False
                     while not dl_complete_found:
                         # Grab a list of files
@@ -2296,8 +2296,8 @@ class SyncOPEApp(App):
                             if f_item.filename == ".dl_complete":
                                 dl_complete_found = True
                         # waiting for database to download and unpack
-                        echo "waiting for db to dl..."
-                        sleep(3)
+                        print( "waiting for db to dl...")
+                        Thread.sleep(3)
                     
                     self.sync_volume('codecombat', 'data', ssh, ssh_folder, status_label, sync_type='dl', filename='dump.tar.gz')
                 else:
