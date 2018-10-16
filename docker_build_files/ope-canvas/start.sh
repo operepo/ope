@@ -57,15 +57,8 @@ ESC_SMTP_PASS=$(re_quote "${SMTP_PASS}")
 sed -i "s/SMTP_PASS/ESC_SMTP_PASS/" config/outgoing_mail.yml
 sed -i "s/OUTGOING_ADDRESS/${ADMIN_EMAIL}/" config/outgoing_mail.yml
 
-# Need to pull first domain from the VIRTUAL_HOST var (can't put comma list in domain.yml)
-parts=$(echo $VIRTUAL_HOST | tr "," "\n")
-DEFAULT_HOST="$VIRTUAL_HOST"
-for h in $parts
-do
-    DEFAULT_HOST="$h"
-    # break after first item
-    break
-done
+# NOTE: Added new env variable so default domain is provided
+DEFAULT_HOST="$CANVAS_DEFAULT_DOMAIN"
 
 cp config/domain.yml.tmpl config/domain.yml
 sed -i -- "s/<VIRTUAL_HOST>/$DEFAULT_HOST/g" config/domain.yml

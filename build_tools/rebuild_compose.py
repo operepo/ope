@@ -55,11 +55,17 @@ services:
 """
 
 # A list of values to substitute in the docker-compose.yml or .env.template file
-replacement_values = { '<DOMAIN>': '', '<IP>': '', "<VOLUMES>": '',
-    "<CANVAS_SECRET>": 'sdlkj4342ousoijalke3uosuufodsjvlckxotes',
+replacement_values = { '<DOMAIN>': 'ed', '<IP>': '', "<VOLUMES>": '',
+    "<CANVAS_SECRET>": '<NEW_UUID>',  # 'sdlkj4342ousoijalke3uosuufodsjvlckxotes',
     "<NETWORK_MODE>": 'bridge',
-    "<IT_PW>": '',
-    "<OFFICE_PW>": ''}
+    "<IT_PW>": 'changeme',
+    "<OFFICE_PW>": 'changeme',
+    "<LMS_ACCOUNT_NAME>": 'Open Prison Education',
+    "<TIME_ZONE>": 'Pacific Time (US & Canada)',
+    "<CANVAS_LOGIN_PROMPT>": "Student ID (default is s + DOC number - s113412)",
+    "<CANVAS_DEFAULT_DOMAIN>": "canvas.<DOMAIN>",
+    "<SMC_DEFAULT_DOMAIN>": "smc.<DOMAIN>",
+    }
 
 # A list of volumes that need to be specified in the volumes section
 volume_list = []
@@ -86,94 +92,29 @@ def getIP():
         s.close()
     return IP
 
-def getSavedIP():
-    # Load the saved IP
-    ip = ""
-    pwd = getComposeFolder()
-    ip_file = os.path.join(pwd, ".ip")
-    try:
-    	f = open(ip_file, "r")
-    	ip = f.read()
-    	f.close()
-    except:
-        print("No saved IP")
-    return ip.strip()
-
-def saveIP(ip):
-    # Save the ip for later
+def getSavedSetting(setting_name="", default_val=None):
     # Locate the base folder
     pwd = getComposeFolder()
-    ip_file = os.path.join(pwd, ".ip")
-    f = open(ip_file, "w")
-    f.write(ip)
-    f.close()
-
-def saveDomain(domain):
-    # Save the domain for later
-    pwd = getComposeFolder()
-    domain_file = os.path.join(pwd, ".domain")
-    f = open(domain_file, "w")
-    f.write(domain)
-    f.close()
-
-def getPW():
-    # Load saved pw
-    pw = ""
-    pwd = getComposeFolder()
-    pw_file = os.path.join(pwd, ".pw")
+    setting_file = os.path.join(pwd, "." + setting_name.replace("<", "").replace(">",""))
+    ret = default_val
     try:
-        f = open(pw_file, "r")
-        pw = f.read()
+        f = open(setting_file, "r")
+        ret = f.read().strip()
         f.close()
+        if ret == "":
+            ret = default_val
     except:
-        print("No saved pw!")
-    return pw.strip()
+        print("No setting file found: " + setting_name)
+    # print("Got setting " + setting_file + ":" + ret)
+    return ret
 
-def savePW(pw):
-    # Save the password for later
+def saveSetting(setting_name="", value=""):
+    # Locate the base folder
     pwd = getComposeFolder()
-    file_path = os.path.join(pwd, ".pw")
-    f = open(file_path, "w")
-    f.write(pw)
+    setting_file = os.path.join(pwd, "." + setting_name.replace("<", "").replace(">", ""))
+    f = open(setting_file, "w")
+    f.write(value)
     f.close()
-
-
-def getSecret():
-    # Load secret key
-    s = ""
-    pwd = getComposeFolder()
-    s_file = os.path.join(pwd, ".secret")
-    try:
-        f = open(s_file, "r")
-        s = f.read()
-        f.close()
-    except:
-        print("No secret file!")
-    if s == "":
-        s = str(uuid.uuid4()) + "000"
-    return s.strip()
-
-def saveSecret(secret):
-    # Save the secret for later
-    pwd = getComposeFolder()
-    file_path = os.path.join(pwd, ".secret")
-    f = open(file_path, "w")
-    f.write(secret)
-    f.close()
-
-
-def getDomain():
-    # Load saved domain name
-    domain = ""
-    pwd = getComposeFolder()
-    domain_file = os.path.join(pwd, ".domain")
-    try:
-        f = open(domain_file, "r")
-        domain = f.read()
-        f.close()
-    except:
-        print("No saved domain")
-    return domain.strip()
 
 def processFolder(cwd=""):
     global volume_list
@@ -234,7 +175,95 @@ def processFolder(cwd=""):
     return ret
 
 
+# Load up each value
+for k in replacement_values:
+    replacement_values[k] = getSavedSetting(k, replacement_values[k])
+    print("Val " + str(replacement_values[k]))
+
+# Make sure canvas secret is a new uuid if it is blank
+if replacement_values['<CANVAS_SECRET>'] == "<NEW_UUID>" or replacement_values['<CANVAS_SECRET>'] == "":
+    replacement_values['<CANVAS_SECRET>'] = str(str(uuid.uuid4()) + "000").strip()
+
+# Make sure IP is set to current IP if blank
+if replacement_values['<IP>'] == "":
+    replacement_values['<IP>'] = getIP()
+
+
+# Save current values
+for k in replacement_values:
+    saveSetting(k, replacement_values[k])
+    print("Saved " + k + ":" + str(replacement_values[k]))
+
+
+# Grab current folder, then move back one, then into the docker_build_files folder
+pwd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+pwd = os.path.join(pwd, "docker_build_files")
+if not os.path.isdir(pwd):
+    print("Unable to find docker build files at: " + pwd)
+    sys.exit()
+else:
+    print("Rebuilding docker compose...")
+#print(" " + pwd)
+#sys.exit()
+
+# Make sure the .env file exists
+env_file = os.path.join(pwd, ".env")
+env_template_file = os.path.join(pwd, ".env.template")
+# always rebuild env if auto is true
+# NOTE: Always rebuild env file!!!
+if (os.path.isfile(env_file) != True or auto is True or True):
+    # Try to copy the .env.template file
+    if (os.path.isfile(os.path.join(pwd, ".env.template")) == True):
+        print "\n            New environment file - change values in .env file\n"
+        shutil.copy(env_template_file, env_file)
+    else:
+        print "No env file found! Create a .env file to store your settings"
+
+if (os.path.isfile(env_file) == True):
+    # Replace template tags with values from the replacement_values array
     
+    # Read the current file in
+    env_f = open(env_file, "r")
+    lines = env_f.read()
+    env_f.close()
+
+    # Replace the values
+    for key in replacement_values:
+        lines = lines.replace(key, replacement_values[key])
+    
+    # Save the finished env file
+    env_f = open(env_file, "w")
+    env_f.write(lines)
+    env_f.close()
+
+# Loop through the folders and find containers with .enabled files.
+for folder in os.listdir(pwd):
+    dc_out += processFolder(os.path.join(pwd, folder))
+
+# Use the volume_list to create a value for replacement
+if (len(volume_list) > 0):
+    v = "volumes:\n"
+    for vol in volume_list:
+        v += "    " + vol + "\n"
+    replacement_values["<VOLUMES>"] = v
+
+# Replace instances of template tags with values from the replacement_values array
+for key in replacement_values:
+    dc_out = dc_out.replace(key, replacement_values[key])
+
+# Clear the current docker-compose.yml file and write the new file
+docker_compose = open(os.path.join(pwd,"docker-compose.yml"), "w")
+docker_compose.write(dc_out)
+docker_compose.close()    
+print("\n\nRebuild Compose Complete.")
+#print("\n\n    Run commands from docker_build_files folder: {0}\n        To Build (Online Only):     docker-compose build\n        To start:             docker-compose up -d\n        To Stop:             docker-compose down".format(pwd))
+
+
+
+# ------------------------------------------------------------------
+sys.exit(0)
+
+   
 #print "Current IP: " + getIP()
 
 # Get current IP address
@@ -284,45 +313,7 @@ replacement_values["<DOMAIN>"] = domain
 print "Using domain: " + domain + "..."
 saveDomain(domain)
 
-# Grab current folder, then move back one, then into the docker_build_files folder
-pwd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-pwd = os.path.join(pwd, "docker_build_files")
-if not os.path.isdir(pwd):
-    print("Unable to find docker build files at: " + pwd)
-    sys.exit()
-else:
-    print("Rebuilding docker compose...")
-#print(" " + pwd)
-#sys.exit()
 
-# Make sure the .env file exists
-env_file = os.path.join(pwd, ".env")
-env_template_file = os.path.join(pwd, ".env.template")
-# always rebuild env if auto is true
-if (os.path.isfile(env_file) != True or auto is True):
-    # Try to copy the .env.template file
-    if (os.path.isfile(os.path.join(pwd, ".env.template")) == True):
-        print "\n            New environment file - change values in .env file\n"
-        shutil.copy(env_template_file, env_file)
-    else:
-        print "No env file found! Create a .env file to store your settings"
-
-if (os.path.isfile(env_file) == True):
-    # Replace template tags with values from the replacement_values array
-    
-    # Read the current file in
-    env_f = open(env_file, "r")
-    lines = env_f.read()
-    env_f.close()
-
-    # Replace the values
-    for key in replacement_values:
-        lines = lines.replace(key, replacement_values[key])
-    
-    # Save the finished env file
-    env_f = open(env_file, "w")
-    env_f.write(lines)
-    env_f.close()
 
 # Make sure the PUBLIC_IP field is updated in the .env file
 public_ip_found = False
@@ -344,27 +335,6 @@ if os.path.isfile(env_file) == True:
         ef.write("\nPUBLIC_IP=" + ip)
     
     ef.close()
-# Loop through the folders and find containers with .enabled files.
-for folder in os.listdir(pwd):
-    dc_out += processFolder(os.path.join(pwd, folder))
-
-# Use the volume_list to create a value for replacement
-if (len(volume_list) > 0):
-    v = "volumes:\n"
-    for vol in volume_list:
-        v += "    " + vol + "\n"
-    replacement_values["<VOLUMES>"] = v
-
-# Replace instances of template tags with values from the replacement_values array
-for key in replacement_values:
-    dc_out = dc_out.replace(key, replacement_values[key])
-
-# Clear the current docker-compose.yml file and write the new file
-docker_compose = open(os.path.join(pwd,"docker-compose.yml"), "w")
-docker_compose.write(dc_out)
-docker_compose.close()    
-print("\n\nRebuild Compose Complete.")
-#print("\n\n    Run commands from docker_build_files folder: {0}\n        To Build (Online Only):     docker-compose build\n        To start:             docker-compose up -d\n        To Stop:             docker-compose down".format(pwd))
 # Grab all ope- folders and start each one
 
 #pwd = os.getcwd()

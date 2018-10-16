@@ -159,7 +159,7 @@ COPY domain.yml.tmpl /usr/src/app/config/domain.yml.tmpl
 COPY puma.rb /usr/src/app/config/puma.rb
 COPY rack.rb /usr/src/app/config/initializers/rack.rb
 
-LABEL rebuild=6
+LABEL rebuild=11
 COPY dbinit.sh /usr/src/dbinit.sh
 COPY start.sh /usr/src/start.sh
 COPY ope.rake lib/tasks/ope.rake

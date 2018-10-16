@@ -26,6 +26,9 @@
             - CANVAS_LMS_ACCOUNT_NAME=${LMS_ACCOUNT_NAME}
             - CANVAS_LMS_STATS_COLLECTION="opt_out"
             - CANVAS_SECRET=${CANVAS_SECRET}
+            - TIME_ZONE=${TIME_ZONE}
+            - CANVAS_LOGIN_PROMPT=${CANVAS_LOGIN_PROMPT}
+            - CANVAS_DEFAULT_DOMAIN=${CANVAS_DEFAULT_DOMAIN}
             - VIRTUAL_PORT=3000
             # Share the default cert on the gateway
             - CERT_NAME=default
