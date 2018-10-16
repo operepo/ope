@@ -293,6 +293,8 @@ SQLSTRING
         puts "==== ERR - CANVAS_LMS_ACCOUNT_NAME empty ===="
         ENV["CANVAS_LMS_ACCOUNT_NAME"] = "Open Prison Education"
     end
+    # Chomp off quotes - old installs ended up with quotes in the name
+    ENV["CANVAS_LMS_ACCOUNT_NAME"] =  ENV["CANVAS_LMS_ACCOUNT_NAME"].tr('"', '')
 
     if (ENV["CANVAS_LMS_ADMIN_EMAIL"] || "").empty?
         puts "==== ERR - CANVAS_LMS_ADMIN_EMAIL empty ===="
@@ -306,6 +308,18 @@ SQLSTRING
     
     if (ENV["CANVAS_LMS_STATS_COLLECTION"] || "").empty?
         ENV["CANVAS_LMS_STATS_COLLECTION"] = "opt_out"
+    end
+
+    if (ENV["TIME_ZONE"] || "").empty?
+        ENV["TIME_ZONE"] = "Pacific Time (US & Canada)"
+    end
+
+    if (ENV["CANVAS_LOGIN_PROMPT"] || "").empty?
+        ENV["CANVAS_LOGIN_PROMPT"] = "Student ID (default is s + DOC number - s113412)"
+    end
+
+    if (ENV["CANVAS_DEFAULT_DOMAIN"] || "").empty?
+        ENV["CANVAS_DEFAULT_DOMAIN"] = "canvas.ed"
     end
 
     # See if file .db_init_done exists - if it doesn't, run db:initial_setup
@@ -325,6 +339,10 @@ SQLSTRING
         end
         puts "==== END Canvas DB does NOT exist, creating ===="
     end
+
+    puts "==== Resetting encryption key hash ===="
+    Rake::Task['db:reset_encryption_key_hash'].invoke
+    puts "==== END Resetting encryption key hash ===="
     
     puts "==== OPE:starup_stage2 ===="
     Rake::Task['ope:startup_stage2'].invoke
@@ -334,7 +352,7 @@ SQLSTRING
   
   task :startup_stage2 => :environment do
     # Do all startup tasks
-    
+
     # ==== Init DB if not already done
     db_changed = 0
     
@@ -374,11 +392,6 @@ SQLSTRING
         puts "====> No DB migrations detected"
     end
     
-    puts "==== Resetting encryption key hash ===="
-    Rake::Task['db:reset_encryption_key_hash'].invoke
-    puts "==== END Resetting encryption key hash ===="
-
-
     # Build db to track changes to data
     puts "==== ope:init_auditing ===="
     Rake::Task['ope:init_auditing'].invoke
@@ -443,14 +456,21 @@ SQLSTRING
     #end
     #puts "==== END Ensuring Admin Account Exists ===="
     
+    # Early installs had " characters around the account name. Change that so they are removed.
+    tmp = Account.where(name: "\"" + ENV["CANVAS_LMS_ACCOUNT_NAME"] + "\"").first
+    if (tmp)
+        tmp.name = ENV["CANVAS_LMS_ACCOUNT_NAME"]
+        tmp.save
+    end
+
     # Set canvas options
     admin_account = Account.where(name: ENV["CANVAS_LMS_ACCOUNT_NAME"] ).first
     site_admin_account = Account.where(name: "Site Admin" ).first
     if (admin_account && site_admin_account)
         puts "==== Setting Canvas Config Settings ===="
 
-        admin_account.default_time_zone = "Pacific Time (US & Canada)"
-        site_admin_account.default_time_zone = "Pacific Time (US & Canada)"
+        admin_account.default_time_zone = ENV["TIME_ZONE"]  # "Pacific Time (US & Canada)"
+        site_admin_account.default_time_zone = ENV["TIME_ZONE"]  # "Pacific Time (US & Canada)"
         admin_account.allow_sis_import = true
         site_admin_account.allow_sis_import = true
 
@@ -492,9 +512,9 @@ SQLSTRING
         site_admin_account.settings[:sub_accunt_includes] = admin_account.settings[:sub_accunt_includes] = false
         site_admin_account.settings[:teachers_can_create_courses] = admin_account.settings[:teachers_can_create_courses] = false
         site_admin_account.settings[:users_can_edit_name] = admin_account.settings[:users_can_edit_name] = false
-        site_admin_account.settings[:login_handle_name] = admin_account.settings[:login_handle_name] = "Student ID (default is s + DOC number - s113412)"
+        site_admin_account.settings[:login_handle_name] = admin_account.settings[:login_handle_name] = ENV["CANVAS_LOGIN_PROMPT"]
+        # "Student ID (default is s + DOC number - s113412)"
         site_admin_account.settings[:self_enrollment] = admin_account.settings[:self_enrollment] = "Never"
-
 
 
         # Default storage quotas
