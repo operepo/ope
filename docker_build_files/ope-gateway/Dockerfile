@@ -51,19 +51,14 @@ COPY openssl.cnf /app/
 COPY nginx.tmpl /app/
 COPY forego /app/
 COPY Procfile /app/
+COPY uploads.conf /etc/nginx/conf.d/uploads.conf
 WORKDIR /app/
 RUN chmod +x /app/*.sh
 
 # Make public_certs folder so we can make it easy to grab crt file
 RUN mkdir /public_certs \
     && chmod 755 /public_certs
-
-# Set upload params higher
-RUN { \
-      echo 'server_tokens off;'; \
-      echo 'client_max_body_size 30000m;'; \
-    } > /etc/nginx/conf.d/uploads.conf
-
+	
 ENV DOCKER_HOST unix:///tmp/docker.sock
 
 VOLUME ["/etc/nginx/certs", "/tmp/docker.sock"]
@@ -72,4 +67,7 @@ EXPOSE 80 443
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["forego", "start", "-r"]
+
+
+
 

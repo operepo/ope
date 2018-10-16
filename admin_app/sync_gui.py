@@ -5,20 +5,86 @@ import os
 import requests
 import re
 from functools import partial
+import sys
+import re
+from os.path import expanduser
+import logging
+
 
 # try glew + gles or sdl2?
-os.environ["KIVY_GL_BACKEND"] = "glew" # "angle_sdl2"  # gl, glew, sdl2, angle_sdl2, mock
+os.environ["KIVY_GL_BACKEND"] = "angle_sdl2"  # "glew" # "angle_sdl2"  # gl, glew, sdl2, angle_sdl2, mock
 os.environ["KIVY_GRAPHICS"] = "gles"  # "gles"
 # os.environ["KIVY_GL_DEBUG"] = "1"
 # os.environ["USE_SDL2"] = "1"
-# os.environ["KIVY_WINDOW"] = "pygame"  # "sdl2" "pygame"
+# os.environ["KIVY_WINDOW"] = "sdl2"  # "sdl2" "pygame"
 # os.environ["KIVY_IMAGE"] = "sdl2"  # img_tex, img_dds, img_sdl2, img_ffpyplayer, img_gif, img_pil
+# os.environ["KIVY_TEXT"] = "sdl2"
+
+APP_FOLDER = None
+APP_RUNNING = True
+# LOAD THIS VERSION
+APP_VERSION = "0.0"
+
+
+def get_app_folder():
+    global Logger, APP_FOLDER
+    ret = ""
+    # Adjusted to save APP_FOLDER - issue #6 - app_folder not returning the same folder later in the app?
+    if APP_FOLDER is None:
+        # return the folder this app is running in.
+        # Logger.info("Application: get_app_folder called...")
+        if getattr(sys, 'frozen', False):
+            # Running in pyinstaller bundle
+            ret = sys._MEIPASS
+            # Logger.info("Application: sys._MEIPASS " + sys._MEIPASS)
+            # Adjust to use sys.executable to deal with issue #6 - path different if cwd done
+            # ret = os.path.dirname(sys.executable)
+            # Logger.info("AppPath: sys.executable " + ret)
+
+        else:
+            ret = os.path.dirname(os.path.abspath(__file__))
+            # Logger.info("AppPath: __file__ " + ret)
+        APP_FOLDER = ret
+        # Add this folder to the os path so that resources can be found more reliably
+        print("-- ADJUSTING SYS PATH -- " + ret)
+        text_dir = os.path.join(APP_FOLDER, "kivy\\core\\text")
+        os.environ["PATH"] = os.environ["PATH"] + ";" + ret + ";" + text_dir
+
+    else:
+        ret = APP_FOLDER
+    return ret
+
+
+# Run as app starts to make sure we save the current app folder
+# in response to issue #6
+get_app_folder()
+print("APP FOLDER " + APP_FOLDER)
+
+VERSION_FILE = os.path.join(APP_FOLDER, "version.json")
+if os.path.isfile(VERSION_FILE):
+    try:
+        f = open(VERSION_FILE, "r")
+        json_str = f.read()
+        f.close()
+        j_arr = json.loads(json_str)
+        APP_VERSION = j_arr['version']
+    except:
+        APP_VERSION = "ERR"
+
 
 from kivy.config import Config
 Config.set('kivy', 'exit_on_escape', '0')
 Config.set('graphics', 'multisamples', '0')
 Config.set('graphics', 'fbo', 'software')
-#Config.set('KIVY_GRAPHICS', 'gles')
+Config.set('kivy', 'log_level', 'debug')  # ''trace')
+
+#[kivy]
+#log_level = info
+#log_enable = 1
+#log_dir = logs
+#log_name = kivy_%y-%m-%d_%_.txt
+#log_maxfiles = 100
+# Config.set('KIVY_GRAPHICS', 'gles')
 # Adjust kivy config to change window look/behavior
 # Config.set('graphics','borderless',1)
 # Config.set('graphics','resizable',0)
@@ -29,10 +95,7 @@ Config.set('graphics', 'fbo', 'software')
 # Config.set('graphics', 'resizeable', '0')
 # Config.set('graphics', 'borderless', '1')
 
-import sys
-import re
-from os.path import expanduser
-import logging
+
 import paramiko
 # Deal with issue #12 - No handlers could be found for logger "paramiko.transport"
 paramiko.util.log_to_file("ssh.log")
@@ -69,9 +132,21 @@ from datetime import datetime, timedelta
 
 import kivy
 
+if 'KIVY_DATA_DIR' in os.environ:
+    print("KIVY_DATA_DIR " + os.environ['KIVY_DATA_DIR'])
+if 'KIVY_MODULES_DIR' in os.environ:
+    print("KIVY_MODULES_DIR " + os.environ['KIVY_MODULES_DIR'])
+if 'KIVY_HOME' in os.environ:
+    print("KIVY_HOME " + os.environ['KIVY_HOME'])
+if 'KIVY_SDL2_PATH' in os.environ:
+    print("KIVY_SDL2_PATH " + os.environ['KIVY_SDL2_PATH'])
+if 'PYTHONPATH' in os.environ:
+    print("PYTHONPATH " + os.environ['PYTHONPATH'])
+for p in sys.path:
+    print("P " + str(p))
+
 from kivy.app import App
 from kivy.properties import ObjectProperty
-Config.set('graphics', 'multisamples', '0')
 from kivy.clock import Clock
 from kivy.factory import Factory
 from kivy.network.urlrequest import UrlRequest
@@ -93,14 +168,13 @@ from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.core.window import Window
 from kivy.uix.filechooser import FileChooser, FileChooserListView, FileChooserIconView, FileSystemAbstract
-kivy.require('1.10.0')
-
+kivy.require('1.10.1')
+# Add this path to the resources path
+kivy.resources.resource_add_path(APP_FOLDER)
 # TODO TODO TODO - [CRITICAL] [Clock       ] Warning, too much iteration done before the next frame. Check your code, or increase the Clock.max_iteration attribute
 # Clock.max_iteration = 20
 # Window.size = (900, 800)
 # Window.borderless = True
-APP_FOLDER = None
-APP_RUNNING = True
 
 # Git Repos to pull
 GIT_REPOS = {"sysprep_scripts": "https://github.com/operepo/sysprep_scripts.git",
@@ -120,35 +194,6 @@ def get_human_file_size(size):
 
     ret = "{0:.2f}".format(t) + " " + sizes[count]
     return ret
-
-
-def get_app_folder():
-    global Logger, APP_FOLDER
-    ret = ""
-    # Adjusted to save APP_FOLDER - issue #6 - app_folder not returning the same folder later in the app?
-    if APP_FOLDER is None:
-        # return the folder this app is running in.
-        # Logger.info("Application: get_app_folder called...")
-        if getattr(sys, 'frozen', False):
-            # Running in pyinstaller bundle
-            ret = sys._MEIPASS
-            # Logger.info("Application: sys._MEIPASS " + sys._MEIPASS)
-            # Adjust to use sys.executable to deal with issue #6 - path different if cwd done
-            # ret = os.path.dirname(sys.executable)
-            # Logger.info("AppPath: sys.executable " + ret)
-        else:
-            ret = os.path.dirname(os.path.abspath(__file__))
-            # Logger.info("AppPath: __file__ " + ret)
-        APP_FOLDER = ret
-    else:
-        ret = APP_FOLDER
-    return ret
-
-
-# Run as app starts to make sure we save the current app folder
-# in response to issue #6
-get_app_folder()
-
 
 def get_home_folder():
     home_path = expanduser("~")
@@ -325,6 +370,7 @@ class FogDownloadFileSystem(FileSystemAbstract):
 
     def getwebdir(self, url):
         # Pull the URL
+
         try:
             response = requests.get(url)
 
@@ -524,16 +570,17 @@ class MainWindow(BoxLayout):
 
 
 class SyncOPEApp(App):
+    APP_VERSION = APP_VERSION
     # URL to download fog images from
     ope_fog_images_url = "http://dl.correctionsed.com/ope_lt_images"
     server_mode = 'online'  # Start in online mode?
 
     use_kivy_settings = False
 
-    required_apps = ["ope-gateway", "ope-router", "ope-dns", "ope-clamav", "ope-redis", "ope-postgresql" ]
-    recommended_apps = ["ope-fog", "ope-canvas", "ope-smc"]
-    stable_apps = ["ope-kalite"]
-    beta_apps = ["ope-coco", "ope-freecodecamp", "ope-gcf", "ope-jsbin", "ope-rachel", "ope-stackdump", "ope-wamap"]
+    required_apps = ["ope-gateway", "ope-router", "ope-dns", "ope-redis", "ope-postgresql"]
+    recommended_apps = ["ope-fog", "ope-canvas", "ope-smc", "ope-clamav"]
+    stable_apps = ["ope-kalite", "ope-codecombat", "ope-gcf"]
+    beta_apps = ["ope-freecodecamp", "ope-jsbin", "ope-rachel", "ope-stackdump", "ope-wamap", "ope-wsl"]
 
     def load_current_settings(self):
         global MAIN_WINDOW
@@ -762,15 +809,26 @@ class SyncOPEApp(App):
             if val != progress_widget.value:
                 progress_widget.value = val
 
-    def sftp_pull_files(self, remote_path, local_path, sftp, status_label, depth=1):
+    def sftp_pull_files(self, remote_path, local_path, sftp, status_label, depth=1, filename=""):
         global progress_widget_label, APP_RUNNING
         if progress_widget_label is None:
             progress_widget_label = Label()
 
+        # Adjust remote path if it is a file
+        list_path = remote_path
+        items = []
+        if filename != "":
+            list_path = os.path.join(remote_path, filename).replace("\\", "/")
+            s = sftp.stat(list_path)
+            s.filename = filename  # Make sure to add extra attrib filename so it matches what listdir_attr returns
+            items.append(s)
+        else:
+            items = sftp.listdir_attr(list_path)
+
         # Recursive Walk through the folder and pull changed files
         depth_str = " " * depth
         # TODO - follow symlinks for folders/files
-        for f in sftp.listdir_attr(remote_path):
+        for f in items:  # sftp.listdir_attr(list_path):
             if APP_RUNNING is not True:
                 print("Exiting Early...")
                 return
@@ -802,7 +860,8 @@ class SyncOPEApp(App):
                     pass
                 if f.st_mtime == l_mtime:
                     # status_label.text += "\n" + depth_str + "Files the same - skipping: " + f.filename
-                    progress_widget_label.text = f.filename + " (skip) "
+                    # progress_widget_label.text = f.filename + " (skip) "
+                    pass
                 elif f.st_mtime > l_mtime:
                     # status_label.text += "\n" + depth_str + "Remote file newer, downloading: " + f.filename
                     progress_widget_label.text = f.filename + " (dl) "
@@ -816,7 +875,7 @@ class SyncOPEApp(App):
                 # Non regular file
                 progress_widget_label.text = f.filename + " (no reg file - skip)"
 
-    def sftp_push_files(self, remote_path, local_path, sftp, status_label, depth=1):
+    def sftp_push_files(self, remote_path, local_path, sftp, status_label, depth=1, filename=""):
         global progress_widget_label, APP_RUNNING
         if progress_widget_label is None:
             progress_widget_label = Label()
@@ -826,7 +885,13 @@ class SyncOPEApp(App):
         # Need to decode unicode/mbcs encoded paths
         enc_local_path = local_path.decode(sys.getfilesystemencoding())
 
-        for item in os.listdir(local_path):
+        items = []
+        if filename != "":
+            items.append(filename)
+        else:
+            items = os.listdir(local_path)
+
+        for item in items:  # os.listdir(local_path):
             if APP_RUNNING is not True:
                 print("Exiting Early...")
                 return
@@ -872,8 +937,9 @@ class SyncOPEApp(App):
                 except:
                     pass
                 if r_mtime == l_mtime:
-                    progress_widget_label.text = enc_item.encode('ascii', 'ignore') + " (skip) "
+                    # progress_widget_label.text = enc_item.encode('ascii', 'ignore') + " (skip) "
                     # status_label.text += " - Files the same - skipping. "
+                    pass
                 elif l_mtime > r_mtime:
                     progress_widget_label.text = enc_item.encode('ascii', 'ignore') + " (uploading) "
                     # status_label.text += " - Local file newer, uploading..."
@@ -1025,6 +1091,8 @@ class SyncOPEApp(App):
                         dots = "."
                     upload_speed = ""
                     elapsed_time = time.time() - start_time
+                    if elapsed_time == 0:
+                        elapsed_time = 1
                     transfer_speed = float(current_pos / elapsed_time)
                     if transfer_speed == 0:
                         transfer_speed = 1
@@ -1238,6 +1306,8 @@ class SyncOPEApp(App):
                         dots = "."
                     upload_speed = ""
                     elapsed_time = time.time() - start_time
+                    if elapsed_time == 0:
+                        elapsed_time = 1
                     transfer_speed = float(current_pos / elapsed_time)
                     if transfer_speed == 0:
                         transfer_speed = 1
@@ -1246,7 +1316,7 @@ class SyncOPEApp(App):
                     still_queued = total_size - current_pos
                     time_left = str(timedelta(seconds=int(still_queued / transfer_speed)))
 
-                    error_message.text = "Uploading " + image_name + "    " + upload_speed + "  " + time_left + dots
+                    error_message.text = "Downloading " + image_name + "    " + upload_speed + "  " + time_left + dots
                     last_update = time.time()
 
         chan_f.close()
@@ -1300,7 +1370,7 @@ class SyncOPEApp(App):
             total_size = int(r.headers.get('content-length'))
         except Exception as ex:
             pass
-        if total_size is None:
+        if total_size is None or total_size == 0:
             total_size = 1
         current_pos = 0
 
@@ -1324,6 +1394,8 @@ class SyncOPEApp(App):
                         dots = "."
                     upload_speed = ""
                     elapsed_time = time.time() - start_time
+                    if elapsed_time == 0:
+                        elapsed_time = 1
                     transfer_speed = float(current_pos / elapsed_time)
                     if transfer_speed == 0:
                         transfer_speed = 1
@@ -1332,7 +1404,7 @@ class SyncOPEApp(App):
                     still_queued = total_size - current_pos
                     time_left = str(timedelta(seconds=int(still_queued / transfer_speed)))
 
-                    error_message.text = "Uploading " + dl_name + "    " + upload_speed + "  " + time_left + dots
+                    error_message.text = "Downloading " + dl_name + "    " + upload_speed + "  " + time_left + dots
                     last_update = time.time()
 
         fog_image_download_button.disabled = False
@@ -1430,6 +1502,8 @@ class SyncOPEApp(App):
                         dots = "."
                     upload_speed = ""
                     elapsed_time = time.time() - start_time
+                    if elapsed_time == 0:
+                        elapsed_time = 1
                     transfer_speed = float(current_pos / elapsed_time)
                     if transfer_speed == 0:
                         transfer_speed = 1
@@ -1467,14 +1541,15 @@ class SyncOPEApp(App):
 
         return fog_images_path
 
-    def sync_volume(self, volume, folder, ssh, ssh_folder, status_label, branch="master", sync_type="sync"):
-        # Sync files on the online server with the USB drive
+    def sync_volume(self, volume, folder, ssh, ssh_folder, status_label, branch="master", sync_type="sync", filename=""):
+        # Sync files on the server with the USB drive
 
         # Get project folder (parent folder)
         root_path = os.path.dirname(get_app_folder())
         volumes_path = os.path.join(root_path, "volumes")
         volume_path = os.path.join(volumes_path, volume)
         folder_path = os.path.join(volume_path, folder.replace("/", os.sep))
+        local_file_path = os.path.join(folder_path, filename)
 
         # Figure the path for the git app
         git_path = os.path.join(root_path, "bin/bin/git.exe")
@@ -1488,6 +1563,7 @@ class SyncOPEApp(App):
 
         # Ensure the folder exists on the server
         remote_folder_path = os.path.join(ssh_folder, "volumes", volume, folder).replace("\\", "/")
+        remote_file_path = os.path.join(remote_folder_path, filename).replace("\\", "/")
         stdin, stdout, stderr = ssh.exec_command("mkdir -p " + remote_folder_path, get_pty=True)
         stdin.close()
         for line in stdout:
@@ -1501,12 +1577,12 @@ class SyncOPEApp(App):
         # Copy remote files to the USB drive
         if sync_type == "sync" or sync_type == "dl":
             status_label.text += "\nDownloading new files..."
-            self.sftp_pull_files(remote_folder_path, folder_path, sftp, status_label)
+            self.sftp_pull_files(remote_folder_path, folder_path, sftp, status_label, filename=filename)
 
         if sync_type == "sync" or sync_type == "ul":
             # Walk the local folder and see if there are files that don't exist that should be copied
             status_label.text += "\nUploading new files..."
-            self.sftp_push_files(remote_folder_path, folder_path, sftp, status_label)
+            self.sftp_push_files(remote_folder_path, folder_path, sftp, status_label, filename=filename)
 
         sftp.close()
         global progress_widget_label
@@ -1824,10 +1900,27 @@ class SyncOPEApp(App):
         stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ip + "\" > .ip; ", get_pty=True)
         for line in stdout:
             pass
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + domain + "\" > .domain; ", get_pty=True)
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + domain + "\" > .domain; ",
+                                                 get_pty=True)
         for line in stdout:
             pass
-        stdin, stdout, stderr = ssh.exec_command("""cd """ + build_path + """; echo """ + ssh_pass + """ > .pw; """, get_pty=True)
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .pw; ",
+                                                 get_pty=True)
+        for line in stdout:
+            pass
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + domain + "\" > .DOMAIN; ",
+                                                 get_pty=True)
+        for line in stdout:
+            pass
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ip + "\" > .IP; ", get_pty=True)
+        for line in stdout:
+            pass
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .IT_PW; ",
+                                                 get_pty=True)
+        for line in stdout:
+            pass
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .OFFICE_PW; ",
+                                                 get_pty=True)
         for line in stdout:
             pass
 
@@ -1896,10 +1989,22 @@ class SyncOPEApp(App):
         stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ip + "\" > .ip; ", get_pty=True)
         for line in stdout:
             pass
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; if [ ! -f .domain ]; then echo \"" + domain + "\" > .domain; fi ", get_pty=True)
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + domain + "\" > .domain; ", get_pty=True)
         for line in stdout:
             pass
         stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .pw; ", get_pty=True)
+        for line in stdout:
+            pass
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + domain + "\" > .DOMAIN; ", get_pty=True)
+        for line in stdout:
+            pass
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ip + "\" > .IP; ", get_pty=True)
+        for line in stdout:
+            pass
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .IT_PW; ", get_pty=True)
+        for line in stdout:
+            pass
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .OFFICE_PW; ", get_pty=True)
         for line in stdout:
             pass
 
@@ -2160,8 +2265,54 @@ class SyncOPEApp(App):
                 if online_state == 'offline':
                      sync_type = 'ul'
                 # Sync video files
+                self.sync_volume('kalite', 'database', ssh, ssh_folder, status_label,
+                                 sync_type=sync_type, filename='content_khan_en.sqlite')
+                self.sync_volume('kalite', '', ssh, ssh_folder, status_label,
+                                 sync_type=sync_type, filename='secretkey.txt')
+                self.sync_volume('kalite', '', ssh, ssh_folder, status_label,
+                                 sync_type=sync_type, filename='settings.py')
                 self.sync_volume('kalite', 'content', ssh, ssh_folder, status_label, sync_type=sync_type)
+                self.sync_volume('kalite', 'locale', ssh, ssh_folder, status_label, sync_type=sync_type)
+                self.sync_volume('kalite', 'httpsrv', ssh, ssh_folder, status_label, sync_type=sync_type)
+
+
                 # TODO - Do we need to sync other folders? locale?
+            
+            if app == "ope-codecombat":
+                # open sftp connection and move to the codecombat data folder
+                sftp = ssh.open_sftp()
+                server_path = os.path.join(ssh_folder, "volumes/codecombat/data").replace("\\", "/)
+                sftp.cddir(server_path)
+                
+                if online_state == "online":
+                    # ONLINE
+                    # Wait for .dl_complete file to show up, then download the dump.tar.gz file
+                    TODO - need if file exists?
+                    dl_complete_found = False
+                    while not dl_complete_found:
+                        # Grab a list of files
+                        f_list = sftp.listdir_attr(server_path)
+                        for f_item in f_list:
+                            if f_item.filename == ".dl_complete":
+                                dl_complete_found = True
+                        # waiting for database to download and unpack
+                        echo "waiting for db to dl..."
+                        sleep(3)
+                    
+                    self.sync_volume('codecombat', 'data', ssh, ssh_folder, status_label, sync_type='dl', filename='dump.tar.gz')
+                else:
+                    # OFFLINE TODO
+                    # Copy dump.tar.gz file
+                    # unpack file 
+                    # touch  .unpacked file to signal that db is ready for import
+                    self.sync_volume('codecombat', 'data', ssh, ssh_folder, status_label, sync_type='ul', filename='dump.tar.gz')
+                    ssh_command = "cd " + ssh_folder + "/volumes/codecombat/data; tar xzf dump.tar.gz; touch .unpacked;"
+                    stdin, stdout, stderr = ssh.exec_command(ssh_command, get_pty=True)
+                    stdin.close()
+                    out = stdout.read().decode('utf-8').strip()
+                
+                sftp.close()
+                
 
     def update_online_server(self, status_label, run_button=None, progress_bar=None, progress_label=None):
         if run_button is not None:
@@ -2445,6 +2596,7 @@ class SyncOPEApp(App):
 if __name__ == "__main__":
     # Start the app
     SyncOPEApp().run()
+
 
 
 # === Build process ===
