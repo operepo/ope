@@ -1226,11 +1226,13 @@ class SyncOPEApp(App):
 
         # print("Security Options: " + str(ssh.get_transport().get_security_options().ciphers))
 
-        image_name = fog_export_to_usb_image.selection[0].replace("C:\\", "").strip("/")  # Comes in with c:\\test....
+        image_name = os.path.basename(fog_export_to_usb_image.selection[0]).strip("/") #  .replace("C:\\", "").strip("/")  # Comes in with c:\\test....
+        print("Image Name: " + image_name)
         remote_path = os.path.join(ssh_folder, "volumes/fog/images/", image_name).replace("\\", "/")
         remote_images_folder = os.path.join(ssh_folder, "volumes/fog/images/").replace("\\", "/")
         local_file_path = os.path.join(self.get_fog_images_folder(), image_name + ".fog_image")
         print("Local File Path: " + local_file_path)
+        print("Remote_FilePath: " + remote_path)
         error_message.text = "Downloading " + image_name
 
         # -- DUMP database data into the image folder for later import
@@ -1534,7 +1536,7 @@ class SyncOPEApp(App):
         volumes_path = os.path.join(root_path, "volumes")
         fog_path = os.path.join(volumes_path, "fog")
         fog_images_path = os.path.join(fog_path, "images").replace("/", os.sep)
-
+        print("FOG IMAGES PATH: " + fog_images_path)
         # Make sure the path exists
         if not os.path.isdir(fog_images_path):
             os.makedirs(fog_images_path)
