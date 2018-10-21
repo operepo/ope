@@ -1230,7 +1230,7 @@ class SyncOPEApp(App):
         remote_path = os.path.join(ssh_folder, "volumes/fog/images/", image_name).replace("\\", "/")
         remote_images_folder = os.path.join(ssh_folder, "volumes/fog/images/").replace("\\", "/")
         local_file_path = os.path.join(self.get_fog_images_folder(), image_name + ".fog_image")
-
+        print("Local File Path: " + local_file_path)
         error_message.text = "Downloading " + image_name
 
         # -- DUMP database data into the image folder for later import
