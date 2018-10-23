@@ -93,4 +93,9 @@ class Enc:
         cipher = Enc.aes_new(key)
         plain_text = cipher.decrypt(decode_data)
         # data = data.rstrip(' ')
-        return plain_text.decode('utf-8')
+        try:
+            plain_text = plain_text.decode('utf-8', 'ignore')
+        except:
+            pass
+        return plain_text
+        # return plain_text.decode('utf-8')

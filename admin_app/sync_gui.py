@@ -1112,7 +1112,8 @@ class SyncOPEApp(App):
         error_message.text = "Unzipping " + image_name + " (will take several minutes)."
         # start a clock so it can show the dots and not look frozen
         progress_clock = Clock.schedule_interval(partial(self.fog_image_unzip_progress, error_message), 1.0)
-        cmd = "cd " + remote_images_folder + "; tar xvf " + image_name + "; rm -Rf " + remote_tar_file + ";"
+        # TODO - Test ionice to make sure works well
+        cmd = "cd " + remote_images_folder + "; ionice -c 3 -t tar xvf " + image_name + "; rm -Rf " + remote_tar_file + ";"
         stdin, stdout, stderr = ssh.exec_command(cmd, get_pty=True)
         stdin.close()
         for line in stdout:
@@ -1283,7 +1284,8 @@ class SyncOPEApp(App):
             total_size = int(total_size * 1.0)
 
         # Now tar/gzip the folder and send it to the USB drive
-        cmd = "cd " + remote_images_folder + "; tar cvf - " + image_name + " 2> /dev/null | gzip -fqc "
+        # TODO - Test ionice command - make sure it works well  ionice -c 2 -n 7 -t ...
+        cmd = "cd " + remote_images_folder + "; ionice -c 3 -t tar cvf - " + image_name + " 2> /dev/null | gzip -fqc "
         # ssh.get_transport().window_size = 2147483647
         chan = ssh.get_transport().open_session()  # window_size=64000, max_packet_size=8192)
         chan.settimeout(10800)
