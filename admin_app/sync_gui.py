@@ -607,8 +607,15 @@ class SyncOPEApp(App):
         key = self.config.getdefault("Server", "auth1", "")
         pw = self.config.getdefault("Server", "auth2", "")
         if pw != "":
-            e = Enc(key)
-            pw = e.decrypt(pw)
+            try:
+                e = Enc(key)
+                pw = e.decrypt(pw)
+            except:
+                # Error decrypting password
+                pw = "changemeDJ2$#"
+                popup = Popup(title='Error Getting Offline Password',
+                              content=Label(text='Unable to get offline password, try setting it again.'),
+                              size_hint=(None, None), size=(400, 400))
         else:
             pw = "changeme"
         return pw
@@ -626,8 +633,15 @@ class SyncOPEApp(App):
         key = self.config.getdefault("Server", "auth1", "")
         pw = self.config.getdefault("Server", "auth3", "")
         if pw != "":
-            e = Enc(key)
-            pw = e.decrypt(pw)
+            try:
+                e = Enc(key)
+                pw = e.decrypt(pw)
+            except:
+                # Error decrypting password
+                pw = "changemeDJ2$#"
+                popup = Popup(title='Error Getting Online Password',
+                              content=Label(text='Unable to get online password, try setting it again.'),
+                              size_hint=(None, None), size=(400, 400))
         else:
             pw = "changeme"
         return pw
@@ -1112,7 +1126,7 @@ class SyncOPEApp(App):
         error_message.text = "Unzipping " + image_name + " (will take several minutes)."
         # start a clock so it can show the dots and not look frozen
         progress_clock = Clock.schedule_interval(partial(self.fog_image_unzip_progress, error_message), 1.0)
-        # TODO - Test ionice to make sure works well
+        # Use ionice to limit io load during tar
         cmd = "cd " + remote_images_folder + "; ionice -c 3 -t tar xvf " + image_name + "; rm -Rf " + remote_tar_file + ";"
         stdin, stdout, stderr = ssh.exec_command(cmd, get_pty=True)
         stdin.close()
@@ -1284,7 +1298,7 @@ class SyncOPEApp(App):
             total_size = int(total_size * 1.0)
 
         # Now tar/gzip the folder and send it to the USB drive
-        # TODO - Test ionice command - make sure it works well  ionice -c 2 -n 7 -t ...
+        # Use ionice to limit io load during tar
         cmd = "cd " + remote_images_folder + "; ionice -c 3 -t tar cvf - " + image_name + " 2> /dev/null | gzip -fqc "
         # ssh.get_transport().window_size = 2147483647
         chan = ssh.get_transport().open_session()  # window_size=64000, max_packet_size=8192)
