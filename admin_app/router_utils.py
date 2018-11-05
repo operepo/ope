@@ -1,5 +1,6 @@
 import paramiko
 import os
+import sys
 import requests
 import threading
 from threading import Thread
@@ -242,7 +243,7 @@ class SyncBoxes:
         ssh.close()
 
         # Wait for reboot....
-        p("\n}}ybWaiting for reboot...}}xx")
+        p("\n}}ybWaiting for reboot (about 90 seconds)...}}xx")
         wait_time = 90
         start_wait = time.time()
         while time.time() - wait_time < start_wait:
@@ -306,7 +307,7 @@ class SyncBoxes:
 
         ssh.close()
 
-        p("\n}}ybRebooting again to apply firmware update " + router_ip + "}}xx")
+        p("\n}}ybRebooting again to apply firmware update (about 90 seconds) " + router_ip + "}}xx")
         wait_time = 90
         start_wait = time.time()
         while time.time() - wait_time < start_wait:
@@ -340,7 +341,6 @@ class SyncBoxes:
         # - Use SCP to push backup file to root folder
         # - Restore backup file with ( system backup load name=backupfile )
         # - Backup file ( system backup save name=backupfile )
-        p("\n}}ybRunning firmware update " + router_ip + "}}xx")
         cmd = "system backup load name=" + backup_file + " password=\"" + self.router_pw + "\""
         stdin, stdout, stderr = ssh.exec_command(cmd, get_pty=True)
         time.sleep(0.5)
@@ -357,6 +357,7 @@ class SyncBoxes:
         ssh.close()
 
         p("\n}}gbFinal reboot started - configuration applied! After reboot the device should be ready to use.}}xx")
+        p("Router should be done rebooting in about 120 seconds.")
 
         return True
 
@@ -378,8 +379,19 @@ if __name__ == "__main__":
     pw = getpass.getpass("Enter router pw: ")
 
     p("}}mbFinding routers...}}xx")
-    router_files_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "router_files")
+
+    app_folder = ""
+    if getattr(sys, 'frozen', False):
+        # Running in pyinstaller bundle
+        app_folder = sys._MEIPASS
+    else:
+        # Running as normal script
+        app_folder = os.path.dirname(os.path.abspath(__file__))
+
+    # Grab from ../router_files folder
+    router_files_path = os.path.join(os.path.dirname(app_folder), "router_files")
     p("}}cnPackage Folder: " + router_files_path + "}}xx")
+    sys.exit()
 
     sb = SyncBoxes(router_files_folder=router_files_path, router_pw=pw)
 
