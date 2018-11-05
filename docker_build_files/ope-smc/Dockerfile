@@ -16,7 +16,7 @@ RUN apk update \
         openssl zip postgresql-dev openldap-dev \
         supervisor libffi-dev \
     && pip install --upgrade pip \
-    && pip install --upgrade setuptools python-ldap pycrypto crypto PyMySQL psycopg2-binary uwsgi uwsgitop \
+    && pip install --upgrade setuptools python-ldap pycrypto crypto PyMySQL psycopg2-binary uwsgi uwsgitop psutil \
 # matplotlib reportlab ldap
     && FFMPEG_VER=3.4.2 \ 
     && curl -s http://ffmpeg.org/releases/ffmpeg-${FFMPEG_VER}.tar.gz | tar zxvf - -C . \

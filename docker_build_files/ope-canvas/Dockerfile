@@ -5,7 +5,7 @@ FROM instructure/ruby-passenger:2.4
 LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
 LABEL description="Canvas LMS by Instructure - Image for Open Prison Education"
 LABEL vendor="openprisoneducation.com"
-LABEL version="0.6"
+LABEL version="0.7"
 
 # ope-canvas - Canvas LMS System
 # Build with docker build -t ope-canvas .
@@ -21,6 +21,7 @@ ENV RAILS_ENV "production"
 ENV NGINX_MAX_UPLOAD_SIZE 50g
 #ENV YARN_VERSION 1.3.2-1
 ENV YARN_VERSION 1.7.0-1
+ENV CANVAS_RELEASE release/2018-10-06.27
 
 # Work around github.com/zertosh/v8-compile-cache/issues/2
 # This can be removed once yarn pushes a release including the fixed version
@@ -74,9 +75,10 @@ WORKDIR $APP_HOME
 LABEL rebuild=1
 RUN cd ${APP_HOME} \
     && git clone https://github.com/instructure/canvas-lms.git . \
-    && git checkout stable
+    && git checkout stable \
+    && git checkout ${CANVAS_RELEASE}
     #&& git checkout release/2018-03-10.06
-#   release/2018-02-17.04
+
 
 # We will need sfnt2woff in order to build fonts
 #COPY build/vendor/woff-code-latest.zip ./
