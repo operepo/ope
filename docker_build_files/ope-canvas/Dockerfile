@@ -20,7 +20,8 @@ ENV APP_HOME /usr/src/app/
 ENV RAILS_ENV "production"
 ENV NGINX_MAX_UPLOAD_SIZE 50g
 #ENV YARN_VERSION 1.3.2-1
-ENV YARN_VERSION 1.7.0-1
+#ENV YARN_VERSION 1.7.0-1
+ENV YARN_VERSION 1.9.4-1
 ENV CANVAS_RELEASE release/2018-10-06.27
 
 # Work around github.com/zertosh/v8-compile-cache/issues/2
@@ -92,8 +93,9 @@ RUN cd build/vendor \
 
 RUN find gems packages -type d ! -user docker -print0 | xargs -0 chown -h docker:docker
 
-USER docker
+RUN chown -R docker:docker ${APP_HOME}
 
+USER docker
 RUN bundle install --jobs 8 \
   && yarn install --pure-lockfile
 USER root

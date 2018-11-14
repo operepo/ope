@@ -2,7 +2,7 @@ FROM alpine:3.4
 MAINTAINER Ray Pulspher <ray@cmagic.biz>
 LABEL Description="Student Management Console - Image for Open Prison Education"
 LABEL Vendor="openprisoneducation.com"
-LABEL Version="0.5"
+LABEL Version="0.6"
 
 # install base
 RUN apk update \
