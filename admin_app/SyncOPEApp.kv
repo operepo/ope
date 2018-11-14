@@ -300,6 +300,9 @@
         Button:
             text: "Manage Fog Images - Import, export, or download windows images"
             on_press: root.manager.current="manage_fog"
+        Button:
+            text: "Utilities (Restart apps, update sync boxes, etc...)"
+            on_press: root.manager.current="utilities"
         #Button:
         #    text: "Login test"
         #    on_press: root.manager.current="login_screen"
@@ -316,6 +319,126 @@
                 markup: True
                 text: log_console.text
                 valign: 'top'
+
+<UtilitiesScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Admin Tool - Utilities'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
+
+                ActionButton:
+                    text: "<-- Back"
+                    on_press: root.manager.current="start"
+
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+
+        Button:
+            text: '(Not Available Yet)Restart all apps (canvas, smc, etc... - good option when things get stuck)'
+            on_press: pass
+            #app.restart_docker_apps()
+
+        Button:
+            text: "(Not Available Yet) Update OPE Sync Boxes"
+            on_press: pass
+            #root.manager.current="update_sync_boxes"
+
+<SyncBoxSubnetDropdown>:
+    Button:
+        text: 'New SyncBox'
+        size_hint_y: None
+        height: 44
+        on_release: root.select('item1')
+    Label:
+        text: 'Unselectable Item'
+        size_hint_y: None
+        height: 44
+    Button:
+        text: 'Plugged Into Sync Box'
+        size_hint_y: None
+        height: 44
+        on_release: root.select('item2')
+
+
+
+<UpdateSyncBoxesScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1}
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Admin Tool - Update Sync Boxes'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
+
+                ActionButton:
+                    text: "<-- Back"
+                    on_press: root.manager.current="utilities"
+
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+
+        Label:
+            markup: True
+            halign: 'left'
+            text_size: self.size
+            text:
+                "[b]New Sync Boxes[/b] \n" + \
+                "Plug into one of the USB cables and use the subnet [color=0000aa][b]192.168.88[/b][/color]\n\n" + \
+                "[b]Existing Sync Boxes - Plugged into USB cable [/b]\n" + \
+                "If plugged into one of the USB cables on an existing sync box, use the subnet [color=0000aa][b]202.5.222[/b][/color]\n\n" + \
+                "[b]Existing Sync Boxes - From your normal Network [/b]\n" + \
+                "If you are plugged into a normal PC on your inmate network, enter the [color=0000aa][b]DHCP subnet[/b][/color] you use for machines, the sync box should be found on one of these (e.g. we use 172.20.31)"
+
+        BoxLayout:
+            orientation: 'horizontal'
+
+            Label:
+                markup: True
+                halign: 'left'
+                valign: 'middle'
+                size_hint_x: .1
+                text_size: self.size
+                text: "Subnet"
+            TextInput:
+                text: "192.168.88"
+                id: update_subnet
+
+
+        Button:
+            text: 'Update Sync Boxes'
+            on_press: app.update_sync_boxes(update_subnet.value)
+
 
 <ManageFogScreen>:
     BoxLayout:

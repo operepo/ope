@@ -9,6 +9,7 @@ import sys
 import re
 from os.path import expanduser
 import logging
+import router_utils
 
 
 # try glew + gles or sdl2?
@@ -162,6 +163,7 @@ from kivy.uix.settings import SettingsWithSidebar
 from kivy.uix.settings import SettingString
 from kivy.uix.settings import SettingItem
 from kivy.uix.button import Button
+from kivy.uix.dropdown import DropDown
 from kivy.properties import ListProperty
 from kivy.logger import Logger
 from kivy.lang import Builder
@@ -436,6 +438,11 @@ class FogDownloadFileSystem(FileSystemAbstract):
 
 
 # <editor-fold desc="Kivy screens and controls">
+
+class SyncBoxSubnetDropdown(DropDown):
+    pass
+
+
 # Main screen
 class StartScreen(Screen):
     pass
@@ -487,6 +494,14 @@ class FogImportScreen(Screen):
 
 
 class FogExportScreen(Screen):
+    pass
+
+
+class UtilitiesScreen(Screen):
+    pass
+
+
+class UpdateSyncBoxesScreen(Screen):
     pass
 
 
@@ -683,6 +698,8 @@ class SyncOPEApp(App):
         sm.add_widget(FogUploadScreen(name="fog_upload"))
         sm.add_widget(FogImportScreen(name="fog_import"))
         sm.add_widget(FogExportScreen(name="fog_export"))
+        sm.add_widget(UtilitiesScreen(name="utilities"))
+        sm.add_widget(UpdateSyncBoxesScreen(name="update_sync_boxes"))
 
         sm.current = "start"
         return sm  # MAIN_WINDOW
