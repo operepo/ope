@@ -47,9 +47,9 @@ def get_app_folder():
             # Logger.info("AppPath: __file__ " + ret)
         APP_FOLDER = ret
         # Add this folder to the os path so that resources can be found more reliably
-        print("-- ADJUSTING SYS PATH -- " + ret)
         text_dir = os.path.join(APP_FOLDER, "kivy\\core\\text")
         os.environ["PATH"] = os.environ["PATH"] + ";" + ret + ";" + text_dir
+        print("-- ADJUSTING SYS PATH -- " + os.environ["PATH"])
 
     else:
         ret = APP_FOLDER
@@ -77,7 +77,7 @@ from kivy.config import Config
 Config.set('kivy', 'exit_on_escape', '0')
 Config.set('graphics', 'multisamples', '0')
 Config.set('graphics', 'fbo', 'software')
-Config.set('kivy', 'log_level', 'debug')  # ''trace')
+Config.set('kivy', 'log_level', 'debug')  # ''trace', 'debug')
 
 #[kivy]
 #log_level = info
@@ -196,6 +196,7 @@ def get_human_file_size(size):
 
     ret = "{0:.2f}".format(t) + " " + sizes[count]
     return ret
+
 
 def get_home_folder():
     home_path = expanduser("~")
