@@ -121,26 +121,26 @@ def processFolder(cwd=""):
     
     ret = ""
     if (os.path.isdir(cwd) != True):
-        #print "Not a folder, skipping..."
+        #print("Not a folder, skipping...")
         return ret
     
     enabled = os.path.join(cwd, ".enabled")
     if (os.path.isfile(enabled) != True):
-        #print "Not enabled, skipping " + cwd
+        #print("Not enabled, skipping " + cwd)
         return ret
     
-    print "Processing Folder " + cwd
+    print("Processing Folder " + cwd)
     
     dc_import = os.path.join(cwd, "docker-compose-include.yml")
     if (os.path.isfile(dc_import) != True):
-        print "        Skipping - No docker-compose-include.yml file found"
+        print("        Skipping - No docker-compose-include.yml file found")
     
     try:
         f = open(dc_import, "r")
         ret = f.read()
         f.close()
     except:
-        print "         Error reading " + dc_import
+        print("         Error reading " + dc_import)
         ret = ""
     
     # Make sure to add some line feeds to the end in case the this has tabs on
@@ -150,10 +150,10 @@ def processFolder(cwd=""):
     # See if we need to import volumes
     vol_import = os.path.join(cwd, "volumes-include.yml")
     if (os.path.isfile(vol_import) != True):
-        #print "\t\tNo volumes file."
+        #print("\t\tNo volumes file.")
         return ret
     
-    print "\tProcessing volume file: " + vol_import
+    print("\tProcessing volume file: " + vol_import)
     
     try:
         f = open(vol_import, "r")
@@ -166,11 +166,11 @@ def processFolder(cwd=""):
                 line = line[0:i]
             line = line.strip()
             if (line != ""):
-                print "\t===> Volume Found: " + line
+                print("\t===> Volume Found: " + line)
                 volume_list.append(line)
         f.close()
     except:
-        print "\t\tError reading " + vol_import
+        print("\t\tError reading " + vol_import)
     
     return ret
 
@@ -178,7 +178,7 @@ def processFolder(cwd=""):
 # Load up each value
 for k in replacement_values:
     replacement_values[k] = getSavedSetting(k, replacement_values[k])
-    print("Val " + str(replacement_values[k]))
+    # print("Val " + str(replacement_values[k]))
 
 # Make sure canvas secret is a new uuid if it is blank
 if replacement_values['<CANVAS_SECRET>'] == "<NEW_UUID>" or replacement_values['<CANVAS_SECRET>'] == "":
@@ -192,7 +192,7 @@ if replacement_values['<IP>'] == "":
 # Save current values
 for k in replacement_values:
     saveSetting(k, replacement_values[k])
-    print("Saved " + k + ":" + str(replacement_values[k]))
+    # print("Saved " + k + ":" + str(replacement_values[k]))
 
 
 # Grab current folder, then move back one, then into the docker_build_files folder
@@ -214,10 +214,10 @@ env_template_file = os.path.join(pwd, ".env.template")
 if (os.path.isfile(env_file) != True or auto is True or True):
     # Try to copy the .env.template file
     if (os.path.isfile(os.path.join(pwd, ".env.template")) == True):
-        print "\n            New environment file - change values in .env file\n"
+        print("\n            New environment file - change values in .env file\n")
         shutil.copy(env_template_file, env_file)
     else:
-        print "No env file found! Create a .env file to store your settings"
+        print("No env file found! Create a .env file to store your settings")
 
 if (os.path.isfile(env_file) == True):
     # Replace template tags with values from the replacement_values array
@@ -264,7 +264,7 @@ print("\n\nRebuild Compose Complete.")
 sys.exit(0)
 
    
-#print "Current IP: " + getIP()
+#print("Current IP: " + getIP())
 
 # Get current IP address
 ip = getIP()
@@ -288,7 +288,7 @@ if (saved_ip == "" or get_new_ip == True) and not auto is True:
         ip = choice
 
 replacement_values["<IP>"] = ip
-print "Using IP: " + ip + "..."
+print("Using IP: " + ip + "...")
 saveIP(ip)
 
 pw = getPW()
@@ -310,7 +310,7 @@ if saved_domain == "" and not auto is True:
 else:
     domain = saved_domain
 replacement_values["<DOMAIN>"] = domain
-print "Using domain: " + domain + "..."
+print("Using domain: " + domain + "...")
 saveDomain(domain)
 
 
@@ -342,5 +342,5 @@ if os.path.isfile(env_file) == True:
 #for folder in os.listdir("."):
 #  if (folder[:4] == "ope-"):
 #    st = "python " + folder + "/start.py"
-#    print "Starting " + st
+#    print("Starting " + st)
 #    os.system(st)
