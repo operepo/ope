@@ -1,4 +1,12 @@
 
+11/14/18
+Laptop Track Pad Settings
+	- Apply registry settings to disable track pad when typing (see reg files)
+		- Add for HK_CURRENT_USER - may need to apply with canvas app?
+		
+
+
+
 8/14/18
 BUG SMC - Student attempt to change password, AD error saying "unable to change pw on non existent account"
     - AD._ldap - Being init, but not connected results in all future connection attempts to bypass actual bind call
@@ -71,8 +79,6 @@ http://latex.codecogs.com/gif.latex?%5CDelta%5COmega
 codecogs.equation_image_link  - how to set this in ruby settings???
 SQL --  insert into settings (name, value) values ('codecogs.equation_image_link', 'http://broken.link.com');
 
-CANVAS
-404 - missing?
 
 https://cdn.mathjax.org/mathjax/2.1-latest/MathJax.js?config=TeX-AMS_HTML.js&_=1485206720072
 

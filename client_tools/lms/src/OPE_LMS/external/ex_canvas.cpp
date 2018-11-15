@@ -1638,7 +1638,6 @@ bool EX_Canvas::queueAssignmentFile(QString course_id, QString assignment_id, QS
 bool EX_Canvas::LinkToCanvas(QString redirect_url, QString client_id)
 {
     // Redirect to canvas server to authorize this app
-    bool ret = false;
 
     //// TODO add purpose to key generation? &purpose=MobileLMS
     // Open the browser. We will get an event from the web server when it is done

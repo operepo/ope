@@ -45,7 +45,16 @@ int main(int argc, char *argv[])
     // -- Setup our app module which deals with QML/C++ integration
     AppModule *appModule = new AppModule(&engine);
 
+    QString loadPage = "qrc:/lms.qml";
+
     QString last_arg = QCoreApplication::arguments().last();
+
+    bool is_app_credentialed = appModule->isAppCredentialed();
+    if (is_app_credentialed != true) {
+        // Load the error page for non credentialed apps
+        loadPage = "qrc:/not_credentialed.qml";
+    }
+
     bool need_sync = false;
     if (last_arg == "sync" || appModule->hasAppSycnedWithCanvas() != true)
     {
@@ -57,7 +66,7 @@ int main(int argc, char *argv[])
     context->setContextProperty(QStringLiteral("need_sync"), need_sync);
 
     //engine.load(QUrl(QLatin1String("qrc:/dropTest.qml")));
-    engine.load(QUrl(QLatin1String("qrc:/lms.qml")));
+    engine.load(QUrl(loadPage));
 
     return app.exec();
 }
