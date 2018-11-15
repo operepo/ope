@@ -64,6 +64,7 @@ RUN addgroup www-data \
 
 WORKDIR $W2P_DIR
 
+LABEL rebuild_web2py=1
 
 RUN git clone --recursive https://github.com/web2py/web2py.git . \
       && mv handlers/wsgihandler.py ./wsgihandler.py \
@@ -81,7 +82,7 @@ RUN git clone https://github.com/operepo/smc.git $W2P_DIR/applications/smc \
       && chmod +x $W2P_DIR/applications/smc/set_admin_password.py
 
 # Copy our files in
-LABEL rebuild=15
+LABEL rebuild=16
 COPY start.sh /start.sh
 COPY supervisord.conf /etc/supervisor/supervisord.conf
 
