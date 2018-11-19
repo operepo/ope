@@ -36,6 +36,7 @@
             #- VIRTUAL_PROTO=https
             - VIRTUAL_PROTO=uwsgi
             - HTTPS_METHOD=redirect
+            - IS_ONLINE=${IS_ONLINE}
         links:
             - ope-postgresql:postgresql
             # Send canvas connections through the gateway

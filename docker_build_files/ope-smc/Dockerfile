@@ -16,8 +16,8 @@ RUN apk update \
         openssl zip postgresql-dev openldap-dev \
         supervisor libffi-dev \
     && pip install --upgrade pip \
-    && pip install --upgrade setuptools python-ldap pycrypto requests paramiko ecdsa isodate pytube pywinrm xlrd crypto PyMySQL psycopg2-binary uwsgi uwsgitop psutil \
-# matplotlib reportlab ldap
+    && pip install --upgrade setuptools ldap3 pycryptodome requests paramiko ecdsa isodate pytube pywinrm xlrd crypto PyMySQL psycopg2-binary uwsgi uwsgitop psutil \
+# matplotlib reportlab ldap pycrypto changed to pycryptodome  python-ldap changed to ldap3
     && FFMPEG_VER=3.4.2 \ 
     && curl -s http://ffmpeg.org/releases/ffmpeg-${FFMPEG_VER}.tar.gz | tar zxvf - -C . \
     && cd ffmpeg-${FFMPEG_VER} \
@@ -84,23 +84,22 @@ WORKDIR $W2P_DIR
 
 
 # New clone smc which includes web2py already
-LABEL rebuild_smc=8
-RUN git clone --dept 1 https://github.com/operepo/smc.git $W2P_DIR/ \
-      && echo '#!/bin/sh\ncd $W2P_DIR/web2py/applications/smc\npython set_admin_password.py' > /bin/set_admin_password \
-      && chmod +x /bin/set_admin_password \
+LABEL rebuild_smc=9
+RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
       && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
 
 # Copy our files in
-LABEL rebuild=16
+LABEL rebuild=17
+COPY set_admin_password /bin/set_admin_password
 COPY start.sh /start.sh
 COPY supervisord.conf /etc/supervisor/supervisord.conf
-
 COPY ViewerJS $W2P_DIR/web2py/applications/smc/static/
 
 RUN chmod +x /start.sh \
      && chown -R www-data:www-data $W2P_DIR \
-     && chown -R git:git $INSTALL_DIR/git
+     && chown -R git:git $INSTALL_DIR/git \
+     && chmod +x /bin/set_admin_password
 
 ENV USER=www-data
 
