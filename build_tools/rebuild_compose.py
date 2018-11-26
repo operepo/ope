@@ -65,6 +65,7 @@ replacement_values = { '<DOMAIN>': 'ed', '<IP>': '', "<VOLUMES>": '',
     "<CANVAS_LOGIN_PROMPT>": "Student ID (default is s + DOC number - s113412)",
     "<CANVAS_DEFAULT_DOMAIN>": "canvas.<DOMAIN>",
     "<SMC_DEFAULT_DOMAIN>": "smc.<DOMAIN>",
+    "<IS_ONLINE>": "0",
     }
 
 # A list of volumes that need to be specified in the volumes section
