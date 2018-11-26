@@ -1,3 +1,4 @@
+## RUN AS PYTHON 2.x if not compiled
 
 # Laptop Credential Application
 

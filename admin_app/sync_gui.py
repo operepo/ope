@@ -598,6 +598,9 @@ class SyncOPEApp(App):
     stable_apps = ["ope-kalite", "ope-codecombat", "ope-gcf"]
     beta_apps = ["ope-freecodecamp", "ope-jsbin", "ope-rachel", "ope-stackdump", "ope-wamap", "ope-wsl"]
 
+    # Flag to indicate if we are in online or offline mode
+    is_online = 0
+
     def load_current_settings(self):
         global MAIN_WINDOW
 
@@ -1960,6 +1963,11 @@ class SyncOPEApp(App):
         for line in stdout:
             pass
 
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + SyncOPEApp.is_online + "\" > .IS_ONLINE; ",
+                                                 get_pty=True)
+        for line in stdout:
+            pass
+
         rebuild_path = os.path.join(ssh_folder, "build_tools", "rebuild_compose.py").replace("\\", "/")
         stdin, stdout, stderr = ssh.exec_command("python " + rebuild_path + " auto", get_pty=True)
         try:
@@ -2041,6 +2049,11 @@ class SyncOPEApp(App):
         for line in stdout:
             pass
         stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .OFFICE_PW; ", get_pty=True)
+        for line in stdout:
+            pass
+
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + SyncOPEApp.is_online + "\" > .IS_ONLINE; ",
+                                                 get_pty=True)
         for line in stdout:
             pass
 
@@ -2318,7 +2331,7 @@ class SyncOPEApp(App):
                 # open sftp connection and move to the codecombat data folder
                 sftp = ssh.open_sftp()
                 server_path = os.path.join(ssh_folder, "volumes/codecombat/data").replace("\\", "/")
-                sftp.cddir(server_path)
+                sftp.chdir(server_path)
                 
                 if online_state == "online":
                     # ONLINE
@@ -2332,8 +2345,9 @@ class SyncOPEApp(App):
                             if f_item.filename == ".dl_complete":
                                 dl_complete_found = True
                         # waiting for database to download and unpack
-                        print( "waiting for db to dl...")
-                        Thread.sleep(3)
+                        print("waiting for db to dl...")
+                        time.sleep(0.25)
+                        # Thread.sleep(3)
                     
                     self.sync_volume('codecombat', 'data', ssh, ssh_folder, status_label, sync_type='dl', filename='dump.tar.gz')
                 else:
@@ -2355,6 +2369,7 @@ class SyncOPEApp(App):
             run_button.disabled = True
         # Start a thread to do the work
         status_label.text = "[b]Starting Update[/b]..."
+        SyncOPEApp.is_online = 1
         threading.Thread(target=self.update_online_server_worker, args=(status_label, run_button, progress_bar, progress_label)).start()
 
     def update_online_server_worker(self, status_label, run_button=None, progress_bar=None, progress_label=None):
@@ -2449,6 +2464,7 @@ class SyncOPEApp(App):
             run_button.disabled = True
         # Start a thread to do the work
         status_label.text = "[b]Starting Update[/b]..."
+        SyncOPEApp.is_online = 0
         threading.Thread(target=self.update_offline_server_worker, args=(status_label, run_button, progress_bar, progress_label)).start()
 
     def update_offline_server_worker(self, status_label, run_button=None, progress_bar=None, progress_label=None):

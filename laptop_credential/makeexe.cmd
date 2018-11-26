@@ -1,10 +1,12 @@
 
 cd %~dp0
-python build.py
+rem Use pyinstaller build, not old py2exe build
+python2 build.py
 
-REM python setup.py py2exe
+REM python2 setup.py py2exe
 
 rem xcopy /Y /E dist\* ..\update\
 
 echo "Build complete"
+echo "Copy dist files to binary folder and commit/push with git to publish."
 pause
