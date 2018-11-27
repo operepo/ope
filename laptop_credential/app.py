@@ -134,7 +134,7 @@ def does_user_exist_in_smc(user_name, smc_url, admin_user, admin_pw):
         p("}}yn" + str(error_message) + "}}xx")
         return False
     
-    # Interperet response from SMC
+    # Interpret response from SMC
     try:
         msg = smc_response["msg"]
         if msg == "Invalid User!":
@@ -163,13 +163,30 @@ def main():
     global admin_user, admin_pass, smc_url, student_user, server_name, home_root
     canvas_access_token = ""
     
+    win_util.test_reg()
+    
+    return False
+    #TEST
+    student_user = "s777777"
+    canvas_access_token = "q213"
+    key = win_util.create_reg_key(r"HKEY_LOCAL_MACHINE\Software\Krita")
+    v = key.Version
+    print("VERSION " + str(key.get_value('Version')))
+    
+    key = win_util.create_reg_key(r"HKEY_LOCAL_MACHINE\Software\OPE", student_user)
+    key = win_util.create_reg_key(r"HKEY_LOCAL_MACHINE\Software\OPE\OPELMS", student_user)
+    key = win_util.create_reg_key(r"HKLM\Software\OPE\OPELMS\student")
+    key.canvas_access_token = canvas_access_token
+    key.user_name = student_user
+    
+    
     # See if we already have a user credentialed.
     last_student_user = ""
     try:
         key = win_util.get_reg_key(r"HKEY_LOCAL_MACHINE\Software\OPE\OPELMS\student")
         last_student_user = key.get_value("user_name")        
     except winsys.exc.x_not_found as error_message:
-        p("}}rbKey Not Found}}xx" + str(error_message))
+        # p("}}rbKey Not Found}}xx" + str(error_message))
         # ok if it isn't here, just wasn't credentialed previously
         pass
     except Exception as error_message:
@@ -180,7 +197,9 @@ def main():
     # We want to make sure to disable any accounts that were previously setup
     # don't want more then one student being able to login at a time
     win_util.disable_student_accounts()
-
+    
+    return
+    
     print_app_header()
     # Ask for admnin user/pass and website
     tmp = raw_input(term.translate_color_codes("}}ynEnter URL for SMC Server }}cn[enter for default " + smc_url + "]:}}xx "))
@@ -293,7 +312,7 @@ def main():
         p("}}yn" + str(error_message) + "}}xx")
         return False
 
-    # Interperet response from SMC
+    # Interpret response from SMC
     try:
         # p("RESP: " + str(smc_response))
         msg = smc_response["msg"]
@@ -330,8 +349,8 @@ def main():
 
     # Store the access token in the registry where the LMS app can pick it up
     p("}}gn\nSaving canvas credentials for student...")
-    # key = win_util.create_reg_key(r"HKLM\Software\OPE\OPELMS", student_user)
-    key = win_util.create_reg_key(r"HKEY_LOCAL_MACHINE\Software\OPE\OPELMS\student")
+    key = win_util.create_reg_key(r"HKLM\Software\OPE\OPELMS", student_user)
+    key = win_util.create_reg_key(r"HKLM\Software\OPE\OPELMS\student")
     key.canvas_access_token = canvas_access_token
     key.user_name = student_user
     
@@ -548,7 +567,7 @@ def listNics():
                 #p("     ---> unauthorized, not plugged in...")
                 pass
             continue
-		   
+           
         p("========================================================")
         p("Adapter Type: ", objItem.AdapterType)
         p("Adapter Type Id: ", objItem.AdapterTypeId)

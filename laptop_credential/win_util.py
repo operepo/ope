@@ -8,10 +8,15 @@ import win32security
 import win32net
 import ctypes
 import enum
-import _winreg as winreg
-import winsys
+try:
+    import _winreg as winreg
+except:
+    import winreg
 
-from winsys import accounts, registry, security
+    
+#import winsys
+#from winsys import accounts, registry, security
+
 from term import p
 
 STUDENTS_GROUP = "OPEStudents"
@@ -96,7 +101,34 @@ def decrypt(data, key):
     data = data.rstrip(' ')
     return data
 
-
+def test_reg():
+    global STUDENTS_GROUP
+    winreg.EnableReflectionKey(winreg.HKEY_LOCAL_MACHINE)
+    p("Ref: " + str(winreg.QueryReflectionKey(winreg.HKEY_LOCAL_MACHINE)))
+    
+    
+    # key = winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, "Software\TESTING")
+    #key = winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, "Software\OPE\OPELMS\student")
+    
+    #key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "Software\Krita")
+    key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "Software")
+    
+    
+    p("SUB KEYS: ")
+    enum_done = False
+    i = 0
+    try:
+        while enum_done is False:
+            sub_key = winreg.EnumKey(key, i)
+            p("-- SK: " + str(sub_key))
+            i += 1
+            p("Ref: " + str(winreg.QueryReflectionKey(winreg.HKEY_LOCAL_MACHINE)))
+    except WindowsError as ex:
+        # No more values
+        p("-- ERR " + str(ex))
+        pass
+    
+    
 def create_local_student_account(user_name, full_name, password):
     global STUDENTS_GROUP
 
@@ -188,11 +220,15 @@ def disable_student_accounts():
     # Get a list of accounts that are in the students group
     global STUDENTS_GROUP
 
-    grp = accounts.local_group(STUDENTS_GROUP)
+    try:
+        grp = accounts.local_group(STUDENTS_GROUP)
+    except winsys.exc.x_not_found as ex:
+        # p("}}yn" + str(STUDENTS_GROUP) + " group not found - skipping disable student accounts...}}xx")
+        return
     
     for user in grp:
         user_name = str(user)
-        p("}}cnFound User " + user_name + " in " + STUDENTS_GROUP + " - disabling...}}xx")
+        p("}}cnDisabling Student Account: " + user_name + " in " + STUDENTS_GROUP + "...}}xx")
         
         user_data = dict()
         user_data['flags'] = win32netcon.UF_SCRIPT | win32netcon.UF_ACCOUNTDISABLE
@@ -217,7 +253,7 @@ def create_reg_key(key_str, user_name=None):
         # Break inheritance causes things to reapply properly
         s.break_inheritance(copy_first=True)
         if user_name is not None:
-            s.dacl.append((user_name, "Q", "ALLOW"))
+            s.dacl.append((user_name, "R", "ALLOW"))
         s.dacl.append((accounts.me(), "F", "ALLOW"))
         # s.dacl.dump()
     return reg
