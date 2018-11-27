@@ -9,6 +9,7 @@ import sys
 import re
 from os.path import expanduser
 import logging
+import router_utils
 
 
 # try glew + gles or sdl2?
@@ -46,9 +47,9 @@ def get_app_folder():
             # Logger.info("AppPath: __file__ " + ret)
         APP_FOLDER = ret
         # Add this folder to the os path so that resources can be found more reliably
-        print("-- ADJUSTING SYS PATH -- " + ret)
         text_dir = os.path.join(APP_FOLDER, "kivy\\core\\text")
         os.environ["PATH"] = os.environ["PATH"] + ";" + ret + ";" + text_dir
+        print("-- ADJUSTING SYS PATH -- " + os.environ["PATH"])
 
     else:
         ret = APP_FOLDER
@@ -76,7 +77,7 @@ from kivy.config import Config
 Config.set('kivy', 'exit_on_escape', '0')
 Config.set('graphics', 'multisamples', '0')
 Config.set('graphics', 'fbo', 'software')
-Config.set('kivy', 'log_level', 'debug')  # ''trace')
+Config.set('kivy', 'log_level', 'debug')  # ''trace', 'debug')
 
 #[kivy]
 #log_level = info
@@ -162,6 +163,7 @@ from kivy.uix.settings import SettingsWithSidebar
 from kivy.uix.settings import SettingString
 from kivy.uix.settings import SettingItem
 from kivy.uix.button import Button
+from kivy.uix.dropdown import DropDown
 from kivy.properties import ListProperty
 from kivy.logger import Logger
 from kivy.lang import Builder
@@ -194,6 +196,7 @@ def get_human_file_size(size):
 
     ret = "{0:.2f}".format(t) + " " + sizes[count]
     return ret
+
 
 def get_home_folder():
     home_path = expanduser("~")
@@ -436,6 +439,11 @@ class FogDownloadFileSystem(FileSystemAbstract):
 
 
 # <editor-fold desc="Kivy screens and controls">
+
+class SyncBoxSubnetDropdown(DropDown):
+    pass
+
+
 # Main screen
 class StartScreen(Screen):
     pass
@@ -487,6 +495,14 @@ class FogImportScreen(Screen):
 
 
 class FogExportScreen(Screen):
+    pass
+
+
+class UtilitiesScreen(Screen):
+    pass
+
+
+class UpdateSyncBoxesScreen(Screen):
     pass
 
 
@@ -582,6 +598,9 @@ class SyncOPEApp(App):
     stable_apps = ["ope-kalite", "ope-codecombat", "ope-gcf"]
     beta_apps = ["ope-freecodecamp", "ope-jsbin", "ope-rachel", "ope-stackdump", "ope-wamap", "ope-wsl"]
 
+    # Flag to indicate if we are in online or offline mode
+    is_online = 0
+
     def load_current_settings(self):
         global MAIN_WINDOW
 
@@ -607,8 +626,15 @@ class SyncOPEApp(App):
         key = self.config.getdefault("Server", "auth1", "")
         pw = self.config.getdefault("Server", "auth2", "")
         if pw != "":
-            e = Enc(key)
-            pw = e.decrypt(pw)
+            try:
+                e = Enc(key)
+                pw = e.decrypt(pw)
+            except:
+                # Error decrypting password
+                pw = "changemeDJ2$#"
+                popup = Popup(title='Error Getting Offline Password',
+                              content=Label(text='Unable to get offline password, try setting it again.'),
+                              size_hint=(None, None), size=(400, 400))
         else:
             pw = "changeme"
         return pw
@@ -626,8 +652,15 @@ class SyncOPEApp(App):
         key = self.config.getdefault("Server", "auth1", "")
         pw = self.config.getdefault("Server", "auth3", "")
         if pw != "":
-            e = Enc(key)
-            pw = e.decrypt(pw)
+            try:
+                e = Enc(key)
+                pw = e.decrypt(pw)
+            except:
+                # Error decrypting password
+                pw = "changemeDJ2$#"
+                popup = Popup(title='Error Getting Online Password',
+                              content=Label(text='Unable to get online password, try setting it again.'),
+                              size_hint=(None, None), size=(400, 400))
         else:
             pw = "changeme"
         return pw
@@ -669,6 +702,8 @@ class SyncOPEApp(App):
         sm.add_widget(FogUploadScreen(name="fog_upload"))
         sm.add_widget(FogImportScreen(name="fog_import"))
         sm.add_widget(FogExportScreen(name="fog_export"))
+        sm.add_widget(UtilitiesScreen(name="utilities"))
+        sm.add_widget(UpdateSyncBoxesScreen(name="update_sync_boxes"))
 
         sm.current = "start"
         return sm  # MAIN_WINDOW
@@ -1053,7 +1088,7 @@ class SyncOPEApp(App):
             fog_import_from_usb_button.disabled = False
             return
 
-        image_name = os.path.basename(fog_import_from_usb_image.selection[0].replace("C:\\", "").strip("/"))  # Comes in with c:\\test....
+        image_name = os.path.basename(fog_import_from_usb_image.selection[0]).strip("/")  # Comes in with c:\\test....
         image_basename = image_name.replace(".fog_image", "")
         remote_path = os.path.join(ssh_folder, "volumes/fog/images/", image_basename).replace("\\", "/")
         remote_info_file = os.path.join(remote_path, image_basename + ".info").replace("\\", "/")
@@ -1112,7 +1147,8 @@ class SyncOPEApp(App):
         error_message.text = "Unzipping " + image_name + " (will take several minutes)."
         # start a clock so it can show the dots and not look frozen
         progress_clock = Clock.schedule_interval(partial(self.fog_image_unzip_progress, error_message), 1.0)
-        cmd = "cd " + remote_images_folder + "; tar xvf " + image_name + "; rm -Rf " + remote_tar_file + ";"
+        # Use ionice to limit io load during tar
+        cmd = "cd " + remote_images_folder + "; ionice -c 3 -t tar xvf " + image_name + "; rm -Rf " + remote_tar_file + ";"
         stdin, stdout, stderr = ssh.exec_command(cmd, get_pty=True)
         stdin.close()
         for line in stdout:
@@ -1226,11 +1262,13 @@ class SyncOPEApp(App):
 
         # print("Security Options: " + str(ssh.get_transport().get_security_options().ciphers))
 
-        image_name = fog_export_to_usb_image.selection[0].replace("C:\\", "").strip("/")  # Comes in with c:\\test....
+        image_name = os.path.basename(fog_export_to_usb_image.selection[0]).strip("/") #  .replace("C:\\", "").strip("/")  # Comes in with c:\\test....
+        # print("Image Name: " + image_name)
         remote_path = os.path.join(ssh_folder, "volumes/fog/images/", image_name).replace("\\", "/")
         remote_images_folder = os.path.join(ssh_folder, "volumes/fog/images/").replace("\\", "/")
         local_file_path = os.path.join(self.get_fog_images_folder(), image_name + ".fog_image")
-
+        # print("Local File Path: " + local_file_path)
+        # print("Remote_FilePath: " + remote_path)
         error_message.text = "Downloading " + image_name
 
         # -- DUMP database data into the image folder for later import
@@ -1281,7 +1319,8 @@ class SyncOPEApp(App):
             total_size = int(total_size * 1.0)
 
         # Now tar/gzip the folder and send it to the USB drive
-        cmd = "cd " + remote_images_folder + "; tar cvf - " + image_name + " 2> /dev/null | gzip -fqc "
+        # Use ionice to limit io load during tar
+        cmd = "cd " + remote_images_folder + "; ionice -c 3 -t tar cvf - " + image_name + " 2> /dev/null | gzip -fqc "
         # ssh.get_transport().window_size = 2147483647
         chan = ssh.get_transport().open_session()  # window_size=64000, max_packet_size=8192)
         chan.settimeout(10800)
@@ -1534,7 +1573,7 @@ class SyncOPEApp(App):
         volumes_path = os.path.join(root_path, "volumes")
         fog_path = os.path.join(volumes_path, "fog")
         fog_images_path = os.path.join(fog_path, "images").replace("/", os.sep)
-
+        # print("FOG IMAGES PATH: " + fog_images_path)
         # Make sure the path exists
         if not os.path.isdir(fog_images_path):
             os.makedirs(fog_images_path)
@@ -1924,6 +1963,11 @@ class SyncOPEApp(App):
         for line in stdout:
             pass
 
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + SyncOPEApp.is_online + "\" > .IS_ONLINE; ",
+                                                 get_pty=True)
+        for line in stdout:
+            pass
+
         rebuild_path = os.path.join(ssh_folder, "build_tools", "rebuild_compose.py").replace("\\", "/")
         stdin, stdout, stderr = ssh.exec_command("python " + rebuild_path + " auto", get_pty=True)
         try:
@@ -2005,6 +2049,11 @@ class SyncOPEApp(App):
         for line in stdout:
             pass
         stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .OFFICE_PW; ", get_pty=True)
+        for line in stdout:
+            pass
+
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + SyncOPEApp.is_online + "\" > .IS_ONLINE; ",
+                                                 get_pty=True)
         for line in stdout:
             pass
 
@@ -2282,7 +2331,7 @@ class SyncOPEApp(App):
                 # open sftp connection and move to the codecombat data folder
                 sftp = ssh.open_sftp()
                 server_path = os.path.join(ssh_folder, "volumes/codecombat/data").replace("\\", "/")
-                sftp.cddir(server_path)
+                sftp.chdir(server_path)
                 
                 if online_state == "online":
                     # ONLINE
@@ -2296,8 +2345,9 @@ class SyncOPEApp(App):
                             if f_item.filename == ".dl_complete":
                                 dl_complete_found = True
                         # waiting for database to download and unpack
-                        print( "waiting for db to dl...")
-                        Thread.sleep(3)
+                        print("waiting for db to dl...")
+                        time.sleep(0.25)
+                        # Thread.sleep(3)
                     
                     self.sync_volume('codecombat', 'data', ssh, ssh_folder, status_label, sync_type='dl', filename='dump.tar.gz')
                 else:
@@ -2319,6 +2369,7 @@ class SyncOPEApp(App):
             run_button.disabled = True
         # Start a thread to do the work
         status_label.text = "[b]Starting Update[/b]..."
+        SyncOPEApp.is_online = 1
         threading.Thread(target=self.update_online_server_worker, args=(status_label, run_button, progress_bar, progress_label)).start()
 
     def update_online_server_worker(self, status_label, run_button=None, progress_bar=None, progress_label=None):
@@ -2413,6 +2464,7 @@ class SyncOPEApp(App):
             run_button.disabled = True
         # Start a thread to do the work
         status_label.text = "[b]Starting Update[/b]..."
+        SyncOPEApp.is_online = 0
         threading.Thread(target=self.update_offline_server_worker, args=(status_label, run_button, progress_bar, progress_label)).start()
 
     def update_offline_server_worker(self, status_label, run_button=None, progress_bar=None, progress_label=None):

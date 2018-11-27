@@ -1,8 +1,8 @@
 production:
   workers:
   - queue: canvas_queue
-    workers: 2
-    max_priority: 10
+  #  workers: 2
+  #  max_priority: 10
   #- queue: canvas_queue
   #  workers: 4
   # if set, workers will process this many jobs and then die, causing the pool

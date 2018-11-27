@@ -173,10 +173,6 @@ ApplicationWindow {
                     }
 
 
-
-
-
-
                     Item {
                         id: rectangle1
                         Layout.fillWidth: true

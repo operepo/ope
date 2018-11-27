@@ -7,7 +7,7 @@ ROOTDIR=$(dirname "$BASEDIR")
 cd "$BASEDIR"
 
 # Only run this stuff if fog is enabled
-if [ -f ope-fog/.enabled]; then
+if [ -f ope-fog/.enabled ]; then
 
     systemctl disable rpcbind
     systemctl stop rpcbind

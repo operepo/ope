@@ -32,6 +32,7 @@
         <file>AppPages.qml</file>
         <file>AppFiles.qml</file>
         <file>AppAnnouncements.qml</file>
+        <file>not_credentialed.qml</file>
     </qresource>
     <qresource prefix="/images">
         <file>blue-folder.png</file>

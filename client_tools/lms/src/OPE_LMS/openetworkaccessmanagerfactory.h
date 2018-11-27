@@ -7,7 +7,7 @@
 #include <QNetworkReply>
 #include <QSslError>
 
-class OPENetworkAccessManager: public QObject, public QNetworkAccessManager
+class OPENetworkAccessManager: public QNetworkAccessManager
 {
     Q_OBJECT
 public:

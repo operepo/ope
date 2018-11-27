@@ -1,0 +1,22 @@
+# RUN AS PYTHON2
+pywin32 
+pypiwin32 (pywintypes, pypiwin32 - had to do python2 -m pip --upgrade --force-reinstall pypiwin32)
+pywin32-ctypes
+urllib3
+winregistry
+winsys (included - no pip)
+requests
+
+pyinstall (for setup/binary build)
+
+
+##### - Need to figure out which of these need installed - think they all come from pywin32/pypiwin32
+import win32api
+import win32con
+import win32netcon
+import ntsecuritycon
+import win32security
+import win32net
+import ctypes
+import pythoncom
+from win32com.shell import shell, shellcon
