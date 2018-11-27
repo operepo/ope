@@ -24,7 +24,7 @@ development:
   port: 5432
   queue:
     <<: *login
-    database: canvas_queue_production
+    database: canvas_queue
 
 production:
   <<: *login
@@ -33,4 +33,4 @@ production:
   port: 5432
   queue:
     <<: *login
-    database: canvas_queue_production
+    database: canvas_queue
