@@ -279,15 +279,18 @@ class Registry(core._WinSysObject):
             # or winsys.delete()
             # or registry.registry(r"hklm\software").delete("winsys")
     """
+    
+    # 32 or 64 bit view of the registry
+    CURRENT_WOW_VIEW = REGISTRY_ACCESS.KEY_WOW64_64KEY
 
     ACCESS = {
-        "Q" : REGISTRY_ACCESS.KEY_QUERY_VALUE,
-        "D" : constants.ACCESS.DELETE,
-        "R" : REGISTRY_ACCESS.KEY_READ,
-        "W" : REGISTRY_ACCESS.KEY_WRITE,
-        "C" : REGISTRY_ACCESS.KEY_READ | REGISTRY_ACCESS.KEY_WRITE,
-        "F" : REGISTRY_ACCESS.KEY_ALL_ACCESS,
-        "S" : constants.ACCESS.READ_CONTROL | constants.ACCESS.WRITE_DAC,
+        "Q" : REGISTRY_ACCESS.KEY_QUERY_VALUE | CURRENT_WOW_VIEW,
+        "D" : constants.ACCESS.DELETE | CURRENT_WOW_VIEW,
+        "R" : REGISTRY_ACCESS.KEY_READ | CURRENT_WOW_VIEW,
+        "W" : REGISTRY_ACCESS.KEY_WRITE | CURRENT_WOW_VIEW,
+        "C" : REGISTRY_ACCESS.KEY_READ | CURRENT_WOW_VIEW,
+        "F" : REGISTRY_ACCESS.KEY_ALL_ACCESS | CURRENT_WOW_VIEW,
+        "S" : constants.ACCESS.READ_CONTROL | constants.ACCESS.WRITE_DAC | CURRENT_WOW_VIEW,
     }
     """Mapping between characters and access rights:
 

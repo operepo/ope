@@ -22,6 +22,8 @@ from win32com.shell import shell, shellcon
 
 # import _winreg as winreg
 # from winregistry import winregistry as winreg
+######### NOTE - Modified winsys to allow 32/64 bit registry views
+# We use KEY_WOW64_64KEY to make sure we are in 64 bit view same as LMS app
 import winsys
 from winsys import accounts, registry, security
 
@@ -56,9 +58,11 @@ def run_as_admin():
 
 
 def print_app_header():
-    # Printa the header for the app
+    # Print the header for the app
 
     txt = """
+    
+        
 }}mn======================================================================
 }}mn| }}ybOPE Credential App                                                 }}mn|
 }}mn| }}xxThis app will add student credentials to the computer and          }}mn|
@@ -84,9 +88,15 @@ def print_checklist_warning():
     p(txt)
 
     
-def does_user_exist_in_smc(user_name, smc_url, admin_user, admin_pw):
+def verify_ope_account_in_smc(user_name, smc_url, admin_user, admin_pw):
     # Bounce off the SMC server to see if the student account exists in SMC
     # NOTE - this one does NOT check canvas for the user
+    
+    laptop_admin_user = ""
+    laptop_admin_password = ""
+    student_full_name = ""
+    
+    
     api_url = smc_url
     if not api_url.endswith("/"):
         api_url += "/"
@@ -96,23 +106,23 @@ def does_user_exist_in_smc(user_name, smc_url, admin_user, admin_pw):
     headers = {'Authorization': 'Basic ' + key}
 
     p("\n}}gnChecking user status in SMC tool...}}xx\n")
-    url = api_url + "lms/check_for_student.json/" + student_user
+    url = api_url + "lms/verify_ope_account_in_smc.json/" + student_user
 
     try:
         resp = requests.get(url, headers=headers, verify=False)  # urllib3.Get(url, None, headers)
     except requests.ConnectionError as error_message:
         p("}}rbConnection error trying to connect to SMC server}}xx")
         p("}}yn" + str(error_message) + "}}xx")
-        return False
+        return None
         
     if resp is None:
         # Unable to get a response?
         p("}}rbInvalid response from SMC server!}}xx")
-        return False
+        return None
     
     if resp.status_code == requests.codes.forbidden:
         p("}}rbError authenticating with SMC server - check password and try again.}}xx")
-        return False
+        return None
     
     try:
         resp.raise_for_status()
@@ -120,7 +130,7 @@ def does_user_exist_in_smc(user_name, smc_url, admin_user, admin_pw):
         p("}}rbGeneral error trying to connect to SMC server}}xx")
         p("}}ybApplyingMake sure SMC is fully up to date}}xx")
         p("}}yn" + str(error_message) + "}}xx")
-        return False
+        return None
         
     smc_response = None
     try:
@@ -128,11 +138,11 @@ def does_user_exist_in_smc(user_name, smc_url, admin_user, admin_pw):
     except ValueError as error_message:
         p("}}rbInvalid JSON reponse from SMC}}xx")
         p("}}yn" + str(error_message) + "}}xx")
-        return False
+        return None
     except Exception as error_message:
         p("}}rbUNKNOWN ERROR}}xx")
         p("}}yn" + str(error_message) + "}}xx")
-        return False
+        return None
     
     # Interpret response from SMC
     try:
@@ -140,36 +150,49 @@ def does_user_exist_in_smc(user_name, smc_url, admin_user, admin_pw):
         if msg == "Invalid User!":
             p("\n}}rbInvalid User!}}xx")
             p("}}mnUser doesn't exit in system, please import this student in the SMC first!}}xx")
-            return False
+            return None
         if msg == "No username specified!":
             p("\n}}rbInvalid User!}}xx")
             p("}}mnNo user with this name exists, please import this student in the SMC first!}}xx")
-            return False
-        full_name = smc_response["full_name"]
+            return None
+        student_full_name = smc_response["student_full_name"]
+        laptop_admin_user = smc_response["laptop_admin_user"]
+        laptop_admin_password = smc_response["laptop_admin_password"]
     except Exception as error_message:
         p("}}rbUnable to interpret response from SMC - no msg parameter returned}}xx")
-        p("}}mn" + str(ex) + "}}xx")
-        return False
+        p("}}mn" + str(error_message) + "}}xx")
+        # p(str(smc_response))
+        return None
     
-    return full_name
+    return (laptop_admin_user, laptop_admin_password, student_full_name)
 
     
 def main():
+    if win_util.is_admin() is not True:
+        p("}}rbApp must be run as Admin user with elevated (UAC) privileges!!!}}xx")
+        return False
+
     global admin_user, admin_pass, smc_url, student_user, server_name, home_root
     canvas_access_token = ""
+    win_util.disable_guest_account()
     
     # win_util.test_reg()
     
     # See if we already have a user credentialed.
     last_student_user = win_util.get_credentialed_student_name(default_value="")
     
-    p("LAST STUDENT USER: " + str(last_student_user))
+    ### DEBUG 
+    #student_user = last_student_user
+    #win_util.set_registry_permissions(student_user)
+    #return False
+    
+    # p("LAST STUDENT USER: " + str(last_student_user))
     # We want to make sure to disable any accounts that were previously setup
     # don't want more then one student being able to login at a time
     win_util.disable_student_accounts()
     
     print_app_header()
-    # Ask for admnin user/pass and website
+    # Ask for admin user/pass and website
     tmp = raw_input(term.translate_color_codes("}}ynEnter URL for SMC Server }}cn[enter for default " + smc_url + "]:}}xx "))
     tmp = tmp.strip()
     if tmp == "":
@@ -193,22 +216,31 @@ def main():
     last_student_user_prompt = ""
     while tmp.strip() == "":
         if last_student_user != "":
-            last_student_user_prompt = " }}cn[enter for " + last_student_user + "]"
-            p("}}mb\t- Found previously credentialed user: }}xx" + str(last_student_user))
+            last_student_user_prompt = " }}cn[enter for previous student " + last_student_user + "]"
+            # p("}}mb\t- Found previously credentialed user: }}xx" + str(last_student_user))
         tmp = raw_input(term.translate_color_codes("}}ynPlease enter the username for the student" + last_student_user_prompt + ":}}xx "))
         if tmp.strip() == "":
             tmp = last_student_user
     student_user = tmp.strip()
     
-    student_full_name = does_user_exist_in_smc(student_user, smc_url, admin_user, admin_pass)
-    if student_full_name is False:
+    result = verify_ope_account_in_smc(student_user, smc_url, admin_user, admin_pass)
+    if result is None:
+        p("}}rbERR - User doesn't exist in smc??}}xx")
         sys.exit(-1)
-            
+    laptop_admin_user, laptop_admin_password, student_full_name = result
+    
+    if laptop_admin_user == "" or laptop_admin_password == "":
+        p("}}rbERR - Please set the laptop admin credentials in the SMC before continuing (Admin -> Configure App -> Laptop Admin Credentials) }}xx")
+        sys.exit(-1)
+    
+    if student_full_name == "":
+        p("}}rbERR - Unable to find student user in the SMC? Make sure it is imported.}}xx")
+        sys.exit(-1)
     
     # Show confirm info
     txt = """
 }}mn======================================================================
-}}mn| }}ybCredential Computer                                                }}mn|
+}}mn| }}ybConfirm Credential Parameters                                      }}mn|
 }}mn| }}ynSMC URL:            }}cn<smc_url>}}mn|
 }}mn| }}ynAdmin User:         }}cn<admin_user>}}mn|
 }}mn| }}ynAdmin Password:     }}cn<admin_pass>}}mn|
@@ -272,7 +304,7 @@ def main():
     try:
         smc_response = resp.json()
     except ValueError as error_message:
-        p("}}rbInvalid JSON reponse from SMC}}xx")
+        p("}}rbInvalid JSON response from SMC}}xx")
         p("}}yn" + str(error_message) + "}}xx")
         return False
     except Exception as error_message:
@@ -312,8 +344,12 @@ def main():
     # p("Response: " + canvas_access_token + " ---- " + hash)
     pw = win_util.decrypt(hash, canvas_access_token)
 
-    p("}}gnCreating local windows account...")
+    p("}}gnCreating local student windows account...")
     win_util.create_local_student_account(student_user, student_full_name, pw)
+    
+    p("}}gnCreating local admin windows account...")
+    win_util.create_local_admin_account(laptop_admin_user, "OPE Laptop Admin", laptop_admin_password)
+    laptop_admin_password = ""
 
     # Store the access token in the registry where the LMS app can pick it up
     p("}}gn\nSaving canvas credentials for student...")
@@ -344,9 +380,22 @@ def main():
     persist_file = shortcut.QueryInterface(pythoncom.IID_IPersistFile)
     persist_file.Save(lnk_path, 0)
 
+    ## TODO 
+    # If current user is not the laptop_admin_user - ask if we should disable this account?
+    me = accounts.me()
+    if laptop_admin_user != me.name:
+        p("}}rb!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        p("}}rbYou are currently logged in as " + str(me.name) + " but the Laptop Admin user is " + str(laptop_admin_user) + ".")
+        p("}}rb---> Please make sure to set a password and/or disable accounts that aren't needed on this laptop.}}xx")
+        p("}}rb!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    
+    
     p("\n}}gbCredential process complete!}}xx")
+    p("")
+    p("}}zn            -------------->                 !!!!!CONFIRM BIOS!!!!!                   <--------------                   }}xx")
+    p("}}zn            --------------> VERIFY BIOS PASSWORD/SETTINGS BEFORE HANDING OUT LAPTOP! <--------------                   }}xx")
     return True
-
+    
     
 def scratch():
     

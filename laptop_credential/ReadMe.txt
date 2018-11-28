@@ -18,3 +18,7 @@ do the job of installing services and applying settings that are needed.
 - Install anti virus software
 
 - Randomize Admin account password - in case it gets
+
+
+##
+NOTE - Modified winsys to allow 32/64 bit registry views
