@@ -22,7 +22,8 @@ AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
 
     // Settings
     //QSettings::setPath(QSettings::IniFormat, QSettings::SystemScope, QCoreApplication::organizationName() + "/" + QCoreApplication::applicationName());
-    _app_settings = new QSettings(QSettings::SystemScope, QCoreApplication::organizationName(), QCoreApplication::applicationName());
+    //_app_settings = new QSettings(QSettings::SystemScope, QCoreApplication::organizationName(), QCoreApplication::applicationName());
+    _app_settings = new QSettings("HKEY_LOCAL_MACHINE\\Software\\OPE\\OPELMS");
     //_app_settings = new QSettings(parent);
 
     // Mark that we are running
