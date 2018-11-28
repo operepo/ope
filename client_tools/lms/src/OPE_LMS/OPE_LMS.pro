@@ -1,4 +1,5 @@
-QT += qml quick sql network quickcontrols2 networkauth webview
+QT += qml quick sql network quickcontrols2 webview networkauth
+# networkauth
 # webengine webenginewidgets quick-private webview-private webview
 
 CONFIG += c++11

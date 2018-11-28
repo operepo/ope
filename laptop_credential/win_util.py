@@ -1,5 +1,5 @@
 import sys
-import pywintypes
+import os
 import win32api
 import win32con
 import win32netcon
@@ -14,8 +14,8 @@ except:
     import winreg
 
     
-#import winsys
-#from winsys import accounts, registry, security
+import winsys
+from winsys import accounts, registry, security
 
 from term import p
 
@@ -103,16 +103,9 @@ def decrypt(data, key):
 
 def test_reg():
     global STUDENTS_GROUP
-    winreg.EnableReflectionKey(winreg.HKEY_LOCAL_MACHINE)
-    p("Ref: " + str(winreg.QueryReflectionKey(winreg.HKEY_LOCAL_MACHINE)))
     
-    
-    # key = winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, "Software\TESTING")
-    #key = winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, "Software\OPE\OPELMS\student")
-    
-    #key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "Software\Krita")
-    key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "Software")
-    
+    key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "Software", 0,
+        winreg.KEY_WOW64_64KEY | winreg.KEY_READ)
     
     p("SUB KEYS: ")
     enum_done = False
@@ -122,12 +115,54 @@ def test_reg():
             sub_key = winreg.EnumKey(key, i)
             p("-- SK: " + str(sub_key))
             i += 1
-            p("Ref: " + str(winreg.QueryReflectionKey(winreg.HKEY_LOCAL_MACHINE)))
+            # p("Ref: " + str(winreg.QueryReflectionKey(winreg.HKEY_LOCAL_MACHINE)))
     except WindowsError as ex:
         # No more values
-        p("-- ERR " + str(ex))
+        if ex.errno == 22:
+            # p("---_DONE")
+            # Don't flag an error when we are out of entries
+            pass
+        else:
+            p("-- ERR " + str(ex) + " " + str(ex.errno))
         pass
+
+
+def get_credentialed_student_name(default_value=""):
     
+    ret = default_value
+    try:
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "Software\\OPE\\OPELMS\\student", 0,
+            winreg.KEY_WOW64_64KEY | winreg.KEY_READ)
+        val = winreg.QueryValueEx(key, 'user_name')
+        ret = val
+    except Exception as ex:
+        # p("err: " + str(ex))
+        pass
+        
+    return ret
+    
+    
+def set_registry_value(key, value):
+    
+    key = winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, "Software\\OPE\\OPELMS\\student",
+        0, winreg.KEY_WOW64_64KEY | winreg.KEY_WRITE)
+    
+    winreg.SetValueEx(key, key, 0, winreg.REG_SZ, value)
+    
+    
+    
+    # try:
+        
+        # key = win_util.get_reg_key(r"HKEY_LOCAL_MACHINE\Software\OPE\OPELMS\student")
+        # last_student_user = key.get_value("user_name")        
+    # except winsys.exc.x_not_found as error_message:
+    #    p("}}rbKey Not Found}}xx" + str(error_message))
+    #    ok if it isn't here, just wasn't credentialed previously
+        # pass
+    # except Exception as error_message:
+        # p("}}rbERR }}xx" + str(error_message))
+        # return False
+        # pass
     
 def create_local_student_account(user_name, full_name, password):
     global STUDENTS_GROUP
