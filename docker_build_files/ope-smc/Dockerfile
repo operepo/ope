@@ -2,7 +2,7 @@ FROM alpine:3.4
 MAINTAINER Ray Pulspher <ray@cmagic.biz>
 LABEL Description="Student Management Console - Image for Open Prison Education"
 LABEL Vendor="openprisoneducation.com"
-LABEL Version="0.6"
+LABEL Version="0.7"
 
 # install base
 RUN apk update \
@@ -90,7 +90,7 @@ RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 
 
 # Copy our files in
-LABEL rebuild=17
+LABEL rebuild=18
 COPY set_admin_password /bin/set_admin_password
 COPY start.sh /start.sh
 COPY supervisord.conf /etc/supervisor/supervisord.conf
