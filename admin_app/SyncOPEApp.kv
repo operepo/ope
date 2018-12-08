@@ -356,9 +356,9 @@
             #app.restart_docker_apps()
 
         Button:
-            text: "(Not Available Yet) Update OPE Sync Boxes"
-            on_press: pass
-            #root.manager.current="update_sync_boxes"
+            text: "Update OPE Sync Boxes"
+            # on_press: pass
+            on_press: root.manager.current="update_sync_boxes"
 
 <SyncBoxSubnetDropdown>:
     Button:
@@ -413,31 +413,72 @@
             halign: 'left'
             text_size: self.size
             text:
-                "[b]New Sync Boxes[/b] \n" + \
-                "Plug into one of the USB cables and use the subnet [color=0000aa][b]192.168.88[/b][/color]\n\n" + \
-                "[b]Existing Sync Boxes - Plugged into USB cable [/b]\n" + \
+                "[b][color=00bb00]Update Existing Sync Boxes - Plugged into USB cable [/color][/b]\n" + \
                 "If plugged into one of the USB cables on an existing sync box, use the subnet [color=0000aa][b]202.5.222[/b][/color]\n\n" + \
-                "[b]Existing Sync Boxes - From your normal Network [/b]\n" + \
-                "If you are plugged into a normal PC on your inmate network, enter the [color=0000aa][b]DHCP subnet[/b][/color] you use for machines, the sync box should be found on one of these (e.g. we use 172.20.31)"
+                "[b][color=00bb00]Existing Sync Boxes - From your normal Network [/color][/b]\n" + \
+                "If you are plugged into a normal PC on your inmate network, enter the [color=0000aa][b]DHCP subnet[/b][/color] you use for machines, the sync box should be found on one of these (e.g. we use 172.20.31)\n\n" + \
+                "[b][color=00bb00]Building Your Own Sync Boxes[/color][/b] \n" + \
+                "For first time config when building your own box, plug into one of the USB cables and use the subnet [color=0000aa][b]192.168.88[/b][/color] with NO password\n\n"
+
 
         BoxLayout:
             orientation: 'horizontal'
+            size_hint_y: None
+            height: 30
 
             Label:
                 markup: True
                 halign: 'left'
                 valign: 'middle'
-                size_hint_x: .1
+                size_hint_x: None
+                width: 250
                 text_size: self.size
                 text: "Subnet"
             TextInput:
-                text: "192.168.88"
+                #text: "192.168.88"
+                text: "202.5.222"
+                write_tab: False
+                multiline: False
                 id: update_subnet
 
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: 30
+
+            Label:
+                markup: True
+                halign: 'left'
+                valign: 'middle'
+                size_hint_x: None
+                width: 250
+                text_size: self.size
+                text: "Device PW"
+            TextInput:
+                text: ""
+                multiline: False
+                write_tab: False
+                password: True
+                id: update_pw
 
         Button:
+            size_hint_y: None
+            height: 30
             text: 'Update Sync Boxes'
-            on_press: app.update_sync_boxes(update_subnet.value)
+            on_press: app.update_sync_boxes(update_subnet.text, update_pw.text, fw_update_output_label)
+
+        ScrollLabel:
+            id: fw_update_output_label
+            text: ''
+            size_hint_y: .85
+            halign: "left"
+            #size: (300, 300)
+            font_size: 14
+            #font_size: sl_font_size.value
+            markup: True
+            #on_text: self.rv.scroll_y = 0  # in the scrolllable.py class
+
+
 
 
 <ManageFogScreen>:

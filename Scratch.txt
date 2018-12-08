@@ -37,6 +37,14 @@ to generate a docker-compose script.
 In the ope folder, run docker-compose up -d to start the containers.
 
 
+---- FIX Encryption Key Hash Error
+cd /ope/docker_build_files
+docker-compose exec ope-canvas /bin/bash -c "/home/docker/.gem/ruby/2.4.0/bin/rake --trace db:reset_encryption_key_hash"
+
+docker-compose down
+##### DOESN'T WORK W OUT START.SH to setup yml files
+docker-compose run --rm ope-canvas /bin/bash -c "/home/docker/.gem/ruby/2.4.0/bin/rake  --trace db:reset_encryption_key_hash"
+# $GEM_HOME - /home/docker/.gem/ruby/2.4.0
 
 ---- CHANGE IP
 

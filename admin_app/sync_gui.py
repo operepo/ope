@@ -2612,6 +2612,24 @@ class SyncOPEApp(App):
 
         return ret
 
+    def update_sync_boxes_thread(self, router_subnet, router_pw, output_label):
+        global APP_FOLDER
+        if output_label is not None:
+            output_label.text = "Searching for routers...\n\n"
+        # Get the path to the router files
+        router_files_path = os.path.join(os.path.dirname(APP_FOLDER), "router_files")
+
+        sb = router_utils.SyncBoxes(router_files_folder=router_files_path, router_pw=router_pw,
+                                    output_label=output_label)
+
+        sb.find_routers(subnet_prefix=router_subnet)
+        sb.update_routers()
+
+    def update_sync_boxes(self, router_subnet, router_pw, output_label):
+        t = threading.Thread(target=self.update_sync_boxes_thread,
+                             args=(router_subnet, router_pw,
+                                   output_label)).start()
+
     def show_settings_panel(self, panel_name):
         # Make sure settings are visible
         self.open_settings()
