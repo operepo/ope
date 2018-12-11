@@ -33,6 +33,7 @@
         <file>AppFiles.qml</file>
         <file>AppAnnouncements.qml</file>
         <file>not_credentialed.qml</file>
+        <file>TestButton.qml</file>
     </qresource>
     <qresource prefix="/images">
         <file>blue-folder.png</file>
