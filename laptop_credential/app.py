@@ -19,6 +19,7 @@ import win32net
 import ctypes
 import pythoncom
 from win32com.shell import shell, shellcon
+import time
 
 # import _winreg as winreg
 # from winregistry import winregistry as winreg
@@ -174,18 +175,16 @@ def main():
 
     global admin_user, admin_pass, smc_url, student_user, server_name, home_root
     canvas_access_token = ""
+    canvas_url = "https://canvas.ed"
     win_util.disable_guest_account()
     
     # win_util.test_reg()
     
     # See if we already have a user credentialed.
     last_student_user = win_util.get_credentialed_student_name(default_value="")
-    
-    ### DEBUG 
-    #student_user = last_student_user
-    #win_util.set_registry_permissions(student_user)
-    #return False
-    
+    last_smc_url = win_util.get_last_smc_url(default_value="https://smc.ed")
+    last_admin_user = win_util.get_last_admin_user(default_value="admin")
+
     # p("LAST STUDENT USER: " + str(last_student_user))
     # We want to make sure to disable any accounts that were previously setup
     # don't want more then one student being able to login at a time
@@ -193,16 +192,16 @@ def main():
     
     print_app_header()
     # Ask for admin user/pass and website
-    tmp = raw_input(term.translate_color_codes("}}ynEnter URL for SMC Server }}cn[enter for default " + smc_url + "]:}}xx "))
+    tmp = raw_input(term.translate_color_codes("}}ynEnter URL for SMC Server }}cn[enter for " + last_smc_url + "]:}}xx "))
     tmp = tmp.strip()
     if tmp == "":
-        tmp = smc_url
+        tmp = last_smc_url
     smc_url = tmp
 
-    tmp = raw_input(term.translate_color_codes("}}ynPlease enter the ADMIN user name }}cn[enter for default " + admin_user + "]:}}xx "))
+    tmp = raw_input(term.translate_color_codes("}}ynPlease enter the ADMIN user name }}cn[enter for " + last_admin_user + "]:}}xx "))
     tmp = tmp.strip()
     if tmp == "":
-        tmp = admin_user
+        tmp = last_admin_user
     admin_user = tmp
 
     p("}}ynPlease enter ADMIN password }}cn[characters will not show]:}}xx", False)
@@ -257,7 +256,7 @@ def main():
     tmp = raw_input(term.translate_color_codes("}}ybPress Y to continue: }}xx"))
     tmp = tmp.strip().lower()
     if tmp != "y":
-        p("}}cnNot credentialing....}}xx")
+        p("}}cnCanceled / Not credentialing....}}xx")
         return False
     
     api_url = smc_url
@@ -336,6 +335,7 @@ def main():
         canvas_access_token = str(smc_response["key"])
         hash = str(smc_response["hash"])
         student_full_name = str(smc_response["full_name"])
+        canvas_url = str(smc_response['canvas_url'])
     except Exception as error_message:
         p("}}rbUnable to interpret response from SMC - no msg parameter returned}}xx")
         p("}}mn" + str(ex) + "}}xx")
@@ -359,6 +359,9 @@ def main():
     # key.user_name = student_user
     win_util.set_registry_value('canvas_access_token', canvas_access_token)
     win_util.set_registry_value('user_name', student_user)
+    win_util.set_registry_value('canvas_url', canvas_url)
+    win_util.set_registry_value('smc_url', smc_url)
+    win_util.set_registry_value('admin_user', admin_user)
     win_util.set_registry_permissions(student_user)
     
     # p("}}gnCanvas access granted for student.}}xx")
@@ -380,7 +383,6 @@ def main():
     persist_file = shortcut.QueryInterface(pythoncom.IID_IPersistFile)
     persist_file.Save(lnk_path, 0)
 
-    ## TODO 
     # If current user is not the laptop_admin_user - ask if we should disable this account?
     me = accounts.me()
     if laptop_admin_user != me.name:
@@ -388,12 +390,23 @@ def main():
         p("}}rbYou are currently logged in as " + str(me.name) + " but the Laptop Admin user is " + str(laptop_admin_user) + ".")
         p("}}rb---> Please make sure to set a password and/or disable accounts that aren't needed on this laptop.}}xx")
         p("}}rb!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-    
-    
-    p("\n}}gbCredential process complete!}}xx")
+
+        countdown = 8
+        while countdown > 0:
+            p("\r}}mb" + str(countdown) + "}}xx", end="")
+            time.sleep(1)
+            countdown -= 1
+    p("\n}}gbCanvas token saved.}}xx")
     p("")
     p("}}zn            -------------->                 !!!!!CONFIRM BIOS!!!!!                   <--------------                   }}xx")
     p("}}zn            --------------> VERIFY BIOS PASSWORD/SETTINGS BEFORE HANDING OUT LAPTOP! <--------------                   }}xx")
+
+    countdown = 8
+    while countdown > 0:
+        p("\r}}mb" + str(countdown) + "}}xx", end="")
+        time.sleep(1)
+        countdown -= 1
+
     return True
     
     
@@ -513,7 +526,6 @@ def scratch():
     # netsh -- import firewall rules
     # download netsh import
     # run netsh import command
-
 
     print_checklist_warning()
 

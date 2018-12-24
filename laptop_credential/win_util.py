@@ -141,7 +141,34 @@ def get_credentialed_student_name(default_value=""):
         
     return ret
 
-    
+
+def get_last_smc_url(default_value=""):
+    ret = default_value
+    try:
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "Software\\OPE\\OPELMS\\student", 0,
+                             winreg.KEY_WOW64_64KEY | winreg.KEY_READ)
+        val = winreg.QueryValueEx(key, 'smc_url')
+        ret = val[0]
+    except Exception as ex:
+        # p("err: " + str(ex))
+        pass
+
+    return ret
+
+
+def get_last_admin_user(default_value=""):
+    ret = default_value
+    try:
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "Software\\OPE\\OPELMS\\student", 0,
+                             winreg.KEY_WOW64_64KEY | winreg.KEY_READ)
+        val = winreg.QueryValueEx(key, 'admin_user')
+        ret = val[0]
+    except Exception as ex:
+        # p("err: " + str(ex))
+        pass
+
+    return ret
+
 def set_registry_permissions(student_user):
     reg = registry.registry(r"HKLM\Software\OPE")
     with reg.security() as s:

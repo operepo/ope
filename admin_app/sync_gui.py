@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import json
+import socket
 import os
 import requests
 import re
@@ -9,6 +10,7 @@ import sys
 import re
 from os.path import expanduser
 import logging
+import color
 import router_utils
 
 
@@ -79,12 +81,12 @@ Config.set('graphics', 'multisamples', '0')
 Config.set('graphics', 'fbo', 'software')
 Config.set('kivy', 'log_level', 'debug')  # ''trace', 'debug')
 
-#[kivy]
-#log_level = info
-#log_enable = 1
-#log_dir = logs
-#log_name = kivy_%y-%m-%d_%_.txt
-#log_maxfiles = 100
+# [kivy]
+# log_level = info
+# log_enable = 1
+# log_dir = logs
+# log_name = kivy_%y-%m-%d_%_.txt
+# log_maxfiles = 100
 # Config.set('KIVY_GRAPHICS', 'gles')
 # Adjust kivy config to change window look/behavior
 # Config.set('graphics','borderless',1)
@@ -95,7 +97,6 @@ Config.set('kivy', 'log_level', 'debug')  # ''trace', 'debug')
 
 # Config.set('graphics', 'resizeable', '0')
 # Config.set('graphics', 'borderless', '1')
-
 
 import paramiko
 # Deal with issue #12 - No handlers could be found for logger "paramiko.transport"
@@ -174,9 +175,9 @@ from kivy.uix.filechooser import FileChooser, FileChooserListView, FileChooserIc
 kivy.require('1.10.1')
 # Add this path to the resources path
 kivy.resources.resource_add_path(APP_FOLDER)
-# TODO TODO TODO - [CRITICAL] [Clock       ] Warning, too much iteration done before the next frame. Check your code, or increase the Clock.max_iteration attribute
+# [CRITICAL] [Clock       ] Warning, too much iteration done before the next frame. Check your code, or increase the Clock.max_iteration attribute
 # Clock.max_iteration = 20
-# Window.size = (900, 800)
+Window.size = (1000, 650)
 # Window.borderless = True
 
 # Git Repos to pull
@@ -368,12 +369,24 @@ class FogSFTPFileSystem(FileSystemAbstract):
 
 # Custom FileChooser File System - Pull list from HTTP download page
 class FogDownloadFileSystem(FileSystemAbstract):
-    def __init__(self):
+    def __init__(self, parent_app, initial=False):
+        self.parent_app = parent_app
         self.file_list = dict()
-        self.getwebdir(SyncOPEApp.ope_fog_images_url)
+
+        if initial is True:
+            self.file_list['Press refresh to pull list when online'] = 0
+        else:
+            self.getwebdir(SyncOPEApp.ope_fog_images_url)
 
     def getwebdir(self, url):
         # Pull the URL
+
+        self.file_list = dict()
+        if self.parent_app.is_online() is not True:
+            # Need an empty place holder if nothing is there
+            if len(self.file_list) < 1:
+                self.file_list['no images available in offline mode'] = 0
+            return
 
         try:
             response = requests.get(url)
@@ -506,6 +519,8 @@ class UtilitiesScreen(Screen):
 class UpdateSyncBoxesScreen(Screen):
     pass
 
+class AppStatusScreen(Screen):
+    pass
 
 class LoginScreen(Screen):
     def do_login(self, loginText, passwordText):
@@ -604,15 +619,18 @@ class SyncOPEApp(App, EventDispatcher):
     def on_online_server_button_state(self, instance, value):
         print("online_button_state" + str(value))
 
+    def is_online(self):
+        if SyncOPEApp.server_mode == 'online':
+            return True
+        else:
+            return False
+
     use_kivy_settings = False
 
     required_apps = ["ope-gateway", "ope-router", "ope-dns", "ope-redis", "ope-postgresql"]
     recommended_apps = ["ope-fog", "ope-canvas", "ope-smc", "ope-clamav"]
     stable_apps = ["ope-kalite", "ope-codecombat", "ope-gcf"]
     beta_apps = ["ope-freecodecamp", "ope-jsbin", "ope-rachel", "ope-stackdump", "ope-wamap", "ope-wsl"]
-
-    # Flag to indicate if we are in online or offline mode
-    is_online = 0
 
     def set_internet_mode(self, mode):
         if mode.lower() == 'online':
@@ -723,6 +741,7 @@ class SyncOPEApp(App, EventDispatcher):
         sm.add_widget(FogExportScreen(name="fog_export"))
         sm.add_widget(UtilitiesScreen(name="utilities"))
         sm.add_widget(UpdateSyncBoxesScreen(name="update_sync_boxes"))
+        sm.add_widget(AppStatusScreen(name='app_status'))
 
         sm.current = "start"
         return sm  # MAIN_WINDOW
@@ -1008,8 +1027,8 @@ class SyncOPEApp(App, EventDispatcher):
                 # progress_widget_label.text = enc_item.encode('ascii', 'ignore') + " (non reg file - skip)"
                 pass
 
-    def get_fog_image_list(self):
-        return FogDownloadFileSystem()
+    def get_fog_image_list(self, initial=False):
+        return FogDownloadFileSystem(self, initial)
 
     def get_fog_export_image_list(self):
         ssh_server = ""
@@ -1047,67 +1066,37 @@ class SyncOPEApp(App, EventDispatcher):
 
         return
 
-    def start_fog_import_from_usb(self, fog_import_server_mode, fog_import_from_usb_image,
+    def start_fog_import_from_usb(self, fog_import_from_usb_image,
                                   fog_import_from_usb_button, fog_image_import_progress,
-                                  error_message ):
+                                  error_message):
         error_message.text = ""
         # Verify import settings
         if (not fog_import_from_usb_image.selection or not fog_import_from_usb_image.selection[0] or
-                fog_import_from_usb_image.selection[0] == 'no images available'):
+                'no images available' in fog_import_from_usb_image.selection[0]):
             error_message.text = "[b][color=ff0000]Please choose a valid image to import.[/color][/b]"
             return
 
         fog_import_from_usb_button.disabled = True
 
-        threading.Thread(target=self.fog_import_from_usb_thread, args=(fog_import_server_mode, fog_import_from_usb_image,
+        threading.Thread(target=self.fog_import_from_usb_thread, args=(fog_import_from_usb_image,
                             fog_import_from_usb_button, fog_image_import_progress,
                             error_message)).start()
 
-    def fog_import_from_usb_thread(self, fog_import_server_mode, fog_import_from_usb_image,
+    def fog_import_from_usb_thread(self, fog_import_from_usb_image,
                                     fog_import_from_usb_button, fog_image_import_progress,
                                     error_message):
         fog_image_import_progress.value = 0
 
         # Connect to the server
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        # ssh.get_transport().window_size = 2147483647
+        ssh, ssh_folder, err_str = self.get_ssh_connection()
 
-        ssh_server = ""
-        ssh_user = ""
-        ssh_pass = ""
-        ssh_folder = ""
-
-        if SyncOPEApp.server_mode == 'online':
-            ssh_server = self.config.getdefault("Online Settings", "server_ip", "127.0.0.1")
-            ssh_user = self.config.getdefault("Online Settings", "server_user", "root")
-            ssh_pass = self.get_online_pw()  # self.config.getdefault("Online Settings", "server_password", "changeme")
-            ssh_folder = self.config.getdefault("Online Settings", "server_folder", "/ope")
-        else:
-            ssh_server = self.config.getdefault("Offline Settings", "server_ip", "127.0.0.1")
-            ssh_user = self.config.getdefault("Offline Settings", "server_user", "root")
-            ssh_pass = self.get_offline_pw()  # self.config.getdefault("Offline Settings", "server_password", "changeme")
-            ssh_folder = self.config.getdefault("Offline Settings", "server_folder", "/ope")
-
-        try:
-            # Connect to the server
-            ssh.connect(ssh_server, username=ssh_user,
-                        password=ssh_pass, compress=True, look_for_keys=False)
-        except paramiko.ssh_exception.BadHostKeyException:
-            print("Invalid Host key!")
-            error_message.text = "\n\n[b]CONNECTION ERROR[/b]\n - Bad host key - check ~/.ssh/known_hosts"
-            fog_import_from_usb_button.disabled = False
-            return
-        except paramiko.ssh_exception.BadAuthenticationType:
-            error_message.text = "[b]INVALID LOGIN[/b]"
-            fog_import_from_usb_button.disabled = False
-            return
-        except Exception as ex:
-            error_message.text = "[b]UPLOAD ERROR[/b]\n" + str(ex)
+        if ssh is None:
+            error_message.text = err_str
             fog_import_from_usb_button.disabled = False
             return
 
-        image_name = os.path.basename(fog_import_from_usb_image.selection[0]).strip("/")  # Comes in with c:\\test....
+        image_name = os.path.basename(fog_import_from_usb_image.selection[0]).strip("/")
+        # Comes in with c:\\test....
         image_basename = image_name.replace(".fog_image", "")
         remote_path = os.path.join(ssh_folder, "volumes/fog/images/", image_basename).replace("\\", "/")
         remote_info_file = os.path.join(remote_path, image_basename + ".info").replace("\\", "/")
@@ -1219,69 +1208,39 @@ class SyncOPEApp(App, EventDispatcher):
             error_message.text = error_message.text.strip(".")
         error_message.text += "."
 
-    def start_fog_export_to_usb(self, fog_export_server_mode, fog_export_to_usb_image,
+    def start_fog_export_to_usb(self, fog_export_to_usb_image,
                                 fog_export_to_usb_button, fog_image_export_progress,
                                 error_message):
         error_message.text = ""
         # Verify export settings
         if (not fog_export_to_usb_image.selection or not fog_export_to_usb_image.selection[0] or
-                fog_export_to_usb_image.selection[0] == 'no images available'):
+                'no images available' in fog_export_to_usb_image.selection[0]):
             error_message.text = "[b][color=ff0000]Please choose a valid image to export.[/color][/b]"
             return
 
         fog_export_to_usb_button.disabled = True
 
-        threading.Thread(target=self.fog_export_to_usb_thread, args=(fog_export_server_mode, fog_export_to_usb_image,
+        threading.Thread(target=self.fog_export_to_usb_thread, args=(fog_export_to_usb_image,
                                 fog_export_to_usb_button, fog_image_export_progress,
                                 error_message)).start()
 
-    def fog_export_to_usb_thread(self, fog_export_server_mode, fog_export_to_usb_image,
+    def fog_export_to_usb_thread(self, fog_export_to_usb_image,
                                 fog_export_to_usb_button, fog_image_export_progress,
                                 error_message):
 
         fog_image_export_progress.value = 0
 
         # Connect to the server
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh, ssh_folder, err_str = self.get_ssh_connection()
 
-        ssh_server = ""
-        ssh_user = ""
-        ssh_pass = ""
-        ssh_folder = ""
-
-        if SyncOPEApp.server_mode == 'online':
-            ssh_server = self.config.getdefault("Online Settings", "server_ip", "127.0.0.1")
-            ssh_user = self.config.getdefault("Online Settings", "server_user", "root")
-            ssh_pass = self.get_online_pw()  # self.config.getdefault("Online Settings", "server_password", "changeme")
-            ssh_folder = self.config.getdefault("Online Settings", "server_folder", "/ope")
-        else:
-            ssh_server = self.config.getdefault("Offline Settings", "server_ip", "127.0.0.1")
-            ssh_user = self.config.getdefault("Offline Settings", "server_user", "root")
-            ssh_pass = self.get_offline_pw()  # self.config.getdefault("Offline Settings", "server_password", "changeme")
-            ssh_folder = self.config.getdefault("Offline Settings", "server_folder", "/ope")
-
-        try:
-            # Connect to the server
-            ssh.connect(ssh_server, username=ssh_user,
-                        password=ssh_pass, look_for_keys=False, compress=True)
-        except paramiko.ssh_exception.BadHostKeyException:
-            print("Invalid Host key!")
-            error_message.text = "\n\n[b]CONNECTION ERROR[/b]\n - Bad host key - check ~/.ssh/known_hosts"
-            fog_export_to_usb_button.disabled = False
-            return
-        except paramiko.ssh_exception.BadAuthenticationType:
-            error_message.text = "[b]INVALID LOGIN[/b]"
-            fog_export_to_usb_button.disabled = False
-            return
-        except Exception as ex:
-            error_message.text = "[b]UPLOAD ERROR[/b]\n" + str(ex)
+        if ssh is None:
+            error_message.text = err_str
             fog_export_to_usb_button.disabled = False
             return
 
         # print("Security Options: " + str(ssh.get_transport().get_security_options().ciphers))
 
-        image_name = os.path.basename(fog_export_to_usb_image.selection[0]).strip("/") #  .replace("C:\\", "").strip("/")  # Comes in with c:\\test....
+        image_name = os.path.basename(fog_export_to_usb_image.selection[0]).strip("/")  # .replace("C:\\", "").strip("/")  # Comes in with c:\\test....
         # print("Image Name: " + image_name)
         remote_path = os.path.join(ssh_folder, "volumes/fog/images/", image_name).replace("\\", "/")
         remote_images_folder = os.path.join(ssh_folder, "volumes/fog/images/").replace("\\", "/")
@@ -1397,13 +1356,17 @@ class SyncOPEApp(App, EventDispatcher):
             error_message.text = "[b][color=ff0000]Please fill out all the fields.[/color][/b]"
             return
 
+        selection = ""
         if not fog_image_download_file.selection or not fog_image_download_file.selection[0]:
             error_message.text = "[b][color=ff0000]Please choose an image to download.[/color][/b]"
             return
-
-        if fog_image_download_file.selection[0].replace("C:\\", "") == 'no images available':
-            error_message.text = "[b][color=ff0000]Please choose an image to download.[/color][/b]"
-            return
+        else:
+            # Got a selection, see if it is one of our status/error messages
+            s = fog_image_download_file.selection[0].replace("C:\\", "")
+            if 'no images available' in s or 'Press refresh to pull list when online' in s:
+                # It is our message, return w no action
+                return
+            selection = fog_image_download_file.selection[0]
 
         fog_image_download_button.disabled = True
 
@@ -2381,7 +2344,6 @@ class SyncOPEApp(App, EventDispatcher):
                     out = stdout.read().decode('utf-8').strip()
                 
                 sftp.close()
-                
 
     def update_online_server(self, status_label, run_button=None, progress_bar=None, progress_label=None):
         if run_button is not None:
@@ -2657,7 +2619,8 @@ class SyncOPEApp(App, EventDispatcher):
             try:
                 # Connect to the server
                 ssh.connect(ssh_server, username=ssh_user,
-                            password=ssh_pass, compress=True, look_for_keys=False, timeout=10)
+                            password=ssh_pass, compress=True, look_for_keys=False, timeout=5)
+                ret = ssh
             except paramiko.ssh_exception.BadHostKeyException:
                 print("Invalid Host key!")
                 err_str = "Invalid Host Key"
@@ -2670,34 +2633,172 @@ class SyncOPEApp(App, EventDispatcher):
                 print("Invalid Login!")
                 err_str = "Invalid Login!"
                 pass
+            except paramiko.SSHException as ex:
+                print("Error connecting to SSH server - check IP of the ssh server " + str(ssh_server))
+                err_str = "Error connecting to SSH server - " + str(ssh_server)
+            except socket.error as ex:
+                print("Error connecting to SSH server - check IP of the ssh server " + str(ssh_server))
+                err_str = "Error connecting to SSH server - " + str(ssh_server)
             except Exception as ex:
-                print("Unknown ERROR!")
+                print("Unknown ERROR! " + str(ex))
                 err_str = "Unknown Error! " + str(ex)
                 # error_message.text = "[b]Unknown ERROR[/b]\n" + str(ex)
                 # fog_image_upload_send_button.disabled = False
                 pass
 
+        if ret is None:
+            content = BoxLayout(orientation='vertical')
+            content.add_widget(Label(text='Error connecting to server  ' + str(err_str)))
+            b = Button(text='Close', size_hint=(1, .1))
+            content.add_widget(b)
+            popup = Popup(title='SSH Connection Error',
+                          content=content,
+                          size_hint=(None, None),
+                          size=(800, 400))
+            # Hook the close button to the popup dismiss method
+            b.bind(on_press=popup.dismiss)
+            popup.open()
+
         return ret, ssh_folder, err_str
 
-    def restart_docker_apps(self):
+    def fill_apps_dropdown(self, app_dropdown):
+        if app_dropdown is None:
+            return
+
+        app_dropdown.clear_widgets()
+
+        app_list = self.get_enabled_apps()  # ['ope-smc', 'ope-canvas']
+
+        for a in app_list:
+            b = Button(text=a, size_hint_y=None,
+                       height=30, on_release=lambda btn: app_dropdown.select(btn.text))
+            app_dropdown.add_widget(b)
+
+    def get_app_info(self, app_name, status_label=None):
+        t = threading.Thread(target=self.get_app_info_thread,
+                             args=(app_name, status_label))
+        t.start()
+
+    def get_app_info_thread(self, app_name, status_label):
+        if app_name == '':
+            content = BoxLayout(orientation='vertical')
+            content.add_widget(Label(
+                text='Must select an app first!'))
+            b = Button(text='Close', size_hint=(1, .1))
+            content.add_widget(b)
+            popup = Popup(title='Get App Status',
+                          content=content,
+                          size_hint=(None, None),
+                          size=(800, 400))
+            # Hook the close button to the popup dismiss method
+            b.bind(on_press=popup.dismiss)
+            popup.open()
+            return
+
+        popup = Popup(title='Get App Status',
+                      content=Label(text='Connecting and gathering info...'),
+                      size_hint=(None, None),
+                      size=(800, 400),
+                      auto_dismiss=False)
+        popup.open()
+
         ssh, ssh_folder, err_str = self.get_ssh_connection()
 
         if ssh is None:
             # Show dialog w error
             print("Error connecting to SSH server!")
-            popup = Popup(title='SSH Connection Error',
-                          content=Label(text='Error connecting to server  ' + str(err_str)),
-                          size_hint=(None, None),
-                          size=(800, 400))
-            b =  Button(text='Close')
-            popup.add_widget(b)
-            popup.open()
+            popup.dismiss()
+            return
 
-        # docker-compose down
-        # service docker stop
-        # rm /var/run/docker.sock
-        # service docker start
-        # ./up.sh
+        # Get the logs for the app
+        cmd = "cd " + ssh_folder + "; " + \
+              "cd docker_build_files;" + \
+              "docker-compose logs " + app_name + "; "
+
+        stdin, stdout, stderr = ssh.exec_command(cmd, get_pty=True)
+        stdin.close()
+        out = ""
+        out += stdout.read().decode('utf-8')
+        status_label.text = color.translate_color_codes_to_markup(out)
+        if 'docker-machine' in out:
+            status_label.text += "[color=#ff0000]ERROR DETECTED\n   - You may need to use the \"Restart all OPE apps\" button on the previous page![/color]\n\n"
+
+        # Get the uptime of the app
+        cmd = "cd " + ssh_folder + "; " + \
+            "cd docker_build_files; " + \
+            "docker ps --format \"table {{.ID}}\t{{.Names}}\t{{.CreatedAt}}\t{{.RunningFor}}\t{{.Status}}\" --filter name=" + app_name + ";"
+        # "docker-compose ps " + app_name + "; "
+        stdin, stdout, stderr = ssh.exec_command(cmd)  # get_pty=True)
+        stdin.close()
+        out = ""
+        out += stdout.read().decode('utf-8')
+        out = "}}mn--------------------------------------------------\n" + \
+              "}}mn| }}cnAPP STATUS - from docker ps}}mn   |\n" + \
+              "}}mn--------------------------------------------------\n}}xx" + \
+              out
+        status_label.text += color.translate_color_codes_to_markup(out)
+
+        popup.dismiss()
+
+    def restart_docker_apps(self):
+        # Start a new thread to do this work
+        t = threading.Thread(target=self.restart_docker_apps_thread)
+        t.start()
+
+    def restart_docker_apps_thread(self):
+        content = BoxLayout(orientation='vertical')
+        content.add_widget(Label(
+            text='Trying to restart apps...\n\nShould take 20-60 seconds.'))
+        popup = Popup(title='Apps Restarted',
+                      content=content,
+                      size_hint=(None, None),
+                      size=(800, 400),
+                      auto_dismiss=False)
+        popup.open()
+
+        ssh, ssh_folder, err_str = self.get_ssh_connection()
+
+        if ssh is None:
+            # Show dialog w error
+            print("Error connecting to SSH server!")
+            popup.dismiss()
+            return
+
+        cmd = "cd " + ssh_folder + "; " + \
+              "cd docker_build_files;" + \
+              "docker-compose down; " + \
+              "service docker stop; " + \
+              "rm -Rf /var/run/docker.sock; " + \
+              "service docker start; sleep 4; " + \
+              "sh up.sh;"
+
+        stdin, stdout, stderr = ssh.exec_command(cmd, get_pty=True)
+        stdin.close()
+        out = ""
+        out += stdout.read().decode('utf-8')
+        # print(out)
+
+        popup.dismiss()
+
+        content = BoxLayout(orientation='vertical')
+        content.add_widget(Label(text='Apps restarted!!!\n\n502 errors are normal during restart.\nMost apps should be live in 30 seconds,\nCanvas generally takes 3-10 minutes.'))
+        b = Button(text='Close', size_hint=(1, .1))
+        content.add_widget(b)
+        popup = Popup(title='Apps Restarted',
+                      content=content,
+                      size_hint=(None, None),
+                      size=(800, 400))
+        # Hook the close button to the popup dismiss method
+        b.bind(on_press=popup.dismiss)
+        popup.open()
+        pass
+
+    def init_git_repo(self, ssh_connection=None, ope_folder=None):
+        # git init
+        # Set global configs like email and name
+        # git config --global user.email "syncapp@correctionsed.com"
+        # git config --global user.name "Sync App"
+        # git stash save
         pass
 
     def update_sync_boxes_thread(self, router_subnet, router_pw, output_label):
@@ -2754,7 +2855,6 @@ class SyncOPEApp(App, EventDispatcher):
 if __name__ == "__main__":
     # Start the app
     SyncOPEApp().run()
-
 
 
 # === Build process ===

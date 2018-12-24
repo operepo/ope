@@ -36,18 +36,38 @@ STRIKE_THROUGH_ONLY = BOLD_OFF + ";" + ITALICS_OFF + ";" + UNDERLINE_OFF + \
 
 
 BLACK_COLOR = "30;41m"
+Z_COLOR = "30m"
 RED_COLOR = "31;49m"
+R_COLOR = "31m"
 GREEN_COLOR = "32;49m"
+G_COLOR = "32m"
 YELLOW_COLOR = "33;49m"
+Y_COLOR = "33m"
 BLUE_COLOR = "34;49m"
+B_COLOR = "34m"
 MAGENTA_COLOR = "35;49m"
+M_COLOR = "35m"
 CYAN_COLOR = "36;49m"
+C_COLOR = "36m"
 WHITE_COLOR = "37;49m"
+W_COLOR = "37m"
 
+ALT_C_COLOR = "0;36;1m"
 
 color_codes = {
 
     "}}xx": RESET_COLOR,
+
+    "}}ac": CSI + ALT_C_COLOR,
+
+    "}}zd": CSI + Z_COLOR,
+    "}}rd": CSI + R_COLOR,
+    "}}gd": CSI + G_COLOR,
+    "}}yd": CSI + Y_COLOR,
+    "}}bd": CSI + B_COLOR,
+    "}}md": CSI + M_COLOR,
+    "}}cd": CSI + C_COLOR,
+    "}}wd": CSI + W_COLOR,
 
     "}}zn": CSI + NORMAL_ONLY + BLACK_COLOR,
     "}}rn": CSI + NORMAL_ONLY + RED_COLOR,
@@ -90,6 +110,17 @@ color_codes = {
 markup_color_codes = {
 
     "}}xx": "[/color]",
+
+    "}}ac": "[color=55ffff]",
+
+    "}}zd": "[color=000000]",
+    "}}rd": "[color=bb0000]",
+    "}}gd": "[color=00bb00]",
+    "}}yd": "[color=bbbb00]",
+    "}}bd": "[color=0000bb]",
+    "}}md": "[color=bb00bb]",
+    "}}cd": "[color=00bbbb]",
+    "}}wd": "[color=bbbbbb]",
 
     "}}zn": "[color=000000]",
     "}}rn": "[color=bb0000]",
@@ -166,6 +197,12 @@ def translate_color_codes(txt):
 def translate_color_codes_to_markup(txt):
     global color_codes
 
+    # Convert ansi style codes
+    for c in color_codes:
+        val = color_codes[c]
+        txt = txt.replace(val, c)
+
+    # Convert }} type codes
     for c in color_codes:
         txt = txt.replace(c, markup_color_codes[c])
 
