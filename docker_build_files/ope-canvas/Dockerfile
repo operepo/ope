@@ -21,9 +21,10 @@ ENV RAILS_ENV "production"
 ENV NGINX_MAX_UPLOAD_SIZE 50g
 #ENV YARN_VERSION 1.3.2-1
 #ENV YARN_VERSION 1.7.0-1
-ENV YARN_VERSION 1.10.1-1
-#ENV CANVAS_RELEASE release/2018-10-06.27
-ENV CANVAS_RELEASE release/2018-11-17.18
+ENV YARN_VERSION 1.9.4-1
+#ENV YARN_VERSION 1.10.1-1
+ENV CANVAS_RELEASE release/2018-10-27.23
+#ENV CANVAS_RELEASE release/2018-11-17.24
 
 # Work around github.com/zertosh/v8-compile-cache/issues/2
 # This can be removed once yarn pushes a release including the fixed version
@@ -76,10 +77,15 @@ WORKDIR $APP_HOME
 
 LABEL rebuild=1
 RUN cd ${APP_HOME} \
-    #&& git clone https://github.com/instructure/canvas-lms.git:${CANVAS_RELEASE} .
-    && git clone https://github.com/instructure/canvas-lms.git . \
-    # && git checkout stable \
+    && git init \
+    && git remote add origin https://github.com/instructure/canvas-lms \
+    && git fetch origin --no-tags --depth 1 refs/tags/${CANVAS_RELEASE}:refs/tags/${CANVAS_RELEASE}  \
     && git checkout ${CANVAS_RELEASE}
+
+    #&& git clone https://github.com/instructure/canvas-lms.git:${CANVAS_RELEASE} .
+    #&& git clone https://github.com/instructure/canvas-lms.git . \
+    # && git checkout stable \
+    #&& git checkout ${CANVAS_RELEASE}
     #&& git checkout release/2018-03-10.06
 
 

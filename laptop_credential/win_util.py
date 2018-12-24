@@ -1,5 +1,5 @@
 import sys
-import pywintypes
+import os
 import win32api
 import win32con
 import win32netcon
@@ -14,8 +14,8 @@ except:
     import winreg
 
     
-#import winsys
-#from winsys import accounts, registry, security
+import winsys
+from winsys import accounts, registry, security
 
 from term import p
 
@@ -103,16 +103,9 @@ def decrypt(data, key):
 
 def test_reg():
     global STUDENTS_GROUP
-    winreg.EnableReflectionKey(winreg.HKEY_LOCAL_MACHINE)
-    p("Ref: " + str(winreg.QueryReflectionKey(winreg.HKEY_LOCAL_MACHINE)))
     
-    
-    # key = winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, "Software\TESTING")
-    #key = winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, "Software\OPE\OPELMS\student")
-    
-    #key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "Software\Krita")
-    key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "Software")
-    
+    key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "Software", 0,
+        winreg.KEY_WOW64_64KEY | winreg.KEY_READ)
     
     p("SUB KEYS: ")
     enum_done = False
@@ -122,12 +115,68 @@ def test_reg():
             sub_key = winreg.EnumKey(key, i)
             p("-- SK: " + str(sub_key))
             i += 1
-            p("Ref: " + str(winreg.QueryReflectionKey(winreg.HKEY_LOCAL_MACHINE)))
+            # p("Ref: " + str(winreg.QueryReflectionKey(winreg.HKEY_LOCAL_MACHINE)))
     except WindowsError as ex:
         # No more values
-        p("-- ERR " + str(ex))
+        if ex.errno == 22:
+            # p("---_DONE")
+            # Don't flag an error when we are out of entries
+            pass
+        else:
+            p("-- ERR " + str(ex) + " " + str(ex.errno))
         pass
+
+
+def get_credentialed_student_name(default_value=""):
     
+    ret = default_value
+    try:
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "Software\\OPE\\OPELMS\\student", 0,
+            winreg.KEY_WOW64_64KEY | winreg.KEY_READ)
+        val = winreg.QueryValueEx(key, 'user_name')
+        ret = val[0]
+    except Exception as ex:
+        # p("err: " + str(ex))
+        pass
+        
+    return ret
+
+    
+def set_registry_permissions(student_user):
+    reg = registry.registry(r"HKLM\Software\OPE")
+    with reg.security() as s:
+        # Break inheritance causes things to reapply properly
+        s.break_inheritance(copy_first=True)
+        if student_user is not None:
+            s.dacl.append((student_user, registry.Registry.ACCESS["Q"], "ALLOW"))
+        s.dacl.append((accounts.me(), registry.Registry.ACCESS["F"], "ALLOW"))
+        # s.dacl.dump()
+    
+    reg = registry.registry(r"HKLM\Software\OPE\OPELMS")
+    with reg.security() as s:
+        # Break inheritance causes things to reapply properly
+        s.break_inheritance(copy_first=True)
+        if student_user is not None:
+            s.dacl.append((student_user, registry.Registry.ACCESS["Q"], "ALLOW"))
+        s.dacl.append((accounts.me(), registry.Registry.ACCESS["F"], "ALLOW"))
+        # s.dacl.dump()
+    
+    reg = registry.registry(r"HKLM\Software\OPE\OPELMS\student")
+    with reg.security() as s:
+        # Break inheritance causes things to reapply properly
+        s.break_inheritance(copy_first=True)
+        if student_user is not None:
+            s.dacl.append((student_user, registry.Registry.ACCESS["W"], "ALLOW"))
+        s.dacl.append((accounts.me(), registry.Registry.ACCESS["F"], "ALLOW"))
+        # s.dacl.dump()
+    
+    
+def set_registry_value(key, value):
+    
+    reg_key = winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, "Software\\OPE\\OPELMS\\student",
+        0, winreg.KEY_WOW64_64KEY | winreg.KEY_WRITE)
+    
+    winreg.SetValueEx(reg_key, key, 0, winreg.REG_SZ, value)
     
 def create_local_student_account(user_name, full_name, password):
     global STUDENTS_GROUP
@@ -138,9 +187,10 @@ def create_local_student_account(user_name, full_name, password):
     # Create local student account
     student = None
     try:
-        p("}}yn\tAdding student account...}}xx")
+        p("}}yn\tAdding student account (" + user_name + ")...}}xx")
         accounts.User.create(user_name, password)
-    except pywintypes.error as err:
+    # except pywintypes.error as err:
+    except Exception as err:
         if err[2] == "The account already exists.":
             pass
         else:
@@ -175,7 +225,8 @@ def create_local_student_account(user_name, full_name, password):
     try:
         # Add to students group
         grp.add(student)
-    except pywintypes.error as err:
+    # except pywintypes.error as err:
+    except Exception as err:
         if err[2] == "The specified account name is already a member of the group.":
             pass
         else:
@@ -185,7 +236,8 @@ def create_local_student_account(user_name, full_name, password):
     try:
         # Add to users group
         users_grp.add(student)
-    except pywintypes.error as err:
+    # except pywintypes.error as err:
+    except Exception as err:
         if err[2] == "The specified account name is already a member of the group.":
             pass
         else:
@@ -205,7 +257,8 @@ def create_local_students_group():
     ret = True
     try:
         accounts.LocalGroup.create(STUDENTS_GROUP)
-    except pywintypes.error as err:
+    # except pywintypes.error as err:
+    except Exception as err:
         if err[2] == "The specified local group already exists.":
             pass
         else:
@@ -216,10 +269,84 @@ def create_local_students_group():
     return ret
 
     
+def create_local_admin_account(user_name, full_name, password):
+    # Create local admin account
+    ret = True
+    admin = None
+    
+    try:
+        p("}}yn\tAdding Admin account (" + user_name + ")...}}xx")
+        accounts.User.create(user_name, password)
+    # except pywintypes.error as err:
+    except Exception as err:
+        if err[2] == "The account already exists.":
+            pass
+        else:
+            # Unexpected error
+            p("}}rb" + str(err) + "}}xx")
+            ret = False
+
+    # Get the student object
+    admin = accounts.user(user_name)
+    # Set properties for this student
+    # win32net.NetUserChangePassword(None, user_name, old_pw, password)
+
+    user_data = dict()
+    user_data['name'] = user_name
+    user_data['full_name'] = full_name
+    user_data['password'] = password
+    user_data['flags'] = win32netcon.UF_NORMAL_ACCOUNT | win32netcon.UF_PASSWD_CANT_CHANGE | win32netcon.UF_DONT_EXPIRE_PASSWD | win32netcon.UF_SCRIPT
+    user_data['priv'] = win32netcon.USER_PRIV_USER
+    user_data['comment'] = 'OPE Student Account'
+    # user_data['home_dir'] = home_dir
+    # user_data['home_dir_drive'] = "h:"
+    user_data['primary_group_id'] = ntsecuritycon.DOMAIN_GROUP_RID_USERS
+    user_data['password_expired'] = 0
+    user_data['acct_expires'] = win32netcon.TIMEQ_FOREVER
+    
+    win32net.NetUserSetInfo(None, user_name, 3, user_data)
+
+    # Add user to the required groups
+    p("}}yn\tAdding user to Administrators group...}}xx")
+    grp = accounts.LocalGroup(accounts.group("Administrators").sid)
+    users_grp = accounts.LocalGroup(accounts.group("Users").sid)
+    try:
+        # Add to administrators group
+        grp.add(admin)
+    # except pywintypes.error as err:
+    except Exception as err:
+        if err[2] == "The specified account name is already a member of the group.":
+            pass
+        else:
+            # Unexpected error
+            p("}}rb" + str(err) + "}}xx")
+            ret = False
+    try:
+        # Add to users group
+        users_grp.add(admin)
+    # except pywintypes.error as err:
+    except Exception as err:
+        if err[2] == "The specified account name is already a member of the group.":
+            pass
+        else:
+            # Unexpected error
+            p("}}rb" + str(err) + "}}xx")
+            ret = False
+
+    return ret
+    
+    
+def disable_account(account_name):
+    user_data = dict()
+    user_data['flags'] = win32netcon.UF_SCRIPT | win32netcon.UF_ACCOUNTDISABLE
+    win32net.NetUserSetInfo(None, account_name, 1008, user_data)
+    
+    
 def disable_student_accounts():
     # Get a list of accounts that are in the students group
     global STUDENTS_GROUP
 
+    p("}}cb-- Disabling local student accounts in " + str(STUDENTS_GROUP) + " group...}}xx")
     try:
         grp = accounts.local_group(STUDENTS_GROUP)
     except winsys.exc.x_not_found as ex:
@@ -227,19 +354,21 @@ def disable_student_accounts():
         return
     
     for user in grp:
-        user_name = str(user)
-        p("}}cnDisabling Student Account: " + user_name + " in " + STUDENTS_GROUP + "...}}xx")
+        user_name = str(user.name)
+        p("}}cn\t-" + user_name + "}}xx")
+        disable_account(user_name)
+
         
-        user_data = dict()
-        user_data['flags'] = win32netcon.UF_SCRIPT | win32netcon.UF_ACCOUNTDISABLE
-        win32net.NetUserSetInfo(".", user.name, 1008, user_data)
-    
 def delete_user(user_name):
     # Remove the local user
     accounts.User(user_name).delete()
 
 
 def disable_guest_account():
+    try:
+        disable_account("Guest")
+    except Exception as ex:
+        p("}}rbERROR disabling guest account " + str(ex) + "}}xx")
     pass
     # Run this to disable the guest account?
     # NET USER Guest /ACTIVE:no
@@ -376,3 +505,12 @@ def get_reg_key(key_str, user_name=None):
 #     sd.SetSecurityDescriptorDacl(1, acl, 0)
 #
 #     return sd
+
+
+def is_admin():
+    ret = False
+    r = ctypes.windll.shell32.IsUserAnAdmin()
+    if r == 1:
+        ret = True
+    
+    return ret

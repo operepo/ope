@@ -2,7 +2,7 @@ FROM alpine:3.4
 MAINTAINER Ray Pulspher <ray@cmagic.biz>
 LABEL Description="Student Management Console - Image for Open Prison Education"
 LABEL Vendor="openprisoneducation.com"
-LABEL Version="0.6"
+LABEL Version="0.8"
 
 # install base
 RUN apk update \
@@ -85,12 +85,21 @@ WORKDIR $W2P_DIR
 
 # New clone smc which includes web2py already
 LABEL rebuild_smc=9
-RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
-      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
+#RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
+#      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
+
+ENV SMC_RELEASE v1.9
+
+RUN cd $W2P_DIR \
+    && git init \
+    && git remote add origin https://github.com/operepo/smc \
+    && git fetch origin --no-tags --depth 1 refs/tags/${SMC_RELEASE}:refs/tags/${SMC_RELEASE}  \
+    && git checkout ${SMC_RELEASE}
+
 
 
 # Copy our files in
-LABEL rebuild=17
+LABEL rebuild=18
 COPY set_admin_password /bin/set_admin_password
 COPY start.sh /start.sh
 COPY supervisord.conf /etc/supervisor/supervisord.conf

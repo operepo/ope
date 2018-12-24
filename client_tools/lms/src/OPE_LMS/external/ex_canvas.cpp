@@ -45,7 +45,9 @@ bool EX_Canvas::pullStudentInfo()
     //qDebug() << " Trying to pull canvas student info...";
 
     // Pull the list of classes from the server
-    QJsonDocument doc = CanvasAPICall("/api/v1/users/self");
+    QHash<QString,QString> p;
+    p["per_page"] = "10000"; // Cuts down number of calls significantly
+    QJsonDocument doc = CanvasAPICall("/api/v1/users/self", "GET", &p);
     //qDebug() << doc.toJson();
 
     // Loop through the users and add them to the database
@@ -139,7 +141,9 @@ bool EX_Canvas::pullCourses()
     //qDebug() << " Trying to pull canvas courses...";
 
     // Pull the list of classes from the server
-    QJsonDocument doc = CanvasAPICall("/api/v1/courses");
+    QHash<QString,QString> p;
+    p["per_page"] = "10000"; // Cuts down number of calls significantly
+    QJsonDocument doc = CanvasAPICall("/api/v1/courses", "GET", &p);
     //qDebug() << doc.toJson();
 
     // Loop through the courses and add them to the database
@@ -1804,10 +1808,17 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
     }
 
     QString link_header = web_request->GetHeader("Link");
+    bool follow_link = false;
 
     // For multiple pages - we follow the link header to the next page automatically
     if (link_header != "")
     {
+        follow_link = true;
+    }
+
+    while(follow_link == true) {
+
+        // TODO - Need to keep following link until we run out of pages!!!
         //qDebug() << "Link header: " << link_header;
         QString next_url = "";
         QStringList parts = link_header.split(",", QString::SkipEmptyParts);
@@ -1825,7 +1836,7 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
         // If there is a link header, we need to call NetworkCall recursively to get the next chunk
         if (next_url != "")
         {
-            //qDebug() << "Nested API call: " << next_url;
+            qDebug() << "--> Nested API call: " << next_url;
             QString next = web_request->NetworkCall(next_url, method, p, headers, content_type, post_file);
             next = next.trimmed();
             if (next != "" && next != "[]")
@@ -1844,7 +1855,11 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
                 ret.append(",");
                 ret.append(next);
             }
+        } else {
+            // Out of next links, stop following them
+            follow_link = false;
         }
+
     }
 
     return ret;

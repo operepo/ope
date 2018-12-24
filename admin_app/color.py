@@ -87,6 +87,48 @@ color_codes = {
 
 }
 
+markup_color_codes = {
+
+    "}}xx": "[/color]",
+
+    "}}zn": "[color=000000]",
+    "}}rn": "[color=bb0000]",
+    "}}gn": "[color=00bb00]",
+    "}}yn": "[color=bbbb00]",
+    "}}bn": "[color=0000bb]",
+    "}}mn": "[color=bb00bb]",
+    "}}cn": "[color=00bbbb]",
+    "}}wn": "[color=bbbbbb]",
+
+    "}}zb": "[color=555555]",
+    "}}rb": "[color=ff5555]",
+    "}}gb": "[color=55ff55]",
+    "}}yb": "[color=ffff55]",
+    "}}bb": "[color=5555ff]",
+    "}}mb": "[color=ff55ff]",
+    "}}cb": "[color=55ffff]",
+    "}}wb": "[color=ffffff]",
+
+    "}}zi": "[color=000000]",
+    "}}ri": "[color=bb0000]",
+    "}}gi": "[color=00bb00]",
+    "}}yi": "[color=bbbb00]",
+    "}}bi": "[color=0000bb]",
+    "}}mi": "[color=bb00bb]",
+    "}}ci": "[color=00bbbb]",
+    "}}wi": "[color=bbbbbb]",
+
+    "}}zu": "[color=000000]",
+    "}}ru": "[color=bb0000]",
+    "}}gu": "[color=00bb00]",
+    "}}yu": "[color=bbbb00]",
+    "}}bu": "[color=0000bb]",
+    "}}mu": "[color=bb00bb]",
+    "}}cu": "[color=00bbbb]",
+    "}}wu": "[color=bbbbbb]",
+
+}
+
 
 def set_term_pos(x, y, out=sys.stdout):
     out.write(CSI + str(y) + ";" + str(x) + "H")
@@ -117,6 +159,31 @@ def translate_color_codes(txt):
                 txt = txt.replace(pos_txt, ansi_txt)
 
         i = txt.find("{{", i+1)
+
+    return txt
+
+
+def translate_color_codes_to_markup(txt):
+    global color_codes
+
+    for c in color_codes:
+        txt = txt.replace(c, markup_color_codes[c])
+
+    # # {{10,2;
+    # i = txt.find("{{")
+    # while i > -1:
+    #     isemi = txt.find(";", i+2)
+    #     if isemi > -1:
+    #         pos_txt = txt[i: isemi+1]
+    #         t = pos_txt.replace("{{", "").replace(";", "")
+    #         parts = t.split(",")
+    #         if len(parts) == 2:
+    #             x = parts[0]
+    #             y = parts[1]
+    #             ansi_txt = CSI + y + ";" + x + "H"
+    #             txt = txt.replace(pos_txt, ansi_txt)
+    #
+    #     i = txt.find("{{", i+1)
 
     return txt
 

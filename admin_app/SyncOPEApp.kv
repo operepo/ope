@@ -1,55 +1,4 @@
 
-<MainWindow>:
-    # NOT USED - Look for StartScreen
-    BoxLayout:
-        orientation: 'vertical'
-        ActionBar:
-            pos_hint: { 'top': 1}
-            ActionView:
-                ActionPrevious:
-                    title: 'OPE Sync Tool'
-                    with_previous: False
-                    app_icon: "logo_icon.png"
-                ActionOverflow:
-                #ActionButton:
-                #    text: 'Btn0'
-                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
-                #    on_release: app.populate()
-                ActionLabel:
-                    text: "V" + app.APP_VERSION
-                ActionButton:
-                    text: "Settings (F1)"
-                    on_release: app.open_settings()
-                ActionButton:
-                    text: "Exit App"
-                    on_release: app.close_app()
-
-        Button:
-            text: 'Getting Started'
-            on_press: app.getting_started()
-
-
-        Button:
-            text: 'Pick Apps'
-            on_press: app.pick_apps()
-
-        Button:
-            text: 'Sync'
-
-        ScrollView:
-            size_hint: (1, .2)
-            text: ''
-            id: log_console
-            Label:
-                size_hint_y: None  # turn off auto height
-                # text_size: self.size
-                text_size: self.width, None  # Fit text width, but wrap forever
-                height: self.texture_size[1]  # Draw height
-                markup: True
-                text: log_console.text
-                valign: 'top'
-
-
 <SettingPassword>:
     PasswordLabel:
         text: (lambda x: '*'*x)(len(root.value)) if root.value else ''
@@ -85,9 +34,82 @@
             text: "Cancel"
             on_release: root.dismiss()
 
+<StartScreen>:
+    on_pre_enter: app.set_online_button_states(online_button, offline_button)
 
+    BoxLayout:
+        orientation: 'vertical'
+        ActionBar:
+            pos_hint: { 'top': 1 }
+            ActionView:
+                ActionPrevious:
+                    title: 'OPE Admin Tool'
+                    with_previous: False
+                    app_icon: "logo_icon.png"
+                ActionOverflow:
+                #ActionButton:
+                #    text: 'Btn0'
+                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
+                #    on_release: app.populate()
+
+                ActionLabel:
+                    text: "V" + app.APP_VERSION
+
+                ActionToggleButton:
+                    id: online_button
+                    text: 'Online Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('online')
+                ActionToggleButton:
+                    id: offline_button
+                    text: 'Offline Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('offline')
+                ActionButton:
+                    text: "Settings (F1)"
+                    on_release: app.open_settings()
+                ActionButton:
+                    text: "Exit App"
+                    on_release: app.close_app()
+
+        Button:
+            text: "Overview - Getting Started"
+            on_press: root.manager.current="getting_started"
+        Button:
+            text: 'Pick Apps - Select the apps to install and sync'
+            on_press: root.manager.current="pick_apps"
+        Button:
+            text: 'Online Mode - Setup or sync with apps on campus'
+            on_press: root.manager.current="online_mode"
+        Button:
+            text: "Offline Mode - Setup or sync with apps on inmate network"
+            on_press: root.manager.current="offline_mode"
+        Button:
+            text: "Manage Fog Images - Import, export, or download windows images"
+            on_press: root.manager.current="manage_fog"
+        Button:
+            text: "Utilities (Restart apps, update sync boxes, etc...)"
+            on_press: root.manager.current="utilities"
+        #Button:
+        #    text: "Login test"
+        #    on_press: root.manager.current="login_screen"
+
+        ScrollView:
+            size_hint: (1, .2)
+            text: ''
+            id: log_console
+            Label:
+                size_hint_y: None  # turn off auto height
+                # text_size: self.size
+                text_size: self.width, None  # Fit text width, but wrap forever
+                height: self.texture_size[1]  # Draw height
+                markup: True
+                text: log_console.text
+                valign: 'top'
 
 <OnlineUpdateScreen>:
+    on_pre_enter: app.set_online_button_states(online_button, offline_button)
+
     BoxLayout:
         padding: [3, 3, 3, 3]
         orientation: 'vertical'
@@ -111,6 +133,16 @@
                     text: "<-- Back"
                     on_press: root.manager.current="online_mode"
 
+                ActionToggleButton:
+                    id: online_button
+                    text: 'Online Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('online')
+                ActionToggleButton:
+                    id: offline_button
+                    text: 'Offline Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('offline')
                 ActionButton:
                     text: "Settings (F1)"
                     on_release: app.open_settings()
@@ -154,6 +186,8 @@
             size_hint_y: .05
 
 <OfflineUpdateScreen>:
+    on_pre_enter: app.set_online_button_states(online_button, offline_button)
+
     BoxLayout:
         padding: [3, 3, 3, 3]
         orientation: 'vertical'
@@ -177,6 +211,16 @@
                     text: "<-- Back"
                     on_press: root.manager.current="offline_mode"
 
+                ActionToggleButton:
+                    id: online_button
+                    text: 'Online Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('online')
+                ActionToggleButton:
+                    id: offline_button
+                    text: 'Offline Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('offline')
                 ActionButton:
                     text: "Settings (F1)"
                     on_release: app.open_settings()
@@ -222,6 +266,8 @@
 
 
 <VerifySettingsScreen>:
+    on_pre_enter: app.set_online_button_states(online_button, offline_button)
+
     BoxLayout:
         orientation: 'vertical'
         ActionBar:
@@ -243,7 +289,16 @@
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="start"
-
+                ActionToggleButton:
+                    id: online_button
+                    text: 'Online Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('online')
+                ActionToggleButton:
+                    id: offline_button
+                    text: 'Offline Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('offline')
                 ActionButton:
                     text: "Settings (F1)"
                     on_release: app.open_settings()
@@ -258,69 +313,9 @@
             text: '...'
             id: verify_status_label
 
-
-<StartScreen>:
-    BoxLayout:
-        orientation: 'vertical'
-        ActionBar:
-            pos_hint: { 'top': 1}
-            ActionView:
-                ActionPrevious:
-                    title: 'OPE Admin Tool'
-                    with_previous: False
-                    app_icon: "logo_icon.png"
-                ActionOverflow:
-                #ActionButton:
-                #    text: 'Btn0'
-                #    icon: 'atlas://data/images/defaulttheme/audio-volume-high'
-                #    on_release: app.populate()
-
-                ActionLabel:
-                    text: "V" + app.APP_VERSION
-
-                ActionButton:
-                    text: "Settings (F1)"
-                    on_release: app.open_settings()
-                ActionButton:
-                    text: "Exit App"
-                    on_release: app.close_app()
-
-        Button:
-            text: "Overview - Getting Started"
-            on_press: root.manager.current="getting_started"
-        Button:
-            text: 'Pick Apps - Select the apps to install and sync'
-            on_press: root.manager.current="pick_apps"
-        Button:
-            text: 'Online Mode - Setup or sync with apps on campus'
-            on_press: root.manager.current="online_mode"
-        Button:
-            text: "Offline Mode - Setup or sync with apps on inmate network"
-            on_press: root.manager.current="offline_mode"
-        Button:
-            text: "Manage Fog Images - Import, export, or download windows images"
-            on_press: root.manager.current="manage_fog"
-        Button:
-            text: "Utilities (Restart apps, update sync boxes, etc...)"
-            on_press: root.manager.current="utilities"
-        #Button:
-        #    text: "Login test"
-        #    on_press: root.manager.current="login_screen"
-
-        ScrollView:
-            size_hint: (1, .2)
-            text: ''
-            id: log_console
-            Label:
-                size_hint_y: None  # turn off auto height
-                # text_size: self.size
-                text_size: self.width, None  # Fit text width, but wrap forever
-                height: self.texture_size[1]  # Draw height
-                markup: True
-                text: log_console.text
-                valign: 'top'
-
 <UtilitiesScreen>:
+    on_pre_enter: app.set_online_button_states(online_button, offline_button)
+
     BoxLayout:
         orientation: 'vertical'
         ActionBar:
@@ -342,7 +337,16 @@
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="start"
-
+                ActionToggleButton:
+                    id: online_button
+                    text: 'Online Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('online')
+                ActionToggleButton:
+                    id: offline_button
+                    text: 'Offline Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('offline')
                 ActionButton:
                     text: "Settings (F1)"
                     on_release: app.open_settings()
@@ -351,14 +355,13 @@
                     on_release: app.close_app()
 
         Button:
-            text: '(Not Available Yet)Restart all apps (canvas, smc, etc... - good option when things get stuck)'
-            on_press: pass
-            #app.restart_docker_apps()
+            text: 'Restart OPE all apps (canvas, smc, etc... - good option when things get stuck)'
+            on_press: app.restart_docker_apps()
 
         Button:
-            text: "(Not Available Yet) Update OPE Sync Boxes"
-            on_press: pass
-            #root.manager.current="update_sync_boxes"
+            text: "Update OPE Sync Boxes"
+            # on_press: pass
+            on_press: root.manager.current="update_sync_boxes"
 
 <SyncBoxSubnetDropdown>:
     Button:
@@ -379,6 +382,8 @@
 
 
 <UpdateSyncBoxesScreen>:
+    on_pre_enter: app.set_online_button_states(online_button, offline_button)
+
     BoxLayout:
         orientation: 'vertical'
         ActionBar:
@@ -400,7 +405,16 @@
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="utilities"
-
+                ActionToggleButton:
+                    id: online_button
+                    text: 'Online Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('online')
+                ActionToggleButton:
+                    id: offline_button
+                    text: 'Offline Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('offline')
                 ActionButton:
                     text: "Settings (F1)"
                     on_release: app.open_settings()
@@ -413,34 +427,74 @@
             halign: 'left'
             text_size: self.size
             text:
-                "[b]New Sync Boxes[/b] \n" + \
-                "Plug into one of the USB cables and use the subnet [color=0000aa][b]192.168.88[/b][/color]\n\n" + \
-                "[b]Existing Sync Boxes - Plugged into USB cable [/b]\n" + \
+                "[b][color=00bb00]Update Existing Sync Boxes - Plugged into USB cable [/color][/b]\n" + \
                 "If plugged into one of the USB cables on an existing sync box, use the subnet [color=0000aa][b]202.5.222[/b][/color]\n\n" + \
-                "[b]Existing Sync Boxes - From your normal Network [/b]\n" + \
-                "If you are plugged into a normal PC on your inmate network, enter the [color=0000aa][b]DHCP subnet[/b][/color] you use for machines, the sync box should be found on one of these (e.g. we use 172.20.31)"
+                "[b][color=00bb00]Existing Sync Boxes - From your normal Network [/color][/b]\n" + \
+                "If you are plugged into a normal PC on your inmate network, enter the [color=0000aa][b]DHCP subnet[/b][/color] you use for machines, the sync box should be found on one of these (e.g. we use 172.20.31)\n\n" + \
+                "[b][color=00bb00]Building Your Own Sync Boxes[/color][/b] \n" + \
+                "For first time config when building your own box, plug into one of the USB cables and use the subnet [color=0000aa][b]192.168.88[/b][/color] with NO password\n\n"
+
 
         BoxLayout:
             orientation: 'horizontal'
+            size_hint_y: None
+            height: 30
 
             Label:
                 markup: True
                 halign: 'left'
                 valign: 'middle'
-                size_hint_x: .1
+                size_hint_x: None
+                width: 250
                 text_size: self.size
                 text: "Subnet"
             TextInput:
-                text: "192.168.88"
+                #text: "192.168.88"
+                text: "202.5.222"
+                write_tab: False
+                multiline: False
                 id: update_subnet
 
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: 30
+
+            Label:
+                markup: True
+                halign: 'left'
+                valign: 'middle'
+                size_hint_x: None
+                width: 250
+                text_size: self.size
+                text: "Device PW"
+            TextInput:
+                text: ""
+                multiline: False
+                write_tab: False
+                password: True
+                id: update_pw
 
         Button:
+            size_hint_y: None
+            height: 30
             text: 'Update Sync Boxes'
-            on_press: app.update_sync_boxes(update_subnet.value)
+            on_press: app.update_sync_boxes(update_subnet.text, update_pw.text, fw_update_output_label)
 
+        ScrollLabel:
+            id: fw_update_output_label
+            text: ''
+            size_hint_y: .85
+            halign: "left"
+            #size: (300, 300)
+            font_size: 14
+            #font_size: sl_font_size.value
+            markup: True
+            #on_text: self.rv.scroll_y = 0  # in the scrolllable.py class
 
 <ManageFogScreen>:
+    on_pre_enter: app.set_online_button_states(online_button, offline_button)
+
     BoxLayout:
         orientation: 'vertical'
         ActionBar:
@@ -462,7 +516,16 @@
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="start"
-
+                ActionToggleButton:
+                    id: online_button
+                    text: 'Online Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('online')
+                ActionToggleButton:
+                    id: offline_button
+                    text: 'Offline Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('offline')
                 ActionButton:
                     text: "Settings (F1)"
                     on_release: app.open_settings()
@@ -489,6 +552,8 @@
             on_press: root.manager.current="fog_upload"
 
 <FogImportScreen>:
+    on_pre_enter: app.set_online_button_states(online_button, offline_button)
+
     BoxLayout:
         orientation: 'vertical'
         ActionBar:
@@ -510,7 +575,16 @@
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="manage_fog"
-
+                ActionToggleButton:
+                    id: online_button
+                    text: 'Online Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('online')
+                ActionToggleButton:
+                    id: offline_button
+                    text: 'Offline Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('offline')
                 ActionButton:
                     text: "Settings (F1)"
                     on_release: app.open_settings()
@@ -564,6 +638,8 @@
 
 <FogExportScreen>:
     on_enter: fog_export_to_usb_image.file_system = app.get_fog_export_image_list(); fog_export_to_usb_image._update_files()
+    on_pre_enter: app.set_online_button_states(online_button, offline_button)
+
     BoxLayout:
         orientation: 'vertical'
         ActionBar:
@@ -585,7 +661,16 @@
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="manage_fog"
-
+                ActionToggleButton:
+                    id: online_button
+                    text: 'Online Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('online')
+                ActionToggleButton:
+                    id: offline_button
+                    text: 'Offline Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('offline')
                 ActionButton:
                     text: "Settings (F1)"
                     on_release: app.open_settings()
@@ -640,7 +725,9 @@
 
 
 <FogDownloadScreen>:
+    on_pre_enter: app.set_online_button_states(online_button, offline_button)
     # on_enter: fog_image_download_file.file_system = app.get_fog_image_list(); fog_image_download_file._update_files()
+
     BoxLayout:
         orientation: 'vertical'
         ActionBar:
@@ -662,7 +749,16 @@
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="manage_fog"
-
+                ActionToggleButton:
+                    id: online_button
+                    text: 'Online Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('online')
+                ActionToggleButton:
+                    id: offline_button
+                    text: 'Offline Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('offline')
                 ActionButton:
                     text: "Settings (F1)"
                     on_release: app.open_settings()
@@ -716,7 +812,9 @@
             #size_hint_y: .05
 
 <FogUploadScreen>:
+    on_pre_enter: app.set_online_button_states(online_button, offline_button)
     on_enter: fog_image_upload_username.focus = True
+
     BoxLayout:
         orientation: 'vertical'
         ActionBar:
@@ -738,7 +836,16 @@
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="manage_fog"
-
+                ActionToggleButton:
+                    id: online_button
+                    text: 'Online Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('online')
+                ActionToggleButton:
+                    id: offline_button
+                    text: 'Offline Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('offline')
                 ActionButton:
                     text: "Settings (F1)"
                     on_release: app.open_settings()
@@ -824,9 +931,9 @@
             id: fog_image_upload_progress
             #size_hint_y: .05
 
-
-
 <OnlineModeScreen>:
+    on_pre_enter: app.set_online_button_states(online_button, offline_button)
+
     BoxLayout:
         orientation: 'vertical'
         ActionBar:
@@ -848,7 +955,16 @@
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="start"
-
+                ActionToggleButton:
+                    id: online_button
+                    text: 'Online Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('online')
+                ActionToggleButton:
+                    id: offline_button
+                    text: 'Offline Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('offline')
                 ActionButton:
                     text: "Settings (F1)"
                     on_release: app.open_settings()
@@ -868,6 +984,8 @@
         #    on_press: root.manager.current="online_sync"
 
 <OfflineModeScreen>:
+    on_pre_enter: app.set_online_button_states(online_button, offline_button)
+
     BoxLayout:
         orientation: 'vertical'
         ActionBar:
@@ -889,7 +1007,16 @@
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="start"
-
+                ActionToggleButton:
+                    id: online_button
+                    text: 'Online Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('online')
+                ActionToggleButton:
+                    id: offline_button
+                    text: 'Offline Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('offline')
                 ActionButton:
                     text: "Settings (F1)"
                     on_release: app.open_settings()
@@ -908,6 +1035,8 @@
         #    on_press: root.manager.current="offline_sync"
 
 <GettingStartedScreen>:
+    on_pre_enter: app.set_online_button_states(online_button, offline_button)
+
     BoxLayout:
         orientation: 'vertical'
         ActionBar:
@@ -929,7 +1058,16 @@
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="start"
-
+                ActionToggleButton:
+                    id: online_button
+                    text: 'Online Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('online')
+                ActionToggleButton:
+                    id: offline_button
+                    text: 'Offline Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('offline')
                 ActionButton:
                     text: "Settings (F1)"
                     on_release: app.open_settings()
@@ -983,6 +1121,8 @@
 #            size: self.size
 
 <PickAppsScreen>:
+    on_pre_enter: app.set_online_button_states(online_button, offline_button)
+
     BoxLayout:
         orientation: 'vertical'
         ActionBar:
@@ -1004,7 +1144,16 @@
                 ActionButton:
                     text: "<-- Back"
                     on_press: root.manager.current="start"
-
+                ActionToggleButton:
+                    id: online_button
+                    text: 'Online Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('online')
+                ActionToggleButton:
+                    id: offline_button
+                    text: 'Offline Mode'
+                    group: 'mode'
+                    on_release: app.set_internet_mode('offline')
                 ActionButton:
                     text: "Settings (F1)"
                     on_release: app.open_settings()

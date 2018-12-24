@@ -164,7 +164,8 @@ from kivy.uix.settings import SettingString
 from kivy.uix.settings import SettingItem
 from kivy.uix.button import Button
 from kivy.uix.dropdown import DropDown
-from kivy.properties import ListProperty
+from kivy.event import EventDispatcher
+from kivy.properties import ListProperty, StringProperty, OptionProperty
 from kivy.logger import Logger
 from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager, Screen
@@ -585,11 +586,23 @@ class MainWindow(BoxLayout):
         pass
 
 
-class SyncOPEApp(App):
+class SyncOPEApp(App, EventDispatcher):
     APP_VERSION = APP_VERSION
     # URL to download fog images from
     ope_fog_images_url = "http://dl.correctionsed.com/ope_lt_images"
     server_mode = 'online'  # Start in online mode?
+
+    def set_online_button_states(self, online_button, offline_button):
+        # print("online state")
+        if SyncOPEApp.server_mode == 'online':
+            online_button.state = 'down'
+            offline_button.state = 'normal'
+        else:
+            online_button.state = 'normal'
+            offline_button.state = 'down'
+
+    def on_online_server_button_state(self, instance, value):
+        print("online_button_state" + str(value))
 
     use_kivy_settings = False
 
@@ -600,6 +613,12 @@ class SyncOPEApp(App):
 
     # Flag to indicate if we are in online or offline mode
     is_online = 0
+
+    def set_internet_mode(self, mode):
+        if mode.lower() == 'online':
+            SyncOPEApp.server_mode = 'online'
+        else:
+            SyncOPEApp.server_mode = 'offline'
 
     def load_current_settings(self):
         global MAIN_WINDOW
@@ -2611,6 +2630,93 @@ class SyncOPEApp(App):
             ret = "1"
 
         return ret
+
+    def get_ssh_connection(self):
+        ssh_server = ""
+        ssh_user = ""
+        ssh_pass = ""
+        ssh_folder = ""
+        err_str = ""
+        if SyncOPEApp.server_mode == 'online':
+            ssh_server = self.config.getdefault("Online Settings", "server_ip", "127.0.0.1")
+            ssh_user = self.config.getdefault("Online Settings", "server_user", "root")
+            ssh_pass = self.get_online_pw()  # self.config.getdefault("Online Settings", "server_password", "changeme")
+            ssh_folder = self.config.getdefault("Online Settings", "server_folder", "/ope")
+        else:
+            ssh_server = self.config.getdefault("Offline Settings", "server_ip", "127.0.0.1")
+            ssh_user = self.config.getdefault("Offline Settings", "server_user", "root")
+            ssh_pass = self.get_offline_pw()  # self.config.getdefault("Offline Settings", "server_password", "changeme")
+            ssh_folder = self.config.getdefault("Offline Settings", "server_folder", "/ope")
+
+        ret = None
+
+        if ssh_server != "" and ssh_user != "" and ssh_pass != "" and ssh_folder != "":
+            # Connect to server
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            try:
+                # Connect to the server
+                ssh.connect(ssh_server, username=ssh_user,
+                            password=ssh_pass, compress=True, look_for_keys=False, timeout=10)
+            except paramiko.ssh_exception.BadHostKeyException:
+                print("Invalid Host key!")
+                err_str = "Invalid Host Key"
+                # error_message.text = "\n\n[b]CONNECTION ERROR[/b]\n - Bad host key - check ~/.ssh/known_hosts"
+                # fog_image_upload_send_button.disabled = False
+                pass
+            except paramiko.ssh_exception.BadAuthenticationType:
+                # error_message.text = "[b]INVALID LOGIN[/b]"
+                # fog_image_upload_send_button.disabled = False
+                print("Invalid Login!")
+                err_str = "Invalid Login!"
+                pass
+            except Exception as ex:
+                print("Unknown ERROR!")
+                err_str = "Unknown Error! " + str(ex)
+                # error_message.text = "[b]Unknown ERROR[/b]\n" + str(ex)
+                # fog_image_upload_send_button.disabled = False
+                pass
+
+        return ret, ssh_folder, err_str
+
+    def restart_docker_apps(self):
+        ssh, ssh_folder, err_str = self.get_ssh_connection()
+
+        if ssh is None:
+            # Show dialog w error
+            print("Error connecting to SSH server!")
+            popup = Popup(title='SSH Connection Error',
+                          content=Label(text='Error connecting to server  ' + str(err_str)),
+                          size_hint=(None, None),
+                          size=(800, 400))
+            b =  Button(text='Close')
+            popup.add_widget(b)
+            popup.open()
+
+        # docker-compose down
+        # service docker stop
+        # rm /var/run/docker.sock
+        # service docker start
+        # ./up.sh
+        pass
+
+    def update_sync_boxes_thread(self, router_subnet, router_pw, output_label):
+        global APP_FOLDER
+        if output_label is not None:
+            output_label.text = "Searching for routers...\n\n"
+        # Get the path to the router files
+        router_files_path = os.path.join(os.path.dirname(APP_FOLDER), "router_files")
+
+        sb = router_utils.SyncBoxes(router_files_folder=router_files_path, router_pw=router_pw,
+                                    output_label=output_label)
+
+        sb.find_routers(subnet_prefix=router_subnet)
+        sb.update_routers()
+
+    def update_sync_boxes(self, router_subnet, router_pw, output_label):
+        t = threading.Thread(target=self.update_sync_boxes_thread,
+                             args=(router_subnet, router_pw,
+                                   output_label)).start()
 
     def show_settings_panel(self, panel_name):
         # Make sure settings are visible
