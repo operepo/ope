@@ -85,8 +85,17 @@ WORKDIR $W2P_DIR
 
 # New clone smc which includes web2py already
 LABEL rebuild_smc=9
-RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
-      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
+#RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
+#      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
+
+ENV SMC_RELEASE v1.9
+
+RUN cd $W2P_DIR \
+    && git init \
+    && git remote add origin https://github.com/operepo/smc \
+    && git fetch origin --no-tags --depth 1 refs/tags/${SMC_RELEASE}:refs/tags/${SMC_RELEASE}  \
+    && git checkout ${SMC_RELEASE}
+
 
 
 # Copy our files in
