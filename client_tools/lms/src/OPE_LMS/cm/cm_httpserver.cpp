@@ -62,7 +62,7 @@ CM_HTTPServer::CM_HTTPServer(QObject *parent) :
     encryptedBytesWritten = 0;
 }
 
-bool CM_HTTPServer::Start(qint16 port, bool use_ssl)
+bool CM_HTTPServer::Start(quint16 port, bool use_ssl)
 {
     // Start the server listening for connections
     http_port = port;
@@ -71,6 +71,11 @@ bool CM_HTTPServer::Start(qint16 port, bool use_ssl)
     listen(QHostAddress::Any, port);
 
     return true;
+}
+
+quint16 CM_HTTPServer::getHTTPPort()
+{
+    return http_port;
 }
 
 bool CM_HTTPServer::registerPathHandler(QString path, qintptr handler)
@@ -418,15 +423,16 @@ void CM_HTTPRequest::ParsePacket(QString packet)
             headers["Protocol"] = p[p.count()-1].trimmed();
 
             // Grab everything in between for the URL
-            QString url = "";
+            QString curr_url = "";
             int start_part = 1;
             int end_part = p.count() - 2;
             for(int i=start_part; i<=end_part; i++)
             {
-                if (url != "") { url += " "; }
-                url += p[i];
+                if (curr_url != "") { curr_url += " "; }
+                curr_url += p[i];
             }
-            headers["URL"] = url;
+            headers["URL"] = curr_url;
+            url = QUrl(curr_url);
 
         }
     }

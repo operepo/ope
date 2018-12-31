@@ -36,11 +36,11 @@ Page {
         progressLabel.text += "\nPulling student information...";
         r = mainWidget.canvas.pullStudentInfo();
         if (r === false) { progressLabel.text += "\n  ERROR pulling student info"; }
-        syncProgress.value = .1;
+        syncProgress.value = .05;
 
         // Push assignments to the server
         progressLabel.text += "\nPushing Assignment Submissions...";
-        syncProgress.value = 0.15;
+        syncProgress.value = 0.1;
         r = mainWidget.canvas.pushAssignments();
         if (r === false) { progressLabel.text += "\n ERROR pushing assingment submissions"; }
 
@@ -53,58 +53,70 @@ Page {
         progressLabel.text += "\nPulling modules for courses...";
         r = mainWidget.canvas.pullModules();
         if (r === false) { progressLabel.text += "\n  ERROR pulling module info"; }
-        syncProgress.value = .3;
+        syncProgress.value = .25;
 
         progressLabel.text += "\nPulling items for all courses and modules...";
         r = mainWidget.canvas.pullModuleItems();
         if (r === false) { progressLabel.text += "\n  ERROR pulling item info"; }
-        syncProgress.value = .4;
+        syncProgress.value = .27;
 
         progressLabel.text += "\nPulling Folder info for courses...";
         r = mainWidget.canvas.pullCourseFileFolders()
         if (r === false) { progressLabel.text += "\n  ERROR pulling folders info"; }
-        syncProgress.value = .45;
+        syncProgress.value = .29;
 
         progressLabel.text += "\nPulling file info for courses...";
         r = mainWidget.canvas.pullCourseFilesInfo();
         if (r === false) { progressLabel.text += "\n  ERROR pulling files info"; }
-        syncProgress.value = .5;
+        syncProgress.value = .31;
 
         // Pull pages for courses
         progressLabel.text += "\nPulling pages for courses...";
         r = mainWidget.canvas.pullCoursePages();
         if (r === false) { progressLabel.text += "\n  ERROR pulling pages"; }
-        syncProgress.value = .6;
+        syncProgress.value = .38;
 
         // Pull assignments for courses
         progressLabel.text += "\nPulling assignments...";
         r = mainWidget.canvas.pullAssignments();
         if (r === false) { progressLabel.text += "\n ERROR pulling assignments"; }
-        syncProgress.value = .65;
+        syncProgress.value = .41;
 
         // Pull inbox messages for user
         progressLabel.text += "\nPulling inbox messages for user...";
         r = mainWidget.canvas.pullMessages();
         if (r === false) { progressLabel.text += "\n  ERROR pulling messages"; }
-        syncProgress.value = .7;
+        syncProgress.value = .48;
 
         // Pull sent messages for user
         progressLabel.text += "\nPulling sent messages for user...";
         r = mainWidget.canvas.pullMessages("sent");
         if (r === false) { progressLabel.text += "\n  ERROR pulling messages"; }
-        syncProgress.value = .8;
+        syncProgress.value = .51;
 
         // Pull Announcements
         progressLabel.text += "\nPulling announcements...";
         r = mainWidget.canvas.pullAnnouncements();
         if (r === false) { progressLabel.text += "\n  ERROR pulling announcements"; }
-        syncProgress.value = 0.9;
+        syncProgress.value = 0.53;
 
         // Don't do this unless its marked for pull
         progressLabel.text += "\nPulling file binaries...";
         r = mainWidget.canvas.pullCourseFilesBinaries();
         if (r === false) { progressLabel.text += "\n  ERROR pulling file binaries"; }
-        syncProgress.value = 1.0;
+        syncProgress.value = 0.7;
+
+        // Pull SMC Videos
+        progressLabel.text += "\nPulling SMC Videos...";
+        r = mainWidget.canvas.pullSMCVideos();
+        if (r === false) { progressLabel.text += "\n  ERROR pulling SMC Videos"; }
+        syncProgress.value = 0.8;
+
+        // Pull SMC Documents
+        progressLabel.text += "\nPulling SMC Documents...";
+        r = mainWidget.canvas.pullSMCDocuments();
+        if (r === false) { progressLabel.text += "\n  ERROR pulling SMC Documents"; }
+        syncProgress.value = 0.9;
 
 
 

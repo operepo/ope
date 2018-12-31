@@ -42,7 +42,9 @@ public:
     explicit CM_HTTPServer(QObject *parent = 0);
     
     // Start a new HTTP Server
-    bool Start(qint16 port = 80, bool use_ssl = false);
+    bool Start(quint16 port = 80, bool use_ssl = false);
+
+    quint16 getHTTPPort();
 
     bool registerPathHandler(QString path, qintptr handler);
     bool registerExtentionHandler(QString extention, qintptr handler);
@@ -100,7 +102,7 @@ private:
 
 
     bool disabled;
-    qint16 http_port;
+    quint16 http_port;
     bool ssl_on;
 
     QHash<QString, qintptr> path_handlers;
@@ -125,6 +127,7 @@ class CM_HTTPRequest : public QObject
 public:
 
     QHash<QString, QString> headers;
+    QUrl url;
     QString body;
 
     explicit CM_HTTPRequest(QObject *parent);

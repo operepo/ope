@@ -21,7 +21,8 @@ class EX_Canvas : public QObject
     Q_OBJECT
 public:
     // Must provide db and settings objects during object creation
-    explicit EX_Canvas(QObject *parent = 0, APP_DB *db = NULL, QSettings *app_settings = NULL);
+    explicit EX_Canvas(QObject *parent = 0, APP_DB *db = NULL, QSettings *app_settings = NULL,
+                       QString localhost_url = "http://localhost:65525");
 
     Q_PROPERTY(qint64 dlProgress READ dlProgress WRITE setDlProgress NOTIFY dlProgressChanged)
 public slots:
@@ -86,6 +87,22 @@ public slots:
 
     // Store the auth token so that requests can be sent to canvas on behalf of this user
     void SetCanvasAccessToken(QString token);
+    void SetCanvasURL(QString url);
+
+    // Find videos/documents, replace links for local links, and queue
+    // them in the download queue
+    QString ProcessSMCVideos(QString content);
+    QString ProcessSMCDocuments(QString content);
+
+    bool QueueVideoForDownload(QString movie_id);
+    bool QueueDocumentForDownload(QString document_id);
+
+    bool pullSMCVideos();
+    bool pullSMCDocuments();
+
+    // Cache a copy of videos/documents locally
+    //bool DownloadSMCVideos();
+    //bool DownloadSMCDocuments();
 
 private:
     // ?? Still needed?? Only if using full OAUTH cycle
@@ -95,7 +112,7 @@ private:
     // Access token for the current user/student
     QString canvas_access_token;
     // Base URL of canvas server - e.g.: https://canvas.ed
-    QString canvas_server;
+    QString canvas_url;
 
     // Web request used by NetworkCall - hands off
     CM_WebRequest *web_request;
@@ -108,6 +125,10 @@ private:
 
     // App settings object - provided by app
     QSettings *_app_settings;
+
+    // Localhost http server url
+    QString _localhost_url;
+
 
 private slots:
 

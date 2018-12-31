@@ -1,22 +1,23 @@
 #include "ex_canvas.h"
 
-EX_Canvas::EX_Canvas(QObject *parent, APP_DB *db, QSettings *app_settings) :
+EX_Canvas::EX_Canvas(QObject *parent, APP_DB *db, QSettings *app_settings, QString localhost_url) :
     QObject(parent)
 {
     canvas_client_id = "1";
     canvas_client_secret = "hVGyxhHAKulUTZwAExbKALBpZaHTGDBkoSS7DpsvRpY1H7yzoMfnI5NLnC6t5A0Q";
     canvas_access_token = "";
-    canvas_server = "https://canvas.ed";
+    canvas_url = "https://canvas.ed";
+    _localhost_url = localhost_url;
 
     qmlRegisterType<EX_Canvas>("com.openprisoneducation.ope", 1, 0, "Canvas");
 
-    // Store the app db we will use to
-    if (db == NULL) {
+    // Store the app db we will use
+    if (db == nullptr) {
         qDebug() << "ERROR - NO QSqlDatabase object provided in constructor!";
     }
     _app_db = db;
 
-    if (app_settings == NULL) {
+    if (app_settings == nullptr) {
         qDebug() << "ERROR - NO QSettings object provided in constructor!";
     }
     _app_settings = app_settings;
@@ -30,13 +31,13 @@ EX_Canvas::EX_Canvas(QObject *parent, APP_DB *db, QSettings *app_settings) :
 bool EX_Canvas::pullStudentInfo()
 {
     bool ret =  false;
-    if (_app_db == NULL) {
+    if (_app_db == nullptr) {
        return ret;
     }
 
     // Get the courses table
     GenericTableModel *model = _app_db->getTable("users");
-    if (model == NULL) {
+    if (model == nullptr) {
         // Unable to pull the table, error with database?
         qDebug() << "ERROR pulling users table!!!";
         return false;
@@ -56,7 +57,7 @@ bool EX_Canvas::pullStudentInfo()
         // JSON Pulled:
         // {"id":26664700000000083,"name":"Smith, Bob (s777777)",
         // "sortable_name":"Smith, Bob (s777777)","short_name":"Smith, Bob (s777777)",
-        // "locale":null,"permissions":{"can_update_name":true,"can_update_avatar":false}}
+        // "locale":nullptr,"permissions":{"can_update_name":true,"can_update_avatar":false}}
 
         QJsonObject o = doc.object();
 
@@ -126,13 +127,13 @@ bool EX_Canvas::pullCourses()
     QString sql = "";
     QSqlQuery query;
 
-    if (_app_db == NULL) {
+    if (_app_db == nullptr) {
        return ret;
     }
 
     // Get the courses table
     GenericTableModel *model = _app_db->getTable("courses");
-    if (model == NULL) {
+    if (model == nullptr) {
         // Unable to pull the courses table, error with database?
         qDebug() << "ERROR pulling courses table!!!";
         return false;
@@ -150,16 +151,16 @@ bool EX_Canvas::pullCourses()
     if (doc.isArray())
     {
         // Hide courses - re-enable them during sync
-        sql = "UPDATE course SET is_active='false'";
+        sql = "UPDATE courses SET is_active='false'";
         if (!query.exec(sql)) {
-            qDebug() << "DB Error: " << query.lastError().text();
+            qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
         }
 
         // JSON Pulled:
         // id":26664700000000082,"name":"Auto Create - CSE100","account_id":1,
-        //"start_at":"2017-06-08T22:29:59Z","grading_standard_id":null,
-        //"is_public":null,"course_code":"CSE100","default_view":"feed",
-        //"root_account_id":1,"enrollment_term_id":1,"end_at":null,
+        //"start_at":"2017-06-08T22:29:59Z","grading_standard_id":nullptr,
+        //"is_public":nullptr,"course_code":"CSE100","default_view":"feed",
+        //"root_account_id":1,"enrollment_term_id":1,"end_at":nullptr,
         //"public_syllabus":false,"public_syllabus_to_auth":false,
         //"storage_quota_mb":500,"is_public_to_auth_users":false,
         //"apply_assignment_group_weights":false,
@@ -258,13 +259,13 @@ bool EX_Canvas::pullModules()
 {
     // Grab modules for each course in the database
     bool ret = false;
-    if (_app_db == NULL) { return ret; }
+    if (_app_db == nullptr) { return ret; }
 
     // Get the list of courses for this student
     GenericTableModel *courses_model = _app_db->getTable("courses");
     GenericTableModel *model = _app_db->getTable("modules");
 
-    if (courses_model == NULL || model == NULL) {
+    if (courses_model == nullptr || model == nullptr) {
         qDebug() << "Unable to get models for courses or modules!";
         return false;
     }
@@ -312,7 +313,7 @@ bool EX_Canvas::pullModules()
                 }
 
                 // JSON - list of objects
-                // {"id":26664700000000088,"name":"Module 1","position":1,"unlock_at":null,
+                // {"id":26664700000000088,"name":"Module 1","position":1,"unlock_at":nullptr,
                 // "require_sequential_progress":false,"publish_final_grade":false,
                 // "prerequisite_module_ids":[],"published":false,"items_count":0,
                 // "items_url":"https://canvas.ed.dev/api/v1/courses/26664700000000082/modules/26664700000000088/items"}
@@ -354,13 +355,13 @@ bool EX_Canvas::pullModuleItems()
 {
     // Grab module items for each module in the database
     bool ret = false;
-    if (_app_db == NULL) { return ret; }
+    if (_app_db == nullptr) { return ret; }
 
     // Get the list of modules for this student
     GenericTableModel *modules_model = _app_db->getTable("modules");
     GenericTableModel *model = _app_db->getTable("module_items");
 
-    if (modules_model == NULL || model == NULL) {
+    if (modules_model == nullptr || model == nullptr) {
         qDebug() << "Unable to get models for modules or module_items!";
         return false;
     }
@@ -458,13 +459,13 @@ bool EX_Canvas::pullCourseFileFolders()
 {
     // Grab a list of files for each course (Non Binaries)
     bool ret = false;
-    if (_app_db == NULL) { return ret; }
+    if (_app_db == nullptr) { return ret; }
 
     // Get the list of courses for this student
     GenericTableModel *courses_model = _app_db->getTable("courses");
     GenericTableModel *model = _app_db->getTable("folders");
 
-    if (courses_model == NULL || model == NULL) {
+    if (courses_model == nullptr || model == nullptr) {
         qDebug() << "Unable to get models for courses or folders!";
         return false;
     }
@@ -515,13 +516,13 @@ bool EX_Canvas::pullCourseFileFolders()
                 // JSON - list of objects
                 // {"id":999999000000068,"name":"course files",
                 // "full_name":"course files","context_id":999999000000068,
-                // "context_type":"Course","parent_folder_id":null,
+                // "context_type":"Course","parent_folder_id":nullptr,
                 // "created_at":"2018-02-22T21:48:37Z",
-                // "updated_at":"2018-02-22T21:48:37Z","lock_at":null,
-                // "unlock_at":null,"position":null,"locked":false,
+                // "updated_at":"2018-02-22T21:48:37Z","lock_at":nullptr,
+                // "unlock_at":nullptr,"position":nullptr,"locked":false,
                 // "folders_url":"https://canvas.ed/api/v1/folders/999999000000068/folders",
                 // "files_url":"https://canvas.ed/api/v1/folders/999999000000068/files",
-                // "files_count":0,"folders_count":4,"hidden":null,
+                // "files_count":0,"folders_count":4,"hidden":nullptr,
                 // "locked_for_user":false,"hidden_for_user":false,
                 // "for_submissions":false}
 
@@ -572,13 +573,13 @@ bool EX_Canvas::pullCourseFilesInfo()
 {
     // Grab a list of files for each course (Non Binaries)
     bool ret = false;
-    if (_app_db == NULL) { return ret; }
+    if (_app_db == nullptr) { return ret; }
 
     // Get the list of courses for this student
     GenericTableModel *courses_model = _app_db->getTable("courses");
     GenericTableModel *model = _app_db->getTable("files");
 
-    if (courses_model == NULL || model == NULL) {
+    if (courses_model == nullptr || model == nullptr) {
         qDebug() << "Unable to get models for courses or files!";
         return false;
     }
@@ -636,10 +637,10 @@ bool EX_Canvas::pullCourseFilesInfo()
                 // "content-type":"application/pdf",
                 // "url":"https://canvas.ed.dev/files/26664700000000097/download?download_frd=1",
                 // "size":451941,"created_at":"2017-06-21T21:44:11Z",
-                // "updated_at":"2017-06-21T21:44:11Z","unlock_at":null,"locked":false,
-                // "hidden":false,"lock_at":null,"hidden_for_user":false,
-                // "thumbnail_url":null,"modified_at":"2017-06-21T21:44:11Z",
-                // "mime_class":"pdf","media_entry_id":null,"locked_for_user":false}
+                // "updated_at":"2017-06-21T21:44:11Z","unlock_at":nullptr,"locked":false,
+                // "hidden":false,"lock_at":nullptr,"hidden_for_user":false,
+                // "thumbnail_url":nullptr,"modified_at":"2017-06-21T21:44:11Z",
+                // "mime_class":"pdf","media_entry_id":nullptr,"locked_for_user":false}
 
                 record.setValue("id", o["id"].toString(""));
                 record.setValue("folder_id", o["folder_id"].toString(""));
@@ -689,11 +690,11 @@ bool EX_Canvas::pullCourseFilesBinaries()
 {
     // Pull binaries for files that are marked as pull
     bool ret = false;
-    if (_app_db == NULL) { return ret; }
+    if (_app_db == nullptr) { return ret; }
 
     GenericTableModel *files_model = _app_db->getTable("files");
 
-    if (files_model == NULL) {
+    if (files_model == nullptr) {
         qDebug() << "Unable to get model for files";
         return false;
     }
@@ -752,13 +753,13 @@ bool EX_Canvas::pullCoursePages()
 {
     // Grab a list of pages for each course
     bool ret = false;
-    if (_app_db == NULL) { return ret; }
+    if (_app_db == nullptr) { return ret; }
 
     // Get the list of courses for this student
     GenericTableModel *courses_model = _app_db->getTable("courses");
     GenericTableModel *model = _app_db->getTable("pages");
 
-    if (courses_model == NULL || model == NULL) {
+    if (courses_model == nullptr || model == nullptr) {
         qDebug() << "Unable to get models for courses or pages!";
         return false;
     }
@@ -800,6 +801,10 @@ bool EX_Canvas::pullCoursePages()
                         page_body = page_object["lock_explanation"].toString("Page Locked - see instructor");
                     }
                 }
+
+                // Convert SMC links to local links
+                page_body = ProcessSMCVideos(page_body);
+                page_body = ProcessSMCDocuments(page_body);
 
                 model->setFilter("page_id = " + id);
                 model->select();
@@ -869,9 +874,9 @@ bool EX_Canvas::pullMessages(QString scope)
 {
     // Pull the list of conversations, then pull each message in that conversation
     bool ret = false;
-    if (_app_db == NULL) { return ret; }
+    if (_app_db == nullptr) { return ret; }
 
-    if (_app_settings == NULL) {
+    if (_app_settings == nullptr) {
         qDebug() << "No app settings object set!";
         return ret;
     }
@@ -886,7 +891,7 @@ bool EX_Canvas::pullMessages(QString scope)
     GenericTableModel *conversations_model = _app_db->getTable("conversations");
     GenericTableModel *messages_model = _app_db->getTable("messages");
 
-    if (conversations_model == NULL || messages_model == NULL) {
+    if (conversations_model == nullptr || messages_model == nullptr) {
         qDebug() << "Unable to get models for conversations or messages!";
         return false;
     }
@@ -1070,13 +1075,13 @@ bool EX_Canvas::pullAssignments()
 {
     // Grab assignments for each course in the database
     bool ret = false;
-    if (_app_db == NULL) { return ret; }
+    if (_app_db == nullptr) { return ret; }
 
     // Get a list of courses for this student
     GenericTableModel *courses_model = _app_db->getTable("courses");
     GenericTableModel *model = _app_db->getTable("assignments");
 
-    if (courses_model == NULL || model == NULL) {
+    if (courses_model == nullptr || model == nullptr) {
         qDebug() << "Unable to get models for courses or assignments";
         return false;
     }
@@ -1097,7 +1102,7 @@ bool EX_Canvas::pullAssignments()
         //qDebug() << "JSON Doc: " << doc;
         //qDebug() << "Is Array: " << doc.isArray();
         //qDebug() << "Is Object: " << doc.isObject();
-        //qDebug() << "Is Null: " << doc.isNull();
+        //qDebug() << "Is nullptr: " << doc.isnullptr();
         //qDebug() << "JSON: " << doc.toJson();
 
         if (doc.isArray()) {
@@ -1130,14 +1135,14 @@ bool EX_Canvas::pullAssignments()
                 }
 
                 // JSON - list of objects
-                // {"id": 35871700000000002,"description": null,"due_at": null,
-                // "unlock_at": null,"lock_at": null,"points_possible": null,
+                // {"id": 35871700000000002,"description": nullptr,"due_at": nullptr,
+                // "unlock_at": nullptr,"lock_at": nullptr,"points_possible": nullptr,
                 // "grading_type": "points","assignment_group_id": 35871700000000003,
-                // "grading_standard_id": null,"created_at": "2017-09-09T23:49:06Z",
+                // "grading_standard_id": nullptr,"created_at": "2017-09-09T23:49:06Z",
                 // "updated_at": "2017-09-09T23:49:09Z","peer_reviews": false,
                 // "automatic_peer_reviews": false,"position": 1,
                 // "grade_group_students_individually": false,"anonymous_peer_reviews": false,
-                // "group_category_id": null,"post_to_sis": false,
+                // "group_category_id": nullptr,"post_to_sis": false,
                 // "moderated_grading": false,"omit_from_final_grade": false,
                 // "intra_group_peer_reviews": false,
                 // "secure_params": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsdGlfYXNzaWdubWVudF9pZCI6IjFjNTBhOTAzLWZmMWMtNDk5My1hYjg3LTY2ZWU2NWViMjY1ZiJ9.4EbPTYlKDiTZps_MxzKTlTCpXuqmzdRW7Z-q1LJX0kg",
@@ -1147,7 +1152,7 @@ bool EX_Canvas::pullAssignments()
                 // "max_name_length": 255,"in_closed_grading_period": false,
                 // "is_quiz_assignment": false,"muted": false,
                 // "html_url": "https://canvas.ed/courses/35871700000000003/assignments/35871700000000002",
-                // "has_overrides": false,"needs_grading_count": 0,"integration_id": null,
+                // "has_overrides": false,"needs_grading_count": 0,"integration_id": nullptr,
                 // "integration_data": {},"published": true,"unpublishable": true,
                 // "only_visible_to_overrides": false,"locked_for_user": false,
                 // "submissions_download_url": "https://canvas.ed/courses/35871700000000003/assignments/35871700000000002/submissions?zip=1"
@@ -1225,13 +1230,13 @@ bool EX_Canvas::pullAnnouncements()
 {
     // Grab a list of announcements for each course
     bool ret = false;
-    if (_app_db == NULL) { return ret; }
+    if (_app_db == nullptr) { return ret; }
 
     // Get the list of courses for this student
     GenericTableModel *courses_model = _app_db->getTable("courses");
     GenericTableModel *model = _app_db->getTable("announcements");
 
-    if (courses_model == NULL || model == NULL) {
+    if (courses_model == nullptr || model == nullptr) {
         qDebug() << "Unable to get models for courses or announcements!";
         return false;
     }
@@ -1290,7 +1295,7 @@ bool EX_Canvas::pullAnnouncements()
                       "message": "<p>content here</p>",
                       // The URL to the discussion topic in canvas.
                       "html_url": "https://<canvas>/courses/1/discussion_topics/2",
-                      // The datetime the topic was posted. If it is null it hasn't been posted yet. (see
+                      // The datetime the topic was posted. If it is nullptr it hasn't been posted yet. (see
                       // delayed_post_at)
                       "posted_at": "2037-07-21T13:29:31Z",
                       // The datetime for when the last reply was in the topic.
@@ -1315,14 +1320,14 @@ bool EX_Canvas::pullAnnouncements()
                       // topic's group; 'topic_is_announcement': This topic is an announcement
                       "subscription_hold": "not_in_group_set",
                       // The unique identifier of the assignment if the topic is for grading, otherwise
-                      // null.
-                      "assignment_id": null,
+                      // nullptr.
+                      "assignment_id": nullptr,
                       // The datetime to publish the topic (if not right away).
-                      "delayed_post_at": null,
+                      "delayed_post_at": nullptr,
                       // Whether this discussion topic is published (true) or draft state (false)
                       "published": true,
                       // The datetime to lock the topic (if ever).
-                      "lock_at": null,
+                      "lock_at": nullptr,
                       // Whether or not the discussion is 'closed for comments'.
                       "locked": false,
                       // Whether or not the discussion has been 'pinned' by an instructor
@@ -1331,7 +1336,7 @@ bool EX_Canvas::pullAnnouncements()
                       "locked_for_user": true,
                       // (Optional) Information for the user about the lock. Present when locked_for_user
                       // is true.
-                      "lock_info": null,
+                      "lock_info": nullptr,
                       // (Optional) An explanation of why this is locked for the user. Present when
                       // locked_for_user is true.
                       "lock_explanation": "This discussion is locked until September 1 at 12:00am",
@@ -1345,7 +1350,7 @@ bool EX_Canvas::pullAnnouncements()
                       "group_topic_children": [{"id":5,"group_id":1}, {"id":7,"group_id":5}, {"id":10,"group_id":4}],
                       // If the topic is for grading and a group assignment this will point to the
                       // original topic in the course.
-                      "root_topic_id": null,
+                      "root_topic_id": nullptr,
                       // If the topic is a podcast topic this is the feed url for the current user.
                       "podcast_url": "/feeds/topics/1/enrollment_1XAcepje4u228rt4mi7Z1oFbRpn3RAkTzuXIGOPe.rss",
                       // The type of discussion. Values are 'side_comment', for discussions that only
@@ -1353,10 +1358,10 @@ bool EX_Canvas::pullAnnouncements()
                       // discussions.
                       "discussion_type": "side_comment",
                       // The unique identifier of the group category if the topic is a group discussion,
-                      // otherwise null.
-                      "group_category_id": null,
+                      // otherwise nullptr.
+                      "group_category_id": nullptr,
                       // Array of file attachments.
-                      "attachments": null,
+                      "attachments": nullptr,
                       // The current user's permissions on this topic.
                       "permissions": {"attach":true},
                       // Whether or not users can rate entries in this topic.
@@ -1442,9 +1447,9 @@ bool EX_Canvas::pushAssignments()
     // Push any submitted assignments back to canvas
     bool ret = false;
 
-    if (_app_db == NULL) { return false; }
+    if (_app_db == nullptr) { return false; }
     QSqlRecord record;
-    GenericTableModel *model = NULL;
+    GenericTableModel *model = nullptr;
 
     // Get a list of assignments waiting to be submitted
     model = _app_db->getTable("assignment_submissions");
@@ -1553,9 +1558,9 @@ bool EX_Canvas::pushFiles()
 
 bool EX_Canvas::queueAssignmentFile(QString course_id, QString assignment_id, QString submission_text, QString file_url)
 {
-    if (_app_db == NULL) { return false; }
+    if (_app_db == nullptr) { return false; }
     QSqlRecord record;
-    GenericTableModel *model = NULL;
+    GenericTableModel *model = nullptr;
 
     // If there is a file url, try to copy it and queue it, if not, queue the text
     if (course_id == "" || assignment_id == "") { return false; }
@@ -1585,7 +1590,7 @@ bool EX_Canvas::queueAssignmentFile(QString course_id, QString assignment_id, QS
 
             // Add the submission to the database
             model = _app_db->getTable("assignment_submissions");
-            if (model == NULL) {
+            if (model == nullptr) {
                 qDebug() << "Unable to get model for assignment_submissions!";
                 return false;
             }
@@ -1635,7 +1640,7 @@ bool EX_Canvas::queueAssignmentFile(QString course_id, QString assignment_id, QS
     }
 
     // If we get here, something isn't valid
-    return false;
+    // return false;
 }
 
 
@@ -1646,7 +1651,7 @@ bool EX_Canvas::LinkToCanvas(QString redirect_url, QString client_id)
     //// TODO add purpose to key generation? &purpose=MobileLMS
     // Open the browser. We will get an event from the web server when it is done
     // https://lms.dev.domain.com/login/oauth2/auth?client_id=10&response_type=code&redirect_uri=urn:ietf:wg:oauth:2.0:oob
-    QString canvas_url = canvas_server;
+    QString canvas_url = canvas_url;
     if (!canvas_url.endsWith("/login/oauth2/auth"))
     {
         // Add the path
@@ -1703,7 +1708,7 @@ void EX_Canvas::FinalizeLinkToCanvas(CM_HTTPRequest *request, CM_HTTPResponse *r
     params["client_secret"] = canvas_client_secret;
     params["code"] = code;
 
-    QString response_string = NetworkCall(canvas_server + "/login/oauth2/token", "POST", &params, &headers);
+    QString response_string = NetworkCall(canvas_url + "/login/oauth2/token", "POST", &params, &headers);
     //qDebug() << "Token JSON: " << response_string;
     QJsonDocument d(QJsonDocument::fromJson(response_string.toUtf8()));
     if (!d.isObject())
@@ -1745,7 +1750,15 @@ QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<Q
     QString call_url = api_call;
     // Don't append canvas server if full address is already present
     if (!api_call.toLower().startsWith("http")) {
-        call_url = canvas_server + api_call;
+        call_url = canvas_url;
+        if (call_url.endsWith("/") != true) {
+            call_url += "/";
+        }
+        if (api_call.startsWith("/")) {
+            // cut off beginning / in url
+            api_call = api_call.mid(1);
+        }
+        call_url = call_url + api_call;
     }
 
     QString json = NetworkCall(call_url, method, p, &headers, content_type, post_file);
@@ -1756,9 +1769,9 @@ QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<Q
     //qDebug() << "\tJSON Doc: " << d2;
     //qDebug() << "\tIs Array: " << d2.isArray();
     //qDebug() << "\tIs Object: " << d2.isObject();
-    //qDebug() << "\tIs Null: " << d2.isNull();
+    //qDebug() << "\tIs nullptr: " << d2.isnullptr();
 
-    //http_reply_data = "{\"default_time_zone\":\"Pacific Time (US \u0026 Canada)\",\"id\":1,\"name\":\"Admin\",\"parent_account_id\":null,\"root_account_id\":null,\"default_storage_quota_mb\":5000,\"default_user_storage_quota_mb\":50}";
+    //http_reply_data = "{\"default_time_zone\":\"Pacific Time (US \u0026 Canada)\",\"id\":1,\"name\":\"Admin\",\"parent_account_id\":nullptr,\"root_account_id\":nullptr,\"default_storage_quota_mb\":5000,\"default_user_storage_quota_mb\":50}";
 
     // Convert big id numbers to strings so they parse correctly
     // NOTE: qjsondocument converts ints to doubles and ends up loosing presision
@@ -1777,7 +1790,7 @@ QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<Q
     //qDebug() << "JSON Doc: " << d;
     //qDebug() << "Is Array: " << d.isArray();
     //qDebug() << "Is Object: " << d.isObject();
-    //qDebug() << "Is Null: " << d.isNull();
+    //qDebug() << "Is nullptr: " << d.isnullptr();
     //qDebug() << "JSON: " << d.toJson();
 
     delete err;
@@ -1887,6 +1900,173 @@ void EX_Canvas::SetCanvasAccessToken(QString token)
     canvas_access_token = token;
 }
 
+void EX_Canvas::SetCanvasURL(QString url)
+{
+    canvas_url = url;
+}
+
+QString EX_Canvas::ProcessSMCVideos(QString content)
+{
+    QString ret = content;
+    // Search content for any SMC links
+    // <iframe width="650" height="405" src="https://smc.ed/media/player.load/6bc33efb174248c5bfff9cdd5f986ae9?autoplay=true" frameborder="0" allowfullscreen></iframe>
+    // https://smc.ed/media/player.load/6bc33efb174248c5bfff9cdd5f986ae9
+
+    QHash<QString, QString> replace_urls;
+    QStringList movie_ids;
+    QRegExp rx;
+
+    // Find iframes
+    rx.setPattern("src\\s*=\\s*[\\\"']{1}\\s?(https?:\\/\\/[a-zA-Z\\.0-9:]*\\/media\\/player(\\.load)?\\/([a-zA-Z0-9]+)(\\/)?(\\?)?(autoplay=(true|false))?)\\s*[\\\"']{1}");
+
+    //"href=http(s)://.../media/player[.load]/???..."
+    int pos = 0;
+    while ((pos = rx.indexIn(ret, pos)) != -1) {
+        // Save the movie ID so we can download it later
+        movie_ids << rx.cap(3);
+        // Save the found URL to replace it later
+        replace_urls[rx.cap(1)] = rx.cap(3);
+        pos += rx.matchedLength();
+    }
+
+    qDebug() << "Found SMC video links";
+    qDebug() << replace_urls << movie_ids;
+
+    // Queue up video to be downloaded
+    foreach (QString movie_id, movie_ids) {
+        QueueVideoForDownload(movie_id);
+    }
+
+    // Replace old URLs w the new ones
+    foreach (QString old_url, replace_urls.keys()) {
+        QString new_url = _localhost_url;
+        new_url += "/smc_player/" + replace_urls[old_url];
+        qDebug() << "Replacing " << old_url << " with " << new_url;
+        ret = ret.replace(old_url, new_url, Qt::CaseInsensitive);
+    }
+
+    return ret;
+}
+
+QString EX_Canvas::ProcessSMCDocuments(QString content)
+{
+    return content;
+}
+
+bool EX_Canvas::QueueVideoForDownload(QString movie_id)
+{
+    // Add the video id to the list for downloading
+    bool ret = false;
+
+    QSqlQuery q;
+    q.prepare("SELECT count(media_id) FROM smc_media_dl_queue WHERE media_id = :media_id");
+    q.bindValue(":media_id", movie_id);
+
+    if(q.exec()) {
+        q.next();
+        int count = q.value(0).toInt();
+        if (count < 1) {
+            // ID isn't in the list
+            QSqlQuery q2;
+            q2.prepare("INSERT INTO smc_media_dl_queue (`id`, `media_id`) VALUES (NULL, :media_id)");
+            q2.bindValue(":media_id", movie_id);
+            q2.exec();
+            qDebug() << "New Movie ID " << movie_id;
+        } else {
+            qDebug() << "Movie ID already queued " << movie_id;
+        }
+        ret = true;
+
+    } else {
+        // Error running query
+        qDebug() << "ERROR RUNNING QUERY: " << q.lastError().text();
+        ret = false;
+    }
+
+    return ret;
+}
+
+bool EX_Canvas::QueueDocumentForDownload(QString document_id)
+{
+    // Add the document id to the list for downloading
+    bool ret = false;
+
+    QSqlQuery q;
+    q.prepare("SELECT count(document_id) FROM smc_document_dl_queue WHERE document_id = :document_id");
+    q.bindValue(":document_id", document_id);
+
+    if(q.exec()) {
+        q.next();
+        int count = q.value(0).toInt();
+        if (count < 1) {
+            // ID isn't in the list
+            QSqlQuery q2;
+            q2.prepare("INSERT INTO smc_document_dl_queue (`id`, `document_id`) VALUES (NULL, :document_id)");
+            q2.bindValue(":document_id", document_id);
+            q2.exec();
+            qDebug() << "New Document ID " << document_id;
+        } else {
+            qDebug() << "Document ID already queued " << document_id;
+        }
+        ret = true;
+
+    } else {
+        // Error running query
+        qDebug() << "ERROR RUNNING QUERY: " << q.lastError().text();
+        ret = false;
+    }
+
+    return ret;
+}
+
+bool EX_Canvas::pullSMCVideos()
+{
+    bool ret = false;
+
+    // Make sure our cache path exists
+    // Get the local cache folder
+    QDir base_dir;
+    base_dir.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/content/www_root/smc_video_cache/");
+    base_dir.mkpath(base_dir.path());
+
+    // Get list of video IDs
+    QSqlQuery q;
+    q.prepare("SELECT * FROM smc_media_dl_queue");
+    if(!q.exec()) {
+        qDebug() << "ERROR RUNNING DB QUERY: " << q.lastQuery() << " - " << q.lastError().text();
+        return false;
+    }
+    while(q.next()) {
+        // See if this file exists
+        QString video_id = q.value(1).toString();
+        QString local_path = base_dir.path() + "/" + video_id;
+        QFileInfo fi = QFileInfo(local_path);
+        if (fi.exists() && fi.size() > 1000) {
+            qDebug() << " - SMC Video File already downloaded: " << local_path;
+            continue;
+        } else {
+            // Need to download video file
+            // TODO
+            qDebug() << "** Need to download video file " << local_path;
+            QString smc_url = _app_settings->value("smc_url", "https://smc.ed").toString();
+            smc_url += "/media/dl_media/" + video_id + "/mp4";
+            bool r = DownloadFile(smc_url, local_path);
+            if (!r) {
+                qDebug() << "Error downloading file " << smc_url;
+            }
+        }
+    }
+
+    ret = true;
+
+    return ret;
+}
+
+bool EX_Canvas::pullSMCDocuments()
+{
+    return false;
+}
+
 
 
 /*
@@ -1894,7 +2074,7 @@ void EX_Canvas::SetCanvasAccessToken(QString token)
  *
  * private static string ConvertDictionaryToQueryString(Dictionary<string, object> p)
         {
-            if (p == null) { return ""; }
+            if (p == nullptr) { return ""; }
 
             StringBuilder ret = new StringBuilder();
 
@@ -1902,9 +2082,9 @@ void EX_Canvas::SetCanvasAccessToken(QString token)
 
             foreach (string key in p.Keys)
             {
-                if (key == null) { continue; }
+                if (key == nullptr) { continue; }
 
-                if (p[key] == null) { p[key] = ""; }
+                if (p[key] == nullptr) { p[key] = ""; }
 
                 // Put in the & between values
                 if (!first) { ret.Append("&"); }
@@ -1917,7 +2097,7 @@ void EX_Canvas::SetCanvasAccessToken(QString token)
             return ret.ToString();
         }
 
-        private static Dictionary<string,object> CanvasAPICall(string api_call, string method = "GET", Dictionary<string,object> p = null)
+        private static Dictionary<string,object> CanvasAPICall(string api_call, string method = "GET", Dictionary<string,object> p = nullptr)
         {
             string response_json = "";
             Dictionary<string, object> response_items;
@@ -1925,11 +2105,11 @@ void EX_Canvas::SetCanvasAccessToken(QString token)
             // Don't error out on test certs
             ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
 
-            WebRequest wr = null;
+            WebRequest wr = nullptr;
 
             string qstring = "";
 
-            if (p != null && p.Count > 0 && method.ToUpper() == "GET")
+            if (p != nullptr && p.Count > 0 && method.ToUpper() == "GET")
             {
                 qstring = ConvertDictionaryToQueryString(p);
                 wr = WebRequest.Create(canvas_server + api_call + "?" + qstring);
@@ -1942,7 +2122,7 @@ void EX_Canvas::SetCanvasAccessToken(QString token)
             wr.Headers.Add("Authorization", "Bearer " + canvas_access_token);
             //wr.Headers.Add("User-Agent", "Network Admin Tool");
             wr.Method = method.ToUpper();
-            if (p != null && p.Count > 0 && (method.ToUpper() == "POST" || method.ToUpper() == "PUT"))
+            if (p != nullptr && p.Count > 0 && (method.ToUpper() == "POST" || method.ToUpper() == "PUT"))
             {
                 // Create the string boundary
                 string boundary = "----------" + DateTime.Now.Ticks.ToString("x");
@@ -1964,7 +2144,7 @@ void EX_Canvas::SetCanvasAccessToken(QString token)
                 st.Close();
             }
 
-            WebResponse response = null;
+            WebResponse response = nullptr;
             try
             {
                 response = wr.GetResponse();
@@ -1996,9 +2176,9 @@ void EX_Canvas::SetCanvasAccessToken(QString token)
                 response_items = JsonConvert.DeserializeObject<Dictionary<string, object>>(response_json);
             }
 
-            if (response_items == null)
+            if (response_items == nullptr)
             {
-                // Don't return a null, return an empty dictionary
+                // Don't return a nullptr, return an empty dictionary
                 response_items = new Dictionary<string,object>();
             }
 

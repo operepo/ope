@@ -31,6 +31,7 @@ AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
     _app_settings->setValue("app/running", true);
     //_app_settings->setValue("student/canvas_access_token", "123451111");
     _canvas_access_token = _app_settings->value("student/canvas_access_token", "").toString();
+    _canvas_url = _app_settings->value("student/canvas_url", "https://canvas.ed").toString();
 
     _app_settings->sync();
     //qDebug() << "App Settings: " << _app_settings->fileName();
@@ -44,13 +45,22 @@ AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
     _database = new APP_DB(parent);
     _database->init_db();
 
+    // Start localhost web server
+    copyWebResourcesToWebFolder();
+    startServer();
 
     // Setup canvas object
-    _canvas = new EX_Canvas(this, _database, _app_settings);
+    _canvas = new EX_Canvas(this, _database, _app_settings, getLocalServerURL());
     _canvas->SetCanvasAccessToken(_canvas_access_token);
+    _canvas->SetCanvasURL(_canvas_url);
 
-    // Start web server
-    startServer();
+    // DEBUG
+    // Run some tests on the process video/smc/docs code
+    //qDebug() << _canvas->ProcessSMCVideos("<iframe width=\"650\" height=\"405\" src=\"https://smc.ed/media/player.load/6bc33efb174248c5bfff9cdd5f986ae9?autoplay=true\" frameborder=\"0\" allowfullscreen></iframe>");
+
+    //qDebug() << _canvas->ProcessSMCDocuments("<iframe src=\"https://smc.ed/smc/static/ViewerJS/index.html#/media/dl_document/2c4ed3d973b443fd930159764dc60ef7\" width=\"734\" height=\"620\" allowfullscreen=\"allowfullscreen\" webkitallowfullscreen=\"webkitallowfullscreen\"></iframe>");
+
+    //qDebug() << "Pulling SMC Videos " << _canvas->pullSMCVideos();
 
 }
 
@@ -151,6 +161,57 @@ void AppModule::setwwwRoot(QString wwwRoot)
     emit wwwRootChanged();
 }
 
+QString AppModule::getLocalServerURL()
+{
+    return "http://localhost:" + QString::number(server->getHTTPPort());
+}
+
+void AppModule::copyWebResourcesToWebFolder()
+{
+    // Get app folder
+    QString source_path = QCoreApplication::applicationDirPath();
+    QDir::cleanPath(source_path + "/www_content");
+
+    // Get www_folder
+    QString dest_path = wwwRoot();
+
+    if (!copyPath(source_path, dest_path)) {
+        qDebug() << "Error copying files to web folder";
+        return;
+    }
+}
+
+bool AppModule::copyPath(QString source_path, QString dest_path)
+{
+    QDir source_dir = QDir(source_path);
+    if (source_dir.exists()) {
+        qDebug() << "Source dir doesn't exist " << source_path;
+        return false;
+    }
+
+    QDir dest_dir = QDir(dest_path);
+    dest_dir.mkpath(dest_path);
+
+    // Make folders
+    foreach(QString dirname, source_dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+        QString new_source_path = source_path + "/" + dirname;
+        QString new_dest_path = dest_path + "/" + dirname;
+        dest_dir.mkpath(new_dest_path);
+        copyPath(new_source_path, new_dest_path);
+        qDebug() << "Made Dir " << new_dest_path;
+    }
+
+    // Copy files
+    foreach(QString fname, source_dir.entryList(QDir::Files)) {
+        QString source_file_path = source_path + "/" + fname;
+        QString dest_file_path = dest_path + "/" + fname;
+        QFile::copy(source_file_path, dest_file_path);
+        qDebug() << "Copied file " << dest_file_path;
+    }
+
+    return true;
+}
+
 
 /**
  * @brief AppModule::startServer
@@ -165,7 +226,7 @@ void AppModule::startServer()
         this,
         SLOT(serverRequestArrived(CM_HTTPRequest*,CM_HTTPResponse*)));
 
-    server->Start(8080);
+    server->Start(65525);
 
 }
 
@@ -181,10 +242,10 @@ void AppModule::serverRequestArrived(CM_HTTPRequest *request,
 {
     //qDebug() << "HTTP Request arrived: " << request->toString();
 
-    QString url = QUrl(request->headers["URL"]).toString();
+    QUrl url = QUrl(request->headers["URL"]);
 
     // Deal with OAuth from Canvas
-    if (url.startsWith("/oauth/response"))
+    if (url.path().startsWith("/oauth/response"))
     {
         qDebug() << "OAuth Response";
 
@@ -194,18 +255,14 @@ void AppModule::serverRequestArrived(CM_HTTPRequest *request,
 
     // Figure out local file path for requested file
     // Remove beginning forward slash
-    if (url.startsWith("/")) { url = url.mid(1); }
+    qDebug() << "Req for URL: " << url;
+    // Does this end with /? Might need to add index.html?
+    //if (url.path().endsWith("/")) { url += "index.html"; }
 
-    QString physical_path = wwwRoot() + url;
+    QString physical_path = QDir::cleanPath(wwwRoot() + url.path(QUrl::FullyDecoded));
     // Make sure all slashes are forward slashes
-    physical_path = physical_path.replace("\\", "/");
+    //physical_path = physical_path.replace("\\", "/");
     QFileInfo finfo(physical_path);
-    // See if it is a real file or if we need to add the default document
-    if (!finfo.isFile()) {
-        // Not a file, try adding the default document (index.html)
-        if (!physical_path.endsWith("/")) { physical_path += "/"; }
-        physical_path += "index.html";
-    }
 
     // === SERVE STATIC FILES ===
     finfo = QFileInfo(physical_path);

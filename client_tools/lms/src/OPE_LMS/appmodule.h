@@ -66,6 +66,7 @@ private:
     // Canvas object - interface with APIs
     EX_Canvas *_canvas;
     QString _canvas_access_token;
+    QString _canvas_url;
 
     QOAuth2AuthorizationCodeFlow canvas_auth;
 
@@ -110,6 +111,12 @@ public slots:
     // Read/Write wwwRoot property
     QString wwwRoot();
     void setwwwRoot(QString wwwRoot);
+
+    // Get the URL for the local server (e.g. http://localhost:65525)
+    QString getLocalServerURL();
+    // Make sure web resources are copied into place
+    void copyWebResourcesToWebFolder();
+    bool copyPath(QString source_path, QString dest_path);
 
     EX_Canvas* canvas() { return _canvas; }
     void setCanvas(EX_Canvas *c) { _canvas = c; emit canvasChanged(); }

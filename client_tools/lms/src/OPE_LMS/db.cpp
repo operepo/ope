@@ -482,6 +482,27 @@ bool APP_DB::init_db()
         add_resource("Start Here", "/start_here/index.html", "Getting started...", 0);
 
 
+        // Add table for SMC media/document queue
+        // Create SMC Video Queue
+        sql = "CREATE TABLE IF NOT EXISTS `smc_media_dl_queue` ( \
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT, \
+                `media_id` TEXT NOT NULL DEFAULT '' \
+             );";
+        if (!query.exec(sql)) {
+            qDebug() << "DB Error: " << query.lastError().text();
+            ret = false;
+        }
+
+        // Create SMC Document Queue
+        sql = "CREATE TABLE IF NOT EXISTS `smc_document_dl_queue` ( \
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT, \
+                `document_id` TEXT NOT NULL DEFAULT '' \
+             );";
+        if (!query.exec(sql)) {
+            qDebug() << "DB Error: " << query.lastError().text();
+            ret = false;
+        }
+
         // Make sure to commit and release locks
         _db.commit();
 
