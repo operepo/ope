@@ -725,7 +725,7 @@ bool EX_Canvas::pullCourseFilesBinaries()
         // See if the file already exists locally
         QFileInfo fi = QFileInfo(base_dir.path() + local_path);
         if (fi.exists() && fi.size() == f_size ) {
-            qDebug() << "File exists " << f_name;
+            //qDebug() << "File exists " << f_name;
             // Mark it as present
             f.setValue("local_copy_present", true);
         } else {
@@ -1125,7 +1125,7 @@ bool EX_Canvas::pullAssignments()
                     // Row exists, update w current info
                     record = model->record(0);
                     is_insert = false;
-                    qDebug() << "\t\tUpadting assignment..." << id << o["name"].toString("");
+                    qDebug() << "\t\tUpdating assignment..." << id << o["name"].toString("");
                 } else {
                     // Need to clear the filter to insert
                     model->setFilter("");
@@ -1940,7 +1940,7 @@ QString EX_Canvas::ProcessSMCVideos(QString content)
     // Replace old URLs w the new ones
     foreach (QString old_url, replace_urls.keys()) {
         QString new_url = _localhost_url;
-        new_url += "/smc_player/" + replace_urls[old_url];
+        new_url += "/player.html?movie_id=" + replace_urls[old_url];
         qDebug() << "Replacing " << old_url << " with " << new_url;
         ret = ret.replace(old_url, new_url, Qt::CaseInsensitive);
     }
@@ -2039,20 +2039,33 @@ bool EX_Canvas::pullSMCVideos()
     while(q.next()) {
         // See if this file exists
         QString video_id = q.value(1).toString();
-        QString local_path = base_dir.path() + "/" + video_id;
+        QString local_path = base_dir.path() + "/" + video_id + ".mp4";
         QFileInfo fi = QFileInfo(local_path);
         if (fi.exists() && fi.size() > 1000) {
-            qDebug() << " - SMC Video File already downloaded: " << local_path;
-            continue;
+            //qDebug() << " - SMC Video File already downloaded: " << local_path;
         } else {
-            // Need to download video file
-            // TODO
-            qDebug() << "** Need to download video file " << local_path;
+            //qDebug() << "** Need to download video file " << local_path;
             QString smc_url = _app_settings->value("smc_url", "https://smc.ed").toString();
             smc_url += "/media/dl_media/" + video_id + "/mp4";
             bool r = DownloadFile(smc_url, local_path);
             if (!r) {
                 qDebug() << "Error downloading file " << smc_url;
+            }
+        }
+        // Now pull poster image
+        local_path = base_dir.path() + "/" + video_id + ".poster.png";
+        fi = QFileInfo(local_path);
+        if (fi.exists() && fi.size() > 1000) {
+            //qDebug() << " - SMC Video Poster file already downloaded: " << local_path;
+        } else {
+            //qDebug() << "** Need to download poster file " << local_path;
+            QString smc_url = _app_settings->value("smc_url", "https://smc.ed").toString();
+            // Grab the first 2 characters of the ID
+            QString prefix = video_id.mid(0,2);
+            smc_url += "/static/media/" + prefix + "/" + video_id + ".poster.png";
+            bool r = DownloadFile(smc_url, local_path);
+            if (!r) {
+                qDebug() << "Error downloading poster file " << smc_url;
             }
         }
     }

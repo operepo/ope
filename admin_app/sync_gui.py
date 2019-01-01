@@ -1945,7 +1945,7 @@ class SyncOPEApp(App, EventDispatcher):
         for line in stdout:
             pass
 
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + SyncOPEApp.is_online + "\" > .IS_ONLINE; ",
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + str(self.is_online()) + "\" > .IS_ONLINE; ",
                                                  get_pty=True)
         for line in stdout:
             pass
@@ -2034,7 +2034,7 @@ class SyncOPEApp(App, EventDispatcher):
         for line in stdout:
             pass
 
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + SyncOPEApp.is_online + "\" > .IS_ONLINE; ",
+        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + str(self.is_online()) + "\" > .IS_ONLINE; ",
                                                  get_pty=True)
         for line in stdout:
             pass
@@ -2350,7 +2350,7 @@ class SyncOPEApp(App, EventDispatcher):
             run_button.disabled = True
         # Start a thread to do the work
         status_label.text = "[b]Starting Update[/b]..."
-        SyncOPEApp.is_online = 1
+        self.set_internet_mode('online')  # .is_online = True
         threading.Thread(target=self.update_online_server_worker, args=(status_label, run_button, progress_bar, progress_label)).start()
 
     def update_online_server_worker(self, status_label, run_button=None, progress_bar=None, progress_label=None):
@@ -2445,7 +2445,7 @@ class SyncOPEApp(App, EventDispatcher):
             run_button.disabled = True
         # Start a thread to do the work
         status_label.text = "[b]Starting Update[/b]..."
-        SyncOPEApp.is_online = 0
+        self.set_internet_mode('offline')  # .is_online = 0
         threading.Thread(target=self.update_offline_server_worker, args=(status_label, run_button, progress_bar, progress_label)).start()
 
     def update_offline_server_worker(self, status_label, run_button=None, progress_bar=None, progress_label=None):

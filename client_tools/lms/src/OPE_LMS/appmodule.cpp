@@ -170,43 +170,50 @@ void AppModule::copyWebResourcesToWebFolder()
 {
     // Get app folder
     QString source_path = QCoreApplication::applicationDirPath();
-    QDir::cleanPath(source_path + "/www_content");
+    source_path = QDir::cleanPath(source_path + "/web_content");
 
     // Get www_folder
     QString dest_path = wwwRoot();
+
+    qDebug() << "Copying web content: " << source_path << " --> " << dest_path;
 
     if (!copyPath(source_path, dest_path)) {
         qDebug() << "Error copying files to web folder";
         return;
     }
+    qDebug() << "COPY WEB CONTENT DONE";
 }
 
 bool AppModule::copyPath(QString source_path, QString dest_path)
 {
     QDir source_dir = QDir(source_path);
-    if (source_dir.exists()) {
+    if (!source_dir.exists()) {
         qDebug() << "Source dir doesn't exist " << source_path;
         return false;
     }
 
     QDir dest_dir = QDir(dest_path);
-    dest_dir.mkpath(dest_path);
+    if (!dest_dir.exists()) {
+        qDebug() << "Making dir " << dest_path;
+        dest_dir.mkpath(dest_path);
+    }
 
     // Make folders
     foreach(QString dirname, source_dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
         QString new_source_path = source_path + "/" + dirname;
         QString new_dest_path = dest_path + "/" + dirname;
+        qDebug() << "Making Dir " << new_dest_path;
         dest_dir.mkpath(new_dest_path);
         copyPath(new_source_path, new_dest_path);
-        qDebug() << "Made Dir " << new_dest_path;
     }
 
     // Copy files
     foreach(QString fname, source_dir.entryList(QDir::Files)) {
         QString source_file_path = source_path + "/" + fname;
         QString dest_file_path = dest_path + "/" + fname;
+        qDebug() << "Copying file " << source_file_path << " -- > " << dest_file_path;
         QFile::copy(source_file_path, dest_file_path);
-        qDebug() << "Copied file " << dest_file_path;
+
     }
 
     return true;

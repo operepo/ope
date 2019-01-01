@@ -38,7 +38,7 @@ Item {
         width: parent.width
         height: parent.height
         id: courseTabs
-        interactive: false
+        interactive: true
         focus: true
         spacing: 4
         highlightFollowsCurrentItem: true

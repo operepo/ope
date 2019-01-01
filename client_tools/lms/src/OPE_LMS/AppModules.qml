@@ -58,7 +58,7 @@ Page {
         anchors.fill: parent
         //width: parent.width
         //height: parent.height
-        interactive: false
+        interactive: true
         focus: true
         spacing: 4
         highlightFollowsCurrentItem: false
