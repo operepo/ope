@@ -100,7 +100,13 @@ sed -i -- "s/5_000_000/1_000_000_000_000_000/g" $APP_DIR/config/initializers/sim
 # Generate the initial db if a table called versions doesn't already exist
 # NOTE: moved to ope.rake -> startup
 count=`psql -d canvas_$RAILS_ENV -U postgres -h postgresql -tqc "select count(tablename) as count from pg_tables where tablename='versions'"`
-#psql -d canvas_$RAILS_ENV -U postgres -h postgresql -tc "select 1 from pg_tables where tablename='versions'" | grep -q 1 || $GEM_HOME/bin/bundle exec rake db:initial_setup
+psql -d canvas_$RAILS_ENV -U postgres -h postgresql -tc "select 1 from pg_tables where tablename='versions'" | grep -q 1 || $GEM_HOME/bin/bundle exec rake db:initial_setup
+if [ $count == '1' ]; then
+    # Make sure the key is setup or things fail later. 
+    $GEM_HOME/bin/rake db:reset_encryption_key_hash
+    #$GEM_HOME/bin/rake db:migrate
+fi
+
 #if [ $count != '1' ]; then
 #    # Run initial setup
 #    echo "--> Running initial db setup..."
