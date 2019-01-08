@@ -1851,6 +1851,8 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
         {
             qDebug() << "--> Nested API call: " << next_url;
             QString next = web_request->NetworkCall(next_url, method, p, headers, content_type, post_file);
+            // Make sure to save the current link header for this page
+            link_header = web_request->GetHeader("Link");
             next = next.trimmed();
             if (next != "" && next != "[]")
             {
@@ -1868,6 +1870,7 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
                 ret.append(",");
                 ret.append(next);
             }
+
         } else {
             // Out of next links, stop following them
             follow_link = false;

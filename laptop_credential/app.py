@@ -348,7 +348,10 @@ def main():
     win_util.create_local_student_account(student_user, student_full_name, pw)
     
     p("}}gnCreating local admin windows account...")
-    win_util.create_local_admin_account(laptop_admin_user, "OPE Laptop Admin", laptop_admin_password)
+    try:
+        win_util.create_local_admin_account(laptop_admin_user, "OPE Laptop Admin", laptop_admin_password)
+    except Exception as ex:
+        p("}}rbError setting up OPE Laptop Admin Account " + str(ex))
     laptop_admin_password = ""
 
     # Store the access token in the registry where the LMS app can pick it up

@@ -169,6 +169,7 @@ def get_last_admin_user(default_value=""):
 
     return ret
 
+
 def set_registry_permissions(student_user):
     reg = registry.registry(r"HKLM\Software\OPE")
     with reg.security() as s:
@@ -204,7 +205,8 @@ def set_registry_value(key, value):
         0, winreg.KEY_WOW64_64KEY | winreg.KEY_WRITE)
     
     winreg.SetValueEx(reg_key, key, 0, winreg.REG_SZ, value)
-    
+
+
 def create_local_student_account(user_name, full_name, password):
     global STUDENTS_GROUP
 
@@ -304,6 +306,7 @@ def create_local_admin_account(user_name, full_name, password):
     try:
         p("}}yn\tAdding Admin account (" + user_name + ")...}}xx")
         accounts.User.create(user_name, password)
+        # p("}}yn\t\tDone.}}xx")
     # except pywintypes.error as err:
     except Exception as err:
         if err[2] == "The account already exists.":
@@ -323,8 +326,8 @@ def create_local_admin_account(user_name, full_name, password):
     user_data['full_name'] = full_name
     user_data['password'] = password
     user_data['flags'] = win32netcon.UF_NORMAL_ACCOUNT | win32netcon.UF_PASSWD_CANT_CHANGE | win32netcon.UF_DONT_EXPIRE_PASSWD | win32netcon.UF_SCRIPT
-    user_data['priv'] = win32netcon.USER_PRIV_USER
-    user_data['comment'] = 'OPE Student Account'
+    user_data['priv'] = win32netcon.USER_PRIV_ADMIN
+    user_data['comment'] = 'OPE Admin Account'
     # user_data['home_dir'] = home_dir
     # user_data['home_dir_drive'] = "h:"
     user_data['primary_group_id'] = ntsecuritycon.DOMAIN_GROUP_RID_USERS
