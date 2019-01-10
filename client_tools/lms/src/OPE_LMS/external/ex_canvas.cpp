@@ -1514,6 +1514,10 @@ bool EX_Canvas::pushAssignments()
                 if (doc3.isObject()) {
                     // Valid submission
                     qDebug() << "Assignment pushed - TODO";
+                    // Mark that the assignment has been synced so we don't try to
+                    // upload it again.
+                    record.setValue("synced_on", QDateTime::currentDateTime().toString());
+                    model->setRecord(i, record);
                 } else {
                     qDebug() << "Problem linking uploaded file with assignment " << doc3;
                 }
@@ -1528,10 +1532,6 @@ bool EX_Canvas::pushAssignments()
             qDebug() << "Invalid json object: pushAssignments ";
         }
 
-        // Update the database
-        // TODO
-        record.setValue("synced_on", QDateTime::currentDateTime().toString());
-        model->setRecord(i, record);
     }
     model->submitAll();
     ret = model->database().commit();
