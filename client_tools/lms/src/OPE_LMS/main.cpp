@@ -25,6 +25,8 @@ int main(int argc, char *argv[])
 
     //QTextCodec::setCodecForLocale(QTextCodec::codecForName("UTF-8"));
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    // Possible help for high contrast refresh?
+    //QGuiApplication::setAttribute(Qt::AA_UseOpenGLES);
     QGuiApplication app(argc, argv);
 
     // NOTE: Need this right after GUI App creation
