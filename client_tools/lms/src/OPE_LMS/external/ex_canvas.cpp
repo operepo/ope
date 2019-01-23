@@ -725,12 +725,12 @@ bool EX_Canvas::pullCourseFilesBinaries()
         // See if the file already exists locally
         QFileInfo fi = QFileInfo(base_dir.path() + local_path);
         if (fi.exists() && fi.size() == f_size ) {
-            //qDebug() << "File exists " << f_name;
+            qDebug() << "File exists " << local_path; //f_name;
             // Mark it as present
             f.setValue("local_copy_present", true);
         } else {
             // Download the file
-            qDebug() << "Downloading file " << f_name;
+            qDebug() << "Downloading file " << local_path;
             progressCurrentItem = f_filename;
             bool r = DownloadFile(f_url, base_dir.path() + local_path);
 
@@ -1446,6 +1446,7 @@ bool EX_Canvas::pushAssignments()
 {
     // Push any submitted assignments back to canvas
     bool ret = false;
+    bool had_errors = false;
 
     if (_app_db == nullptr) { return false; }
     QSqlRecord record;
@@ -1520,22 +1521,31 @@ bool EX_Canvas::pushAssignments()
                     model->setRecord(i, record);
                 } else {
                     qDebug() << "Problem linking uploaded file with assignment " << doc3;
+                    had_errors = true;
                 }
 
             } else {
                 // Invalid response??
                 qDebug() << "Invalid response for upload link! " << assignment_id;
+                had_errors = true;
                 continue; // Jump to next assignmment
             }
 
         } else {
             qDebug() << "Invalid json object: pushAssignments ";
+            had_errors = true;
         }
 
     }
-    model->submitAll();
-    ret = model->database().commit();
+    bool submit_sucess = model->submitAll();
+    if (!submit_sucess) {
+        qDebug() << "DB ERROR: "  << model->lastError();
+    }
+    bool db_commit_success = model->database().commit();
 
+    if (db_commit_success == true || had_errors != true) {
+        ret = true;
+    }
     return ret;
 }
 
@@ -1915,37 +1925,62 @@ QString EX_Canvas::ProcessSMCVideos(QString content)
     // <iframe width="650" height="405" src="https://smc.ed/media/player.load/6bc33efb174248c5bfff9cdd5f986ae9?autoplay=true" frameborder="0" allowfullscreen></iframe>
     // https://smc.ed/media/player.load/6bc33efb174248c5bfff9cdd5f986ae9
 
-    QHash<QString, QString> replace_urls;
-    QStringList movie_ids;
+    QHash<QString, QStringList> replace_urls;
+
     QRegExp rx;
 
     // Find iframes
-    rx.setPattern("src\\s*=\\s*[\\\"']{1}\\s?(https?:\\/\\/[a-zA-Z\\.0-9:]*\\/media\\/player(\\.load)?\\/([a-zA-Z0-9]+)(\\/)?(\\?)?(autoplay=(true|false))?)\\s*[\\\"']{1}");
+    // src\s*=\s*[\"']{1}\s?((https?:\/\/[a-zA-Z\.0-9:]*)\/media\/player(\.load)?\/([a-zA-Z0-9]+)(\/)?(\?)?(autoplay=(true|false))?)\s*[\"']{1}
+    rx.setPattern("src\\s*=\\s*[\\\"']{1}\\s?((https?:\\/\\/[a-zA-Z\\.0-9:]*)\\/media\\/player(\\.load)?\\/([a-zA-Z0-9]+)(\\/)?(\\?)?(autoplay=(true|false))?)\\s*[\\\"']{1}");
+
+    // rx.cap(0) = full match
+    // 1 = full url - https://smc.ed/media/player.load/3f0s98foeu/
+    // 2 = server - https://smc.ed
+    // 3 = if .load if present or empty if not
+    // 4 = movie id
 
     //"href=http(s)://.../media/player[.load]/???..."
     int pos = 0;
     while ((pos = rx.indexIn(ret, pos)) != -1) {
-        // Save the movie ID so we can download it later
-        movie_ids << rx.cap(3);
-        // Save the found URL to replace it later
-        replace_urls[rx.cap(1)] = rx.cap(3);
         pos += rx.matchedLength();
+
+        // Get the full URL for this item
+        QString full_url = rx.cap(1);
+        // Get the host for this link
+        QString smc_host = rx.cap(2);
+        // Get the movie ID for this link
+        QString movie_id = rx.cap(4);
+        // Add to the list to be downloaded
+        if (!_localhost_url.startsWith(smc_host)) {
+            replace_urls[movie_id] = QStringList() << smc_host << full_url;
+        } else {
+            // This link already points to a local host address?
+            qDebug() << "-- Link found w localhost address? " << full_url;
+        }
+
     }
 
     qDebug() << "Found SMC video links";
-    qDebug() << replace_urls << movie_ids;
+    qDebug() << replace_urls;
 
     // Queue up video to be downloaded
-    foreach (QString movie_id, movie_ids) {
-        QueueVideoForDownload(movie_id);
+    foreach (QString movie_id, replace_urls.keys()) {
+        QStringList values = replace_urls[movie_id];
+        QString original_host = values[0];
+        QString original_url = values[1];
+
+        QueueVideoForDownload(movie_id, original_host, original_url);
     }
 
     // Replace old URLs w the new ones
-    foreach (QString old_url, replace_urls.keys()) {
+    foreach (QString movie_id, replace_urls.keys()) {
+        QStringList values = replace_urls[movie_id];
+        QString original_host = values[0];
+        QString original_url = values[1];
         QString new_url = _localhost_url;
-        new_url += "/player.html?movie_id=" + replace_urls[old_url];
-        qDebug() << "Replacing " << old_url << " with " << new_url;
-        ret = ret.replace(old_url, new_url, Qt::CaseInsensitive);
+        new_url += "/player.html?movie_id=" + movie_id;
+        qDebug() << "Replacing " << original_url << " with " << new_url;
+        ret = ret.replace(original_url, new_url, Qt::CaseInsensitive);
     }
 
     return ret;
@@ -1956,13 +1991,13 @@ QString EX_Canvas::ProcessSMCDocuments(QString content)
     return content;
 }
 
-bool EX_Canvas::QueueVideoForDownload(QString movie_id)
+bool EX_Canvas::QueueVideoForDownload(QString movie_id, QString original_host, QString original_url)
 {
     // Add the video id to the list for downloading
     bool ret = false;
 
     QSqlQuery q;
-    q.prepare("SELECT count(media_id) FROM smc_media_dl_queue WHERE media_id = :media_id");
+    q.prepare("SELECT count(media_id) FROM smc_media_dl_queue2 WHERE media_id = :media_id");
     q.bindValue(":media_id", movie_id);
 
     if(q.exec()) {
@@ -1971,12 +2006,21 @@ bool EX_Canvas::QueueVideoForDownload(QString movie_id)
         if (count < 1) {
             // ID isn't in the list
             QSqlQuery q2;
-            q2.prepare("INSERT INTO smc_media_dl_queue (`id`, `media_id`) VALUES (NULL, :media_id)");
+            q2.prepare("INSERT INTO smc_media_dl_queue2 (`id`, `media_id`, `original_host`, `original_url`) VALUES (NULL, :media_id, :original_host, :original_url)");
             q2.bindValue(":media_id", movie_id);
+            q2.bindValue(":original_host", original_host);
+            q2.bindValue(":original_url", original_url);
             q2.exec();
             qDebug() << "New Movie ID " << movie_id;
         } else {
+            // Is in the list, update it
             qDebug() << "Movie ID already queued " << movie_id;
+            QSqlQuery q3;
+            q3.prepare("UPDATE smc_media_dl_queue2 SET `original_host`=:original_host, `original_url`=:original_url WHERE `media_id`=:media_id");
+            q3.bindValue(":original_host", original_host);
+            q3.bindValue(":original_url", original_url);
+            q3.bindValue(":media_id", movie_id);
+            q3.exec();
         }
         ret = true;
 
@@ -1989,13 +2033,13 @@ bool EX_Canvas::QueueVideoForDownload(QString movie_id)
     return ret;
 }
 
-bool EX_Canvas::QueueDocumentForDownload(QString document_id)
+bool EX_Canvas::QueueDocumentForDownload(QString document_id, QString original_host, QString original_url)
 {
     // Add the document id to the list for downloading
     bool ret = false;
 
     QSqlQuery q;
-    q.prepare("SELECT count(document_id) FROM smc_document_dl_queue WHERE document_id = :document_id");
+    q.prepare("SELECT count(document_id) FROM smc_document_dl_queue2 WHERE document_id = :document_id");
     q.bindValue(":document_id", document_id);
 
     if(q.exec()) {
@@ -2004,8 +2048,10 @@ bool EX_Canvas::QueueDocumentForDownload(QString document_id)
         if (count < 1) {
             // ID isn't in the list
             QSqlQuery q2;
-            q2.prepare("INSERT INTO smc_document_dl_queue (`id`, `document_id`) VALUES (NULL, :document_id)");
+            q2.prepare("INSERT INTO smc_document_dl_queue2 (`id`, `document_id`, `original_host`, `original_url`) VALUES (NULL, :document_id, :original_host, :original_url)");
             q2.bindValue(":document_id", document_id);
+            q2.bindValue(":original_host", original_host);
+            q2.bindValue(":original_url", original_url);
             q2.exec();
             qDebug() << "New Document ID " << document_id;
         } else {
@@ -2034,7 +2080,7 @@ bool EX_Canvas::pullSMCVideos()
 
     // Get list of video IDs
     QSqlQuery q;
-    q.prepare("SELECT * FROM smc_media_dl_queue");
+    q.prepare("SELECT * FROM smc_media_dl_queue2");
     if(!q.exec()) {
         qDebug() << "ERROR RUNNING DB QUERY: " << q.lastQuery() << " - " << q.lastError().text();
         return false;
@@ -2045,11 +2091,14 @@ bool EX_Canvas::pullSMCVideos()
         QString local_path = base_dir.path() + "/" + video_id + ".mp4";
         QFileInfo fi = QFileInfo(local_path);
         if (fi.exists() && fi.size() > 1000) {
-            //qDebug() << " - SMC Video File already downloaded: " << local_path;
+            qDebug() << " - SMC Video File already downloaded: " << local_path;
         } else {
-            //qDebug() << "** Need to download video file " << local_path;
-            QString smc_url = _app_settings->value("smc_url", "https://smc.ed").toString();
+            qDebug() << "** Need to download video file " << local_path;
+            // Get the original host
+            QString smc_url = q.value(2).toString();  //_app_settings->value("smc_url", "https://smc.ed").toString();
+            // Build the download url
             smc_url += "/media/dl_media/" + video_id + "/mp4";
+
             bool r = DownloadFile(smc_url, local_path);
             if (!r) {
                 qDebug() << "Error downloading file " << smc_url;
@@ -2059,10 +2108,10 @@ bool EX_Canvas::pullSMCVideos()
         local_path = base_dir.path() + "/" + video_id + ".poster.png";
         fi = QFileInfo(local_path);
         if (fi.exists() && fi.size() > 1000) {
-            //qDebug() << " - SMC Video Poster file already downloaded: " << local_path;
+            qDebug() << " - SMC Video Poster file already downloaded: " << local_path;
         } else {
-            //qDebug() << "** Need to download poster file " << local_path;
-            QString smc_url = _app_settings->value("smc_url", "https://smc.ed").toString();
+            qDebug() << "** Need to download poster file " << local_path;
+            QString smc_url = q.value(2).toString(); // _app_settings->value("smc_url", "https://smc.ed").toString();
             // Grab the first 2 characters of the ID
             QString prefix = video_id.mid(0,2);
             smc_url += "/static/media/" + prefix + "/" + video_id + ".poster.png";
@@ -2080,7 +2129,7 @@ bool EX_Canvas::pullSMCVideos()
 
 bool EX_Canvas::pullSMCDocuments()
 {
-    return false;
+    return true;
 }
 
 

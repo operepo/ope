@@ -189,6 +189,7 @@ public slots:
         {
             QString content_type = GetContentType(file_path);
             body = f.readAll();
+            f.close();
             /*if (!content_type.contains("text"))
             {
                 //body = f.readAll().toBase64();
@@ -200,6 +201,14 @@ public slots:
 
             // Set the content type
             AddHeader("Content-Type", content_type);
+            AddHeader("Cache-Control", "private");
+            AddHeader("Content-Length", QString::number(f.size()));
+            //AddHeader("Content-Range", "bytes 0-100/101");
+            // Date: Sat, 29 Dec 2018 23:58:00 GMT
+            // Last-Modified: Mon, 09 Apr 2018 23:58:00 GMT
+            AddHeader("Pragma", "cache");
+            AddHeader("Server", "ope-lms");
+            AddHeader("X-Powered-By", "ope-lms");
 
             //response_result["Protocol"] = "HTTP/1.0";
             response_result["CODE"] = "200";

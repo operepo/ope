@@ -94,8 +94,8 @@ public slots:
     QString ProcessSMCVideos(QString content);
     QString ProcessSMCDocuments(QString content);
 
-    bool QueueVideoForDownload(QString movie_id);
-    bool QueueDocumentForDownload(QString document_id);
+    bool QueueVideoForDownload(QString movie_id, QString original_host, QString original_url);
+    bool QueueDocumentForDownload(QString document_id, QString original_host, QString original_url);
 
     bool pullSMCVideos();
     bool pullSMCDocuments();

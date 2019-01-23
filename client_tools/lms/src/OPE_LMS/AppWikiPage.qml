@@ -1,10 +1,11 @@
-import QtQuick 2.10
-import QtQuick.Controls 2.3
-import QtQuick.Controls.Material 2.2
-import QtQuick.Controls.Universal 2.2
+import QtQuick 2.11
+import QtQuick.Controls 2.4
+import QtQuick.Controls.Material 2.3
+import QtQuick.Controls.Universal 2.3
 import QtQuick.Controls.Styles 1.4
 import QtQuick.Controls.Imagine 2.3
 import QtQuick.Layouts 1.3
+
 import QtWebView 1.1
 
 
@@ -80,7 +81,17 @@ Page {
                 onLoadingChanged: {
                     var err = loadRequest.errorString
                     var status = loadRequest.status
-                    //console.log("Loading changed..." + status)
+                    var url = loadRequest.url
+                    if (status == WebView.LoadStartedStatus) {
+                        console.log("AppWikiPage - Load Started " + url);
+                    }
+                    if (status == WebView.LoadFailedStatus) {
+                        console.log("AppWikiPage - Load Failed " + url);
+                        console.log(err);
+                    }
+                    if (status == WebView.LoadSucceededStatus) {
+                        console.log("AppWikiPage - Load Succeeded " + url);
+                    }
                 }
 
             }

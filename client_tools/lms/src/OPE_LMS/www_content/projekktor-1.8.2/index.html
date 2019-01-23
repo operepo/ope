@@ -1,0 +1,133 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>Projekktor v.
+        1.8.2
+    </title>
+    <meta charset="UTF-8" />
+    <!-- site styles -->
+
+    <!-- Load projekktor css -->
+    <link rel="stylesheet" href="themes/maccaco/projekktor.style.css" type="text/css" media="screen" />
+
+    <!-- Load jquery -->
+    <script src="jquery.min.js"></script>
+
+    <!-- load projekktor js -->
+    <script type="text/javascript" src="projekktor-1.8.2.js"></script>
+    <script>
+        $(function () {
+            window.p = projekktor('#player', {
+                title: "Projekktor v.1.8.2",
+                poster: 'media/intro.png',
+                width: 640,
+                height: 380,
+                autoplay: true,
+                debug: true,
+                iframe: false,
+                forceMuted: true,
+                platforms: ['browser', 'android', 'ios', 'mse', 'native', 'videojs'],
+                platformsConfig: {
+                    mse: {
+                        hlsjs: {
+                            src: 'platforms/mse/hls.js/hls.min.js',
+                            initVars: {
+                                debug: false,
+                                capLevelToPlayerSize: true,
+                                startFragPrefech: true
+                            }
+                        },
+                        dashjs: {
+                            src: 'platforms/mse/dash.js/dash.all.min.js',
+                            initVars: {
+                                debug: false,
+                                fastSwitchEnabled: true,
+                                limitBitrateByPortal: true,
+                                usePixelRatioInLimitBitrateByPortal: true
+                            }
+                        }
+                    },
+                    videojs: {
+                        src: 'platforms/videojs/videojs.min.js',
+                        css: 'platforms/videojs/videojs.min.css',
+                        initVars: {}
+                    }
+                },
+                plugin_contextmenu: {
+                    items: {
+                        superPiotrMenu: {
+                            getContextTitle: function (pp) {
+                                return "Copy video URL";
+                            },
+                            open: function(pp) {
+                                var loc = window.location.href;
+
+                                if($p.utils.copyToClipboard(loc)){
+                                    alert('Copied: ' + loc);
+                                }
+                                else {
+                                    alert('Copy unsuccessful');
+                                }
+                            }
+                        }
+                    }
+                },
+                playlist: [{
+                    0: {
+                        src: "media/intro.mp4",
+                        type: "video/mp4"
+                    },
+                    1: {
+                        src: "media/intro.ogv",
+                        type: "video/ogg"
+                    },
+                    3: {
+                        src: "media/intro.webm",
+                        type: "video/webm"
+                    }
+                },
+                {
+                    0: {
+                        src: "https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd",
+                        type: "application/dash+xml"
+                    }
+                },
+                {
+                    0: {
+                        src: "https://bitdash-a.akamaihd.net/content/MI201109210084_1/m3u8s/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8",
+                        type: "application/vnd.apple.mpegurl"
+                    }
+                },
+                {
+                    0: {
+                        src: "media/intro.mp4",
+                        type: "video/mp4"
+                    },
+                    1: {
+                        src: "media/intro.ogv",
+                        type: "video/ogg"
+                    },
+                    3: {
+                        src: "media/intro.webm",
+                        type: "video/webm"
+                    }
+                }]
+            }, function (player) {
+                // ready function
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <h1>Projekktor v.1.8.2</h1>
+
+    <div id="player" class="projekktor">
+        <noscript>
+            <p>No JavaScript support.</p>
+        </noscript>
+    </div>
+</body>
+
+</html>

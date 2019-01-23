@@ -508,6 +508,9 @@ QByteArray CM_HTTPResponse::GetResponse()
     QVariant len = body.length();
     if (headers["Content-Length"] == "") { headers["Content-Length"] = len.toString(); }
 
+    // Allow page to pull things from other links
+    //headers["Access-Control-Allow-Origin"] = "*";
+
     // If HTTP/1.0 then set the Connection: close header
     if (response_result["Protocol"] == "HTTP/1.0") { headers["Connection"] = "close"; }
 

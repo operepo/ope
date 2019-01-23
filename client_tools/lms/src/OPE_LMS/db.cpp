@@ -484,9 +484,11 @@ bool APP_DB::init_db()
 
         // Add table for SMC media/document queue
         // Create SMC Video Queue
-        sql = "CREATE TABLE IF NOT EXISTS `smc_media_dl_queue` ( \
+        sql = "CREATE TABLE IF NOT EXISTS `smc_media_dl_queue2` ( \
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT, \
-                `media_id` TEXT NOT NULL DEFAULT '' \
+                `media_id` TEXT NOT NULL DEFAULT '', \
+                `original_host` TEXT NOT NULL DEFAULT '', \
+                `original_url` TEXT NOT NULL DEFAULT '' \
              );";
         if (!query.exec(sql)) {
             qDebug() << "DB Error: " << query.lastError().text();
@@ -494,9 +496,11 @@ bool APP_DB::init_db()
         }
 
         // Create SMC Document Queue
-        sql = "CREATE TABLE IF NOT EXISTS `smc_document_dl_queue` ( \
+        sql = "CREATE TABLE IF NOT EXISTS `smc_document_dl_queue2` ( \
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT, \
-                `document_id` TEXT NOT NULL DEFAULT '' \
+                `document_id` TEXT NOT NULL DEFAULT '', \
+                `original_host` TEXT NOT NULL DEFAULT '', \
+                `original_url` TEXT NOT NULL DEFAULT '' \
              );";
         if (!query.exec(sql)) {
             qDebug() << "DB Error: " << query.lastError().text();

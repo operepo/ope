@@ -28,6 +28,7 @@ void CM_MimeTypes::LoadMimeTypes()
 
     mime_types["xml"] = "text/xml";
     mime_types["svg"] = "text/xml";
+    mime_types["css"] = "text/css";
 
     mime_types["java"] = "application/java";
 
