@@ -752,19 +752,24 @@ bool EX_Canvas::pullCourseFilesBinaries()
 bool EX_Canvas::pullCoursePages()
 {
     // Grab a list of pages for each course
+    // Need to build up list of pages from canvas, then also grab a list of pages
+    // from the module items since the page menu can be turned off.
+
     bool ret = false;
     if (_app_db == nullptr) { return ret; }
 
     // Get the list of courses for this student
     GenericTableModel *courses_model = _app_db->getTable("courses");
     GenericTableModel *model = _app_db->getTable("pages");
+    GenericTableModel *modules = _app_db->getTable("modules");
+    GenericTableModel *module_items = _app_db->getTable("module_items");
 
-    if (courses_model == nullptr || model == nullptr) {
+    if (courses_model == nullptr || model == nullptr || module_items == nullptr) {
         qDebug() << "Unable to get models for courses or pages!";
         return false;
     }
 
-    // Pull all pages for all courses
+    // Get the list of pages from canvas
     courses_model->setFilter("");
     ret = true;
     for (int i=0; i<courses_model->rowCount(); i++) {
@@ -777,7 +782,7 @@ bool EX_Canvas::pullCoursePages()
         QJsonDocument doc = CanvasAPICall("/api/v1/courses/" + course_id + "/pages", "GET", &p);
 
         if (doc.isArray()) {
-            qDebug() << "\tPages for course:";
+            qDebug() << "\tPages for course " << course_id;
             // Should be an array of pages
             QJsonArray arr = doc.array();
             foreach(QJsonValue val, arr) {
@@ -788,6 +793,7 @@ bool EX_Canvas::pullCoursePages()
                 QString id = o["page_id"].toString("");
                 QString page_url = o["url"].toString("");
                 QString page_body = "";
+                qDebug() << "\tProcessing Page " << page_url << id;
 
                 // Need to retrieve each page body individually
                 QJsonDocument page_doc = CanvasAPICall("/api/v1/courses/" + course_id + "/pages/" + page_url, "GET", &p);
@@ -863,6 +869,135 @@ bool EX_Canvas::pullCoursePages()
                 model->database().commit();
                 //qDebug() << model->lastError();
 
+            }
+        } else {
+            qDebug() << "*** Unable to pull array of pages: " << doc;
+        }
+    }
+TODO - Need to copy  module items to pages for when pages menu is hidden from students
+    // Pull in pages from the module_items table - in case the pages
+    // menu is hidden, we won't get much from the last chunk.
+    courses_model->setFilter("");
+    courses_model->select();
+    for (int i=0; i<courses_model->rowCount(); i++) {
+        // Get models for this course
+        QSqlRecord course_record = courses_model->record(i);
+        QString course_id = course_record.value("id").toString();
+        qDebug() << "Finding pages listed as module items in " << course_id;
+
+        modules->setFilter("course_id=" + course_id);
+        modules->select();
+        for(int module_i=0; module_i < modules->rowCount(); module_i++) {
+            qDebug() << " -- Module " << modules->record(module_i).value("name").toString();
+            QString module_id = modules->record(module_i).value("id").toString();
+
+            // Get the module items for this module
+            module_items->setFilter("module_id=" + module_id + " and type='page'");
+            module_items->select();
+            for(int module_item_i=0; module_item_i < module_items->rowCount(); module_item_i++) {
+                // Add each page to our pages table
+                QSqlRecord module_item_record = module_items->record(module_item_i);
+                QString page_id = module_item_record.value("id").toString();
+                QString page_url = module_item_record.value("page_url").toString();
+
+                model->setFilter("page_id=" + page_id);
+                model->select();
+
+                QSqlRecord page_record;
+                bool is_insert_page = false;
+
+                if (model->rowCount() == 1) {
+                    // Row exists, update with current info
+                    page_record = model->record(0);
+                    is_insert_page = false;
+                    qDebug() << "\t\tUpdating page from module item ..." << page_url;
+                } else {
+                    // Need to clear the filter to insert
+                    model->setFilter("");
+                    page_record = model->record();
+                    is_insert_page = true;
+                    qDebug() << "\t\tImporting page from module item..." << page_url;
+                }
+
+                page_record.setValue("url", page_url);
+                page_record.setValue("page_id", page_id);
+                page_record.setValue("course_id", course_id);
+
+                if (is_insert_page) {
+                   model->insertRecord(-1, page_record);
+                } else {
+                   // Filter should be set so 0 should be current record
+                   model->setRecord(0, page_record);
+                }
+                // Write changes
+                if (!model->submitAll()) { ret = false; }
+
+                model->setFilter(""); // clear the filter
+
+                //qDebug() << "Page " << o["title"].toString("");
+                model->database().commit();
+                //qDebug() << model->lastError();
+
+            }
+        }
+    }
+
+    // Download all page bodies/info for each page in the database
+    courses_model->setFilter("");
+    for (int i=0; i< courses_model->rowCount(); i++) {
+        QSqlRecord course_record = courses_model->record(i);
+        QString course_id = course_record.value("id").toString();
+
+        // Get pages for this course
+        model->setFilter("course_id=" + course_id);
+        for (int model_i=0; model_i < model->rowCount(); model_i++ ) {
+            QSqlRecord page_record = model->record(model_i);
+            QString page_url = page_record.value("url").toString();
+            QString page_id = page_record.value("page_id").toString();
+            QString page_body = "";
+
+            qDebug() << "* Retrieving page info for " << course_id;
+            QHash<QString,QString> p;
+            p["per_page"] = "10000"; // Cuts down number of calls significantly
+            QJsonDocument page_doc = CanvasAPICall("/api/v1/courses/" + course_id + "/pages/" + page_url, "GET", &p);
+
+            if (!page_doc.isObject()) {
+                qDebug() << "ERROR GETTING PAGE BODY - " << course_id << page_url;
+                page_body = "ERROR GETTING PAGE";
+            } else {
+                QJsonObject o = page_doc.object();
+                page_body = o["body"].toString("");
+                if (o["locked_for_user"].toBool() == true) {
+                    page_body = o["lock_explanation"].toString("Page Locked - see instructor");
+                }
+
+                page_record.setValue("title", o["title"].toString(""));
+                page_record.setValue("created_at", o["created_at"].toString(""));
+                page_record.setValue("url", o["url"].toString(""));
+                page_record.setValue("editing_roles", o["editing_roles"].toString(""));
+                page_record.setValue("page_id", o["page_id"].toString(""));
+                page_record.setValue("published", o["published"].toBool(false));
+                page_record.setValue("hide_from_students", o["hide_from_students"].toBool(false));
+                page_record.setValue("front_page", o["front_page"].toBool(false));
+                page_record.setValue("html_url", o["html_url"].toString(""));
+                page_record.setValue("updated_at", o["updated_at"].toString(""));
+                page_record.setValue("locked_for_user", o["locked_for_user"].toBool(false));
+                page_record.setValue("course_id", course_id);
+                page_record.setValue("body", page_body);
+                page_record.setValue("lock_info", o["lock_info"].toString(""));
+                page_record.setValue("lock_explanation", o["lock_explanation"].toString(""));
+
+                model->setRecord(model_i, page_record);
+
+                // Write changes
+                if (!model->submitAll()) {
+                    ret = false;
+                    qDebug() << "Error submitting page data " << model->lastError();
+                }
+
+                model->setFilter(""); // clear the filter
+
+                model->database().commit();
             }
         }
     }

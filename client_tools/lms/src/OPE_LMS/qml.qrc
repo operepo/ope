@@ -12,7 +12,6 @@
         <file>Quizzes.qml</file>
         <file>Inbox.qml</file>
         <file>Calendar.qml</file>
-        <file>Announcements.qml</file>
         <file>Discussions.qml</file>
         <file>Grades.qml</file>
         <file>Files.qml</file>
