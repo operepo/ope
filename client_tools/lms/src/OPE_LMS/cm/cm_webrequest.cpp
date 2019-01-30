@@ -216,6 +216,14 @@ bool CM_WebRequest::DownloadFile(QString url, QString local_path)
     } else {
         ret = true;
     }
+
+    // Capture the download headers
+    foreach(QString key, reply->rawHeaderList())
+    {
+        QString value = reply->rawHeader(key.toLocal8Bit());
+        download_reply_headers[key] = value;
+    }
+
     dl_file->flush();
     dl_file->close();
     delete dl_file; //dl_file->deleteLater();
@@ -257,6 +265,11 @@ QString CM_WebRequest::GetHeader(QString header_name)
 QHash<QString,QString> CM_WebRequest::GetAllHeaders()
 {
     return http_reply_headers;
+}
+
+QHash<QString, QString> CM_WebRequest::GetAllDownloadHeaders()
+{
+    return download_reply_headers;
 }
 
 void CM_WebRequest::downloadReadyRead()

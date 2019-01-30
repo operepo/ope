@@ -32,6 +32,7 @@ public slots:
 
     QString GetHeader(QString header_name);
     QHash<QString,QString> GetAllHeaders();
+    QHash<QString,QString> GetAllDownloadHeaders();
 
     // Download reply signals
     void downloadReadyRead();
@@ -65,6 +66,7 @@ private:
     bool download_active;
     qint32 num_network_calls;
     QHash<QString,QString> http_reply_headers;
+    QHash<QString,QString> download_reply_headers;
 
 
 };

@@ -66,7 +66,8 @@ system_nics = ["WAN Miniport (IP)", "WAN Miniport (IPv6)", "WAN Miniport (Networ
                    "WAN Miniport (SSTP)", "Microsoft Wi-Fi Direct Virtual Adapter", "Teredo Tunneling Pseudo-Interface",
                    "Microsoft Kernel Debug Network Adapter",
                   ]
-approved_nics = ["Realtek USB GbE Family Controller", ]
+approved_nics = ["Realtek USB GbE Family Controller",
+                 "Thinkpad USB 3.0 Ethernet Adapter"]
 if DEBUG_NICS is True:
     # Add these nics so we don't cut off network on our dev machines
     approved_nics.append("Intel(R) 82579LM Gigabit Network Connection")

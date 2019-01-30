@@ -172,7 +172,7 @@ void CM_HTTPServer::incomingConnection(qintptr socket)
         connect(s, SIGNAL(readyRead()), this, SLOT(slot_clientReadyRead()));
         connect(s, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this, SLOT(slot_clientStateChanged(QAbstractSocket::SocketState)));
 
-        qDebug() << "New Non SSL Connection: " << s;
+        //qDebug() << "New Non SSL Connection: " << s;
     }
 }
 

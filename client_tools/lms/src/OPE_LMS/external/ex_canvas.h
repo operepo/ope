@@ -46,6 +46,7 @@ public slots:
     bool pullCourseFilesBinaries();
     // Pull list of pages for courses
     bool pullCoursePages();
+    QSqlRecord pullSinglePage(QString course_id, QString page_url);
     // Pull list of messages
     bool pullMessages(QString scope="inbox");
     // Pull list of assignments

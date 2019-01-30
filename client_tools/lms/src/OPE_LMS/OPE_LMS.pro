@@ -243,7 +243,8 @@ DISTFILES += \
     www_content/projekktor-1.3.09/media/._intro.ogv \
     www_content/projekktor-1.3.09/media/intro.ogv \
     www_content/projekktor-1.3.09/media/._intro.webm \
-    www_content/projekktor-1.3.09/media/intro.webm
+    www_content/projekktor-1.3.09/media/intro.webm \
+    WebEngineMP4Build.txt
 
 # Rules to force qrc rebuild each time - deal with bug where qml files aren't updated on next run
 update_qml.target = qml.qrc
@@ -259,7 +260,10 @@ CONFIG (debug, debug|release) {
     VARIANT = release
 }
 
-copy_files.commands = $(COPY_DIR) \"$$shell_path($$PWD\\www_content)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\web_content)\"
+copy_files.commands = $(COPY_DIR) \"$$shell_path($$PWD\\www_content)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\web_content)\" && \
+    $(COPY_DIR) \"$$shell_path($$PWD\\logo_icon.ico)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
+    $(COPY_DIR) \"$$shell_path($$PWD\\logo_icon.ico)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\favicon.ico)\" && \
+    $(COPY_DIR) \"$$shell_path($$PWD\\qt.conf)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\"
 first.depends = $(first) copy_files
 export(first.depends)
 export(copy_files.commands)

@@ -42,8 +42,7 @@ Page {
 
         //console.log("Wiki Page Body: " + page_body);
         pageTitle.text = page_title;
-        webView.loadHtml(page_body);
-
+        webView.loadHtml(page_body); //, "http://localhost:65525/");
     }
 
     Component.onCompleted: {
@@ -83,14 +82,14 @@ Page {
                     var status = loadRequest.status
                     var url = loadRequest.url
                     if (status == WebView.LoadStartedStatus) {
-                        console.log("AppWikiPage - Load Started " + url);
+                        //console.log("AppWikiPage - Load Started " + url);
                     }
                     if (status == WebView.LoadFailedStatus) {
                         console.log("AppWikiPage - Load Failed " + url);
                         console.log(err);
                     }
                     if (status == WebView.LoadSucceededStatus) {
-                        console.log("AppWikiPage - Load Succeeded " + url);
+                        //console.log("AppWikiPage - Load Succeeded " + url);
                     }
                 }
 

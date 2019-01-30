@@ -15,6 +15,7 @@
 //#include <QWebEngineView>
 //#include <QWebEnginePage>
 #include <QSettings>
+#include <QtConcurrent/QtConcurrent>
 
 #include <QNetworkAccessManager>
 #include <QQmlNetworkAccessManagerFactory>

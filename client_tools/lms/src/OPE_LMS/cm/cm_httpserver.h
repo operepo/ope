@@ -12,6 +12,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QFile>
+#include <QFileInfo>
 #include <QTextStream>
 
 // Socket Includes
@@ -182,6 +183,7 @@ public slots:
     {
         // Open the file and attach it as the body
         QFile f(file_path);
+        QFileInfo fi(f);
         f.open(QFile::ReadOnly);
 
 
@@ -206,6 +208,10 @@ public slots:
             //AddHeader("Content-Range", "bytes 0-100/101");
             // Date: Sat, 29 Dec 2018 23:58:00 GMT
             // Last-Modified: Mon, 09 Apr 2018 23:58:00 GMT
+            QString last_modified = fi.lastModified().toUTC().toString("ddd, dd MMM yyyy hh:mm:ss") + " GMT";
+            AddHeader("Last-Modified", last_modified);
+            QString curr_date = QDateTime::currentDateTime().toUTC().toString("ddd, dd MMM yyyy hh:mm:ss") + " GMT";
+            AddHeader("Date", curr_date);
             AddHeader("Pragma", "cache");
             AddHeader("Server", "ope-lms");
             AddHeader("X-Powered-By", "ope-lms");
@@ -230,6 +236,17 @@ public slots:
     {
         QString ext;
         QString ret = "text/html";
+
+        // First - check if there is a .mime file that exists
+        if (QFile::exists(file_name + ".mime")) {
+            QFile mime_file(file_name + ".mime");
+            mime_file.open(QIODevice::ReadOnly);
+            QByteArray file_arr = mime_file.readAll();
+            ret = QString(file_arr);
+            return ret;
+        }
+
+        // No mime file, try and figure it out.
         int pindex = file_name.lastIndexOf(".");
         if (pindex == -1) { return ret; }
         ext = file_name.mid(pindex+1).toLower();

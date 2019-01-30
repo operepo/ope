@@ -434,6 +434,20 @@ bool EX_Canvas::pullModuleItems()
                 // TOOD - also an array
                 record.setValue("content_details", o["content_details"].toString(""));
 
+                // If this is a page item, make sure it is in the page table too
+                if (o["type"].toString("") == "Page") {
+                    QString page_url = o["page_url"].toString("");
+
+                    QSqlRecord page_record = pullSinglePage(course_id, page_url);
+
+                    if (page_record.isEmpty()) {
+                        ret = false;
+                    } else {
+                        // Set the content id to the page id
+                        record.setValue("content_id", page_record.value("page_id").toString());
+                    }
+                }
+
                if (is_insert) {
                    model->insertRecord(-1, record);
                } else {
@@ -447,7 +461,6 @@ bool EX_Canvas::pullModuleItems()
                //qDebug() << "Module item " << o["title"].toString("");
                model->database().commit();
                //qDebug() << model->lastError();
-
             }
         }
     }
@@ -752,37 +765,34 @@ bool EX_Canvas::pullCourseFilesBinaries()
 bool EX_Canvas::pullCoursePages()
 {
     // Grab a list of pages for each course
-    // Need to build up list of pages from canvas, then also grab a list of pages
-    // from the module items since the page menu can be turned off.
-
+    qDebug() << "* Starting Pull Course Pages";
     bool ret = false;
     if (_app_db == nullptr) { return ret; }
 
     // Get the list of courses for this student
     GenericTableModel *courses_model = _app_db->getTable("courses");
-    GenericTableModel *model = _app_db->getTable("pages");
-    GenericTableModel *modules = _app_db->getTable("modules");
-    GenericTableModel *module_items = _app_db->getTable("module_items");
 
-    if (courses_model == nullptr || model == nullptr || module_items == nullptr) {
-        qDebug() << "Unable to get models for courses or pages!";
+    if (courses_model == nullptr) {
+        qDebug() << "!!!Unable to get models for courses or pages!";
         return false;
     }
 
     // Get the list of pages from canvas
     courses_model->setFilter("");
+    courses_model->select();
     ret = true;
     for (int i=0; i<courses_model->rowCount(); i++) {
         // Get pages for this course
         QSqlRecord course_record = courses_model->record(i);
         QString course_id = course_record.value("id").toString();
-        qDebug() << "Retrieving page info for " << course_id;
+        QString course_name = course_record.value("name").toString();
+        qDebug() << "\tProcessing Course " << course_id << course_name;
         QHash<QString,QString> p;
         p["per_page"] = "10000"; // Cuts down number of calls significantly
         QJsonDocument doc = CanvasAPICall("/api/v1/courses/" + course_id + "/pages", "GET", &p);
 
         if (doc.isArray()) {
-            qDebug() << "\tPages for course " << course_id;
+            qDebug() << "\t\tCanvas Pages for course " << course_id << course_name;
             // Should be an array of pages
             QJsonArray arr = doc.array();
             foreach(QJsonValue val, arr) {
@@ -792,213 +802,16 @@ bool EX_Canvas::pullCoursePages()
 
                 QString id = o["page_id"].toString("");
                 QString page_url = o["url"].toString("");
-                QString page_body = "";
-                qDebug() << "\tProcessing Page " << page_url << id;
+                qDebug() << "\t\t\tFound Page - Pulling Info " << page_url << id;
 
-                // Need to retrieve each page body individually
-                QJsonDocument page_doc = CanvasAPICall("/api/v1/courses/" + course_id + "/pages/" + page_url, "GET", &p);
-                if (!page_doc.isObject()) {
-                    qDebug() << "ERROR GETTING PAGE BODY - " << course_id << page_url;
-                    page_body = "ERROR GETTING PAGE";
-                } else {
-                    QJsonObject page_object = page_doc.object();
-                    page_body = page_object["body"].toString("");
-                    if (page_object["locked_for_user"].toBool() == true) {
-                        page_body = page_object["lock_explanation"].toString("Page Locked - see instructor");
-                    }
+                QSqlRecord page_record = pullSinglePage(course_id, page_url);
+                if (page_record.isEmpty()) {
+                    // Error pulling this page?
+                    ret = false;
                 }
-
-                // Convert SMC links to local links
-                page_body = ProcessSMCVideos(page_body);
-                page_body = ProcessSMCDocuments(page_body);
-
-                model->setFilter("page_id = " + id);
-                model->select();
-                QSqlRecord record;
-                bool is_insert = false;
-
-                if (model->rowCount() == 1) {
-                    // Row exists, update with current info
-                    record = model->record(0);
-                    is_insert = false;
-                    qDebug() << "\t\tUpdating page..." << id << o["title"].toString("");
-                } else {
-                    // Need to clear the filter to insert
-                    model->setFilter("");
-                    record = model->record();
-                    is_insert = true;
-                    qDebug() << "\t\tImporting file info..." << id << o["title"].toString("");
-                }
-
-                // JSON - list of objects
-                // {"title":"Format of the course","created_at":"2017-06-21T21:44:15Z",
-                // "url":"format-of-the-course","editing_roles":"teachers",
-                // "page_id":26664700000000089,"published":true,"hide_from_students":false,
-                // "front_page":false,
-                // "html_url":"https://canvas.ed.dev/courses/26664700000000090/pages/format-of-the-course",
-                // "updated_at":"2017-06-21T21:44:15Z","locked_for_user":false}
-
-                record.setValue("title", o["title"].toString(""));
-                record.setValue("created_at", o["created_at"].toString(""));
-                record.setValue("url", o["url"].toString(""));
-                record.setValue("editing_roles", o["editing_roles"].toString(""));
-                record.setValue("page_id", o["page_id"].toString(""));
-                record.setValue("published", o["published"].toBool(false));
-                record.setValue("hide_from_students", o["hide_from_students"].toBool(false));
-                record.setValue("front_page", o["front_page"].toBool(false));
-                record.setValue("html_url", o["html_url"].toString(""));
-                record.setValue("updated_at", o["updated_at"].toString(""));
-                record.setValue("locked_for_user", o["locked_for_user"].toBool(false));
-                record.setValue("course_id", course_id);
-                record.setValue("body", page_body);
-                record.setValue("lock_info", o["lock_info"].toString(""));
-                record.setValue("lock_explanation", o["lock_explanation"].toString(""));
-
-                if (is_insert) {
-                   model->insertRecord(-1, record);
-                } else {
-                   // Filter should be set so 0 should be current record
-                   model->setRecord(0, record);
-                }
-                // Write changes
-                if (!model->submitAll()) { ret = false; }
-
-                model->setFilter(""); // clear the filter
-
-                //qDebug() << "Page " << o["title"].toString("");
-                model->database().commit();
-                //qDebug() << model->lastError();
-
             }
         } else {
-            qDebug() << "*** Unable to pull array of pages: " << doc;
-        }
-    }
-TODO - Need to copy  module items to pages for when pages menu is hidden from students
-    // Pull in pages from the module_items table - in case the pages
-    // menu is hidden, we won't get much from the last chunk.
-    courses_model->setFilter("");
-    courses_model->select();
-    for (int i=0; i<courses_model->rowCount(); i++) {
-        // Get models for this course
-        QSqlRecord course_record = courses_model->record(i);
-        QString course_id = course_record.value("id").toString();
-        qDebug() << "Finding pages listed as module items in " << course_id;
-
-        modules->setFilter("course_id=" + course_id);
-        modules->select();
-        for(int module_i=0; module_i < modules->rowCount(); module_i++) {
-            qDebug() << " -- Module " << modules->record(module_i).value("name").toString();
-            QString module_id = modules->record(module_i).value("id").toString();
-
-            // Get the module items for this module
-            module_items->setFilter("module_id=" + module_id + " and type='page'");
-            module_items->select();
-            for(int module_item_i=0; module_item_i < module_items->rowCount(); module_item_i++) {
-                // Add each page to our pages table
-                QSqlRecord module_item_record = module_items->record(module_item_i);
-                QString page_id = module_item_record.value("id").toString();
-                QString page_url = module_item_record.value("page_url").toString();
-
-                model->setFilter("page_id=" + page_id);
-                model->select();
-
-                QSqlRecord page_record;
-                bool is_insert_page = false;
-
-                if (model->rowCount() == 1) {
-                    // Row exists, update with current info
-                    page_record = model->record(0);
-                    is_insert_page = false;
-                    qDebug() << "\t\tUpdating page from module item ..." << page_url;
-                } else {
-                    // Need to clear the filter to insert
-                    model->setFilter("");
-                    page_record = model->record();
-                    is_insert_page = true;
-                    qDebug() << "\t\tImporting page from module item..." << page_url;
-                }
-
-                page_record.setValue("url", page_url);
-                page_record.setValue("page_id", page_id);
-                page_record.setValue("course_id", course_id);
-
-                if (is_insert_page) {
-                   model->insertRecord(-1, page_record);
-                } else {
-                   // Filter should be set so 0 should be current record
-                   model->setRecord(0, page_record);
-                }
-                // Write changes
-                if (!model->submitAll()) { ret = false; }
-
-                model->setFilter(""); // clear the filter
-
-                //qDebug() << "Page " << o["title"].toString("");
-                model->database().commit();
-                //qDebug() << model->lastError();
-
-            }
-        }
-    }
-
-    // Download all page bodies/info for each page in the database
-    courses_model->setFilter("");
-    for (int i=0; i< courses_model->rowCount(); i++) {
-        QSqlRecord course_record = courses_model->record(i);
-        QString course_id = course_record.value("id").toString();
-
-        // Get pages for this course
-        model->setFilter("course_id=" + course_id);
-        for (int model_i=0; model_i < model->rowCount(); model_i++ ) {
-            QSqlRecord page_record = model->record(model_i);
-            QString page_url = page_record.value("url").toString();
-            QString page_id = page_record.value("page_id").toString();
-            QString page_body = "";
-
-            qDebug() << "* Retrieving page info for " << course_id;
-            QHash<QString,QString> p;
-            p["per_page"] = "10000"; // Cuts down number of calls significantly
-            QJsonDocument page_doc = CanvasAPICall("/api/v1/courses/" + course_id + "/pages/" + page_url, "GET", &p);
-
-            if (!page_doc.isObject()) {
-                qDebug() << "ERROR GETTING PAGE BODY - " << course_id << page_url;
-                page_body = "ERROR GETTING PAGE";
-            } else {
-                QJsonObject o = page_doc.object();
-                page_body = o["body"].toString("");
-                if (o["locked_for_user"].toBool() == true) {
-                    page_body = o["lock_explanation"].toString("Page Locked - see instructor");
-                }
-
-                page_record.setValue("title", o["title"].toString(""));
-                page_record.setValue("created_at", o["created_at"].toString(""));
-                page_record.setValue("url", o["url"].toString(""));
-                page_record.setValue("editing_roles", o["editing_roles"].toString(""));
-                page_record.setValue("page_id", o["page_id"].toString(""));
-                page_record.setValue("published", o["published"].toBool(false));
-                page_record.setValue("hide_from_students", o["hide_from_students"].toBool(false));
-                page_record.setValue("front_page", o["front_page"].toBool(false));
-                page_record.setValue("html_url", o["html_url"].toString(""));
-                page_record.setValue("updated_at", o["updated_at"].toString(""));
-                page_record.setValue("locked_for_user", o["locked_for_user"].toBool(false));
-                page_record.setValue("course_id", course_id);
-                page_record.setValue("body", page_body);
-                page_record.setValue("lock_info", o["lock_info"].toString(""));
-                page_record.setValue("lock_explanation", o["lock_explanation"].toString(""));
-
-                model->setRecord(model_i, page_record);
-
-                // Write changes
-                if (!model->submitAll()) {
-                    ret = false;
-                    qDebug() << "Error submitting page data " << model->lastError();
-                }
-
-                model->setFilter(""); // clear the filter
-
-                model->database().commit();
-            }
+            qDebug() << "\t\t!!! Unable to pull array of pages: " << doc;
         }
     }
 
@@ -2123,7 +1936,77 @@ QString EX_Canvas::ProcessSMCVideos(QString content)
 
 QString EX_Canvas::ProcessSMCDocuments(QString content)
 {
-    return content;
+    QString ret = content;
+
+    // Search for any SMC Document links
+    // <iframe src="https://smc.ed/smc/static/ViewerJS/index.html#/media/dl_document/4c3b4f9275bf4ff699b2dc98079f761b" width="734" height="620" allowfullscreen="allowfullscreen" webkitallowfullscreen="webkitallowfullscreen"></iframe>
+    // https://smc.ed/media/dl_document/4c3b4f9275bf4ff699b2dc98079f761b
+
+    QHash<QString, QStringList> replace_urls;
+
+    QRegExp rx;
+
+    // Find URLS
+    // "((https?:\\/\\/[a-zA-Z\\.0-9:]*)((\\/smc)?\\/static\\/ViewerJS\\/index.html#)?\\/media\\/dl_document\\/([a-zA-Z0-9]+))"
+    rx.setPattern("((https?:\\/\\/[a-zA-Z\\.0-9:]*)((\\/smc)?\\/static\\/ViewerJS\\/index.html#)?\\/media\\/dl_document\\/([a-zA-Z0-9]+))");
+
+    // rx.cap(0) = full match
+    // 1 = https://smc.ed/media/dl_document/4c3b4f9275bf4ff699b2dc98079f761b
+    // 2 = server - https://smc.ed
+    // 3 = /smc/static/ViewerJS/index.html# (if exists)
+    // 4 = /smc (if exists)
+    // 5 = document id
+
+    int pos = 0;
+    while ((pos = rx.indexIn(ret, pos)) != -1) {
+        pos += rx.matchedLength();
+
+        // Get the full URL for this item
+        QString full_url = rx.cap(1);
+        // Get the host for this item
+        QString smc_host = rx.cap(2);
+        // Get the document id for this item
+        QString document_id = rx.cap(5);
+
+        // Add to the list to be downloaded
+        if (!_localhost_url.startsWith(smc_host)) {
+            replace_urls[full_url] = QStringList() << smc_host << document_id;
+        } else {
+            // Link already points to a local host address, don't mess with it
+            qDebug() << "-- Link found w localhost address? " << full_url;
+         }
+    }
+
+    qDebug() << "Found SMC Document links";
+    qDebug() << replace_urls;
+
+    // Queue up document to be downloaded
+    foreach(QString original_url, replace_urls.keys()) {
+        QStringList values = replace_urls[original_url];
+        QString original_host = values[0];
+        QString document_id = values[1];
+
+        QueueDocumentForDownload(document_id, original_host, original_url);
+    }
+
+    // Replace old URLs w the new ones
+    foreach(QString original_url, replace_urls.keys()) {
+        QStringList values = replace_urls[original_url];
+        QString original_host = values[0];
+        QString document_id = values[1];
+        QString new_url = _localhost_url;
+        if (original_url.contains("ViewerJS")) {
+            // Use the ViewerJS tool to display this document
+            new_url += "/ViewerJS/index.html#/smc_document_cache/" + document_id;
+        } else {
+            // Not using ViewerJS - make it the direct link to the file
+            new_url += "/smc_document_cache/" + document_id;
+        }
+        qDebug() << "Replacing " << original_url << " with " << new_url;
+        ret = ret.replace(original_url, new_url, Qt::CaseInsensitive);
+    }
+
+    return ret;
 }
 
 bool EX_Canvas::QueueVideoForDownload(QString movie_id, QString original_host, QString original_url)
@@ -2234,7 +2117,7 @@ bool EX_Canvas::pullSMCVideos()
             // Build the download url
             smc_url += "/media/dl_media/" + video_id + "/mp4";
 
-            bool r = DownloadFile(smc_url, local_path);
+            bool r = DownloadFile(smc_url, local_path, "SMC Video: " + video_id);
             if (!r) {
                 qDebug() << "Error downloading file " << smc_url;
             }
@@ -2264,7 +2147,156 @@ bool EX_Canvas::pullSMCVideos()
 
 bool EX_Canvas::pullSMCDocuments()
 {
+    bool ret = false;
+
+    // Make sure our cache path exists
+    QDir base_dir;
+    base_dir.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/content/www_root/smc_document_cache/");
+    base_dir.mkpath(base_dir.path());
+
+    // Get the list of document ids
+    QSqlQuery q;
+    q.prepare("SELECT * from smc_document_dl_queue2");
+    if (!q.exec()) {
+        qDebug() << "ERROR RUNNING DB QUERY: " << q.lastQuery() << " - " << q.lastError().text();
+        return false;
+    }
+
+    while(q.next()) {
+        // See if document exists
+        QString document_id = q.value(1).toString();
+        QString local_path = base_dir.path() + "/" + document_id; // TODO - need file extension?
+        QFileInfo fi = QFileInfo(local_path);
+        if (fi.exists() && fi.size() > 10) {
+            qDebug() << " - SMC Document file already downloaded: " << local_path;
+        } else {
+            qDebug() << "** Need to download document file " << local_path;
+            QString smc_url = q.value(2).toString();
+            // Build dl url
+            smc_url += "/media/dl_document/" + document_id;
+            bool r = DownloadFile(smc_url, local_path, "SMC Document: " + document_id);
+            if (!r) {
+                qDebug() << "Error downloading file " << smc_url;
+            } else {
+                // File downloaded, get the content type header
+                QHash<QString, QString> headers = web_request->GetAllDownloadHeaders();
+                if (headers.contains("Content-Type")) {
+                    // Save a file with the mime time
+                    QString mime_local_path = local_path + ".mime";
+                    QString content_type = headers["Content-Type"];
+                    QFile *mime_file = new QFile(mime_local_path);
+                    if (mime_file->open(QIODevice::WriteOnly)) {
+                        mime_file->write(content_type.toLocal8Bit());
+                        mime_file->close();
+                    }
+                    mime_file->deleteLater();
+                }
+            }
+        }
+    }
     return true;
+}
+
+QSqlRecord EX_Canvas::pullSinglePage(QString course_id, QString page_url)
+{
+    QSqlTableModel *pages_model = _app_db->getTable("pages");
+    if (pages_model == nullptr) {
+        qDebug() << "Error getting model for Pages in pullSinglePage " << page_url;
+        return QSqlRecord();
+    }
+    // Pull the page from Canvas and update the database with current info
+
+    QString page_body = "";
+    QString page_id = "";
+
+    // Need to retrieve each page body individually
+    QHash<QString,QString> p;
+    p["per_page"] = "10000"; // Cuts down number of calls significantly
+    QJsonDocument page_doc = CanvasAPICall("/api/v1/courses/" + course_id + "/pages/" + page_url, "GET", &p);
+    QJsonObject page_object;
+    if (!page_doc.isObject()) {
+        qDebug() << "!!!ERROR GETTING PAGE BODY - " << course_id << page_url;
+        page_body = "ERROR GETTING PAGE";
+        return QSqlRecord();
+    } else {
+        page_object = page_doc.object();
+        page_body = page_object["body"].toString("");
+        if (page_object["locked_for_user"].toBool() == true) {
+            page_body = page_object["lock_explanation"].toString("Page Locked - see instructor");
+        }
+    }
+
+    page_id = page_doc["page_id"].toString("");
+    if (page_id == "") {
+        qDebug() << "** ERROR Getting Page Info for " << page_url;
+        return QSqlRecord();
+    }
+
+    // Convert SMC links to local links
+    page_body = ProcessSMCVideos(page_body);
+    page_body = ProcessSMCDocuments(page_body);
+
+    pages_model->setFilter("url='" + page_url.replace("'", "\'") + "' AND course_id='" + course_id.replace("'", "\'") + "'");
+    pages_model->select();
+    QSqlRecord record;
+    bool is_insert = false;
+
+    if (pages_model->rowCount() >= 1) {
+        // Row exists, update with current info
+        record = pages_model->record(0);
+        is_insert = false;
+        qDebug() << "\t\t\tUpdating page..." << page_url;
+    } else {
+        // Need to clear the filter to insert
+        pages_model->setFilter("");
+        record = pages_model->record();
+        is_insert = true;
+        qDebug() << "\t\t\tImporting page info..." << page_url;
+    }
+
+    // JSON - list of objects
+    // {"title":"Format of the course","created_at":"2017-06-21T21:44:15Z",
+    // "url":"format-of-the-course","editing_roles":"teachers",
+    // "page_id":26664700000000089,"published":true,"hide_from_students":false,
+    // "front_page":false,
+    // "html_url":"https://canvas.ed.dev/courses/26664700000000090/pages/format-of-the-course",
+    // "updated_at":"2017-06-21T21:44:15Z","locked_for_user":false}
+
+    record.setValue("title", page_object["title"].toString(""));
+    record.setValue("created_at", page_object["created_at"].toString(""));
+    record.setValue("url", page_object["url"].toString(""));
+    record.setValue("editing_roles", page_object["editing_roles"].toString(""));
+    record.setValue("page_id", page_object["page_id"].toString(""));
+    record.setValue("published", page_object["published"].toBool(false));
+    record.setValue("hide_from_students", page_object["hide_from_students"].toBool(false));
+    record.setValue("front_page", page_object["front_page"].toBool(false));
+    record.setValue("html_url", page_object["html_url"].toString(""));
+    record.setValue("updated_at", page_object["updated_at"].toString(""));
+    record.setValue("locked_for_user", page_object["locked_for_user"].toBool(false));
+    record.setValue("course_id", course_id);
+    record.setValue("body", page_body);
+    record.setValue("lock_info", page_object["lock_info"].toString(""));
+    record.setValue("lock_explanation", page_object["lock_explanation"].toString(""));
+
+    if (is_insert) {
+       pages_model->insertRecord(-1, record);
+    } else {
+       // Filter should be set so 0 should be current record
+       pages_model->setRecord(0, record);
+    }
+    // Write changes
+    if (!pages_model->submitAll()) {
+        qDebug() << "Error saving page info " << pages_model->lastError();
+    }
+
+    pages_model->setFilter(""); // clear the filter
+    pages_model->select();
+
+    //qDebug() << "Page " << o["title"].toString("");
+    pages_model->database().commit();
+    //qDebug() << model->lastError();
+
+    return record;
 }
 
 

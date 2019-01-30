@@ -46,8 +46,11 @@ AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
     _database->init_db();
 
     // Start localhost web server
-    copyWebResourcesToWebFolder();
     startServer();
+
+    // Copy the www resources over in a different thread
+    //copyWebResourcesToWebFolder();
+    QFuture<void> future = QtConcurrent::run(this, &AppModule::copyWebResourcesToWebFolder);
 
     // Setup canvas object
     _canvas = new EX_Canvas(this, _database, _app_settings, getLocalServerURL());
@@ -202,7 +205,7 @@ bool AppModule::copyPath(QString source_path, QString dest_path)
     foreach(QString dirname, source_dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
         QString new_source_path = source_path + "/" + dirname;
         QString new_dest_path = dest_path + "/" + dirname;
-        qDebug() << "Making Dir " << new_dest_path;
+        //qDebug() << "Making Dir " << new_dest_path;
         dest_dir.mkpath(new_dest_path);
         copyPath(new_source_path, new_dest_path);
     }
@@ -211,7 +214,7 @@ bool AppModule::copyPath(QString source_path, QString dest_path)
     foreach(QString fname, source_dir.entryList(QDir::Files)) {
         QString source_file_path = source_path + "/" + fname;
         QString dest_file_path = dest_path + "/" + fname;
-        qDebug() << "Copying file " << source_file_path << " -- > " << dest_file_path;
+        //qDebug() << "Copying file " << source_file_path << " -- > " << dest_file_path;
         QFile::copy(source_file_path, dest_file_path);
 
     }
