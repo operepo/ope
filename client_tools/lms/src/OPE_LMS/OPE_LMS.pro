@@ -260,10 +260,13 @@ CONFIG (debug, debug|release) {
     VARIANT = release
 }
 
+# Make sure we have files copied to the build folder
 copy_files.commands = $(COPY_DIR) \"$$shell_path($$PWD\\www_content)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\web_content)\" && \
     $(COPY_DIR) \"$$shell_path($$PWD\\logo_icon.ico)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
-    $(COPY_DIR) \"$$shell_path($$PWD\\logo_icon.ico)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\favicon.ico)\" && \
-    $(COPY_DIR) \"$$shell_path($$PWD\\qt.conf)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\"
+    $(COPY_DIR) \"$$shell_path($$PWD\\favicon.ico)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
+    $(COPY_DIR) \"$$shell_path($$PWD\\qt.conf)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
+    $(COPY_DIR) \"$$shell_path($$PWD\\qtquickcontrols2.conf)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\"
+
 first.depends = $(first) copy_files
 export(first.depends)
 export(copy_files.commands)
