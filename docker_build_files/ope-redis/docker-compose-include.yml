@@ -4,14 +4,15 @@
         container_name: ope-redis
         network_mode: <NETWORK_MODE>
         restart: always
-        command: redis-server --appendonly yes
+        command: redis-server /etc/redis.conf
+        # command: redis-server --appendonly no
         #ports:
         #    - "6379:6379"
         # Expose only shows this port on docker network, not outside network
         expose:
             - "6379"
         volumes:
-            - ../volumes/redis/data:/data:rw
+            - ../volumes/redis/data2:/data:rw
         depends_on:
             - ope-gateway
             - ope-dns

@@ -1,4 +1,4 @@
-FROM redis:alpine
+FROM redis:5.0.3-alpine
 
 # ope-redis - Redis server, used by other containers
 # Build with docker build -t ope-redis .
@@ -11,4 +11,8 @@ FROM redis:alpine
 MAINTAINER Ray Pulsipher <ray@cmagic.biz>
 LABEL Description="Redis container used by canvas - Image for Open Prison Education" Vendor="openprisoneducation.com" Version="0.1"
 
+COPY redis.conf /etc/redis.conf
+
 VOLUME ["/data"]
+
+CMD ["redis-server", "/etc/redis.conf"]
