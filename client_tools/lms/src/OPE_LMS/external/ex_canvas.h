@@ -42,6 +42,7 @@ public slots:
     bool pullCourseFileFolders();
     // Get list of files to pull
     bool pullCourseFilesInfo();
+    bool pullSingleCourseFileInfo(QString file_id, QString course_id);
     // Pull a file binary
     bool pullCourseFilesBinaries();
     // Pull list of pages for courses
@@ -92,11 +93,18 @@ public slots:
 
     // Find videos/documents, replace links for local links, and queue
     // them in the download queue
+    QString ProcessAllLinks(QString content); // Call the rest - use this one
     QString ProcessSMCVideos(QString content);
     QString ProcessSMCDocuments(QString content);
+    QString ProcessDownloadLinks(QString content);
 
-    bool QueueVideoForDownload(QString movie_id, QString original_host, QString original_url);
-    bool QueueDocumentForDownload(QString document_id, QString original_host, QString original_url);
+
+    bool QueueVideoForDownload(QString movie_id, QString original_host,
+                               QString original_url);
+    bool QueueDocumentForDownload(QString document_id, QString original_host,
+                                  QString original_url);
+    bool QueueCanvasLinkForDownload(QString file_id,  QString course_id,
+                                    QString original_host, QString original_url);
 
     bool pullSMCVideos();
     bool pullSMCDocuments();

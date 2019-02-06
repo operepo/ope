@@ -41,6 +41,9 @@ AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
     //qmlRegisterType<EX_Canvas>("com.openprisoneducation.ope", 1, 0, "Canvas");
     parent->rootContext()->setContextProperty("mainWidget", this);
 
+    // Add our websocket transport so we can communicate with web pages in a webview
+    qmlRegisterType<CM_WebSocketTransport>("cm.WebSocketTransport", 1, 0, "WebSocketTransport");
+
     // Setup the database connection
     _database = new APP_DB(parent);
     _database->init_db();
@@ -129,7 +132,7 @@ QString AppModule::dataFolder()
 QString AppModule::fileCacheFolder()
 {
     QDir base_dir;
-    base_dir.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/file_cache/");
+    base_dir.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/content/www_root/canvas_file_cache/");
     base_dir.mkpath(base_dir.path());
     return base_dir.path();
 }
@@ -180,6 +183,14 @@ void AppModule::copyWebResourcesToWebFolder()
 
     qDebug() << "Copying web content: " << source_path << " --> " << dest_path;
 
+    // Copy the qwebchannel.js file
+    //QFileInfo jsFileInfo(dest_path + "/qwebchannel.js");
+    //if (!jsFileInfo.exists()) {
+    // Always make a fresh copy
+    //QFile::copy(":/qwebchannel.js", jsFileInfo.absoluteFilePath());
+    //}
+
+    // Copy web_content folder
     if (!copyPath(source_path, dest_path)) {
         qDebug() << "Error copying files to web folder";
         return;

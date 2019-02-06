@@ -33,6 +33,7 @@
 #include "cm/cm_sequentialguid.h"
 #include "cm/cm_httpserver.h"
 #include "cm/cm_users.h"
+#include "cm/cm_websockettransport.h"
 
 #include "db.h"
 

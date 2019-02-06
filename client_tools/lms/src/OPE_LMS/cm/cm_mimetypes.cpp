@@ -19,7 +19,7 @@ void CM_MimeTypes::LoadMimeTypes()
     mime_types["jpg"] = "image/jpeg";
     mime_types["jpeg"] = "image/jpeg";
 
-    mime_types["png"] = "image/png";\
+    mime_types["png"] = "image/png";
 
     mime_types["gif"] = "image/gif";
 
@@ -48,11 +48,14 @@ void CM_MimeTypes::LoadMimeTypes()
     mime_types["zip"] = "application/octet-stream";
     mime_types["rar"] = "application/octet-stream";
 
-    mime_types["doc"] = "application/msword";
-    mime_types["docx"] = "application/msword";
+    mime_types["docx"] = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    mime_types["doc"] = "application/vnd.ms-word";
 
-    mime_types["xls"] = "application/excel";
-    mime_types["xlsx"] = "application/excel";
+    mime_types["pptx"] = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+    mime_types["ppt"] = "application/vnd.ms-powerpoint";
+
+    mime_types["xlsx"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    mime_types["xls"] = "application/vnd.ms-excel";
 
     mime_types["pdf"] = "application/pdf";
 }
@@ -64,6 +67,20 @@ QString CM_MimeTypes::GetMimeType(QString ext)
 
     QString ret = mime_types[ext];
     if (ret == "") { ret = "application/octet-stream"; }
+
+    return ret;
+}
+
+QString CM_MimeTypes::GetExtentionForMimeType(QString mime_type)
+{
+    if (mime_types.count() < 1) { LoadMimeTypes(); }
+
+    QString ret = "";
+
+    QList<QString> keys = mime_types.keys(mime_type);
+    if(keys.count() > 0) {
+        ret = keys[0];
+    }
 
     return ret;
 }

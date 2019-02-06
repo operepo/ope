@@ -15,7 +15,8 @@ Page {
 
     Connections {
         target: mainWidget.canvas;
-        onDlProgress: {
+        onProgress: {
+            //console.log("dl progress called");
             progressCurrentItem.text = currentItem;
 
             if (totalBytes == 0) {
@@ -33,11 +34,16 @@ Page {
         progressLabel.text = "\n\nStarting sync process:";
         syncProgress.value = 0;
         syncProgress.visible = true;
+        progressCurrentItem.visible = true;
 
         // Pull student information
         progressLabel.text += "\nPulling student information...";
         r = mainWidget.canvas.pullStudentInfo();
-        if (r === false) { progressLabel.text += "\n  ERROR pulling student info"; }
+        if (r === false) {
+            progressLabel.text += "\n  ERROR pulling student info";
+            progressLabel.text += "\n Unable to continue - Check network connection and try again.";
+            return false;
+        }
         syncProgress.value = .05;
 
         // Push assignments to the server
@@ -62,45 +68,51 @@ Page {
         if (r === false) { progressLabel.text += "\n  ERROR pulling item info"; }
         syncProgress.value = .27;
 
-        progressLabel.text += "\nPulling Folder info for courses...";
-        r = mainWidget.canvas.pullCourseFileFolders()
-        if (r === false) { progressLabel.text += "\n  ERROR pulling folders info"; }
-        syncProgress.value = .29;
-
-        progressLabel.text += "\nPulling file info for courses...";
-        r = mainWidget.canvas.pullCourseFilesInfo();
-        if (r === false) { progressLabel.text += "\n  ERROR pulling files info"; }
-        syncProgress.value = .31;
-
         // Pull pages for courses
         progressLabel.text += "\nPulling pages for courses...";
         r = mainWidget.canvas.pullCoursePages();
         if (r === false) { progressLabel.text += "\n  ERROR pulling pages"; }
-        syncProgress.value = .38;
+        syncProgress.value = .3;
 
         // Pull assignments for courses
         progressLabel.text += "\nPulling assignments...";
         r = mainWidget.canvas.pullAssignments();
         if (r === false) { progressLabel.text += "\n ERROR pulling assignments"; }
-        syncProgress.value = .41;
+        syncProgress.value = .35;
 
         // Pull inbox messages for user
         progressLabel.text += "\nPulling inbox messages for user...";
         r = mainWidget.canvas.pullMessages();
         if (r === false) { progressLabel.text += "\n  ERROR pulling messages"; }
-        syncProgress.value = .48;
+        syncProgress.value = .4;
 
         // Pull sent messages for user
         progressLabel.text += "\nPulling sent messages for user...";
         r = mainWidget.canvas.pullMessages("sent");
         if (r === false) { progressLabel.text += "\n  ERROR pulling messages"; }
-        syncProgress.value = .51;
+        syncProgress.value = .45;
 
         // Pull Announcements
         progressLabel.text += "\nPulling announcements...";
         r = mainWidget.canvas.pullAnnouncements();
         if (r === false) { progressLabel.text += "\n  ERROR pulling announcements"; }
-        syncProgress.value = 0.53;
+        syncProgress.value = 0.48;
+
+        progressLabel.text += "\nPulling Folder info for courses...";
+        r = mainWidget.canvas.pullCourseFileFolders()
+        if (r === false) { progressLabel.text += "\n  ERROR pulling folders info"; }
+        syncProgress.value = .53;
+
+        progressLabel.text += "\nPulling file info for courses...";
+        r = mainWidget.canvas.pullCourseFilesInfo();
+        if (r === false) { progressLabel.text += "\n  ERROR pulling files info"; }
+        syncProgress.value = .56;
+
+        // Pull SMC Documents
+        progressLabel.text += "\nPulling SMC Documents...";
+        r = mainWidget.canvas.pullSMCDocuments();
+        if (r === false) { progressLabel.text += "\n  ERROR pulling SMC Documents"; }
+        syncProgress.value = 0.6;
 
         // Don't do this unless its marked for pull
         progressLabel.text += "\nPulling file binaries...";
@@ -114,16 +126,11 @@ Page {
         if (r === false) { progressLabel.text += "\n  ERROR pulling SMC Videos"; }
         syncProgress.value = 0.8;
 
-        // Pull SMC Documents
-        progressLabel.text += "\nPulling SMC Documents...";
-        r = mainWidget.canvas.pullSMCDocuments();
-        if (r === false) { progressLabel.text += "\n  ERROR pulling SMC Documents"; }
-        syncProgress.value = 0.9;
-
-
 
         progressLabel.text += "\n\nDone!";
         syncProgress.visible = false;
+        progressCurrentItem.visible = false;
+        progressCurrentItem.text = "";
 
         // Mark that we have synced
         mainWidget.markAsSyncedWithCanvas();

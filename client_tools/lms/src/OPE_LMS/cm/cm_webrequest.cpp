@@ -66,6 +66,9 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
         }
     }
 
+    // Start network timeout
+    http_timeout.start(http_timeout_interval, this);
+
     if (content_type == "application/x-www-form-urlencoded" && (method.toUpper() == "POST" || method.toUpper() == "PUT"))
     {
         // Normal post with urlencoded values
@@ -157,6 +160,9 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
     connect(http_reply, SIGNAL(finished()), &loop, SLOT(quit()));
     loop.exec(QEventLoop::ExcludeUserInputEvents);
 
+    // Make sure to stop the timer
+    http_timeout.stop();
+
     // Read in the reply
     //qDebug() << "NetowrkCall - Got Data: " << http_reply_data;
     //ret.append(http_reply_data);
@@ -178,7 +184,7 @@ bool CM_WebRequest::DownloadFile(QString url, QString local_path)
     if(dl_file->open(QIODevice::WriteOnly))
     {
         // File opened successfully
-        qDebug() << "File downloaded - saving to: " << download_local_path;
+        qDebug() << "DLFile - saving to: " << download_local_path;
     } else {
         // Unable to open the file
         qDebug() << "Unable to write to file: " << download_local_path;
@@ -198,6 +204,13 @@ bool CM_WebRequest::DownloadFile(QString url, QString local_path)
             this, SLOT(downloadProgress(qint64,qint64)));
     connect(&download_manager, SIGNAL(finished(QNetworkReply*)),
             this, SLOT(downloadReplyFinished(QNetworkReply*)));
+    connect(reply, SIGNAL(error(QNetworkReply::NetworkError)),
+            this, SLOT(downloadError(QNetworkReply::NetworkError)));
+    connect(reply, SIGNAL(sslErrors(QList<QSslError>)),
+            this, SLOT(downloadSSLError(QList<QSslError>)));
+
+    // Start the download timeout so we dont end up freezing forever on weird errors
+    download_timeout.start(dl_timeout_interval, this);
 
     // Use a QEventLoop to allow events and block until network traffic is done
     QEventLoop loop;
@@ -210,6 +223,8 @@ bool CM_WebRequest::DownloadFile(QString url, QString local_path)
     //    qDebug() << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     //    qDebug() << reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
 
+    // DL finished one way or another, turn off timer
+    download_timeout.stop();
 
     if (reply->error()) {
         ret = false;
@@ -274,6 +289,9 @@ QHash<QString, QString> CM_WebRequest::GetAllDownloadHeaders()
 
 void CM_WebRequest::downloadReadyRead()
 {
+    // Got data - restart the timeout interval
+    download_timeout.start(dl_timeout_interval, this);
+
     if  (!dl_file->isOpen()) {
         qDebug() << "File isn't open! " << download_local_path;
         return;
@@ -332,6 +350,52 @@ void CM_WebRequest::downloadProgress(qint64 bytesRead, qint64 totalBytes)
     emit progress(bytesRead, totalBytes);
 }
 
+void CM_WebRequest::downloadError(QNetworkReply::NetworkError code)
+{
+    try {
+        qDebug() << "!!!! DLERROR - download file " << code << " " << download_reply->request().url();
+    } catch(...) {
+        qDebug() << "!!!!!! UNKOWN EXCEPTION - DLFile Error";
+    }
+    // Stop download timer
+    download_timeout.stop();
+
+}
+
+void CM_WebRequest::downloadSSLError(const QList<QSslError> &errors)
+{
+    QString errorString;
+    foreach (const QSslError &error, errors) {
+        if (!errorString.isEmpty())
+            errorString += ", ";
+        errorString += error.errorString();
+    }
+    qDebug() << "DL File - SSL Errors: " << errorString;
+    qDebug() << "DL File - Ignoring SSL Errors";
+    download_reply->ignoreSslErrors();
+}
+
+void CM_WebRequest::timerEvent(QTimerEvent *event)
+{
+    if (event->timerId() == download_timeout.timerId()) {
+        // Download Timer Event
+        // If we got here we have been waiting too long
+        qDebug() << "Download Timeout - stopping download";
+        download_timeout.stop();
+        if (download_reply->isRunning()) {
+            download_reply->abort();
+        }
+
+    } else if (event->timerId() == http_timeout.timerId()) {
+        // HTTP Request Timer Event
+        // If we got here - waiting too long for reply/data
+        qDebug() << "HTTP Timeout - stopping request";
+        http_timeout.stop();
+        if (http_reply->isRunning()) {
+            http_reply->abort();
+        }
+    }
+}
 
 void CM_WebRequest::httpAuthenticationRequired(QNetworkReply*,QAuthenticator*)
 {
@@ -392,6 +456,9 @@ void CM_WebRequest::httpFinished()
 
 void CM_WebRequest::httpReadyRead()
 {
+    // Make sure to reset the timeout
+    http_timeout.start(http_timeout_interval, this);
+
     // this slot gets called every time the QNetworkReply has new data.
     // We read all of its new data and write it into the file.
     // That way we use less RAM than when reading it at the finished()

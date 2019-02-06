@@ -42,7 +42,7 @@ Page {
         var m = module_items_query; //modulesList.model
         m.modifyFilter("course_id=" + current_course_id);
         m.sortOn("sort_order");
-        //m.select();
+        m.refresh();
     }
 
     header: Text {

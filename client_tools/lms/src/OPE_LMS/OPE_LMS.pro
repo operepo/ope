@@ -1,4 +1,4 @@
-QT += qml quick sql network quickcontrols2 webview networkauth
+QT += qml quick sql network quickcontrols2 webview networkauth webchannel
 # networkauth
 # webengine webenginewidgets quick-private webview-private webview
 
@@ -61,7 +61,9 @@ SOURCES += main.cpp \
     appmodule.cpp \
     db.cpp \
     main.cpp \
-    openetworkaccessmanagerfactory.cpp
+    openetworkaccessmanagerfactory.cpp \
+    cm/cm_javascripthandler.cpp \
+    cm/cm_websockettransport.cpp
 
 RESOURCES += qml.qrc
 
@@ -143,7 +145,9 @@ HEADERS += \
     external/ex_ldap.h \
     appmodule.h \
     db.h \
-    openetworkaccessmanagerfactory.h
+    openetworkaccessmanagerfactory.h \
+    cm/cm_javascripthandler.h \
+    cm/cm_websockettransport.h
 
 LIBS += -LC:/OpenSSL-Win64/lib # -lcrypto -lssl
 INCLUDEPATH += C:/OpenSSL-Win64/include
@@ -244,7 +248,10 @@ DISTFILES += \
     www_content/projekktor-1.3.09/media/intro.ogv \
     www_content/projekktor-1.3.09/media/._intro.webm \
     www_content/projekktor-1.3.09/media/intro.webm \
-    WebEngineMP4Build.txt
+    WebEngineMP4Build.cmd \
+    websockettest.qml \
+    qwebchannel.js \
+    wc_index.html
 
 # Rules to force qrc rebuild each time - deal with bug where qml files aren't updated on next run
 update_qml.target = qml.qrc
@@ -264,6 +271,7 @@ CONFIG (debug, debug|release) {
 copy_files.commands = $(COPY_DIR) \"$$shell_path($$PWD\\www_content)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\web_content)\" && \
     $(COPY_DIR) \"$$shell_path($$PWD\\logo_icon.ico)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
     $(COPY_DIR) \"$$shell_path($$PWD\\favicon.ico)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
+    $(COPY_DIR) \"$$shell_path($$PWD\\qwebchannel.js)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\web_content\\)\" && \
     $(COPY_DIR) \"$$shell_path($$PWD\\qt.conf)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
     $(COPY_DIR) \"$$shell_path($$PWD\\qtquickcontrols2.conf)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\"
 

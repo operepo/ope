@@ -2,7 +2,6 @@
     <qresource prefix="/">
         <file>main.qml</file>
         <file>qtquickcontrols2.conf</file>
-        <file>sync.qml</file>
         <file>lms.qml</file>
         <file>CanvasSync.qml</file>
         <file>HomePage.qml</file>
@@ -33,6 +32,9 @@
         <file>AppAnnouncements.qml</file>
         <file>not_credentialed.qml</file>
         <file>TestButton.qml</file>
+        <file>websockettest.qml</file>
+        <file>qwebchannel.js</file>
+        <file>wc_index.html</file>
     </qresource>
     <qresource prefix="/images">
         <file>blue-folder.png</file>

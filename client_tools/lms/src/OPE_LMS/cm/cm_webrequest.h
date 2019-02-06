@@ -13,6 +13,8 @@
 #include <QDateTime>
 #include <QFile>
 #include <QFileInfo>
+#include <QBasicTimer>
+#include <QTimerEvent>
 
 
 class CM_WebRequest : public QObject
@@ -38,7 +40,12 @@ public slots:
     void downloadReadyRead();
     void downloadReplyFinished(QNetworkReply *reply);
     void downloadProgress(qint64 bytesRead, qint64 totalBytes);
+    void downloadError(QNetworkReply::NetworkError code);
+    void downloadSSLError(const QList<QSslError> &errors);
 
+
+    // Deals with timer events - for both download_timeout and http_timeout
+    void timerEvent(QTimerEvent *event);
 
 private slots:
     // Network manager signals
@@ -68,6 +75,11 @@ private:
     QHash<QString,QString> http_reply_headers;
     QHash<QString,QString> download_reply_headers;
 
+    // Monitor dl/http request and allow things to timeout if needed
+    int dl_timeout_interval = 15000;
+    int http_timeout_interval = 15000;
+    QBasicTimer download_timeout;
+    QBasicTimer http_timeout;
 
 };
 

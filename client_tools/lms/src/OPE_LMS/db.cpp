@@ -507,6 +507,20 @@ bool APP_DB::init_db()
             ret = false;
         }
 
+
+        // Add table for canvas file download queue
+        sql = "CREATE TABLE IF NOT EXISTS `canvas_dl_queue` ( \
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT, \
+                `file_id` TEXT NOT NULL DEFAULT '', \
+                `course_id` TEXT NOT NULL DEFAULT '', \
+                `original_host` TEXT NOT NULL DEFAULT '', \
+                `original_url` TEXT NOT NULL DEFAULT '' \
+             );";
+        if (!query.exec(sql)) {
+            qDebug() << "DB Error: " << query.lastError().text();
+            ret = false;
+        }
+
         // Make sure to commit and release locks
         _db.commit();
 

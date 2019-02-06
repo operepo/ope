@@ -588,12 +588,31 @@ bool EX_Canvas::pullCourseFilesInfo()
     bool ret = false;
     if (_app_db == nullptr) { return ret; }
 
+    // Go through file dl queue - these are links found in content like pages and may not be
+    // in the current list
+    QSqlQuery q;
+    q.prepare("SELECT * FROM canvas_dl_queue");
+    if (!q.exec()) {
+        qDebug() << "ERROR RUNNING DB QUERY: " << q.lastQuery() << " - " << q.lastError().text();
+        return false;
+    }
+
+    while (q.next()) {
+        QString f_id = q.value(1).toString();
+        QString course_id = q.value(2).toString();
+        QString original_host = q.value(3).toString();
+        QString original_url = q.value(4).toString();
+
+        // This will add the file info to the files list so it can be pulled later
+        pullSingleCourseFileInfo(f_id, course_id);
+    }
+
+
     // Get the list of courses for this student
     GenericTableModel *courses_model = _app_db->getTable("courses");
-    GenericTableModel *model = _app_db->getTable("files");
 
-    if (courses_model == nullptr || model == nullptr) {
-        qDebug() << "Unable to get models for courses or files!";
+    if (courses_model == nullptr) {
+        qCritical() << "Unable to get models for courses !";
         return false;
     }
 
@@ -621,79 +640,120 @@ bool EX_Canvas::pullCourseFilesInfo()
                 QString id = o["id"].toString("");
                 //qDebug() << "File ID " << id;
 
-                model->setFilter("id = " + id);
-                model->select();
-                QSqlRecord record;
-                bool is_insert = false;
-
-                if (model->rowCount() == 1) {
-                    // Row exists, update with current info
-                    record = model->record(0);
-                    is_insert = false;
-                    qDebug() << "\t\tUpdating file info..." << id << o["display_name"].toString("");
-                } else {
-                    // Need to clear the filter to insert
-                    model->setFilter("");
-                    record = model->record();
-                    is_insert = true;
-                    qDebug() << "\t\tImporting file info..." << id << o["display_name"].toString("");
-
-                    // Set some defaults
-                    record.setValue("pull_file", "");
-                    record.setValue("local_copy_present", "");
+                // Pull the file info from canvas
+                if (!pullSingleCourseFileInfo(id, course_id)) {
+                    // If we fail, mark as false
+                    ret = false;
                 }
-
-                // JSON - list of objects
-                // {"id":26664700000000097,"folder_id":26664700000000099,
-                // "display_name":"101 uses of the quadratic equation.pdf",
-                // "filename":"101_uses_of_the_quadratic_equation.pdf",
-                // "content-type":"application/pdf",
-                // "url":"https://canvas.ed.dev/files/26664700000000097/download?download_frd=1",
-                // "size":451941,"created_at":"2017-06-21T21:44:11Z",
-                // "updated_at":"2017-06-21T21:44:11Z","unlock_at":nullptr,"locked":false,
-                // "hidden":false,"lock_at":nullptr,"hidden_for_user":false,
-                // "thumbnail_url":nullptr,"modified_at":"2017-06-21T21:44:11Z",
-                // "mime_class":"pdf","media_entry_id":nullptr,"locked_for_user":false}
-
-                record.setValue("id", o["id"].toString(""));
-                record.setValue("folder_id", o["folder_id"].toString(""));
-                record.setValue("display_name", o["display_name"].toString(""));
-                record.setValue("filename", o["filename"].toString(""));
-                record.setValue("content_type", o["content-type"].toString(""));
-                record.setValue("url", o["url"].toString(""));
-                record.setValue("size", o["size"].toString(""));
-                record.setValue("created_at", o["created_at"].toString(""));
-                record.setValue("updated_at", o["updated_at"].toString(""));
-                record.setValue("unlock_at", o["unlock_at"].toString(""));
-                record.setValue("locked", o["locked"].toString(""));
-                record.setValue("hidden", o["hidden"].toBool(false));
-                record.setValue("lock_at", o["lock_at"].toString(""));
-                record.setValue("hidden_for_user", o["hidden_for_user"].toBool(false));
-                record.setValue("thumbnail_url", o["thumbnail_url"].toString(""));
-                record.setValue("modified_at", o["modified_at"].toString(""));
-                record.setValue("mime_class", o["mime_class"].toString(""));
-                record.setValue("media_entry_id", o["media_entry_id"].toString(""));
-                record.setValue("locked_for_user", o["locked_for_user"].toBool(false));
-                record.setValue("course_id", course_id);
-
-
-               if (is_insert) {
-                   model->insertRecord(-1, record);
-               } else {
-                   // Filter should be set so 0 should be current record
-                   model->setRecord(0, record);
-               }
-               // Write changes
-               if (!model->submitAll()) { ret = false; }
-
-               model->setFilter(""); // clear the filter
-
-               //qDebug() << "File info " << o["display_name"].toString("");
-               model->database().commit();
-               //qDebug() << model->lastError();
-
             }
         }
+    }
+
+    return ret;
+}
+
+bool EX_Canvas::pullSingleCourseFileInfo(QString file_id, QString course_id)
+{
+    // Grab the file info for this specific file
+    bool ret = false;
+    if (_app_db == nullptr) { return ret; }
+
+    GenericTableModel *files_model = _app_db->getTable("files");
+
+    if (files_model == nullptr) {
+        qCritical() << "Unable to get model for files!";
+        return false;
+    }
+
+    QHash<QString,QString> params;
+    params["per_page"] = "10000"; // Cut down number of api calls significantly
+    QJsonDocument doc = CanvasAPICall("/api/v1/files/" + file_id, "GET", &params);
+
+    if (doc.isObject()) {
+        // Get file object
+        QJsonObject o = doc.object();
+
+        //qDebug() << "Got File Item " << o;
+
+        QString file_id = o["id"].toString("");
+
+        // See if this file entry exists in the database
+        files_model->setFilter("id=" + file_id);
+        files_model->select();
+        QSqlRecord record;
+        bool is_insert = false;
+
+        if (files_model->rowCount() >=1) {
+            // Row exists - update it
+            record = files_model->record(0);
+            is_insert = false;
+            qDebug() << "\t\tUpdating file info " << file_id << o["display_name"].toString("");
+        } else {
+            // Inserting new record - need to clear filter
+            files_model->setFilter("");
+            record = files_model->record();
+            is_insert = true;
+            qDebug() << "\t\tImporting new file info " << file_id << o["display_name"].toString("");
+
+            // Set some defaults
+            record.setValue("pull_file", "");
+            record.setValue("local_copy_present", "");
+        }
+
+        // JSON - list of objects
+        // {"id":26664700000000097,"folder_id":26664700000000099,
+        // "display_name":"101 uses of the quadratic equation.pdf",
+        // "filename":"101_uses_of_the_quadratic_equation.pdf",
+        // "content-type":"application/pdf",
+        // "url":"https://canvas.ed.dev/files/26664700000000097/download?download_frd=1",
+        // "size":451941,"created_at":"2017-06-21T21:44:11Z",
+        // "updated_at":"2017-06-21T21:44:11Z","unlock_at":nullptr,"locked":false,
+        // "hidden":false,"lock_at":nullptr,"hidden_for_user":false,
+        // "thumbnail_url":nullptr,"modified_at":"2017-06-21T21:44:11Z",
+        // "mime_class":"pdf","media_entry_id":nullptr,"locked_for_user":false}
+
+        record.setValue("id", file_id);
+        record.setValue("folder_id", o["folder_id"].toString(""));
+        record.setValue("display_name", o["display_name"].toString(""));
+        record.setValue("filename", o["filename"].toString(""));
+        record.setValue("content_type", o["content-type"].toString(""));
+        record.setValue("url", o["url"].toString(""));
+        record.setValue("size", o["size"].toString(""));
+        record.setValue("created_at", o["created_at"].toString(""));
+        record.setValue("updated_at", o["updated_at"].toString(""));
+        record.setValue("unlock_at", o["unlock_at"].toString(""));
+        record.setValue("locked", o["locked"].toString(""));
+        record.setValue("hidden", o["hidden"].toBool(false));
+        record.setValue("lock_at", o["lock_at"].toString(""));
+        record.setValue("hidden_for_user", o["hidden_for_user"].toBool(false));
+        record.setValue("thumbnail_url", o["thumbnail_url"].toString(""));
+        record.setValue("modified_at", o["modified_at"].toString(""));
+        record.setValue("mime_class", o["mime_class"].toString(""));
+        record.setValue("media_entry_id", o["media_entry_id"].toString(""));
+        record.setValue("locked_for_user", o["locked_for_user"].toBool(false));
+        record.setValue("course_id", course_id);
+
+
+       if (is_insert) {
+           files_model->insertRecord(-1, record);
+       } else {
+           // Filter should be set so 0 should be current record
+           files_model->setRecord(0, record);
+       }
+
+       // Write changes
+       if (!files_model->submitAll()) {
+           ret = false;
+           qDebug() << "*** DB ERROR saving file info " << files_model->lastError().text();
+       } else {
+           ret = true;
+       }
+
+       files_model->setFilter("");
+       files_model->database().commit();
+
+    } else {
+        qDebug() << "JSON ERROR - got invalid json object " << doc;
     }
 
     return ret;
@@ -716,7 +776,8 @@ bool EX_Canvas::pullCourseFilesBinaries()
 
     // Get the local cache folder
     QDir base_dir;
-    base_dir.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/file_cache/");
+    base_dir.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) +
+                     "/content/www_root/canvas_file_cache/");
     base_dir.mkpath(base_dir.path());
 
     ret = true;
@@ -725,15 +786,21 @@ bool EX_Canvas::pullCourseFilesBinaries()
         QString f_id = f.value("id").toString();
         QString f_filename = f.value("filename").toString();
         QString f_name = f.value("display_name").toString();
+        QString content_type = f.value("content_type").toString();
         QString f_url = f.value("url").toString();
         int f_size = f.value("size").toInt();
-        QString local_path = f.value("pull_file").toString();
+        QString f_ext = CM_MimeTypes::GetExtentionForMimeType(content_type);
+        if (f_ext != "") { f_ext = "." + f_ext; }
+        QString local_path = "/" + f_id + f_ext; // f.value("pull_file").toString();
+        // Get file type
+        f.setValue("pull_file", local_path);
 
-        if (local_path == "") {
-            // Assign a new local path
-            local_path = "/" + f_id + "_" + f_filename;
-            f.setValue("pull_file", local_path);
-        }
+        //if (local_path == "") {
+        //    // Assign a new local path
+        //    //local_path = "/" + f_id + "_" + f_filename;
+        //    local_path = "/" + f_id;
+        //    f.setValue("pull_file", local_path);
+        //}
 
         // See if the file already exists locally
         QFileInfo fi = QFileInfo(base_dir.path() + local_path);
@@ -745,11 +812,27 @@ bool EX_Canvas::pullCourseFilesBinaries()
             // Download the file
             qDebug() << "Downloading file " << local_path;
             progressCurrentItem = f_filename;
-            bool r = DownloadFile(f_url, base_dir.path() + local_path);
+            bool r = DownloadFile(f_url, base_dir.path() + local_path, "Canvas File: " + f_filename);
 
-            if (r == true) {
-                // Mark the file as downloaded
+            if (!r) {
+                qDebug() << "ERROR - canvas file download " << f_filename << " - " << f_url;
+            } else {
+                // Makre the file as present
                 f.setValue("local_copy_present", true);
+
+                // Make sure we save the content header
+                /*QHash<QString, QString> headers = web_request->GetAllDownloadHeaders();
+                if (headers.contains("Content-Type")) {
+                    // Save a file w the mimetype
+                    QString mime_local_path = base_dir.path() + local_path + ".mime";
+                    QString content_type = headers["Content-Type"];
+                    QFile *mime_file = new QFile(mime_local_path);
+                    if (mime_file->open(QIODevice::WriteOnly)) {
+                        mime_file->write(content_type.toLocal8Bit());
+                        mime_file->close();
+                    }
+                    mime_file->deleteLater();
+                }*/
             }
         }
 
@@ -1106,8 +1189,12 @@ bool EX_Canvas::pullAssignments()
                 // "submissions_download_url": "https://canvas.ed/courses/35871700000000003/assignments/35871700000000002/submissions?zip=1"
                 //  },
 
+                QString desc = o["description"].toString("");
+                // Convert SMC Video/Document/Etc links to local links
+                desc = ProcessAllLinks(desc);
+
                 record.setValue("id", o["id"].toString(""));
-                record.setValue("description", o["description"].toString(""));
+                record.setValue("description", desc);
                 record.setValue("due_at", o["due_at"].toString(""));
                 record.setValue("unlock_at", o["unlock_at"].toString(""));
                 record.setValue("lock_at", o["lock_at"].toString(""));
@@ -1842,7 +1929,21 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
 bool EX_Canvas::DownloadFile(QString url, QString local_path, QString item_name)
 {
     progressCurrentItem = item_name;
-    return web_request->DownloadFile(url, local_path);
+    emit progress(0, 0, progressCurrentItem);
+    int count = 0;
+    while (count < 5) {
+        // Try 5 times to download each file
+        //qDebug() << " - DL Try " << count << url;
+        if (web_request->DownloadFile(url, local_path) == true) {
+            // DL worked, done.
+            return true;
+        }
+        // DL failed, try again?
+        count++;
+    }
+
+    qDebug() << " ***** ERROR downloading file after " << count << " tries: " << url;
+    return false;
 }
 
 void EX_Canvas::downloadProgress(qint64 bytesRead, qint64 totalBytes)
@@ -1866,6 +1967,16 @@ void EX_Canvas::SetCanvasURL(QString url)
     canvas_url = url;
 }
 
+QString EX_Canvas::ProcessAllLinks(QString content)
+{
+    QString ret = content;
+    ret = ProcessDownloadLinks(ret);
+    ret = ProcessSMCDocuments(ret);
+    ret = ProcessSMCVideos(ret);
+
+    return ret;
+}
+
 QString EX_Canvas::ProcessSMCVideos(QString content)
 {
     QString ret = content;
@@ -1878,8 +1989,8 @@ QString EX_Canvas::ProcessSMCVideos(QString content)
     QRegExp rx;
 
     // Find iframes
-    // src\s*=\s*[\"']{1}\s?((https?:\/\/[a-zA-Z\.0-9:]*)\/media\/player(\.load)?\/([a-zA-Z0-9]+)(\/)?(\?)?(autoplay=(true|false))?)\s*[\"']{1}
-    rx.setPattern("src\\s*=\\s*[\\\"']{1}\\s?((https?:\\/\\/[a-zA-Z\\.0-9:]*)\\/media\\/player(\\.load)?\\/([a-zA-Z0-9]+)(\\/)?(\\?)?(autoplay=(true|false))?)\\s*[\\\"']{1}");
+    // [\"']{1}\s?((https?:\/\/[a-zA-Z\.0-9:]*)\/media\/player(\.load)?\/([a-zA-Z0-9]+)(\/)?(\?)?(autoplay=(true|false))?)\s*[\"']{1}
+    rx.setPattern("[\\\"']{1}\\s?((https?:\\/\\/[a-zA-Z\\.0-9:]*)\\/media\\/player(\\.load)?\\/([a-zA-Z0-9]+)(\\/)?(\\?)?(autoplay=(true|false))?)\\s*[\\\"']{1}");
 
     // rx.cap(0) = full match
     // 1 = full url - https://smc.ed/media/player.load/3f0s98foeu/
@@ -2009,6 +2120,79 @@ QString EX_Canvas::ProcessSMCDocuments(QString content)
     return ret;
 }
 
+QString EX_Canvas::ProcessDownloadLinks(QString content)
+{
+    QString ret = content;
+    // Search content for any file links to canvas files
+
+    QHash<QString, QStringList> replace_urls;
+
+    QRegExp rx;
+
+    // Find download links
+    rx.setPattern("[\\s>'\\\"]?((https?:\\/\\/[a-zA-Z\\.0-9:]*)?\\/courses\\/([0-9]+)\\/files\\/([0-9]+)\\/download([\\?]?[=&0-9a-zA-Z%_]+)?)[\\s<'\\\"]?");
+
+    // rx.cap(0) = full match
+    // 1 = full url - https://smc.ed/media/player.load/3f0s98foeu/
+    // 2 = server - https://smc.ed
+    // 3 = course id
+    // 4 = file id
+    // 5 = ? full query string if present
+
+    int pos = 0;
+    while ((pos = rx.indexIn(ret, pos)) != -1) {
+        pos += rx.matchedLength();
+
+        // Get the full URL for this item
+        QString full_url = rx.cap(1);
+        // Get the host for this link
+        QString canvas_host = rx.cap(2);
+        if (canvas_host == "") {
+            // For relative links - fill in current host
+            canvas_host = canvas_url;
+        }
+        // Get the course id for this link
+        QString course_id = rx.cap(3);
+        // Get the file id
+        QString file_id = rx.cap(4);
+
+        // Add to the list to be downloaded
+        if (!_localhost_url.startsWith(canvas_host)) {
+            replace_urls[file_id] = QStringList() << course_id << canvas_host << full_url;
+        } else {
+            // This link already points to a local host address?
+            qDebug() << "-- Link found w localhost address? " << full_url;
+        }
+    }
+
+    qDebug() << "Found Canvas File links";
+    qDebug() << replace_urls;
+
+    // Queue up video to be downloaded
+    foreach (QString file_id, replace_urls.keys()) {
+        QStringList values = replace_urls[file_id];
+        QString course_id = values[0];
+        QString original_host = values[1];
+        QString original_url = values[2];
+
+        QueueCanvasLinkForDownload(file_id, course_id, original_host, original_url);
+    }
+
+    // Replace old URLs w the new ones
+    foreach (QString file_id, replace_urls.keys()) {
+        QStringList values = replace_urls[file_id];
+        QString course_id = values[0];
+        QString original_host = values[1];
+        QString original_url = values[2];
+        QString new_url = _localhost_url;
+        new_url += "/canvas_file_cache/" + file_id;
+        qDebug() << "Replacing " << original_url << " with " << new_url;
+        ret = ret.replace(original_url, new_url, Qt::CaseInsensitive);
+    }
+
+    return ret;
+}
+
 bool EX_Canvas::QueueVideoForDownload(QString movie_id, QString original_host, QString original_url)
 {
     // Add the video id to the list for downloading
@@ -2086,6 +2270,57 @@ bool EX_Canvas::QueueDocumentForDownload(QString document_id, QString original_h
     return ret;
 }
 
+bool EX_Canvas::QueueCanvasLinkForDownload(QString file_id, QString course_id, QString original_host, QString original_url)
+{
+    // Add the file id to the list for downloading
+    bool ret = false;
+
+    if (_app_db == nullptr) {
+        qCritical() << "Invalid app DB ";
+        return false;
+    }
+
+    QSqlQuery q;
+    q.prepare("SELECT count(file_id) FROM canvas_dl_queue WHERE file_id = :file_id");
+    q.bindValue(":file_id", file_id);
+
+    if(q.exec()) {
+        q.next();
+        int count = q.value(0).toInt();
+        if (count < 1) {
+            // ID isn't in the list
+            QSqlQuery q2;
+            q2.prepare("INSERT INTO canvas_dl_queue (`id`, `file_id`, `course_id`, `original_host`, `original_url`) VALUES (NULL, :file_id, :course_id, :original_host, :original_url)");
+            q2.bindValue(":file_id", file_id);
+            q2.bindValue(":course_id", course_id);
+            q2.bindValue(":original_host", original_host);
+            q2.bindValue(":original_url", original_url);
+            q2.exec();
+
+            qDebug() << "New File ID " << file_id;
+        } else {
+            QSqlQuery q2;
+            q2.prepare("UPDATE canvas_dl_queue SET course_id=:course_id, original_host=:original_host, original_url=:original_url WHERE file_id=:file_id");
+            q2.bindValue(":course_id", course_id);
+            q2.bindValue(":original_host", original_host);
+            q2.bindValue(":original_url", original_url);
+            q2.bindValue(":file_id", file_id);
+            q2.exec();
+
+            qDebug() << "File ID already queued " << file_id;
+        }
+
+        ret = true;
+
+    } else {
+        // Error running query
+        qDebug() << "ERROR RUNNING QUERY: " << q.lastError().text();
+        ret = false;
+    }
+
+    return ret;
+}
+
 bool EX_Canvas::pullSMCVideos()
 {
     bool ret = false;
@@ -2133,7 +2368,7 @@ bool EX_Canvas::pullSMCVideos()
             // Grab the first 2 characters of the ID
             QString prefix = video_id.mid(0,2);
             smc_url += "/static/media/" + prefix + "/" + video_id + ".poster.png";
-            bool r = DownloadFile(smc_url, local_path);
+            bool r = DownloadFile(smc_url, local_path, "SMC Poster: " + video_id);
             if (!r) {
                 qDebug() << "Error downloading poster file " << smc_url;
             }
@@ -2181,7 +2416,7 @@ bool EX_Canvas::pullSMCDocuments()
                 // File downloaded, get the content type header
                 QHash<QString, QString> headers = web_request->GetAllDownloadHeaders();
                 if (headers.contains("Content-Type")) {
-                    // Save a file with the mime time
+                    // Save a file with the mime type
                     QString mime_local_path = local_path + ".mime";
                     QString content_type = headers["Content-Type"];
                     QFile *mime_file = new QFile(mime_local_path);
@@ -2232,9 +2467,8 @@ QSqlRecord EX_Canvas::pullSinglePage(QString course_id, QString page_url)
         return QSqlRecord();
     }
 
-    // Convert SMC links to local links
-    page_body = ProcessSMCVideos(page_body);
-    page_body = ProcessSMCDocuments(page_body);
+    // Convert SMC Video/Document/Etc links to local links
+    page_body = ProcessAllLinks(page_body);
 
     pages_model->setFilter("url='" + page_url.replace("'", "\'") + "' AND course_id='" + course_id.replace("'", "\'") + "'");
     pages_model->select();
