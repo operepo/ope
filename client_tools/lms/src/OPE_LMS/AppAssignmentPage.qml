@@ -32,11 +32,26 @@ Page {
             a_desc = App.getFieldValue(m, i, "description").toString();
         }
 
+        // Add injected javascript to page
+        a_desc += "\n" + App.WebChannelJS;
+        //console.log("<<< PAGE: " + a_desc);
+
         //a_desc = "TEST DESC";
         //descTest.text = a_desc;
         //assignmentName.text = a_name;
         headerText.text = "Assignment - " + a_name;
         assignmentDescription.loadHtml(a_desc);
+        // Inject webchannel stuff into page
+        //console.log("JS " + App.WebChannelJS);
+        //assignmentDescription.runJavaScript(App.WebChannelJS,
+        //                                    function(result) {
+        //                                        console.log(">>> runJavascript: " + result);
+        //                                    });
+
+        //assignmentDescription.runJavaScript("alert('hi!');",
+        //                                    function(result) {
+        //                                        alert('RESULT ' + result);
+        //                                    });
 
         // Load the assignment_submissions
         m = assignment_submissions_model
@@ -99,12 +114,8 @@ Page {
                         //console.log("Loading changed..." + status)
                     }
 
-
-
-
                 }
             }
-
 
             // Button to open submission area
             Rectangle {

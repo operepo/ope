@@ -115,7 +115,7 @@ Page {
                             console.log("File not downloaded! " + item_name);
                             return;
                         }
-                        var local_url = "file:///" + mainWidget.fileCacheFolder() + pull_file
+                        var local_url = pull_file;
 
                         console.log("Loading file: " + item_name);
                         // TODO - load file

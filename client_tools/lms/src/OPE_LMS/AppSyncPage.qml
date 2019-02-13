@@ -126,6 +126,12 @@ Page {
         if (r === false) { progressLabel.text += "\n  ERROR pulling SMC Videos"; }
         syncProgress.value = 0.8;
 
+        // Fixup file download links
+        progressLabel.text += "\nFixing file download links...";
+        r = mainWidget.canvas.updateDownloadLinks();
+        if (r === false) { progressLabel.text += "\n  ERROR fixing canvas links"; }
+        syncProgress.value = 0.8;
+
 
         progressLabel.text += "\n\nDone!";
         syncProgress.visible = false;

@@ -5,6 +5,7 @@ import QtQuick.Controls.Universal 2.3
 import QtQuick.Controls.Styles 1.4
 import QtQuick.Controls.Imagine 2.3
 import QtQuick.Layouts 1.3
+import QtQuick.Dialogs 1.2
 
 import com.openprisoneducation.ope 1.0
 import "App.js" as App
@@ -41,7 +42,8 @@ Page {
         // Load the list of modules with sub items
         var m = module_items_query; //modulesList.model
         m.modifyFilter("course_id=" + current_course_id);
-        m.sortOn("sort_order");
+        m.sortOn("CAST(sort_order1 as unsigned), CAST(sort_order2 as unsigned)");
+        //m.sortOn("position");
         m.refresh();
     }
 
@@ -139,7 +141,7 @@ Page {
                                 console.log("File not downloaded!");
                                 return;
                             }
-                            local_url = "file:///" + mainWidget.fileCacheFolder() + local_url
+                            // desktopLaunch already deals with fileCacheFolder
                             console.log("Loading File: " + local_url);
                             mainWidget.desktopLaunch(local_url);
                             break;
@@ -156,12 +158,24 @@ Page {
                             moduleAssignmentClicked(content_id);
                             break;
                         default:
-                            console.log("Unknown type!");
+                            alertPopup.title = "Not Implemented Yet!";
+                            alertPopup.text = 'Not Implemented Yet!\nQuizzes and other features may not be ready yet, please be patient.';
+                            alertPopup.visible = true;
+                            console.log("Module Item - Unknown type - Not Implemented Yet!");
                         }
 
                         //console.log("ItemClick: " + App.getFieldValue(modulesList.model, index, "type"));
                     }
                 }
+            }
+        }
+
+        MessageDialog {
+            id: alertPopup
+            title: ""
+            text: ""
+            onAccepted: {
+                visible = false;
             }
         }
     }

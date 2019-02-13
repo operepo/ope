@@ -7,6 +7,7 @@ import QtQuick.Controls.Imagine 2.3
 import QtQuick.Layouts 1.3
 
 //import QtWebEngine 1.4
+import QtWebView 1.1
 
 import com.openprisoneducation.ope 1.0
 import "App.js" as App
@@ -41,7 +42,7 @@ Page {
         //a_desc = "TEST DESC";
         //descTest.text = a_desc;
         //assignmentName.text = a_name;
-        headerText.text = "Assignment - " + a_name;
+        headerText.text = "Assignment - " + a_name;        
         assignmentDescription.loadHtml(a_desc);
 
         // Load the assignment_submissions
@@ -116,6 +117,16 @@ Page {
                         var err = loadRequest.errorString
                         var status = loadRequest.status
                         console.log("Loading changed..." + status)
+                        if(status == WebView.LoadSucceededStatus) {
+                            // Inject the webchannel stuff
+                            console.log("Injecting webchannel js...");
+                            assignmentDescription.runJavaScript(App.WebChannelJS,
+                                                                function(result) {
+                                                                    console.log(result);
+                                                                });
+                        } else if (status == WebView.LoadFailedStatus) {
+                            console.log("Error loading page! " + err);
+                        }
                     }
 
                 }

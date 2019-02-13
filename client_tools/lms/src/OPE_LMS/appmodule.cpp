@@ -2,6 +2,7 @@
 
 AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
 {
+    HTTP_SERVER_PORT = 65525;
     exit_early = false;
     engine = parent;
     nam_factory = new OPENetworkAccessManagerFactory;
@@ -99,7 +100,42 @@ void AppModule::debugPrint(QString msg)
 
 bool AppModule::desktopLaunch(QString url)
 {
-    return QDesktopServices::openUrl(QUrl(url, QUrl::TolerantMode));
+    bool ret = false;
+
+    // Decide if this is a local file or not?
+    qDebug() << "Deciding if its ok to open " << url;
+
+    QString content_folder = dataFolder() + "/www_root/";
+
+    // Strip off the http and host info
+    QUrl old_url = QUrl::fromUserInput(url);
+    if (!old_url.isValid()) {
+        qDebug() << "Invalid URL - canceling open " << url;
+        return false;
+    }
+
+    // Make a new local file url
+    QUrl local_url = QUrl::fromUserInput("file:///" + content_folder + old_url.path(),
+                                         content_folder, QUrl::AssumeLocalFile);
+
+    qDebug() << " >>>>> " << local_url << " - " << local_url.toLocalFile();
+
+    if (local_url.isValid() && QFile::exists(local_url.toLocalFile())) {
+        qDebug() << "Got valid local url: " << local_url;
+        try {
+            QDesktopServices::openUrl(local_url);
+            qDebug() << "url opened " << local_url;
+        } catch(...) {
+            qDebug() << "Error opening url " << local_url;
+        }
+
+        ret = true;
+    } else {
+        qDebug() << "Invalid URL or file doesn't exist! " << local_url;
+        ret = false;
+    }
+
+    return ret;
 }
 
 QString AppModule::dataFolder()
@@ -226,6 +262,11 @@ bool AppModule::copyPath(QString source_path, QString dest_path)
         QString source_file_path = source_path + "/" + fname;
         QString dest_file_path = dest_path + "/" + fname;
         //qDebug() << "Copying file " << source_file_path << " -- > " << dest_file_path;
+        // Remove the old file to force a copy
+        if (QFile::exists(dest_file_path)) {
+            QFile::remove(dest_file_path);
+        }
+        // Copy file into place
         QFile::copy(source_file_path, dest_file_path);
 
     }
@@ -247,7 +288,7 @@ void AppModule::startServer()
         this,
         SLOT(serverRequestArrived(CM_HTTPRequest*,CM_HTTPResponse*)));
 
-    server->Start(65525);
+    server->Start(HTTP_SERVER_PORT);
 
 }
 

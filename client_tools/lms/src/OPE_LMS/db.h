@@ -101,7 +101,7 @@ class APP_DB : public QObject
 {
     Q_OBJECT
 public:
-    explicit APP_DB(QQmlApplicationEngine *parent = 0);
+    explicit APP_DB(QQmlApplicationEngine *parent = nullptr);
 
     static QQmlEngine *_engine;
 
@@ -122,6 +122,9 @@ public slots:
     bool add_resource(QString resource_name, QString resource_url, QString resource_description, int sort_order);
 
     GenericTableModel *getTable(QString table_name);
+
+    bool commit();
+    bool rollback();
 private:
 
     QSqlDatabase _db;

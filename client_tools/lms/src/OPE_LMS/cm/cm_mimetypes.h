@@ -2,7 +2,11 @@
 #define CM_MIMETYPES_H
 
 #include <QObject>
-#include <QHash>
+#include <QMultiHash>
+#include <QCoreApplication>
+#include <QFile>
+#include <QTextStream>
+#include <QDebug>
 
 class CM_MimeTypes : public QObject
 {
@@ -10,13 +14,14 @@ class CM_MimeTypes : public QObject
 public:
     explicit CM_MimeTypes(QObject *parent = nullptr);
 
-    static QHash<QString,QString> mime_types;
+    static QMultiHash<QString,QString> mime_types;
 
 signals:
 
 public slots:
 
     static void LoadMimeTypes();
+    static void LoadAltMimeTypes();
 
     static QString GetMimeType(QString ext);
 

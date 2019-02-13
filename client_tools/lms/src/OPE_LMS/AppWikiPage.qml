@@ -40,6 +40,9 @@ Page {
             page_title = App.getFieldValue(m, i, "title").toString("");
         }
 
+        // Add injected javascript to page
+        page_body += "\n" + App.WebChannelJS;
+
         //console.log("Wiki Page Body: " + page_body);
         pageTitle.text = page_title;
         webView.loadHtml(page_body); //, "http://localhost:65525/");

@@ -40,7 +40,7 @@ public:
     quint64 static totalBytesRead;
     quint64 static totalBytesWritten;
 
-    explicit CM_HTTPServer(QObject *parent = 0);
+    explicit CM_HTTPServer(QObject *parent = nullptr);
     
     // Start a new HTTP Server
     bool Start(quint16 port = 80, bool use_ssl = false);
@@ -247,11 +247,8 @@ public slots:
         }
 
         // No mime file, try and figure it out.
-        int pindex = file_name.lastIndexOf(".");
-        if (pindex == -1) { return ret; }
-        ext = file_name.mid(pindex+1).toLower();
-
-        ret = CM_MimeTypes::GetMimeType(ext);
+        QFileInfo fi(file_name);
+        ret = CM_MimeTypes::GetMimeType(fi.suffix());
 
         return ret;
     }

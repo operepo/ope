@@ -147,7 +147,8 @@ HEADERS += \
     db.h \
     openetworkaccessmanagerfactory.h \
     cm/cm_javascripthandler.h \
-    cm/cm_websockettransport.h
+    cm/cm_websockettransport.h \
+    customlogger.h
 
 LIBS += -LC:/OpenSSL-Win64/lib # -lcrypto -lssl
 INCLUDEPATH += C:/OpenSSL-Win64/include
@@ -251,7 +252,8 @@ DISTFILES += \
     WebEngineMP4Build.cmd \
     websockettest.qml \
     qwebchannel.js \
-    wc_index.html
+    wc_index.html \
+    opeWebViewClient.js
 
 # Rules to force qrc rebuild each time - deal with bug where qml files aren't updated on next run
 update_qml.target = qml.qrc
@@ -270,8 +272,10 @@ CONFIG (debug, debug|release) {
 # Make sure we have files copied to the build folder
 copy_files.commands = $(COPY_DIR) \"$$shell_path($$PWD\\www_content)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\web_content)\" && \
     $(COPY_DIR) \"$$shell_path($$PWD\\logo_icon.ico)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
-    $(COPY_DIR) \"$$shell_path($$PWD\\favicon.ico)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
+    $(COPY_DIR) \"$$shell_path($$PWD\\favicon.ico)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\web_content\\)\" && \
     $(COPY_DIR) \"$$shell_path($$PWD\\qwebchannel.js)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\web_content\\)\" && \
+    $(COPY_DIR) \"$$shell_path($$PWD\\opeWebViewClient.js)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\web_content\\)\" && \
+    $(COPY_DIR) \"$$shell_path($$PWD\\mime_types.csv)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
     $(COPY_DIR) \"$$shell_path($$PWD\\qt.conf)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
     $(COPY_DIR) \"$$shell_path($$PWD\\qtquickcontrols2.conf)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\"
 

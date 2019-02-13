@@ -528,7 +528,7 @@ bool APP_DB::init_db()
         // Now create views
 
         // Query to join modules and module_items
-        sql = "SELECT module_items.*, modules.name, modules.course_id, (modules.position || \"_\" || module_items.position) as sort_order  FROM module_items, modules WHERE modules.id=module_items.module_id ";
+        sql = "SELECT module_items.*, modules.name, modules.course_id, (modules.position) as sort_order1, (module_items.position) as sort_order2  FROM module_items, modules WHERE modules.id=module_items.module_id ";
         GenericQueryModel *view = new GenericQueryModel(this, "module_items", sql, _db);
 
         // Query to join folders and files
@@ -634,6 +634,16 @@ GenericTableModel *APP_DB::getTable(QString table_name)
     }
 
     return NULL;
+}
+
+bool APP_DB::commit()
+{
+    return _db.commit();
+}
+
+bool APP_DB::rollback()
+{
+    return _db.rollback();
 }
 
 GenericTableModel::GenericTableModel(APP_DB *parent, QString table_name, QSqlDatabase db) : QSqlTableModel(parent, db)

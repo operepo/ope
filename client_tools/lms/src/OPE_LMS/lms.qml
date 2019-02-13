@@ -6,6 +6,10 @@ import QtQuick.Controls.Styles 1.4
 import QtQuick.Controls.Imagine 2.3
 import QtQuick.Layouts 1.3
 
+import QtWebChannel 1.0
+import QtWebSockets 1.1
+import QtWebView 1.1
+import cm.WebSocketTransport 1.0
 
 import com.openprisoneducation.ope 1.0
 import "App.js" as App
@@ -26,6 +30,62 @@ ApplicationWindow {
     property string current_page_url: "";
     property string current_assignment_id: "";
     property string current_module_item_id: "";
+
+
+    // === SETUP WEB CHANNEL - allow webview pages to interact w LMS ===
+    property QtObject lmsObject: QtObject {
+        // This object is exposed to the webviews so that they can call
+        // back into the app when needed; currently used for:
+        // - override link clicks for local files
+        id: lmsObject
+        WebChannel.id: "LMS"
+        // property string somProperty: "value";
+        // signal someSignal(string message);
+
+        function openDesktopLink(link_url) {
+            // Open the link using the desktop app
+            console.log("Opening Link: " + link_url);
+            var r = mainWidget.desktopLaunch(link_url);
+            return r;
+        }
+    }
+
+    WebSocketTransport {
+        id: wsTransport
+    }
+    WebSocketServer {
+        id: wsServer
+        accept: true;
+        name: "OPE_WS_Server"
+        //host: "localhost"
+        port: 65524
+        listen: true
+
+        onClientConnected: {
+            console.log("WCClient Connected: " + webSocket.status + " - " + webSocket.errorString);
+
+            if(webSocket.status === WebSocket.Open) {
+                console.log("WCClient - Is Open");
+                webChannel.connectTo(wsTransport);
+                webSocket.onTextMessageReceived.connect(wsTransport.textMessageReceive);
+                wsTransport.onMessageChanged.connect(webSocket.sendTextMessage);
+            } else {
+                console.log("Unknonw WCClient error " + webSocket.errorString);
+            }
+        }
+        onErrorStringChanged: {
+            console.log("WS Server Error: %1").arg(errorString);
+        }
+
+        Component.onCompleted: {
+            console.log("WS Server Running: " + wsServer.url);
+        }
+    }
+    WebChannel {
+        id: webChannel
+        registeredObjects: [lmsObject]
+    }
+    // === END SETUP WEB CHANNEL ===
 
     title: qsTr("OPE - Offline LMS");
 

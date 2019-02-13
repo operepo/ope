@@ -446,6 +446,10 @@ bool EX_Canvas::pullModuleItems()
                         // Set the content id to the page id
                         record.setValue("content_id", page_record.value("page_id").toString());
                     }
+                } else if (o["type"].toString("") == "File") {
+                    // This is a File, make sure it is queued so that it will download
+                    // even if the "Files" menu isn't
+                    QueueCanvasLinkForDownload(o["content_id"].toString(""), course_id, "", o["url"].toString(""));
                 }
 
                if (is_insert) {
@@ -790,10 +794,9 @@ bool EX_Canvas::pullCourseFilesBinaries()
         QString f_url = f.value("url").toString();
         int f_size = f.value("size").toInt();
         QString f_ext = CM_MimeTypes::GetExtentionForMimeType(content_type);
-        if (f_ext != "") { f_ext = "." + f_ext; }
         QString local_path = "/" + f_id + f_ext; // f.value("pull_file").toString();
         // Get file type
-        f.setValue("pull_file", local_path);
+        f.setValue("pull_file", "/canvas_file_cache" + local_path);
 
         //if (local_path == "") {
         //    // Assign a new local path
@@ -1931,8 +1934,9 @@ bool EX_Canvas::DownloadFile(QString url, QString local_path, QString item_name)
     progressCurrentItem = item_name;
     emit progress(0, 0, progressCurrentItem);
     int count = 0;
-    while (count < 5) {
-        // Try 5 times to download each file
+    int dl_tries = 3;
+    while (count < dl_tries) {
+        // Try 2 times to download each file
         //qDebug() << " - DL Try " << count << url;
         if (web_request->DownloadFile(url, local_path) == true) {
             // DL worked, done.
@@ -2125,26 +2129,39 @@ QString EX_Canvas::ProcessDownloadLinks(QString content)
     QString ret = content;
     // Search content for any file links to canvas files
 
+    // Key will be full_url followed by the list of items
+    //replace_urls[full_url] = QStringList() << file_id << course_id << canvas_host;
     QHash<QString, QStringList> replace_urls;
 
     QRegExp rx;
 
     // Find download links
-    rx.setPattern("[\\s>'\\\"]?((https?:\\/\\/[a-zA-Z\\.0-9:]*)?\\/courses\\/([0-9]+)\\/files\\/([0-9]+)\\/download([\\?]?[=&0-9a-zA-Z%_]+)?)[\\s<'\\\"]?");
+    // [\s>'\"]?((https?:\/\/[a-zA-Z\.0-9:]*)?(\/api\/v1)?\/courses\/([0-9]+)\/(files|modules\/items)\/([0-9]+)(\/download)?([\?]?[;=&0-9a-zA-Z%_]+)?)[\s<'\"]?
+    rx.setPattern("[\\s>'\\\"]?((https?:\\/\\/[a-zA-Z\\.0-9:]*)?(\\/api\\/v1)?\\/courses\\/([0-9]+)\\/(files|modules\\/items)\\/([0-9]+)(\\/download)?([\\?]?[;=&0-9a-zA-Z%_]+)?)[\\s<'\\\"]?");
 
     // rx.cap(0) = full match
     // 1 = full url - https://smc.ed/media/player.load/3f0s98foeu/
     // 2 = server - https://smc.ed
-    // 3 = course id
-    // 4 = file id
-    // 5 = ? full query string if present
+    // 3 = /api/v1
+    // 4 = course id
+    // 5 = /files/ or modules/items
+    // 6 = file id
+    // 7 = /download if present
+    // 8 = ? full query string if present
 
     int pos = 0;
     while ((pos = rx.indexIn(ret, pos)) != -1) {
-        pos += rx.matchedLength();
+        // Save the current match
+        int start_pos = pos;
+        int match_len = rx.matchedLength();
+
+        //pos += rx.matchedLength();
+        // Use inline replacement later, so always start at pos 0
+        pos = 0;
 
         // Get the full URL for this item
         QString full_url = rx.cap(1);
+        qDebug() << "<<<<< FOUND URL " << full_url;
         // Get the host for this link
         QString canvas_host = rx.cap(2);
         if (canvas_host == "") {
@@ -2152,46 +2169,110 @@ QString EX_Canvas::ProcessDownloadLinks(QString content)
             canvas_host = canvas_url;
         }
         // Get the course id for this link
-        QString course_id = rx.cap(3);
+        QString course_id = rx.cap(4);
+        // Get url type (files or modules/items)
+        QString canvas_types = rx.cap(5);
         // Get the file id
-        QString file_id = rx.cap(4);
+        QString file_id = rx.cap(6);
+        QString module_item_id = "";
+
+        if (canvas_types == "modules/items") {
+            // Need to lookup the file_id, this is the module item id
+            module_item_id = file_id;
+            file_id = "";
+            QSqlQuery file_query;
+            file_query.prepare("SELECT content_id FROM module_items WHERE id=:item_id");
+            file_query.bindValue(":item_id", module_item_id);
+            if (!file_query.exec()) {
+                qDebug() << "SQL Error - file lookup " << file_query.lastError();
+            } else {
+                while(file_query.next()) {
+                    file_id = file_query.value("content_id").toString();
+                }
+            }
+
+            if (file_id == "") {
+                // didn't find file, move on.
+                qDebug() << " *** DB ERROR - couldn't pull module item for " << module_item_id << " " << file_query.lastError() << " - " << full_url;
+
+                // Replace with dummy link so we can move on or we will get stuck in a loop.
+                ret = ret.replace(start_pos, match_len, "<INVALID_MODULE_ITEM_" + module_item_id + ">");
+
+                // Jump to next item.
+                continue;
+            }
+        }
+
 
         // Add to the list to be downloaded
         if (!_localhost_url.startsWith(canvas_host)) {
-            replace_urls[file_id] = QStringList() << course_id << canvas_host << full_url;
+            // Add this to the download list later
+            QueueCanvasLinkForDownload(file_id, course_id, canvas_host, full_url);
+
+            // Replace this text with the place holder.
+            // <CANVAS_FILE_???>  ??? becomes the file id
+            QString new_url = "<CANVAS_FILE_" + file_id + ">";
+
+            qDebug() << "Replacing " << full_url << " with " << new_url;
+            ret = ret.replace(start_pos, match_len, new_url);
         } else {
             // This link already points to a local host address?
             qDebug() << "-- Link found w localhost address? " << full_url;
         }
     }
 
-    qDebug() << "Found Canvas File links";
-    qDebug() << replace_urls;
-
-    // Queue up video to be downloaded
-    foreach (QString file_id, replace_urls.keys()) {
-        QStringList values = replace_urls[file_id];
-        QString course_id = values[0];
-        QString original_host = values[1];
-        QString original_url = values[2];
-
-        QueueCanvasLinkForDownload(file_id, course_id, original_host, original_url);
-    }
-
-    // Replace old URLs w the new ones
-    foreach (QString file_id, replace_urls.keys()) {
-        QStringList values = replace_urls[file_id];
-        QString course_id = values[0];
-        QString original_host = values[1];
-        QString original_url = values[2];
-        QString new_url = _localhost_url;
-        new_url += "/canvas_file_cache/" + file_id;
-        qDebug() << "Replacing " << original_url << " with " << new_url;
-        ret = ret.replace(original_url, new_url, Qt::CaseInsensitive);
-    }
-
     return ret;
 }
+
+bool EX_Canvas::updateDownloadLinks()
+{
+    qDebug() << ">> Updating download links...";
+
+    // Replace <CANVAS_FILE_???> tags with real links
+    QSqlQuery q;
+    q.prepare("SELECT * FROM files");
+
+    if (!q.exec()) {
+        qDebug() << "SQL Error!! " << q.lastError();
+        return false;
+    }
+
+    while(q.next()) {
+        QString file_id = q.value("id").toString();
+        QString file_name = q.value("filename").toString();
+        QString content_type = q.value("content_type").toString();
+        QString f_ext = CM_MimeTypes::GetExtentionForMimeType(content_type);
+
+        QString file_tag = "<CANVAS_FILE_" + file_id + ">";
+        QString new_url = _localhost_url + "/canvas_file_cache/" + file_id + f_ext;
+
+        qDebug() << "Replacing " << file_tag << " with " << new_url;
+
+        // Change in tables: assignments, pages
+        QString sql = "UPDATE assignments SET description=REPLACE(description, :file_tag, :new_url)";
+        QSqlQuery q2;
+        q2.prepare(sql);
+        q2.bindValue(":file_tag", file_tag);
+        q2.bindValue(":new_url", new_url);
+        if (!q2.exec()) {
+            qDebug() << "SQL Error!! " << q2.lastError() << " on " << q2.lastQuery();
+        }
+
+        sql = "UPDATE pages SET body=REPLACE(body, :file_tag, :new_url)";
+        QSqlQuery q3;
+        q3.prepare(sql);
+        q3.bindValue(":file_tag", file_tag);
+        q3.bindValue(":new_url", new_url);
+        if(!q3.exec()) {
+            qDebug() << "SQL Error!! " << q3.lastError() << " on " << q3.lastQuery();
+        }
+
+        // Write changes to db
+        _app_db->commit();
+    }
+
+    return true;
+ }
 
 bool EX_Canvas::QueueVideoForDownload(QString movie_id, QString original_host, QString original_url)
 {
