@@ -2151,9 +2151,10 @@ QString EX_Canvas::ProcessDownloadLinks(QString content)
 
     int pos = 0;
     while ((pos = rx.indexIn(ret, pos)) != -1) {
-        // Save the current match
-        int start_pos = pos;
-        int match_len = rx.matchedLength();
+        // Save the current match - use the position of the url, not the whole match
+        // This is important so we don't loose quotes or other whitespace if it exists
+        int start_pos = rx.pos(1);
+        int match_len = rx.cap(1).length();
 
         //pos += rx.matchedLength();
         // Use inline replacement later, so always start at pos 0
