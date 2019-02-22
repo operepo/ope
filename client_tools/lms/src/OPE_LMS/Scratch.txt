@@ -1,3 +1,9 @@
+***  ISSUES WITH ICU
+ - Run build - get dlls/etc in the release folder
+ - copy resources/* to release folder
+ - copy translations/qtwebengine_locales to release folder
+
+
 -- FOR ANDROID WEBVIEW - May need to add this to manifest file
 android:hardwareAccelerated="true"
 

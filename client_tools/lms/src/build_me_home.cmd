@@ -6,6 +6,7 @@ rem set VCToolsRedistDir="C:\Program Files (x86)\Microsoft Visual Studio\2017\En
 
 cd build-OPE_LMS-Desktop_Qt_5_12_0_MSVC2017_64bit2-Release\release
 
+rem C:\Qt\Qt5.12.0\5.12.0\msvc2017_64\bin\windeployqt.exe --compiler-runtime --qmldir ../../OPE_LMS --angle OPE_LMS.exe
 c:\Qt\5.12.0\msvc2017_64\bin\windeployqt.exe --compiler-runtime --qmldir ../../OPE_LMS --angle OPE_LMS.exe
 rem C:\Qt\5.11.2\msvc2017_64\qml
 cd ..\..
