@@ -845,6 +845,31 @@ bool EX_Canvas::pullCourseFilesBinaries()
         files_model->database().commit();
     }
 
+    // Now go through the folder and remove any files that aren't in the file list anymore.
+    QDir cache_dir(base_dir);
+    qDebug() << "Removing orphaned files:";
+    foreach(QString f_name, cache_dir.entryList()) {
+        if(f_name == "." || f_name == "..") {
+            // Skip these
+            continue;
+        }
+        // See if this file exists in the files database
+        files_model->setFilter("pull_file='/canvas_file_cache/" + f_name + "'");
+        files_model->select();
+        if (files_model->rowCount() < 1) {
+            // File isn't in the database, delete it
+            QString local_path = base_dir.path() + "/" + f_name;
+            qDebug() << "---- Orphaned File: " << local_path << " - deleting...";
+
+            try {
+                QFile::remove(local_path);
+            } catch (...) {
+                qDebug() << "----- ERROR removing file: " << local_path;
+            }
+
+        }
+    }
+
     return ret;
 }
 
