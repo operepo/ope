@@ -776,7 +776,18 @@ bool EX_Canvas::pullCourseFilesBinaries()
         return false;
     }
 
+    //remove file entries if the course doesn't exist.
+    QString sql = "delete from files where course_id not in (select id from courses)";
+    QSqlQuery q;
+    q.prepare(sql);
+    if (q.exec() != true) {
+        qDebug() << "ERROR clearing orphaned file entries in database " <<
+                    q.lastError();
+        _app_db->commit();
+    }
+
     files_model->setFilter(""); // pull_file=1
+    files_model->select();
 
     // Get the local cache folder
     QDir base_dir;
