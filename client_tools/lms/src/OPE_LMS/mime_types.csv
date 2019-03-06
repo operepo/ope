@@ -45,7 +45,7 @@ Arista Networks Software Image,application/vnd.aristanetworks.swi,.swi,IANA: Ari
 Assembler Source File,text/x-asm,.s,Wikipedia: Assembly
 Atom Publishing Protocol,application/atomcat+xml,.atomcat,RFC 5023
 Atom Publishing Protocol Service Document,application/atomsvc+xml,.atomsvc,RFC 5023
-Atom Syndication Format,application/atom+xml,".atom, .xml",RFC 4287
+Atom Syndication Format,application/atom+xml,.atom,RFC 4287
 Attribute Certificate,application/pkix-attr-cert,.ac,RFC 5877
 Audio Interchange File Format,audio/x-aiff,.aif,Wikipedia: Audio Interchange File Format
 Audio Video Interleave (AVI),video/x-msvideo,.avi,Wikipedia: AVI
@@ -267,8 +267,8 @@ JavaScript,application/javascript,.js,JavaScript
 JavaScript Object Notation (JSON),application/json,.json,Wikipedia: JSON
 Joda Archive,application/vnd.joost.joda-archive,.joda,IANA: Joda Archive
 JPEG 2000 Compound Image File Format,video/jpm,.jpm,IANA: JPM
-JPEG Image,image/jpeg,".jpeg, .jpg",RFC 1314
-JPEG Image (Citrix client),image/x-citrix-jpeg,".jpeg, .jpg",RFC 1314
+JPEG Image,image/jpeg,.jpg,RFC 1314
+JPEG Image (Citrix client),image/x-citrix-jpeg,.jpg,RFC 1314
 JPEG Image (Progressive),image/pjpeg,.pjpeg,JPEG image compression FAQ
 JPGVideo,video/jpeg,.jpgv,RFC 3555
 Kahootz,application/vnd.kahootz,.ktz,IANA: Kahootz
@@ -290,7 +290,7 @@ LaTeX,application/x-latex,.latex,Wikipedia: LaTeX
 Life Balance - Desktop Edition,application/vnd.llamagraphics.life-balance.desktop,.lbd,IANA: Life Balance
 Life Balance - Exchange Format,application/vnd.llamagraphics.life-balance.exchange+xml,.lbe,IANA: Life Balance
 Lightspeed Audio Lab,application/vnd.jam,.jam,IANA: Lightspeed Audio Lab
-Lotus 1-2-3,application/vnd.lotus-1-2-3,0.123,IANA: Lotus 1-2-3
+Lotus 1-2-3,application/vnd.lotus-1-2-3,.123,IANA: Lotus 1-2-3
 Lotus Approach,application/vnd.lotus-approach,.apr,IANA: Lotus Approach
 Lotus Freelance,application/vnd.lotus-freelance,.pre,IANA: Lotus Freelance
 Lotus Notes,application/vnd.lotus-notes,.nsf,IANA: Lotus Notes
@@ -531,6 +531,7 @@ QuickAnime Player,application/vnd.epson.quickanime,.qam,IANA: QuickAnime Player
 Quicken,application/vnd.intu.qfx,.qfx,IANA: Quicken
 Quicktime Video,video/quicktime,.qt,Wikipedia: Quicktime
 RAR Archive,application/x-rar-compressed,.rar,Wikipedia: RAR
+RAR Archive,application/x-rar,.rar,RAR
 Real Audio Sound,audio/x-pn-realaudio,.ram,Wikipedia: RealPlayer
 Real Audio Sound,audio/x-pn-realaudio-plugin,.rmp,Wikipedia: RealPlayer
 Really Simple Discovery,application/rsd+xml,.rsd,Wikipedia: Really Simple Discovery
@@ -546,7 +547,7 @@ RhymBox,application/vnd.jisp,.jisp,IANA: RhymBox
 Rich Text Format,application/rtf,.rtf,Wikipedia: Rich Text Format
 Rich Text Format (RTF),text/richtext,.rtx,Wikipedia: Rich Text Format
 ROUTE 66 Location Based Services,application/vnd.route66.link66+xml,.link66,IANA: ROUTE 66
-RSS - Really Simple Syndication,application/rss+xml,".rss, .xml",Wikipedia: RSS
+RSS - Really Simple Syndication,application/rss+xml,.rss,Wikipedia: RSS
 S Hexdump Format,application/shf+xml,.shf,RFC 4194
 SailingTracker,application/vnd.sailingtracker.track,.st,IANA: SailingTracker
 Scalable Vector Graphics (SVG),image/svg+xml,.svg,Wikipedia: SVG
@@ -692,3 +693,4 @@ Z.U.L. Geometry,application/vnd.zul,.zir,IANA: Z.U.L.
 Zip Archive,application/zip,.zip,Wikipedia: Zip
 ZVUE Media Manager,application/vnd.handheld-entertainment+xml,.zmm,IANA: ZVUE Media Manager
 Zzazz Deck,application/vnd.zzazz.deck+xml,.zaz,IANA: Zzazz
+Zip Archive,application/x-zip-compressed,.zip,Zip
