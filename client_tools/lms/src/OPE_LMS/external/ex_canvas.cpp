@@ -252,6 +252,42 @@ bool EX_Canvas::pullCourses()
         //qDebug() << model->lastError();
     }
 
+    // Remove any courses that are not active=true
+    QSqlQuery q;
+    q.prepare("DELETE FROM courses WHERE is_active != 'true'");
+    if (!q.exec()) {
+        qDebug() << "SQL ERROR " << q.lastError();
+    } else {
+        _app_db->commit();
+    }
+
+    // Clear the dl_queue
+    q.clear();
+    q.prepare("DELETE FROM canvas_dl_queue");
+    if (!q.exec()) {
+        qDebug() << "SQL ERROR " << q.lastError();
+    } else {
+        _app_db->commit();
+    }
+
+    // Clear the SMC media dl queue
+    q.clear();
+    q.prepare("DELETE FROM smc_media_dl_queue2");
+    if (!q.exec()) {
+        qDebug() << "SQL ERROR " << q.lastError();
+    } else {
+        _app_db->commit();
+    }
+
+    // Clear the SMC document dl queue
+    q.clear();
+    q.prepare("DELETE FROM smc_document_dl_queue2");
+    if (!q.exec()) {
+        qDebug() << "SQL ERROR " << q.lastError();
+    } else {
+        _app_db->commit();
+    }
+
     return ret;
 }
 
@@ -592,9 +628,20 @@ bool EX_Canvas::pullCourseFilesInfo()
     bool ret = false;
     if (_app_db == nullptr) { return ret; }
 
+    QSqlQuery q;
+
+    // Clear out any empty file entries (no id or name?)
+    q.prepare("DELETE FROM files WHERE id='' or filename=''");
+    if (!q.exec()) {
+        qDebug() << "ERROR RUNNING DB QUERY: " << q.lastQuery() << " - " << q.lastError().text();
+        return false;
+    } else {
+        _app_db->commit();
+    }
+
     // Go through file dl queue - these are links found in content like pages and may not be
     // in the current list
-    QSqlQuery q;
+    q.clear();
     q.prepare("SELECT * FROM canvas_dl_queue");
     if (!q.exec()) {
         qDebug() << "ERROR RUNNING DB QUERY: " << q.lastQuery() << " - " << q.lastError().text();
@@ -611,7 +658,6 @@ bool EX_Canvas::pullCourseFilesInfo()
         pullSingleCourseFileInfo(f_id, course_id);
     }
 
-
     // Get the list of courses for this student
     GenericTableModel *courses_model = _app_db->getTable("courses");
 
@@ -619,6 +665,15 @@ bool EX_Canvas::pullCourseFilesInfo()
         qCritical() << "Unable to get models for courses !";
         return false;
     }
+
+    // Mark all files as local_copy_present=4
+    // Do this so we can see what is left over when we are done and clear them
+    q.prepare("UPDATE files SET local_copy_present='4'");
+    if (!q.exec()) {
+        qDebug() << "ERROR RUNNING DB QUERY: " << q.lastQuery() << " - " << q.lastError().text();
+        return false;
+    }
+
 
     // Pull all file info for all courses
     courses_model->setFilter("");
@@ -679,7 +734,11 @@ bool EX_Canvas::pullSingleCourseFileInfo(QString file_id, QString course_id)
 
         //qDebug() << "Got File Item " << o;
 
-        QString file_id = o["id"].toString("");
+        QString f_id = o["id"].toString("");
+        if (f_id == "") {
+            qDebug() << "pullSingleCourseFileInfo - INVALID FILE ID " << file_id << "/" << course_id << "  " << o;
+            return false;
+        }
 
         // See if this file entry exists in the database
         files_model->setFilter("id=" + file_id);
@@ -701,7 +760,7 @@ bool EX_Canvas::pullSingleCourseFileInfo(QString file_id, QString course_id)
 
             // Set some defaults
             record.setValue("pull_file", "");
-            record.setValue("local_copy_present", "");
+            record.setValue("local_copy_present", "0");
         }
 
         // JSON - list of objects
@@ -765,6 +824,7 @@ bool EX_Canvas::pullSingleCourseFileInfo(QString file_id, QString course_id)
 
 bool EX_Canvas::pullCourseFilesBinaries()
 {
+    qDebug() << "----- PULLING CANVAS FILE BINARIES...";
     // Pull binaries for files that are marked as pull
     bool ret = false;
     if (_app_db == nullptr) { return ret; }
@@ -805,7 +865,18 @@ bool EX_Canvas::pullCourseFilesBinaries()
         QString f_url = f.value("url").toString();
         int f_size = f.value("size").toInt();
         QString f_ext = CM_MimeTypes::GetExtentionForMimeType(content_type);
-        QString local_path = "/" + f_id + f_ext; // f.value("pull_file").toString();
+        //QString local_path = "/" + f_id + f_ext; // f.value("pull_file").toString();
+        QString local_path = "/" + f_name; // f.value("pull_file").toString();
+
+        // NOTE - Don't rely on mime-type being correct. Pull extension from
+        // the filename, and fall back to mime type if extension is empty.
+        // FIX for application/x-msdownload - dll, exe and others are reported as
+        // same mime-type in canvas
+        //QFileInfo finfo(f_filename);
+        //if (finfo.completeSuffix() != "") {
+        //    local_path = "/" + f_id + "." + finfo.completeSuffix();
+        //}
+
         // Get file type
         f.setValue("pull_file", "/canvas_file_cache" + local_path);
 
@@ -821,7 +892,7 @@ bool EX_Canvas::pullCourseFilesBinaries()
         if (fi.exists() && fi.size() == f_size ) {
             qDebug() << "File exists " << local_path; //f_name;
             // Mark it as present
-            f.setValue("local_copy_present", true);
+            f.setValue("local_copy_present", "1");
         } else {
             // Download the file
             qDebug() << "Downloading file " << local_path;
@@ -832,7 +903,7 @@ bool EX_Canvas::pullCourseFilesBinaries()
                 qDebug() << "ERROR - canvas file download " << f_filename << " - " << f_url;
             } else {
                 // Makre the file as present
-                f.setValue("local_copy_present", true);
+                f.setValue("local_copy_present", "1");
 
                 // Make sure we save the content header
                 /*QHash<QString, QString> headers = web_request->GetAllDownloadHeaders();
@@ -855,6 +926,15 @@ bool EX_Canvas::pullCourseFilesBinaries()
         files_model->submitAll();
         files_model->database().commit();
     }
+
+    // Clear out any file entries where local_copy_present is 4
+    //q.prepare("DELETE FROM files WHERE local_copy_present='4'");
+    //if (!q.exec()) {
+    //    qDebug() << "ERROR RUNNING DB QUERY: " << q.lastQuery() << " - " << q.lastError().text();
+    //    return false;
+    //} else {
+    //    _app_db->commit();
+    //  }
 
     // Now go through the folder and remove any files that aren't in the file list anymore.
     QDir cache_dir(base_dir);
@@ -880,6 +960,28 @@ bool EX_Canvas::pullCourseFilesBinaries()
 
         }
     }
+
+    // Clear old file cache folder
+    QDir old_cache_path;
+    old_cache_path.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/file_cache");
+    foreach(QString f_name, old_cache_path.entryList()) {
+        if (f_name == "." || f_name == ".." || f_name == "assignment_files") {
+            // Skip these
+            continue;
+        }
+
+        QString local_path = old_cache_path.path() + "/" + f_name;
+        qDebug() << "---- Orphaned File: " << local_path << " - deleting...";
+
+        try {
+            QFile::remove(local_path);
+        } catch (...) {
+            qDebug() << "----- ERROR removing file: " << local_path;
+        }
+
+    }
+
+    qDebug() << "----- DONE - PULLING CANVAS FILE BINARIES...";
 
     return ret;
 }
@@ -1847,35 +1949,38 @@ QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<Q
 
     QString json = NetworkCall(call_url, method, p, &headers, content_type, post_file);
 
-    QJsonParseError *err = new QJsonParseError();
-    QJsonDocument d2(QJsonDocument::fromJson(json.toUtf8(), err));
-    //qDebug() << "\tJSON Parse Err: " << err->errorString() << err->offset;
-    //qDebug() << "\tJSON Doc: " << d2;
-    //qDebug() << "\tIs Array: " << d2.isArray();
-    //qDebug() << "\tIs Object: " << d2.isObject();
-    //qDebug() << "\tIs nullptr: " << d2.isnullptr();
+    //if (call_url == "https://canvas.ed/api/v1/courses/21647000000049/pages/class-introduction") {
+    //    qDebug() << "PRE JSON RESPONSE: " << json;
+    //}
 
     //http_reply_data = "{\"default_time_zone\":\"Pacific Time (US \u0026 Canada)\",\"id\":1,\"name\":\"Admin\",\"parent_account_id\":nullptr,\"root_account_id\":nullptr,\"default_storage_quota_mb\":5000,\"default_user_storage_quota_mb\":50}";
 
     // Convert big id numbers to strings so they parse correctly
     // NOTE: qjsondocument converts ints to doubles and ends up loosing presision
     // find occurences of integer values in json documents and add quotes
-    QRegularExpression regex("(\"\\s*:\\s*)(\\d+\\.?\\d*)([^\"])|([\\[])(\\d+\\.?\\d*)|([,])(\\d+\\.?\\d*)"); //   ":\\s*(\\d+)\\s*,");
-    json = json.replace(regex, "\\1\\4\\6\"\\2\\5\\7\"\\3");  //  :\"\\1\",");
+    // ("\s*:\s*)(\d+\.?\d*)([^"])|([\[])(\d+\.?\d*)|([,])(\d+\.?\d*)
+    // Was picking up digits in the body like $10,000.
+    //QRegularExpression regex("(\"\\s*:\\s*)(\\d+\\.?\\d*)([^\"])|([\\[])(\\d+\\.?\\d*)|([,])(\\d+\\.?\\d*)"); //   ":\\s*(\\d+)\\s*,");
+    //json = json.replace(regex, "\\1\\4\\6\"\\2\\5\\7\"\\3");  //  :\"\\1\",");
     //qDebug() << "===================================\nParsing http data: " << json;
+    QRegularExpression regex("(\\\"\\s*:\\s*)([0-9.]+)(\\s*[,])"); //   ":\\s*(\\d+)\\s*,");
+    json = json.replace(regex, "\\1\"\\2\"\\3");  //  :\"\\1\",");
+
+    //if (call_url == "https://canvas.ed/api/v1/courses/21647000000049/pages/class-introduction") {
+    //    qDebug() << "POST JSON RESPONSE: " << json;
+    //}
 
     // Convert response to json
-    delete err;
-    err = new QJsonParseError();
+    QJsonParseError *err = new QJsonParseError();
     QJsonDocument d(QJsonDocument::fromJson(json.toUtf8(), err));
-
-    //qDebug() << "JSON: " << json;
-    //qDebug() << "JSON Parse Err: " << err->errorString() << err->offset;
-    //qDebug() << "JSON Doc: " << d;
-    //qDebug() << "Is Array: " << d.isArray();
-    //qDebug() << "Is Object: " << d.isObject();
-    //qDebug() << "Is nullptr: " << d.isnullptr();
-    //qDebug() << "JSON: " << d.toJson();
+    if (err->error != QJsonParseError::NoError) {
+        qDebug() << "\tJSON Parse Err: " << err->errorString() << err->offset;
+        qDebug() << "\tJSON Response: " << json;
+        qDebug() << "\tJSON Doc: " << d;
+        qDebug() << "\tIs Array: " << d.isArray();
+        qDebug() << "\tIs Object: " << d.isObject();
+        qDebug() << "\tIs nullptr: " << d.isNull();
+    }
 
     delete err;
     return d;
@@ -1970,7 +2075,7 @@ bool EX_Canvas::DownloadFile(QString url, QString local_path, QString item_name)
     progressCurrentItem = item_name;
     emit progress(0, 0, progressCurrentItem);
     int count = 0;
-    int dl_tries = 3;
+    int dl_tries = 2;
     while (count < dl_tries) {
         // Try 2 times to download each file
         //qDebug() << " - DL Try " << count << url;
@@ -2172,8 +2277,8 @@ QString EX_Canvas::ProcessDownloadLinks(QString content)
     QRegExp rx;
 
     // Find download links
-    // [\s>'\"]?((https?:\/\/[a-zA-Z\.0-9:]*)?(\/api\/v1)?\/courses\/([0-9]+)\/(files|modules\/items)\/([0-9]+)(\/download)?([\?]?[;=&0-9a-zA-Z%_]+)?)[\s<'\"]?
-    rx.setPattern("[\\s>'\\\"]?((https?:\\/\\/[a-zA-Z\\.0-9:]*)?(\\/api\\/v1)?\\/courses\\/([0-9]+)\\/(files|modules\\/items)\\/([0-9]+)(\\/download)?([\\?]?[;=&0-9a-zA-Z%_]+)?)[\\s<'\\\"]?");
+    // [\s>'\"]?((https?:\/\/[a-zA-Z\.0-9:]*)?(\/api\/v1)?\/courses\/([0-9]+)\/(files|modules\/items)\/([0-9]+)(\/download|\/preview)?([\?]?[;=&0-9a-zA-Z%_]+)?)[\s<'\"]?
+    rx.setPattern("[\\s>'\\\"]?((https?:\\/\\/[a-zA-Z\\.0-9:]*)?(\\/api\\/v1)?\\/courses\\/([0-9]+)\\/(files|modules\\/items)\\/([0-9]+)(\\/download|\/preview)?([\\?]?[;=&0-9a-zA-Z%_]+)?)[\\s<'\\\"]?");
 
     // rx.cap(0) = full match
     // 1 = full url - https://smc.ed/media/player.load/3f0s98foeu/
@@ -2240,7 +2345,6 @@ QString EX_Canvas::ProcessDownloadLinks(QString content)
             }
         }
 
-
         // Add to the list to be downloaded
         if (!_localhost_url.startsWith(canvas_host)) {
             // Add this to the download list later
@@ -2281,7 +2385,8 @@ bool EX_Canvas::updateDownloadLinks()
         QString f_ext = CM_MimeTypes::GetExtentionForMimeType(content_type);
 
         QString file_tag = "<CANVAS_FILE_" + file_id + ">";
-        QString new_url = _localhost_url + "/canvas_file_cache/" + file_id + f_ext;
+        //QString new_url = _localhost_url + "/canvas_file_cache/" + file_id + f_ext;
+        QString new_url = _localhost_url + "/canvas_file_cache/" + file_name;
 
         qDebug() << "Replacing " << file_tag << " with " << new_url;
 
@@ -2493,6 +2598,39 @@ bool EX_Canvas::pullSMCVideos()
         }
     }
 
+    // Now go through the folder and remove any files that aren't in the file list anymore.
+    QDir cache_dir(base_dir);
+    qDebug() << "Removing orphaned SMC Media files:";
+    foreach(QString f_name, cache_dir.entryList()) {
+        if(f_name == "." || f_name == "..") {
+            // Skip these
+            continue;
+        }
+        // See if this file exists in the files database
+        QFileInfo fi(f_name);
+        QString base_name = fi.baseName();
+        QSqlQuery q
+
+                TODO - Finish queries to see if this file is in the db
+                TODO - Also do this for SMC documents
+
+        files_model->setFilter("pull_file='/canvas_file_cache/" + f_name + "'");
+        files_model->select();
+        if (files_model->rowCount() < 1) {
+            // File isn't in the database, delete it
+            QString local_path = base_dir.path() + "/" + f_name;
+            qDebug() << "---- Orphaned File: " << local_path << " - deleting...";
+
+            try {
+                QFile::remove(local_path);
+            } catch (...) {
+                qDebug() << "----- ERROR removing file: " << local_path;
+            }
+
+        }
+    }
+
+
     ret = true;
 
     return ret;
@@ -2568,7 +2706,7 @@ QSqlRecord EX_Canvas::pullSinglePage(QString course_id, QString page_url)
     QJsonDocument page_doc = CanvasAPICall("/api/v1/courses/" + course_id + "/pages/" + page_url, "GET", &p);
     QJsonObject page_object;
     if (!page_doc.isObject()) {
-        qDebug() << "!!!ERROR GETTING PAGE BODY - " << course_id << page_url;
+        qDebug() << "!!!ERROR GETTING PAGE BODY - course:" << course_id << page_url << page_doc;
         page_body = "ERROR GETTING PAGE";
         return QSqlRecord();
     } else {

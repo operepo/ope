@@ -22,6 +22,14 @@
 
 int main(int argc, char *argv[])
 {
+
+    //QRegularExpression regex("(\\\"\\s*:\\s*)([0-9.]+)(\\s*[,])");
+    //QString json = "{\"id\": 230842309483209, \"test\": \"test2\"}";
+    //json = json.replace(regex, "\\1\"\\2\"\\3");  //  :\"\\1\",");
+    //qDebug() << json;
+    //return 0;
+
+
     // Set global app parameters - used by settings later
     QCoreApplication::setOrganizationName("OPE");
     QCoreApplication::setOrganizationDomain("openprisoneducation.com");
