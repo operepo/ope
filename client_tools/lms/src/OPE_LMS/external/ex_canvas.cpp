@@ -68,6 +68,9 @@ bool EX_Canvas::pullStudentInfo()
 
         model->setFilter("id = '" + id + "'"  );
         model->select();
+        // NOTE - Make sure to fetch all or we may only get 256 records
+        while(model->canFetchMore()) { model->fetchMore(); }
+
         QSqlRecord record;
         bool is_insert = false;
         if (model->rowCount() == 1) {
@@ -188,6 +191,9 @@ bool EX_Canvas::pullCourses()
 
                     model->setFilter("id = '" + course_id + "'"  );
                     model->select();
+                    // NOTE - Make sure to fetch all or we may only get 256 records
+                    while(model->canFetchMore()) { model->fetchMore(); }
+
                     QSqlRecord record;
                     bool is_insert = false;
                     if (model->rowCount() == 1) {
@@ -308,6 +314,10 @@ bool EX_Canvas::pullModules()
 
     // All enteries should be for this student, so get them all
     courses_model->setFilter("");
+    courses_model->select();
+    // NOTE - Make sure to fetch all or we may only get 256 records
+    while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
+
     ret = true;
     for (int i=0; i<courses_model->rowCount(); i++) {
         // Get modules for this course
@@ -332,6 +342,9 @@ bool EX_Canvas::pullModules()
 
                 model->setFilter("id = " + id);
                 model->select();
+                // NOTE - Make sure to fetch all or we may only get 256 records
+                while(model->canFetchMore()) { model->fetchMore(); }
+
                 QSqlRecord record;
                 bool is_insert = false;
 
@@ -404,6 +417,10 @@ bool EX_Canvas::pullModuleItems()
 
     // Get module items for each module
     modules_model->setFilter("");
+    modules_model->select();
+    // NOTE - Make sure to fetch all or we may only get 256 records
+    while(modules_model->canFetchMore()) { modules_model->fetchMore(); }
+
     ret = true;
     for (int i=0; i<modules_model->rowCount(); i++) {
         // Get module_items for this module
@@ -429,6 +446,9 @@ bool EX_Canvas::pullModuleItems()
 
                 model->setFilter("id = " + id);
                 model->select();
+                // NOTE - Make sure to fetch all or we may only get 256 records
+                while(model->canFetchMore()) { model->fetchMore(); }
+
                 QSqlRecord record;
                 bool is_insert = false;
 
@@ -525,6 +545,10 @@ bool EX_Canvas::pullCourseFileFolders()
 
     // Pull all folder info for all courses
     courses_model->setFilter("");
+    courses_model->select();
+    // NOTE - Make sure to fetch all or we may only get 256 records
+    while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
+
     ret = true;
     for (int i=0; i<courses_model->rowCount(); i++) {
         // Get folders for this course
@@ -549,6 +573,9 @@ bool EX_Canvas::pullCourseFileFolders()
 
                 model->setFilter("id = " + id);
                 model->select();
+                // NOTE - Make sure to fetch all or we may only get 256 records
+                while(model->canFetchMore()) { model->fetchMore(); }
+
                 QSqlRecord record;
                 bool is_insert = false;
 
@@ -677,6 +704,10 @@ bool EX_Canvas::pullCourseFilesInfo()
 
     // Pull all file info for all courses
     courses_model->setFilter("");
+    courses_model->select();
+    // NOTE - Make sure to fetch all or we may only get 256 records
+    while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
+
     ret = true;
     for (int i=0; i<courses_model->rowCount(); i++) {
         // Get modules for this course
@@ -743,6 +774,9 @@ bool EX_Canvas::pullSingleCourseFileInfo(QString file_id, QString course_id)
         // See if this file entry exists in the database
         files_model->setFilter("id=" + file_id);
         files_model->select();
+        // NOTE - Make sure to fetch all or we may only get 256 records
+        while(files_model->canFetchMore()) { files_model->fetchMore(); }
+
         QSqlRecord record;
         bool is_insert = false;
 
@@ -848,6 +882,10 @@ bool EX_Canvas::pullCourseFilesBinaries()
 
     files_model->setFilter(""); // pull_file=1
     files_model->select();
+    // NOTE - Make sure to fetch all or we may only get 256 records
+    while(files_model->canFetchMore()) { files_model->fetchMore(); }
+
+    qDebug() << "--- Processing DL Files " << files_model->rowCount();
 
     // Get the local cache folder
     QDir base_dir;
@@ -856,7 +894,10 @@ bool EX_Canvas::pullCourseFilesBinaries()
     base_dir.mkpath(base_dir.path());
 
     ret = true;
-    for (int i=0; i<files_model->rowCount(); i++) {
+    int rowCount = files_model->rowCount();
+    TODO - Is rowCount changing during the loop? Ending up stuck at 256....
+
+    for (int i=0; i<rowCount; i++) {
         QSqlRecord f = files_model->record(i);
         QString f_id = f.value("id").toString();
         QString f_filename = f.value("filename").toString();
@@ -923,9 +964,10 @@ bool EX_Canvas::pullCourseFilesBinaries()
 
         // Write changes
         files_model->setRecord(i, f);
-        files_model->submitAll();
-        files_model->database().commit();
+
     }
+    files_model->submitAll();
+    files_model->database().commit();
 
     // Clear out any file entries where local_copy_present is 4
     //q.prepare("DELETE FROM files WHERE local_copy_present='4'");
@@ -1004,6 +1046,9 @@ bool EX_Canvas::pullCoursePages()
     // Get the list of pages from canvas
     courses_model->setFilter("");
     courses_model->select();
+    // NOTE - Make sure to fetch all or we may only get 256 records
+    while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
+
     ret = true;
     for (int i=0; i<courses_model->rowCount(); i++) {
         // Get pages for this course
@@ -1127,6 +1172,9 @@ bool EX_Canvas::pullMessages(QString scope)
                 // Does this conversation exist?
                 conversations_model->setFilter("id = " + conversations_id);
                 conversations_model->select();
+                // NOTE - Make sure to fetch all or we may only get 256 records
+                while(conversations_model->canFetchMore()) { conversations_model->fetchMore(); }
+
                 if (conversations_model->rowCount() >= 1) {
                     // Exists
                     is_insert = false;
@@ -1188,6 +1236,9 @@ qDebug() << "Got conversation, going for messages: " << o["messages"];
                     }
                     messages_model->setFilter("id = " + m_id);
                     messages_model->select();
+                    // NOTE - Make sure to fetch all or we may only get 256 records
+                    while(messages_model->canFetchMore()) { messages_model->fetchMore(); }
+
                     if (messages_model->rowCount() >= 1) {
                         // Record exists
                         is_insert = false;
@@ -1260,6 +1311,10 @@ bool EX_Canvas::pullAssignments()
 
     // All entries should be for this student, so get them all
     courses_model->setFilter("");
+    courses_model->select();
+    // NOTE - Make sure to fetch all or we may only get 256 records
+    while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
+
     ret = true;
     for(int i=0; i<courses_model->rowCount(); i++) {
         // Get assignments for this course
@@ -1290,6 +1345,9 @@ bool EX_Canvas::pullAssignments()
 
                 model->setFilter("id = " + id);
                 model->select();
+                // NOTE - Make sure to fetch all or we may only get 256 records
+                while(model->canFetchMore()) { model->fetchMore(); }
+
                 QSqlRecord record;
                 bool is_insert = false;
 
@@ -1419,6 +1477,10 @@ bool EX_Canvas::pullAnnouncements()
 
     // Pull all announcements for all courses
     courses_model->setFilter("");
+    courses_model->select();
+    // NOTE - Make sure to fetch all or we may only get 256 records
+    while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
+
     ret = true;
     for (int i=0; i<courses_model->rowCount(); i++) {
         // Get pages for this course
@@ -1443,6 +1505,9 @@ bool EX_Canvas::pullAnnouncements()
 
                 model->setFilter("id = " + id);
                 model->select();
+                // NOTE - Make sure to fetch all or we may only get 256 records
+                while(model->canFetchMore()) { model->fetchMore(); }
+
                 QSqlRecord record;
                 bool is_insert = false;
 
@@ -1638,6 +1703,10 @@ bool EX_Canvas::pushAssignments()
     qDebug() << "-- Pushing assignment submissions...";
     // Find submissions that have no sync date
     model->setFilter("synced_on=''");
+    model->select();
+    // NOTE - Make sure to fetch all or we may only get 256 records
+    while(model->canFetchMore()) { model->fetchMore(); }
+
     for (int i=0; i < model->rowCount(); i++) {
         record = model->record(i);
         qDebug() << "--- Submitting assignment file " << record.value("course_id").toString() << " " << record.value("assignment_id").toString() << " " << record.value("origin_url").toString() << "/" << record.value("queue_url").toString();
@@ -1837,7 +1906,7 @@ bool EX_Canvas::LinkToCanvas(QString redirect_url, QString client_id)
     //// TODO add purpose to key generation? &purpose=MobileLMS
     // Open the browser. We will get an event from the web server when it is done
     // https://lms.dev.domain.com/login/oauth2/auth?client_id=10&response_type=code&redirect_uri=urn:ietf:wg:oauth:2.0:oob
-    QString canvas_url = canvas_url;
+    //QString canvas_url = canvas_url;
     if (!canvas_url.endsWith("/login/oauth2/auth"))
     {
         // Add the path
@@ -2278,7 +2347,7 @@ QString EX_Canvas::ProcessDownloadLinks(QString content)
 
     // Find download links
     // [\s>'\"]?((https?:\/\/[a-zA-Z\.0-9:]*)?(\/api\/v1)?\/courses\/([0-9]+)\/(files|modules\/items)\/([0-9]+)(\/download|\/preview)?([\?]?[;=&0-9a-zA-Z%_]+)?)[\s<'\"]?
-    rx.setPattern("[\\s>'\\\"]?((https?:\\/\\/[a-zA-Z\\.0-9:]*)?(\\/api\\/v1)?\\/courses\\/([0-9]+)\\/(files|modules\\/items)\\/([0-9]+)(\\/download|\/preview)?([\\?]?[;=&0-9a-zA-Z%_]+)?)[\\s<'\\\"]?");
+    rx.setPattern("[\\s>'\\\"]?((https?:\\/\\/[a-zA-Z\\.0-9:]*)?(\\/api\\/v1)?\\/courses\\/([0-9]+)\\/(files|modules\\/items)\\/([0-9]+)(\\/download|\\/preview)?([\\?]?[;=&0-9a-zA-Z%_]+)?)[\\s<'\\\"]?");
 
     // rx.cap(0) = full match
     // 1 = full url - https://smc.ed/media/player.load/3f0s98foeu/
@@ -2609,27 +2678,33 @@ bool EX_Canvas::pullSMCVideos()
         // See if this file exists in the files database
         QFileInfo fi(f_name);
         QString base_name = fi.baseName();
-        QSqlQuery q
+        //qDebug() << " Checknig SMC media file " << base_name;
+        QSqlQuery q;
 
-                TODO - Finish queries to see if this file is in the db
-                TODO - Also do this for SMC documents
+        q.prepare("select count(media_id) as cnt from smc_media_dl_queue2 where media_id=:media_id");
+        q.bindValue(":media_id", base_name);
+        if (!q.exec()) {
+            qDebug() << "DB ERROR - PullSMCVideos " << q.lastError();
+        } else {
+            q.next();
+            QSqlRecord r = q.record();
+            int size = r.value(0).toInt();
+            //qDebug() << "------ FOUND " << size << " records";
+            if(size < 1) {
+                //qDebug() << "Deleting Orphaned SMC Video " << f_name;
 
-        files_model->setFilter("pull_file='/canvas_file_cache/" + f_name + "'");
-        files_model->select();
-        if (files_model->rowCount() < 1) {
-            // File isn't in the database, delete it
-            QString local_path = base_dir.path() + "/" + f_name;
-            qDebug() << "---- Orphaned File: " << local_path << " - deleting...";
+                // File isn't in the database, delete it
+                QString local_path = base_dir.path() + "/" + f_name;
+                qDebug() << "---- Orphaned SMC Video File: " << local_path << " - deleting...";
 
-            try {
-                QFile::remove(local_path);
-            } catch (...) {
-                qDebug() << "----- ERROR removing file: " << local_path;
+                try {
+                    QFile::remove(local_path);
+                } catch (...) {
+                    qDebug() << "----- ERROR removing file: " << local_path;
+                }
             }
-
         }
     }
-
 
     ret = true;
 
@@ -2685,7 +2760,47 @@ bool EX_Canvas::pullSMCDocuments()
             }
         }
     }
-    return true;
+
+    // Now go through the folder and remove any files that aren't in the file list anymore.
+    QDir cache_dir(base_dir);
+    qDebug() << "Removing orphaned SMC Media files:";
+    foreach(QString f_name, cache_dir.entryList()) {
+        if(f_name == "." || f_name == "..") {
+            // Skip these
+            continue;
+        }
+        // See if this file exists in the files database
+        QFileInfo fi(f_name);
+        QString base_name = fi.baseName();
+        QSqlQuery q;
+        q.prepare("SELECT COUNT(document_id) as cnt FROM smc_document_dl_queue2 where document_id=:document_id");
+        q.bindValue(":document_id", base_name);
+        if (!q.exec()) {
+            qDebug() << "DB ERROR - PullSMCDocuments " << q.lastError();
+        } else {
+            q.next();
+            QSqlRecord r = q.record();
+            int size = r.value(0).toInt();
+            //qDebug() << "------ FOUND " << size << " records";
+            if(size < 1) {
+                //qDebug() << "Deleting Orphaned SMC Document " << f_name;
+
+                // File isn't in the database, delete it
+                QString local_path = base_dir.path() + "/" + f_name;
+                qDebug() << "---- Orphaned SMC Document File: " << local_path << " - deleting...";
+
+                try {
+                    QFile::remove(local_path);
+                } catch (...) {
+                    qDebug() << "----- ERROR removing file: " << local_path;
+                }
+            }
+        }
+    }
+
+    ret = true;
+
+    return ret;
 }
 
 QSqlRecord EX_Canvas::pullSinglePage(QString course_id, QString page_url)
@@ -2728,6 +2843,9 @@ QSqlRecord EX_Canvas::pullSinglePage(QString course_id, QString page_url)
 
     pages_model->setFilter("url='" + page_url.replace("'", "\'") + "' AND course_id='" + course_id.replace("'", "\'") + "'");
     pages_model->select();
+    // NOTE - Make sure to fetch all or we may only get 256 records
+    while(pages_model->canFetchMore()) { pages_model->fetchMore(); }
+
     QSqlRecord record;
     bool is_insert = false;
 
