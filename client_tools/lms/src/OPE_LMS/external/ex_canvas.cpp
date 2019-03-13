@@ -319,7 +319,8 @@ bool EX_Canvas::pullModules()
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
 
     ret = true;
-    for (int i=0; i<courses_model->rowCount(); i++) {
+    int rowCount = courses_model->rowCount();
+    for (int i=0; i<rowCount; i++) {
         // Get modules for this course
         QSqlRecord course_record = courses_model->record(i);
         QString course_id = course_record.value("id").toString();
@@ -422,7 +423,8 @@ bool EX_Canvas::pullModuleItems()
     while(modules_model->canFetchMore()) { modules_model->fetchMore(); }
 
     ret = true;
-    for (int i=0; i<modules_model->rowCount(); i++) {
+    int rowCount = modules_model->rowCount();
+    for (int i=0; i<rowCount; i++) {
         // Get module_items for this module
         QSqlRecord module_record = modules_model->record(i);
         QString module_id = module_record.value("id").toString();
@@ -550,7 +552,8 @@ bool EX_Canvas::pullCourseFileFolders()
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
 
     ret = true;
-    for (int i=0; i<courses_model->rowCount(); i++) {
+    int rowCount = courses_model->rowCount();
+    for (int i=0; i<rowCount; i++) {
         // Get folders for this course
         QSqlRecord course_record = courses_model->record(i);
         QString course_id = course_record.value("id").toString();
@@ -709,7 +712,8 @@ bool EX_Canvas::pullCourseFilesInfo()
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
 
     ret = true;
-    for (int i=0; i<courses_model->rowCount(); i++) {
+    int rowCount = courses_model->rowCount();
+    for (int i=0; i<rowCount; i++) {
         // Get modules for this course
         QSqlRecord course_record = courses_model->record(i);
         QString course_id = course_record.value("id").toString();
@@ -895,8 +899,6 @@ bool EX_Canvas::pullCourseFilesBinaries()
 
     ret = true;
     int rowCount = files_model->rowCount();
-    TODO - Is rowCount changing during the loop? Ending up stuck at 256....
-
     for (int i=0; i<rowCount; i++) {
         QSqlRecord f = files_model->record(i);
         QString f_id = f.value("id").toString();
@@ -1050,7 +1052,8 @@ bool EX_Canvas::pullCoursePages()
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
 
     ret = true;
-    for (int i=0; i<courses_model->rowCount(); i++) {
+    int rowCount = courses_model->rowCount();
+    for (int i=0; i<rowCount; i++) {
         // Get pages for this course
         QSqlRecord course_record = courses_model->record(i);
         QString course_id = course_record.value("id").toString();
@@ -1316,7 +1319,8 @@ bool EX_Canvas::pullAssignments()
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
 
     ret = true;
-    for(int i=0; i<courses_model->rowCount(); i++) {
+    int rowCount = courses_model->rowCount();
+    for(int i=0; i<rowCount; i++) {
         // Get assignments for this course
         QSqlRecord course_record = courses_model->record(i);
         QString course_id = course_record.value("id").toString();
@@ -1482,7 +1486,8 @@ bool EX_Canvas::pullAnnouncements()
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
 
     ret = true;
-    for (int i=0; i<courses_model->rowCount(); i++) {
+    int rowCount = courses_model->rowCount();
+    for (int i=0; i<rowCount; i++) {
         // Get pages for this course
         QSqlRecord course_record = courses_model->record(i);
         QString course_id = course_record.value("id").toString();
@@ -1707,7 +1712,8 @@ bool EX_Canvas::pushAssignments()
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(model->canFetchMore()) { model->fetchMore(); }
 
-    for (int i=0; i < model->rowCount(); i++) {
+    int rowCount = model->rowCount();
+    for (int i=0; i < rowCount; i++) {
         record = model->record(i);
         qDebug() << "--- Submitting assignment file " << record.value("course_id").toString() << " " << record.value("assignment_id").toString() << " " << record.value("origin_url").toString() << "/" << record.value("queue_url").toString();
         QString course_id = record.value("course_id").toString();
@@ -1765,22 +1771,21 @@ bool EX_Canvas::pushAssignments()
                     record.setValue("synced_on", QDateTime::currentDateTime().toString());
                     model->setRecord(i, record);
                 } else {
-                    qDebug() << "Problem linking uploaded file with assignment " << doc3;
+                    qDebug() << "Problem linking uploaded file with assignment " << assignment_id << doc3;
                     had_errors = true;
                 }
 
             } else {
                 // Invalid response??
-                qDebug() << "Invalid response for upload link! " << assignment_id;
+                qDebug() << "Invalid response for upload link! " << assignment_id << doc2;
                 had_errors = true;
                 continue; // Jump to next assignmment
             }
 
         } else {
-            qDebug() << "Invalid json object: pushAssignments ";
+            qDebug() << "Invalid json object: pushAssignments " << assignment_id << doc;
             had_errors = true;
         }
-
     }
     bool submit_sucess = model->submitAll();
     if (!submit_sucess) {
