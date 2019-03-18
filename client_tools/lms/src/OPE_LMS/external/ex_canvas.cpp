@@ -1795,6 +1795,8 @@ bool EX_Canvas::pushAssignments()
 
     if (db_commit_success == true || had_errors != true) {
         ret = true;
+    } else {
+        qDebug() << "DB ERROR - Problem submitting assignment " << model->database().lastError();
     }
     return ret;
 }
