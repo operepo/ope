@@ -21,6 +21,10 @@ CM_WebRequest::CM_WebRequest(QObject *parent) :
 
 QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString, QString> *parameters, QHash<QString, QString> *headers, QString content_type, QString post_file)
 {
+    // NOTE - For ordered parameters, you can use ___A_rest_of_key to preserve the parameter order.
+    // e.g.  mykey would become ___B_mykey to make sure it is second.
+    // ONLY WORKS FOR POST/Form-data
+
     // Clear current data
     http_reply_data.clear();
     http_reply_headers.clear();
@@ -41,7 +45,7 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
     }
     wr.setRawHeader("Content-Type", content_type.toLocal8Bit());
 
-    if (parameters !=NULL && parameters->count() > 0 && method.toUpper() == "GET")
+    if (parameters != nullptr && parameters->count() > 0 && method.toUpper() == "GET")
     {
         qstring = ConvertHashToQueryString(parameters);
         // DO Web Request
@@ -88,13 +92,24 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
         QHttpMultiPart *parts = new QHttpMultiPart(QHttpMultiPart::FormDataType);
         parts->setBoundary(boundary.toLocal8Bit());
 
+        // ORDERED PARAMETERS
+        // Copy keys to string list so we can sort
+        QStringList ordered_params = parameters->keys();
+        ordered_params.sort();
+
         // File upload post with mime headers
         // Loop through params and add a part for each
-        foreach(QString key, parameters->keys()) {
+        foreach(QString key, ordered_params) {
+            // Strip off the ___A_ stuff now that we are sorted
+            QString final_key = key;
+            if (final_key.startsWith("___")) {
+                final_key = final_key.mid(5);
+            }
+
             QHttpPart part;
             part.setHeader(QNetworkRequest::ContentDispositionHeader,
-                           QVariant("form-data; name=\"" + key +"\""));
-            part.setBody(parameters->value(key).toLocal8Bit());
+                           QVariant("form-data; name=\"" + final_key +"\""));
+            part.setBody(parameters->value(final_key).toLocal8Bit());
             parts->append(part);
         }
 
@@ -107,7 +122,7 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
         //qDebug() << "Query String: " << send;
         //parts->append(textPart);
 
-        QFile *file_io = NULL;
+        QFile *file_io = nullptr;
         QHttpPart file_part;
         if (post_file != "" && QFile::exists(post_file)) {
             // Add the file
@@ -129,8 +144,8 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
         http_reply = http_manager.post(wr, parts);
 
         // Set parents that don't get deleted right away
-        //if (file_part != NULL) { file_part->setParent(http_reply); }
-        if (file_io != NULL) { file_io->setParent(http_reply); }
+        //if (file_part != nullptr) { file_part->setParent(http_reply); }
+        if (file_io != nullptr) { file_io->setParent(http_reply); }
         //textPart->setParent(http_reply);
         parts->setParent(http_reply);
 
@@ -252,16 +267,16 @@ QString CM_WebRequest::ConvertHashToQueryString(QHash<QString, QString> *arr)
 {
     QString ret = "";
 
-    if (arr == NULL) { return ret; }
+    if (arr == nullptr) { return ret; }
 
     bool first = true;
     foreach (QString key , arr->keys())
     {
         QString val = arr->value(key);
 
-        if (key ==  NULL || key == "") { continue; }
+        if (key ==  nullptr || key == "") { continue; }
 
-        //if (arr->value(key) == NULL) { *arr[key] = ""; }
+        //if (arr->value(key) == nullptr) { *arr[key] = ""; }
 
         // Make sure we seperate with an &
         if (!first) { ret += "&"; }

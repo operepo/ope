@@ -1724,24 +1724,50 @@ bool EX_Canvas::pushAssignments()
         QFileInfo fi = QFileInfo(post_file);
         p["name"] = fi.fileName();
         p["size"] = QString::number(fi.size());
+        // Let canvas guess the content_type
+        //p["content_type"] = CM_MimeTypes::GetMimeType(fi.suffix());
+        //if (p["content_type"] == "") {
+        //    qDebug() << "UNKNOWN MIME TYPE " << fi.fileName();
+        //    p["content_type"] = "application/octet-stream";
+        //}
 
 
         // Post to the canvas server
-        // TODO
         // Get upload link
         QJsonDocument doc = CanvasAPICall("/api/v1/courses/" + course_id
                         + "/assignments/" + assignment_id
                         + "/submissions/self/files", "POST", &p);
 
+        /* Should return something like this
+         *
+         * {
+         *   "upload_url": "https://some-bucket.s3.amazonaws.com/",
+         *   "upload_params": {
+         *   "key": "/users/1234/files/profile_pic.jpg",
+         *   <unspecified parameters; key above will not necesarily be present either>
+         * }
+        */
+
         // Should now have the upload link
         if (doc.isObject()) {
             p.clear();
             QJsonObject o = doc.object();
+            if (!o.contains("upload_url") || !o.contains("upload_params")) {
+                qDebug() << "*** ASSIGNMENT UPLOAD ERROR! missing upload_url "
+                         << assignment_id << "\n" << doc;
+                // Dump to next assignment
+                continue;
+            }
             QString next_url = o["upload_url"].toString();
             QJsonObject params = o["upload_params"].toObject();
+            // Copy the provided parameters into the next request
+            int order = 65; // Start at ascii a - need this to sort the keys later
+            // or canvas will have a problem
             foreach(QString key, params.keys()) {
-                p[key] = params[key].toString();
+                p["___" + QString(order) + "_" + key] = params[key].toString();
+                order++;
             }
+             TODO - Ensure params are in order and that we deal with canvas error properly
             QJsonDocument doc2 = CanvasAPICall(next_url, "POST", &p,
                             "multipart/form-data", post_file);
             if (doc2.isObject()) {
@@ -1771,19 +1797,19 @@ bool EX_Canvas::pushAssignments()
                     record.setValue("synced_on", QDateTime::currentDateTime().toString());
                     model->setRecord(i, record);
                 } else {
-                    qDebug() << "Problem linking uploaded file with assignment " << assignment_id << doc3;
+                    qDebug() << "Problem linking uploaded file with assignment " << assignment_id << doc3.toJson();
                     had_errors = true;
                 }
 
             } else {
                 // Invalid response??
-                qDebug() << "Invalid response for upload link! " << assignment_id << doc2;
+                qDebug() << "*** ASSIGNMENT UPLOAD ERROR!! - Invalid response for upload link! " << assignment_id << doc2.toJson();
                 had_errors = true;
                 continue; // Jump to next assignmment
             }
 
         } else {
-            qDebug() << "Invalid json object: pushAssignments " << assignment_id << doc;
+            qDebug() << "ASSIGNMENT UPLOAD ERROR!!! - Invalid json object: pushAssignments " << assignment_id << doc.toJson();
             had_errors = true;
         }
     }

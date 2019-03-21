@@ -44,14 +44,14 @@ int main(int argc, char *argv[])
         qDebug() << "Running outside IDE";
         is_in_IDE = false;
         log_to_file = true;
+
+        // Install custom log handler
+        qInstallMessageHandler(customLogOutput);
     } else {
         qDebug() << "Running within IDE";
         is_in_IDE = true;
         log_to_file = false;
     }
-
-    // Install custom log handler
-    qInstallMessageHandler(customLogOutput);
 
     // Relax ssl config as we will be running through test certs
     QSslConfiguration sslconf = QSslConfiguration::defaultConfiguration();
