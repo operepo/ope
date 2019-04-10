@@ -36,6 +36,10 @@ public slots:
     QHash<QString,QString> GetAllHeaders();
     QHash<QString,QString> GetAllDownloadHeaders();
 
+    int httpStatusCode();
+    QString httpStatusReason();
+
+
     // Download reply signals
     void downloadReadyRead();
     void downloadReplyFinished(QNetworkReply *reply);

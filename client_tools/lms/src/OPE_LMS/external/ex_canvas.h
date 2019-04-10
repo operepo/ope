@@ -78,9 +78,9 @@ public slots:
     // =================================================
     // Core network calls - used to call canvas APIs
     // Build the API url and insert auth tokens
-    QJsonDocument CanvasAPICall(QString api_call, QString method = "GET", QHash<QString, QString> *p = NULL, QString content_type="text/html", QString post_file=NULL);
+    QJsonDocument CanvasAPICall(QString api_call, QString method = "GET", QHash<QString, QString> *p = nullptr, QString content_type="text/html", QString post_file=nullptr, bool expect_non_json_answer = false);
     // Low level network call - make the actual connection to canvas, auto pull additional pages - BLOCKING
-    QString NetworkCall(QString url, QString method = "GET", QHash<QString, QString> *p = NULL, QHash<QString, QString> *headers = NULL, QString content_type="text/html", QString post_file="");
+    QString NetworkCall(QString url, QString method = "GET", QHash<QString, QString> *p = nullptr, QHash<QString, QString> *headers = nullptr, QString content_type="text/html", QString post_file="");
     // Download a file to a local path
     bool DownloadFile(QString url, QString local_path, QString item_name = "");
     void downloadProgress(qint64 bytesRead, qint64 totalBytes);
@@ -128,6 +128,7 @@ private:
 
     // Web request used by NetworkCall - hands off
     CM_WebRequest *web_request;
+    QByteArray last_web_response;
 
     QString progressCurrentItem;
     qint64 _dl_progress;

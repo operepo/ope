@@ -141,6 +141,7 @@ ApplicationWindow {
 
         header: ToolBar {
             //opacity: 0.5
+            implicitHeight: 48;
 
             RowLayout {
                 anchors.fill: parent;

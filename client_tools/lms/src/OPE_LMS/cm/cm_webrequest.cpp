@@ -77,20 +77,22 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
     {
         // Normal post with urlencoded values
         QString p = ConvertHashToQueryString(parameters);
-        qDebug() << "Param String: " << p;
+        //qDebug() << "Param String: " << p;
         http_reply = http_manager.post(wr, QByteArray(p.toLocal8Bit()));
     }
     else if  (content_type == "multipart/form-data" && (method.toUpper() == "POST" || method.toUpper() == "PUT"))
     {
+        //QHttpMultiPart *parts = new QHttpMultiPart(QHttpMultiPart::MixedType);
+        QHttpMultiPart *parts = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+        // Let it figure out its own boundary
+        //parts->setBoundary(boundary.toLocal8Bit());
+
         // Make sure to setup a proper boundary
-        QString boundary = "-----------------------lksjfjLDSAkjfelwkjfkdjfslkjesahrAKHFD";
+        QString boundary = parts->boundary(); // "-----------------------lksjfjLDSAkjfelwkjfkdjfslkjesahrAKHFD";
         // Reset the header w the boundary
         wr.setHeader(QNetworkRequest::ContentTypeHeader,
                      "multipart/form-data; boundary=" + boundary);
 
-        //QHttpMultiPart *parts = new QHttpMultiPart(QHttpMultiPart::MixedType);
-        QHttpMultiPart *parts = new QHttpMultiPart(QHttpMultiPart::FormDataType);
-        parts->setBoundary(boundary.toLocal8Bit());
 
         // ORDERED PARAMETERS
         // Copy keys to string list so we can sort
@@ -109,7 +111,7 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
             QHttpPart part;
             part.setHeader(QNetworkRequest::ContentDispositionHeader,
                            QVariant("form-data; name=\"" + final_key +"\""));
-            part.setBody(parameters->value(final_key).toLocal8Bit());
+            part.setBody(parameters->value(key).toLocal8Bit());
             parts->append(part);
         }
 
@@ -174,6 +176,10 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
     QEventLoop loop;
     connect(http_reply, SIGNAL(finished()), &loop, SLOT(quit()));
     loop.exec(QEventLoop::ExcludeUserInputEvents);
+
+    if (!http_reply->isFinished()) {
+        qDebug() << "WARNING - Network Reply - finished signal but is finished is false! \n" << http_reply;
+    }
 
     // Make sure to stop the timer
     http_timeout.stop();
@@ -300,6 +306,20 @@ QHash<QString,QString> CM_WebRequest::GetAllHeaders()
 QHash<QString, QString> CM_WebRequest::GetAllDownloadHeaders()
 {
     return download_reply_headers;
+}
+
+int CM_WebRequest::httpStatusCode()
+{
+    if (http_reply == nullptr) { return 0; }
+
+    return http_reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+}
+
+QString CM_WebRequest::httpStatusReason()
+{
+    if (http_reply == nullptr) { return ""; }
+
+    return http_reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString();
 }
 
 void CM_WebRequest::downloadReadyRead()
@@ -482,9 +502,10 @@ void CM_WebRequest::httpReadyRead()
 //        file->write(reply->readAll());
     //qDebug() << "ReadyRead...";
     //http_reply_data.append(http_reply->readAll());
-    QByteArray data = http_reply->readAll();
-    QString s_data = QString::fromStdString(data.toStdString());
-    http_reply_data.append(data);
+    //QByteArray data = http_reply->readAll();
+    //QString s_data = QString::fromStdString(data.toStdString());
+    //http_reply_data.append(data);
+    http_reply_data.append(http_reply->readAll());
 
     // Capture the headers
     foreach(QString key, http_reply->rawHeaderList())

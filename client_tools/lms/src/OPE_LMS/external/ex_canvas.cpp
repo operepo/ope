@@ -1738,7 +1738,7 @@ bool EX_Canvas::pushAssignments()
                         + "/assignments/" + assignment_id
                         + "/submissions/self/files", "POST", &p);
 
-        /* Should return something like this
+        /* Should return JSON with something like this
          *
          * {
          *   "upload_url": "https://some-bucket.s3.amazonaws.com/",
@@ -1747,9 +1747,11 @@ bool EX_Canvas::pushAssignments()
          *   <unspecified parameters; key above will not necesarily be present either>
          * }
         */
+        qDebug() << "$$$ SUBMIT STEP 1 RESPONSE: " << last_web_response;
 
         // Should now have the upload link
         if (doc.isObject()) {
+            qDebug() << "Building SUMIT STEP 2 Response...";
             p.clear();
             QJsonObject o = doc.object();
             if (!o.contains("upload_url") || !o.contains("upload_params")) {
@@ -1767,9 +1769,13 @@ bool EX_Canvas::pushAssignments()
                 p["___" + QString(order) + "_" + key] = params[key].toString();
                 order++;
             }
-             TODO - Ensure params are in order and that we deal with canvas error properly
+            // Do the actual file upload - NOTE - this will send back non JSON formatted
+            // text??
+            // NOTE2 - NetworkCall will auto follow location link
+            qDebug() << "Sending SUBMIT STEP 2 " << next_url;
             QJsonDocument doc2 = CanvasAPICall(next_url, "POST", &p,
                             "multipart/form-data", post_file);
+            qDebug() << "$$$ Last Web Response: " << last_web_response;
             if (doc2.isObject()) {
                 // Will end up with a 201 or 301 and location header to follow
                 // NetworkCall will see that and follow the link
@@ -2027,7 +2033,7 @@ void EX_Canvas::FinalizeLinkToCanvas(CM_HTTPRequest *request, CM_HTTPResponse *r
 }
 
 
-QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<QString, QString> *p, QString content_type, QString post_file)
+QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<QString, QString> *p, QString content_type, QString post_file, bool expect_non_json_answer)
 {
     // Network call will recursivly call the canvas api until it runs out of link headers
     QHash<QString,QString> headers;
@@ -2075,7 +2081,7 @@ QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<Q
     // Convert response to json
     QJsonParseError *err = new QJsonParseError();
     QJsonDocument d(QJsonDocument::fromJson(json.toUtf8(), err));
-    if (err->error != QJsonParseError::NoError) {
+    if (err->error != QJsonParseError::NoError && expect_non_json_answer != true) {
         qDebug() << "\tJSON Parse Err: " << err->errorString() << err->offset;
         qDebug() << "\tJSON Response: " << json;
         qDebug() << "\tJSON Doc: " << d;
@@ -2092,23 +2098,33 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
 {
     QString ret;
 
-    ret = web_request->NetworkCall(url, method, p, headers, content_type, post_file);
+    last_web_response = web_request->NetworkCall(url, method, p, headers, content_type, post_file);
+    ret = last_web_response;
     //QByteArray bin_ret = web_request->NetworkCall(url, method, p, headers);
     //ret = QString::fromUtf8(bin_ret);
 
-    // If this is a file push - canvas needs us to follow the 301 or 201 response
+    // If this is a file push - canvas needs us to follow the 301. 201 response is just done
     // that should be set in the location header
     QString location_header = web_request->GetHeader("Location");
-    if ((method.toUpper() == "POST" || method.toUpper() == "PUT") &&
-            location_header != "") {
-
+    int status_code = web_request->httpStatusCode();
+    qDebug() << url << " - " << status_code << " " << location_header;
+    if ((status_code == 201 || status_code >= 301 || status_code == 302 || status_code == 307 || status_code == 308 ) &&
+            (method.toUpper() == "POST" || method.toUpper() == "PUT") &&
+            location_header != "" && location_header.toLower().contains("/create_success?") ) {
+        qDebug() << "### FOLLOWING Location Header from " << url << " to " <<  location_header;
         // Hit the next link
         headers->clear();
         (*headers)["Authorization"] = "Bearer " + canvas_access_token;
         (*headers)["User-Agent"] = "OPE LMS";
         (*headers)["Accept-Language"] = "en-US,en;q=0.8";
         p->clear();
-        return web_request->NetworkCall(location_header, "POST", p, headers);
+        qDebug() << "First RET: " << ret;
+        // Follow up changed to GET as specified in the docs under "Confirm upload success"
+        // https://canvas.instructure.com/doc/api/file.file_uploads.html
+        last_web_response = web_request->NetworkCall(location_header, "GET", p, headers);
+        ret = last_web_response;
+        qDebug() << "2nd RET: " << ret;
+        return ret;
     }
 
     QString link_header = web_request->GetHeader("Link");
