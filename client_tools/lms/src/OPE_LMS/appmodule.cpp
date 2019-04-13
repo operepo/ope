@@ -69,7 +69,7 @@ AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
 
     //qDebug() << "Pulling SMC Videos " << _canvas->pullSMCVideos();
 
-    qDebug() << "Turning In Assignments " << _canvas->pushAssignments();
+    //qDebug() << "Turning In Assignments " << _canvas->pushAssignments();
 
 }
 
