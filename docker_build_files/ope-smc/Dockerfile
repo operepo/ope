@@ -2,7 +2,7 @@ FROM alpine:3.4
 MAINTAINER Ray Pulspher <ray@cmagic.biz>
 LABEL Description="Student Management Console - Image for Open Prison Education"
 LABEL Vendor="openprisoneducation.com"
-LABEL Version="0.8"
+LABEL Version="0.9"
 
 # install base
 RUN apk update \
@@ -88,7 +88,7 @@ LABEL rebuild_smc=9
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE v1.9.1
+ENV SMC_RELEASE v1.9.2
 
 RUN cd $W2P_DIR \
     && git init \

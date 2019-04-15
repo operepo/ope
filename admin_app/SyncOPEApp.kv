@@ -1287,70 +1287,70 @@
 
 
                 GridLabel:
-                    text: "\n[b][color=ff0000]**[/color] Required Apps[/b] - These apps are always required\n\n[color=00ff00]**[/color] - Strongly recommended and required for normal functionality\n\n[color=0000ff]**[/color] - Apps stable and ready for use\n\n[color=ffff00]**[/color] - Apps still in beta - not fully functional\n"
+                    text: "\n[b][color=ff0000]**[/color] Required Apps[/b] - These apps are always required\n[color=00ff00]**[/color] - Strongly recommended and required for normal functionality\n[color=0000ff]**[/color] - Apps stable and ready for use\n[color=ffff00]**[/color] - Apps still in beta - not fully functional\n[color=800080].ed[/color] - domain can be changed but host name stays the same (e.g. canvas.local)\n"
                 GridLabel:
                     text: ''
                     size_hint_x: .2
 
 
                 GridLabel:
-                    text: "[b][color=ff0000]**[/color][/b] Gateway (ope-gateway) - Routes traffic to various apps"
+                    text: "[b][color=ff0000]**[/color][/b] Gateway (DNS: gateway[color=800080].ed[/color]) - Routes traffic to various apps"
                 GridSwitch:
                     id: gateway_on
                     disabled: True
                     active: app.is_app_active('ope-gateway')
 
                 GridLabel:
-                    text: "[b][color=ff0000]**[/color][/b] Router (ope-router) - Deals with multicast routing and firewall rules"
+                    text: "[b][color=ff0000]**[/color][/b] Router (DNS: router[color=800080].ed[/color]) - Deals with multicast routing and firewall rules"
                 GridSwitch:
                     id: router_on
                     disabled: True
                     active: app.is_app_active('ope-router')
 
                 GridLabel:
-                    text: "[b][color=ff0000]**[/color][/b] DNS (ope-dns) - Deals with DNS requests - add conditional forwarder for domain to this IP"
+                    text: "[b][color=ff0000]**[/color][/b] DNS (DNS: dns[color=800080].ed[/color]) - Deals with DNS requests - add conditional forwarder on your main DNS server to this IP"
                 GridSwitch:
                     id: dns_on
                     disabled: True
                     active: app.is_app_active('ope-dns')
 
                 GridLabel:
-                    text: "[b][color=ff0000]**[/color][/b] Redis (ope-redis) - Memory caching server, used by Canvas and other apps"
+                    text: "[b][color=ff0000]**[/color][/b] Redis (DNS: redis[color=800080].ed[/color]) - Memory caching server, used by Canvas and other apps"
                 GridSwitch:
                     id: redis_on
                     disabled: True
                     active: app.is_app_active('ope-redis')
 
                 GridLabel:
-                    text: "[b][color=ff0000]**[/color][/b] Postgresql (ope-postgresql) - Database server, used by Canvas and other apps"
+                    text: "[b][color=ff0000]**[/color][/b] Postgresql (DNS: postgresql[color=800080].ed[/color]) - Database server, used by Canvas and other apps"
                 GridSwitch:
                     id: postgresql_on
                     disabled: True
                     active: app.is_app_active('ope-postgresql')
 
                 GridLabel:
-                    text: "[b][color=00ff00]**[/color][/b] FOG (ope-fog) - Imaging Server - stores windows images for OPE Laptops"
+                    text: "[b][color=00ff00]**[/color][/b] FOG (DNS: fog[color=800080].ed[/color]) - Imaging Server - stores windows images for OPE Laptops"
                 GridSwitch:
                     id: fog_on
                     active: app.is_app_active('ope-fog')
                     on_active: app.set_app_active('ope-fog', self.active)
 
                 GridLabel:
-                    text: "[b][color=00ff00]**[/color][/b] Canvas (ope-canvas) - LMS setup to run offline and integrate with OPE project"
+                    text: "[b][color=00ff00]**[/color][/b] Canvas (DNS: canvas[color=800080].ed[/color]) - LMS setup to run offline and integrate with OPE project"
                 GridSwitch:
                     id: canvas_on
                     active: app.is_app_active('ope-canvas')
                     on_active: app.set_app_active('ope-canvas', self.active)
 
                 GridLabel:
-                    text: "[b][color=00ff00]**[/color][/b] SMC (ope-smc) - Student Management Console to import student accounts and integrate with Canvas and OPE Laptops"
+                    text: "[b][color=00ff00]**[/color][/b] SMC (DNS: smc[color=800080].ed[/color]) - Student Management Console to import student accounts and integrate with Canvas and OPE Laptops"
                 GridSwitch:
                     id: smc_on
                     active: app.is_app_active('ope-smc')
                     on_active: app.set_app_active('ope-smc', self.active)
 
                 GridLabel:
-                    text: "[b][color=00ff00]**[/color][/b] Clam Anti-virus (ope-clamav) - Holds anti-virus patterns for your network"
+                    text: "[b][color=00ff00]**[/color][/b] Clam Anti-virus (DNS: clamav[color=800080].ed[/color]) - Holds anti-virus patterns for your network"
                 GridSwitch:
                     id: clamv_on
                     #disabled: True
@@ -1358,21 +1358,21 @@
                     on_active: app.set_app_active('ope-clamav', self.active)
 
                 GridLabel:
-                    text: "[color=0000ff]**[/color] KALite (ope-kalite) - Khan Academy Lite - choose version available in RACHEL server"
+                    text: "[color=0000ff]**[/color] KALite (DNS: kalite[color=800080].ed[/color], khan[color=800080].ed[/color]) - Khan Academy Lite - choose version available in RACHEL server"
                 GridSwitch:
                     id: kalite_on
                     active: app.is_app_active('ope-kalite')
                     on_active: app.set_app_active('ope-kalite', self.active)
 
                 GridLabel:
-                    text: "[color=0000ff]**[/color] Code Combat (ope-codecombat) - Lean to write code by scripting games in a website and solving puzzles"
+                    text: "[color=0000ff]**[/color] Code Combat (DNS: codecombat[color=800080].ed[/color]) - Lean to write code by scripting games in a website and solving puzzles"
                 GridSwitch:
                     id: coco_on
                     active: app.is_app_active('ope-codecombat')
                     on_active: app.set_app_active('ope-codecombat', self.active)
 
                 GridLabel:
-                    text: "[color=0000ff]**[/color] GCFLearnFree (ope-gcf) - Learn basic computer skills - (version also available in RACHEL server)"
+                    text: "[color=0000ff]**[/color] GCFLearnFree (DNS: gcf[color=800080].ed[/color]) - Learn basic computer skills - (version also available in RACHEL server)"
                 GridSwitch:
                     id: gcf_on
                     active: app.is_app_active('ope-gcf')
@@ -1380,42 +1380,42 @@
 
 
                 GridLabel:
-                    text: "[color=ffff00]**[/color] FreeCodeCamp (ope-freecodecamp) - Learn to code with lessons and projects from freecodecamp.com"
+                    text: "[color=ffff00]**[/color] FreeCodeCamp (DNS: freecodecamp[color=800080].ed[/color]) - Learn to code with lessons and projects from freecodecamp.com"
                 GridSwitch:
                     id: freecodecamp_on
                     active: app.is_app_active('ope-freecodecamp')
                     on_active: app.set_app_active('ope-freecodecamp', self.active)
 
                 GridLabel:
-                    text: "[color=ffff00]**[/color] JSBin (ope-jsbin) - Javascript learning environment"
+                    text: "[color=ffff00]**[/color] JSBin (DNS: jsbin[color=800080].ed[/color]) - Javascript learning environment"
                 GridSwitch:
                     id: jsbin_on
                     active: app.is_app_active('ope-jsbin')
                     on_active: app.set_app_active('ope-jsbin', self.active)
 
                 GridLabel:
-                    text: "[color=ffff00]**[/color] RACHEL (ope-rachel) - RACHEL Web server, large library of offline content available as modules"
+                    text: "[color=ffff00]**[/color] RACHEL (DNS: rachel[color=800080].ed[/color]) - RACHEL Web server, large library of offline content available as modules"
                 GridSwitch:
                     id: rachel_on
                     active: app.is_app_active('ope-rachel')
                     on_active: app.set_app_active('ope-rachel', self.active)
 
                 GridLabel:
-                    text: "[color=ffff00]**[/color] Stack Dump (ope-stackdump) - StackDump is a copy of Stack Overflow filtered for inmate use"
+                    text: "[color=ffff00]**[/color] Stack Dump (DNS: stackdump[color=800080].ed[/color]) - StackDump is a copy of Stack Overflow filtered for inmate use"
                 GridSwitch:
                     id: stackdump_on
                     active: app.is_app_active('ope-stackdump')
                     on_active: app.set_app_active('ope-stackdump', self.active)
 
                 GridLabel:
-                    text: "[color=ffff00]**[/color] WAMAP (ope-wamap) - Open source math learning system with lesson materials"
+                    text: "[color=ffff00]**[/color] WAMAP (DNS: wamap[color=800080].ed[/color]) - Open source math learning system with lesson materials"
                 GridSwitch:
                     id: wamap_on
                     active: app.is_app_active('ope-wamap')
                     on_active: app.set_app_active('ope-wamap', self.active)
 
                 GridLabel:
-                    text: "[color=ffff00]**[/color] WSL Wiki (ope-wsl) - WA State Library wiki with re-entry resources"
+                    text: "[color=ffff00]**[/color] WSL Wiki (DNS: wsl[color=800080].ed[/color]) - WA State Library wiki with re-entry resources"
                 GridSwitch:
                     id: wsl_on
                     active: app.is_app_active('ope-wsl')
