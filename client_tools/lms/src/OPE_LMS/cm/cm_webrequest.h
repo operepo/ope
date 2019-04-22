@@ -25,6 +25,7 @@ public:
 
 signals:
     void progress(qint64 bytesRead, qint64 totalBytes);
+    void ulProgress(qint64 bytesSent, qint64 totalBytes);
 
 public slots:
     QByteArray NetworkCall(QString url, QString method = "GET", QHash<QString, QString> *p = NULL, QHash<QString, QString> *headers = NULL, QString content_type = "text/html", QString post_file="");
@@ -46,6 +47,11 @@ public slots:
     void downloadProgress(qint64 bytesRead, qint64 totalBytes);
     void downloadError(QNetworkReply::NetworkError code);
     void downloadSSLError(const QList<QSslError> &errors);
+
+    // Upload reply signals
+    void uploadError(QNetworkReply::NetworkError code);
+    void uploadProgress(qint64 bytesSent, qint64 totalBytes);
+    void uploadFinished();
 
 
     // Deals with timer events - for both download_timeout and http_timeout
@@ -80,8 +86,8 @@ private:
     QHash<QString,QString> download_reply_headers;
 
     // Monitor dl/http request and allow things to timeout if needed
-    int dl_timeout_interval = 15000;
-    int http_timeout_interval = 15000;
+    int dl_timeout_interval = 30000;
+    int http_timeout_interval = 60000;
     QBasicTimer download_timeout;
     QBasicTimer http_timeout;
 

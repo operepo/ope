@@ -1062,7 +1062,7 @@ bool EX_Canvas::pullCoursePages()
         QHash<QString,QString> p;
         p["per_page"] = "10000"; // Cuts down number of calls significantly
         QJsonDocument doc = CanvasAPICall("/api/v1/courses/" + course_id + "/pages", "GET", &p);
-
+//qDebug() << "A";
         if (doc.isArray()) {
             qDebug() << "\t\tCanvas Pages for course " << course_id << course_name;
             // Should be an array of pages
@@ -2056,7 +2056,7 @@ QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<Q
     }
 
     QString json = NetworkCall(call_url, method, p, &headers, content_type, post_file);
-
+//qDebug() << "C";
     //if (call_url == "https://canvas.ed/api/v1/courses/21647000000049/pages/class-introduction") {
     //    qDebug() << "PRE JSON RESPONSE: " << json;
     //}
@@ -2097,8 +2097,9 @@ QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<Q
 QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QString> *p, QHash<QString, QString> *headers, QString content_type, QString post_file)
 {
     QString ret;
-
+//qDebug() << "BA";
     last_web_response = web_request->NetworkCall(url, method, p, headers, content_type, post_file);
+//qDebug() << "BB";
     ret = last_web_response;
     //QByteArray bin_ret = web_request->NetworkCall(url, method, p, headers);
     //ret = QString::fromUtf8(bin_ret);

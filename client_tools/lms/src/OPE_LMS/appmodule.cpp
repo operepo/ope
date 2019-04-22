@@ -61,15 +61,22 @@ AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
     _canvas->SetCanvasAccessToken(_canvas_access_token);
     _canvas->SetCanvasURL(_canvas_url);
 
-    // DEBUG
-    // Run some tests on the process video/smc/docs code
-    //qDebug() << _canvas->ProcessSMCVideos("<iframe width=\"650\" height=\"405\" src=\"https://smc.ed/media/player.load/6bc33efb174248c5bfff9cdd5f986ae9?autoplay=true\" frameborder=\"0\" allowfullscreen></iframe>");
+    QByteArray envVar = qgetenv("QTDIR");
+    if (envVar.isEmpty()) {
+        // Running outside IDE
+    } else {
+        // Running INSIDE IDE (Debug!)
+        // DEBUG
+        // Run some tests on the process video/smc/docs code
+        //qDebug() << _canvas->ProcessSMCVideos("<iframe width=\"650\" height=\"405\" src=\"https://smc.ed/media/player.load/6bc33efb174248c5bfff9cdd5f986ae9?autoplay=true\" frameborder=\"0\" allowfullscreen></iframe>");
 
-    //qDebug() << _canvas->ProcessSMCDocuments("<iframe src=\"https://smc.ed/smc/static/ViewerJS/index.html#/media/dl_document/2c4ed3d973b443fd930159764dc60ef7\" width=\"734\" height=\"620\" allowfullscreen=\"allowfullscreen\" webkitallowfullscreen=\"webkitallowfullscreen\"></iframe>");
+        //qDebug() << _canvas->ProcessSMCDocuments("<iframe src=\"https://smc.ed/smc/static/ViewerJS/index.html#/media/dl_document/2c4ed3d973b443fd930159764dc60ef7\" width=\"734\" height=\"620\" allowfullscreen=\"allowfullscreen\" webkitallowfullscreen=\"webkitallowfullscreen\"></iframe>");
 
-    //qDebug() << "Pulling SMC Videos " << _canvas->pullSMCVideos();
+        //qDebug() << "Pulling SMC Videos " << _canvas->pullSMCVideos();
 
-    //qDebug() << "Turning In Assignments " << _canvas->pushAssignments();
+        qDebug() << "Processing Course Page: " << _canvas->pullCoursePages();
+        qDebug() << "Turning In Assignments " << _canvas->pushAssignments();
+    }
 
 }
 

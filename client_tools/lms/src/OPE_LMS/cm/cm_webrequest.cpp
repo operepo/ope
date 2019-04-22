@@ -33,10 +33,14 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
     //QByteArray ret;
 
     http_request_active = true;
+    bool is_upload = false;
 
     QString qstring = "";
 
     QNetworkRequest wr;
+
+    // Make sure HTTP/1.1 keep-alives are on
+    wr.setRawHeader("Connection", "Keep-Alive");
 
     if (content_type == "text/html" && method.toUpper() == "POST" )
     {
@@ -127,6 +131,10 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
         QFile *file_io = nullptr;
         QHttpPart file_part;
         if (post_file != "" && QFile::exists(post_file)) {
+            is_upload = true;
+
+            wr.setAttribute(QNetworkRequest::DoNotBufferUploadDataAttribute, 1);
+
             // Add the file
             file_io = new QFile(post_file);
             file_io->open(QIODevice::ReadOnly);
@@ -137,6 +145,7 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
                                 QVariant("form-data; name=\"file\"; filename=\"" + fi.fileName()  + "\""));
             //file_part.setHeader(QNetworkRequest::ContentTypeHeader,
             //                    QVariant("application/octet-stream"));
+            file_part.setHeader(QNetworkRequest::ContentLengthHeader, QString::number(fi.size()));
 
             file_part.setBodyDevice(file_io);
             parts->append(file_part);
@@ -166,11 +175,25 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
 
 //    connect(http_reply, SIGNAL(finished()),
 //            this, SLOT(httpFinished()));
+
+    if (is_upload) {
+        // -- DEAL WITH ERRORS
+        connect(http_reply, SIGNAL(error(QNetworkReply::NetworkError)),
+                this, SLOT(uploadError(QNetworkReply::NetworkError)));
+        // -- DEAL WITH UPLOAD EVENTS
+        connect(http_reply, SIGNAL(uploadProgress(qint64,qint64)), this,
+                SLOT(uploadProgress(qint64,qint64)));
+    } else {
+        // -- DEAL WITH ERRORS
+        connect(http_reply, SIGNAL(error(QNetworkReply::NetworkError)),
+                this, SLOT(downloadError(QNetworkReply::NetworkError)));
+    }
+
+    // -- DEAL WITH DOWNLOAD EVENTS
     connect(http_reply, SIGNAL(readyRead()),
             this, SLOT(httpReadyRead()));
     connect(http_reply, SIGNAL(downloadProgress(qint64,qint64)),
             this, SLOT(httpUpdateDataReadProgress(qint64,qint64)));
-
 
     // Use a QEventLoop to allow events and block until network traffic is done
     QEventLoop loop;
@@ -178,11 +201,13 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
     loop.exec(QEventLoop::ExcludeUserInputEvents);
 
     if (!http_reply->isFinished()) {
-        qDebug() << "WARNING - Network Reply - finished signal but is finished is false! \n" << http_reply;
+        qDebug() << "*** WARNING - Network Reply - finished signal but is finished is false! \n" << http_reply;
     }
 
     // Make sure to stop the timer
     http_timeout.stop();
+
+    //qDebug() << "---> NETWORK CALL DONE " << url;
 
     // Read in the reply
     //qDebug() << "NetowrkCall - Got Data: " << http_reply_data;
@@ -388,13 +413,17 @@ void CM_WebRequest::downloadProgress(qint64 bytesRead, qint64 totalBytes)
 void CM_WebRequest::downloadError(QNetworkReply::NetworkError code)
 {
     try {
-        qDebug() << "!!!! DLERROR - download file " << code << " " << download_reply->request().url();
+        qDebug() << "!!!! DLERROR - download file " << code;
+        QString url = "<NO URL>";
+        if (download_reply != nullptr) {
+            //url = download_reply->request().url().toString();
+        }
+        //qDebug() << url;
     } catch(...) {
         qDebug() << "!!!!!! UNKOWN EXCEPTION - DLFile Error";
     }
     // Stop download timer
     download_timeout.stop();
-
 }
 
 void CM_WebRequest::downloadSSLError(const QList<QSslError> &errors)
@@ -410,12 +439,42 @@ void CM_WebRequest::downloadSSLError(const QList<QSslError> &errors)
     download_reply->ignoreSslErrors();
 }
 
+void CM_WebRequest::uploadError(QNetworkReply::NetworkError code)
+{
+    qDebug() << "**** UPLOAD ERROR " << code;
+
+}
+
+void CM_WebRequest::uploadProgress(qint64 bytesSent, qint64 totalBytes)
+{
+    // Make sure to reset the timeout
+    if (bytesSent == totalBytes) {
+        // Upload done - need to give the server a few minutes to reply
+        // as it may be copying the uploaded file for a minute
+        http_timeout.start(60000 * 5, this);
+    } else {
+        http_timeout.start(http_timeout_interval, this);
+    }
+
+    //qDebug() << "uploading " << bytesSent << " / " << totalBytes;
+
+    emit ulProgress(bytesSent, totalBytes);
+}
+
+void CM_WebRequest::uploadFinished()
+{
+    qDebug() << "-- Upload Finished ";
+
+    // Turn off the timeout so we don't kill the process later
+    http_timeout.stop();
+}
+
 void CM_WebRequest::timerEvent(QTimerEvent *event)
 {
     if (event->timerId() == download_timeout.timerId()) {
         // Download Timer Event
         // If we got here we have been waiting too long
-        qDebug() << "Download Timeout - stopping download";
+        qDebug() << "**** Download Timeout - stopping download";
         download_timeout.stop();
         if (download_reply->isRunning()) {
             download_reply->abort();
@@ -424,7 +483,7 @@ void CM_WebRequest::timerEvent(QTimerEvent *event)
     } else if (event->timerId() == http_timeout.timerId()) {
         // HTTP Request Timer Event
         // If we got here - waiting too long for reply/data
-        qDebug() << "HTTP Timeout - stopping request";
+        qDebug() << "**** HTTP Timeout - stopping request";
         http_timeout.stop();
         if (http_reply->isRunning()) {
             http_reply->abort();
