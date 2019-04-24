@@ -13,6 +13,10 @@ OPENetworkAccessManager::OPENetworkAccessManager(QObject *parent)
     //QObject::connect(this, SIGNAL(sslErrors(QNetworkReply*,QList<QSslError>)),
     //                 this, SLOT(ignoreSSLErrors(QNetworkReply*,QList<QSslError>)));
 
+    // Bump timeout up so we don't loose connection during uploads
+    configuration().setConnectTimeout(120);
+    TODO - Set keepalive properties? uploads are timing out
+
 }
 
 QNetworkReply *OPENetworkAccessManager::get(const QNetworkRequest &request)

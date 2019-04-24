@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QNetworkAccessManager>
 #include <QQmlNetworkAccessManagerFactory>
+#include <QNetworkConfiguration>
 #include <QNetworkReply>
 #include <QSslError>
 
