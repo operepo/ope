@@ -1,0 +1,26 @@
+pythoncom
+win32serviceutil
+win32service
+win32event
+servicemanager
+socket
+time
+datetime
+sys
+os
+logging
+random
+from win32com.shell shell, shellcon
+ntsecuritycon
+win32security
+win32api
+win32gui
+win32ui
+win32con
+win32gui_struct
+win32ts
+win32process
+PIL
+pyscreenshot
+ctypes
+wmi

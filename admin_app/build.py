@@ -1,3 +1,5 @@
+# NOTE - VENV Below specifies which python to use for this app - currently 3.6
+
 import os
 import sys
 import shutil
@@ -20,8 +22,8 @@ os.environ["PATH"] = os.environ["PATH"] +\
 
 BASE_FOLDER = os.path.dirname(__file__)
 # VENV = os.path.join(BASE_FOLDER, "venv", "Scripts", "python.exe")
-# VENV = "c:\python27\python.exe "
-VENV = "c:\python36-32\python.exe "
+# VENV = "c:\\python27\\python.exe "
+VENV = "c:\\python36-32\\python.exe "
 
 print("USING SPEC FILE")
 # print("python -m PyInstaller --noconfirm SyncApp.spec")

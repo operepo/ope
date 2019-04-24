@@ -1,3 +1,6 @@
+### NOTE - Use SSHOT Project!!!!!
+
+
 from win32com.shell import shell, shellcon
 import os
 import sys
@@ -9,6 +12,7 @@ LOG_FOLDER = os.path.join(shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_APPDATA
 SCREEN_SHOTS_FOLDER = os.path.join(LOG_FOLDER, "screen_shots")
 PIC_TYPE = ".png"
 
+
 def grab_screen_area(x1, y1, x2, y2):
     # Grab part of the screen
     im = ImageGrab.grab(bbox=(x1, y1, x2, y2))
@@ -19,12 +23,13 @@ def grab_screen_area(x1, y1, x2, y2):
     # Show image in a window
     # im.show()
 
+
 def grab_full_screen():
     # Grab the screen
     im = ImageGrab.grab()
 
     # Size it down
-    #im.thumbnail((512, 512))
+    # im.thumbnail((512, 512))
     size_multiplier = .5
     w = int(im.size[0] * size_multiplier)
     h = int(im.size[1] * size_multiplier)
@@ -37,7 +42,13 @@ def grab_full_screen():
     # Show image in a window
     # im.show()
 
+
 if __name__ == '__main__':
     # freeze_support()
     grab_full_screen()
     # grab_screen_area(10, 10, 510, 510)
+
+#
+# hwnd = win32gui.GetDesktopWindow()
+#            # hwnd = self.getDesktopHWND()
+#            l, t, r, b = win32gui.GetWindowRect(hwnd)

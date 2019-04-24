@@ -23,6 +23,7 @@ import win32process
 import PIL
 import pyscreenshot as ImageGrab
 import ctypes
+import wmi
 
 # TODO - Set recovery options for service so it restarts on failure
 
@@ -229,6 +230,41 @@ def set_ope_permissions():
     # win32security.TreeSetNamedSecurityInfo(folder, win32security.SE_FILE_OBJECT, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, None, None, sd, None)
 
 
+def scan_com_ports():
+    # TODO - Need Debug
+    # Use WMI to pull a list of com ports
+    w = wmi.WMI()
+
+    logging.info("Scanning USB/Serial COM Ports...")
+
+    # Scan for PNP Devices that are ports
+    for port in w.Win32_PNPEntity(PNPClass="Ports"):
+        logging.info("PNP COM Port Found: " + str(port.name))
+        if port.Status == "OK":
+            # Port is on and working - turn it off
+            logging.info("COM Port " + str(port.Caption) + " is on - disabling...")
+            try:
+                port.Disable()
+            except Exception as ex:
+                logging.info("ERROR!!! " + str(ex))
+        else:
+            logging.info("COM Port " + str(port.Caption) + " is off...")
+
+    # Scan for Serial devices (may not be PNP)
+    for port in w.Win32_SerialPort():
+        print("Serial Port Found: " + str(port.name))
+        if port.Status == "OK":
+            logging.info("Serial Port " + str(port.Caption) + " is on - disabling...")
+            try:
+                port.Disable()
+            except Exception as ex:
+                logging.info("ERROR!!! " + str(ex))
+        else:
+            logging.info("Serial Port " + str(port.Caption) + " is off...")
+
+    return
+
+
 def scanNics():
     # May need to call this before calling this function so that COM works
     # pythoncom.CoInitialize() - called in the main function
@@ -341,7 +377,8 @@ class OPEService(win32serviceutil.ServiceFramework):
         logging.basicConfig(
             filename=os.path.join(LOG_FOLDER, 'ope-service.log'),
             level=logging.DEBUG,
-            format='[ope-service] %(levelname)-7.7s %(message)s'
+            datefmt='%Y-%m-%d %H:%M:%S',
+            format='[ope-sshot] %(asctime)-15s %(levelname)-7.7s %(message)s'
         )
         logging.info("service init")
 
@@ -388,7 +425,7 @@ class OPEService(win32serviceutil.ServiceFramework):
         logging.info("Event " + msg)
         servicemanager.LogMsg(
                 servicemanager.EVENTLOG_INFORMATION_TYPE,
-                0xF000, #  generic message
+                0xF000,  # generic message
                 (msg, '')
                 )
 

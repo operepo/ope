@@ -1,5 +1,6 @@
+REM - Python2
 call remove_service.cmd
-python setup.py py2exe
+python2 setup.py py2exe
 
 rem xcopy /Y /E dist\* ..\update\
 

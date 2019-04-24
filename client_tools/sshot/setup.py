@@ -31,21 +31,23 @@ import shutil
 
 DESCRIPTION = 'OPE Screen Shot - Used to grab screen shots of the current desktop'
 NAME = 'OpeSShot'
-INCLUDES = "win32com" # "win32com,win32service,win32serviceutil,win32event,win32api"
+VERSION = '1.00.01'
+INCLUDES = "win32com"  # "win32com,win32service,win32serviceutil,win32event,win32api"
 OPTIMIZE = "2"
 
-sys.path.insert(0,os.getcwd())
- 
+sys.path.insert(0, os.getcwd())
+
+
 def getFiles(dir):
     """
     Retorna una tupla de tuplas del directorio
     """
     # dig looking for files
-    a= os.walk(dir)
+    a = os.walk(dir)
     b = True
     filenames = []
  
-    while (b):
+    while b:
         try:
             (dirpath, dirnames, files) = a.next()
             filenames.append([dirpath, tuple(files)])
@@ -58,22 +60,20 @@ sys.path.append("Microsoft.VC90.CRT")
 
 # To send msvcrt dll files
 data_files = [("Microsoft.VC90.CRT", glob(r'Microsoft.VC90.CRT.9.0.3\*.*'))]
-
-
         
-print 'Compiling windows executable...'
+print('Compiling windows executable...')
 setup(
-    name = NAME ,
-    description = DESCRIPTION,
-    version = '1.00.00',
-    windows = ['sshot.py'],
-    #console = ['sshot.py'],
+    name=NAME,
+    description=DESCRIPTION,
+    version=VERSION,
+    windows=['sshot.py'],  # Use this if you want a win app w no console - we DO (silent execution)
+    # console=['sshot.py'],  # Use this if you want a console to appear - we do NOT
     zipfile=None,
-    options = {
-            "py2exe":{"unbuffered": True, "packages":"encodings",
-                "includes":INCLUDES,
-                "optimize": OPTIMIZE
-                },
+    options={
+            "py2exe": {"unbuffered": True, "packages": "encodings",
+                       "includes": INCLUDES,
+                       "optimize": OPTIMIZE
+                       },
             },
     data_files=data_files
 )

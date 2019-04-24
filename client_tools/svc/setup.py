@@ -12,7 +12,7 @@ try:
     import win32com, sys
     for p in win32com.__path__[1:]:
         modulefinder.AddPackagePath("win32com", p)
-    for extra in ["win32com.shell"]: #,"win32com.mapi"
+    for extra in ["win32com.shell"]:  # ,"win32com.mapi"
         __import__(extra)
         m = sys.modules[extra]
         for p in m.__path__[1:]:
@@ -31,27 +31,30 @@ import shutil
 
 DESCRIPTION = 'OPE Service - Admin service for OPE project'
 NAME = 'Ope Service'
-INCLUDES = "win32com,win32service,win32serviceutil,win32event,win32api"
+VERSION = "1.00.01"
+INCLUDES = "win32com,win32service,win32serviceutil,win32event,win32api,wmi"
 OPTIMIZE = "2"
 
-sys.path.insert(0,os.getcwd())
- 
+sys.path.insert(0, os.getcwd())
+
+
 def getFiles(dir):
     """
     Retorna una tupla de tuplas del directorio
     """
     # dig looking for files
-    a= os.walk(dir)
+    a = os.walk(dir)
     b = True
     filenames = []
  
-    while (b):
+    while b:
         try:
             (dirpath, dirnames, files) = a.next()
             filenames.append([dirpath, tuple(files)])
         except:
             b = False
     return filenames
+
 
 buildservice = True
 if '--no-service' in sys.argv[1:]:
@@ -66,50 +69,51 @@ data_files = [("Microsoft.VC90.CRT", glob(r'Microsoft.VC90.CRT.9.0.3\*.*'))]
 
 
 class Target:
-    def __init__(self,**kw):
-            self.__dict__.update(kw)
-            self.version        = "1.00.00"
-            self.compay_name    = "OPE"
-            self.copyright      = "(c) 2017, OPE"
-            self.name           = NAME
-            self.description    = DESCRIPTION
- 
+    def __init__(self, **kw):
+        self.__dict__.update(kw)
+        self.version = VERSION
+        self.compay_name = "OPE"
+        self.copyright = "(c) 2017, OPE"
+        self.name = NAME
+        self.description = DESCRIPTION
+
+
 my_com_server_target = Target(
-        description    = DESCRIPTION,
-        service = ["OPEService"],
-        modules = ["OPEService"],
-        create_exe = True,
-        create_dll = True)
+        description=DESCRIPTION,
+        service=["OPEService"],
+        modules=["OPEService"],
+        create_exe=True,
+        create_dll=True)
 
         
 if not buildservice:
     print 'Compiling windows executable...'
     setup(
-        name = NAME ,
-        description = DESCRIPTION,
-        version = '1.00.00',
-        console = ['svc.py'],
+        name=NAME,
+        description=DESCRIPTION,
+        version=VERSION,
+        console=['svc.py'],
         zipfile=None,
-        options = {
-                "py2exe":{"packages":"encodings",
-                    "includes":INCLUDES,
-                    "optimize": OPTIMIZE
-                    },
+        options={
+                "py2exe": {"packages": "encodings",
+                           "includes": INCLUDES,
+                           "optimize": OPTIMIZE
+                           },
                 },
     )
 else:
     print 'Compiling windows service...'
     setup(
-        name = NAME,
-        description = DESCRIPTION,
-        version = '1.00.00',
-        service = [{'modules':["OPEService"], 'cmdline':'pywin32'}],
+        name=NAME,
+        description=DESCRIPTION,
+        version=VERSION,
+        service=[{'modules': ["OPEService"], 'cmdline': 'pywin32'}],
         zipfile=None,
-        options = {
-                "py2exe":{"packages":"encodings",
-                    "includes":INCLUDES,
-                    "optimize": OPTIMIZE
-                    },
+        options={
+                "py2exe": {"packages": "encodings",
+                           "includes": INCLUDES,
+                           "optimize": OPTIMIZE
+                           },
                 },
     )        
         

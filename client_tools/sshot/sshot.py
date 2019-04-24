@@ -27,7 +27,8 @@ if not os.path.isdir(LOG_FOLDER):
 logging.basicConfig(
     filename=os.path.join(LOG_FOLDER, 'ope-sshot.log'),
     level=logging.DEBUG,
-    format='[ope-sshot] %(levelname)-7.7s %(message)s'
+    datefmt='%Y-%m-%d %H:%M:%S',
+    format='[ope-sshot] %(asctime)-15s %(levelname)-7.7s %(message)s'
 )
 
 
