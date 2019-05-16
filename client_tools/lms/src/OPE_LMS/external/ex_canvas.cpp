@@ -2237,6 +2237,7 @@ QString EX_Canvas::ProcessAllLinks(QString content)
     ret = ProcessDownloadLinks(ret);
     ret = ProcessSMCDocuments(ret);
     ret = ProcessSMCVideos(ret);
+    ret = ProcessPagesLinks(ret);
 
     return ret;
 }
@@ -2395,6 +2396,10 @@ QString EX_Canvas::ProcessDownloadLinks(QString content)
 
     QRegExp rx;
 
+    // // Example link of image file embedded in this page/text
+    // <img src="https://canvas.ed/courses/21647000000303/files/21647000019197/preview" alt="Misleading Graphs_Page_01.jpg" data-api-endpoint="https://canvas.ed/api/v1/courses/21647000000303/files/21647000019197" data-api-returntype="File" />
+
+
     // Find download links
     // [\s>'\"]?((https?:\/\/[a-zA-Z\.0-9:]*)?(\/api\/v1)?\/courses\/([0-9]+)\/(files|modules\/items)\/([0-9]+)(\/download|\/preview)?([\?]?[;=&0-9a-zA-Z%_]+)?)[\s<'\"]?
     rx.setPattern("[\\s>'\\\"]?((https?:\\/\\/[a-zA-Z\\.0-9:]*)?(\\/api\\/v1)?\\/courses\\/([0-9]+)\\/(files|modules\\/items)\\/([0-9]+)(\\/download|\\/preview)?([\\?]?[;=&0-9a-zA-Z%_]+)?)[\\s<'\\\"]?");
@@ -2480,6 +2485,19 @@ QString EX_Canvas::ProcessDownloadLinks(QString content)
             qDebug() << "-- Link found w localhost address? " << full_url;
         }
     }
+
+    return ret;
+}
+
+QString EX_Canvas::ProcessPagesLinks(QString content)
+{
+    // Find links to canvas pages and change them for local links
+    // TODO - links to pages aren't getting translated to local links
+
+    QString ret = content;
+    // Example link ot another page (maybe from assignments?)
+    // <a id="" title="Misleading Graphs" href="https://canvas.ed/courses/21647000000303/pages/misleading-graphs" target="blank" data-api-endpoint="https://canvas.ed/api/v1/courses/21647000000303/pages/misleading-graphs" data-api-returntype="Page">Misleading Graphs</a>
+
 
     return ret;
 }

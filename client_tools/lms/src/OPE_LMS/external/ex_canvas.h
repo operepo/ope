@@ -97,6 +97,7 @@ public slots:
     QString ProcessSMCVideos(QString content);
     QString ProcessSMCDocuments(QString content);
     QString ProcessDownloadLinks(QString content);
+    QString ProcessPagesLinks(QString content);
 
     // Replace <CANVAS_FILE_??> links with real links
     bool updateDownloadLinks();
