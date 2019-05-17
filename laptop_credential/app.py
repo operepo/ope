@@ -42,6 +42,34 @@ student_user = ""
 
 server_name = None
 home_root = "c:\\users"
+APP_FOLDER = None
+
+def get_app_folder():
+    global APP_FOLDER
+    ret = ""
+    # Adjusted to save APP_FOLDER - issue #6 - app_folder not returning the same folder later in the app?
+    if APP_FOLDER is None:
+        # return the folder this app is running in.
+        # Logger.info("Application: get_app_folder called...")
+        if getattr(sys, 'frozen', False):
+            # Running in pyinstaller bundle
+            ret = sys._MEIPASS
+            # Logger.info("Application: sys._MEIPASS " + sys._MEIPASS)
+            # Adjust to use sys.executable to deal with issue #6 - path different if cwd done
+            # ret = os.path.dirname(sys.executable)
+            # Logger.info("AppPath: sys.executable " + ret)
+
+        else:
+            ret = os.path.dirname(os.path.abspath(__file__))
+            # Logger.info("AppPath: __file__ " + ret)
+        APP_FOLDER = ret
+    else:
+        ret = APP_FOLDER
+    return ret
+
+
+# Make sure the app knows where its folder is at
+get_app_folder()
 
 
 def run_as_admin():
@@ -169,6 +197,8 @@ def verify_ope_account_in_smc(user_name, smc_url, admin_user, admin_pw):
 
     
 def main():
+    global APP_FOLDER
+
     if win_util.is_admin() is not True:
         p("}}rbApp must be run as Admin user with elevated (UAC) privileges!!!}}xx")
         return False
@@ -372,8 +402,13 @@ def main():
     p("\n}}gnSetting up LMS App...}}xx")
     # Create shortcut
     lnk_path = "c:\\users\\public\\desktop\\OPE LMS.lnk"
-    exe_path = "c:\\programdata\\ope\\ope_laptop_binaries\\lms\\ope_lms.exe"
-    ico_path = "c:\\programdata\\ope\\ope_laptop_binaries\\lms\\logo_icon.ico"
+
+    # Modify so that desktop shortcut point to where the app really is, not the hard coded dir
+    # exe_path = "c:\\programdata\\ope\\ope_laptop_binaries\\lms\\ope_lms.exe"
+    LMS_FOLDER = os.path.join(os.path.dirname(APP_FOLDER), "lms")
+    exe_path = os.path.join(LMS_FOLDER, "ope_lms.exe")
+    # ico_path = "c:\\programdata\\ope\\ope_laptop_binaries\\lms\\logo_icon.ico"
+    ico_path = os.path.join(LMS_FOLDER, "logo_icon.ico")
     shortcut = pythoncom.CoCreateInstance(
         shell.CLSID_ShellLink,
         None,

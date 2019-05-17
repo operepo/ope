@@ -15,7 +15,7 @@ OPENetworkAccessManager::OPENetworkAccessManager(QObject *parent)
 
     // Bump timeout up so we don't loose connection during uploads
     configuration().setConnectTimeout(120);
-    TODO - Set keepalive properties? uploads are timing out
+    //TODO - Set keepalive properties? uploads are timing out
 
 }
 

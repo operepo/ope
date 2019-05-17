@@ -1,7 +1,22 @@
+--->  Build/Deploy <---
+
+* Build using Release
+* Clean - to remove obj files
+* Run win_deploy.cmd
+
+
+
 ***  ISSUES WITH ICU
  - Run build - get dlls/etc in the release folder
  - copy resources/* to release folder
  - copy translations/qtwebengine_locales to release folder
+
+*** Open SSL
+ - Make sure you copy C:/Program Files/OpenSSL-Win64/bin/*.dll to release folder
+ - Currently using OpenSSL 1.1.1b
+
+
+
 
 
 -- FOR ANDROID WEBVIEW - May need to add this to manifest file

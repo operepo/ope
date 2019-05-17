@@ -150,8 +150,14 @@ HEADERS += \
     cm/cm_websockettransport.h \
     customlogger.h
 
-LIBS += -LC:/OpenSSL-Win64/lib # -lcrypto -lssl
-INCLUDEPATH += C:/OpenSSL-Win64/include
+#LIBS += -LC:/OpenSSL-Win64/lib # -lcrypto -lssl
+#INCLUDEPATH += C:/OpenSSL-Win64/include
+#OPEN_SSL_PATH = "C:/Program Files/OpenSSL-Win64"
+OPEN_SSL_PATH = "C:/OpenSSL-Win64"
+OPEN_SSL_DLL_PATH = $${OPEN_SSL_PATH}
+LIBS += -L"$${OPEN_SSL_PATH}/lib" # -lcrypto -lssl
+INCLUDEPATH += "$${OPEN_SSL_PATH}/include"
+
 
 RC_ICONS = logo_icon.ico
 
@@ -253,7 +259,8 @@ DISTFILES += \
     websockettest.qml \
     qwebchannel.js \
     wc_index.html \
-    opeWebViewClient.js
+    opeWebViewClient.js \
+    win_deploy.cmd
 
 # Rules to force qrc rebuild each time - deal with bug where qml files aren't updated on next run
 update_qml.target = qml.qrc
@@ -277,7 +284,8 @@ copy_files.commands = $(COPY_DIR) \"$$shell_path($$PWD\\www_content)\" \"$$shell
     $(COPY_DIR) \"$$shell_path($$PWD\\opeWebViewClient.js)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\web_content\\)\" && \
     $(COPY_DIR) \"$$shell_path($$PWD\\mime_types.csv)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
     $(COPY_DIR) \"$$shell_path($$PWD\\qt.conf)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
-    $(COPY_DIR) \"$$shell_path($$PWD\\qtquickcontrols2.conf)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\"
+    $(COPY_DIR) \"$$shell_path($$PWD\\qtquickcontrols2.conf)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
+    $(COPY_DIR) \"$$shell_path($${OPEN_SSL_DLL_PATH}\\*.dll)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\"
 
 first.depends = $(first) copy_files
 export(first.depends)

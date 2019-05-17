@@ -53,6 +53,9 @@ int main(int argc, char *argv[])
         log_to_file = false;
     }
 
+    // Show SSL info
+    qDebug() << "SSL Library Info: " << QSslSocket::supportsSsl() << QSslSocket::sslLibraryBuildVersionString() << QSslSocket::sslLibraryVersionString();
+
     // Relax ssl config as we will be running through test certs
     QSslConfiguration sslconf = QSslConfiguration::defaultConfiguration();
     QList<QSslCertificate> cert_list = sslconf.caCertificates();
@@ -71,6 +74,9 @@ int main(int argc, char *argv[])
     QGuiApplication::setAttribute(Qt::AA_UseOpenGLES);
 
     QGuiApplication app(argc, argv);
+    // Put our local folder as first path to look at for dlls
+    QCoreApplication::addLibraryPath(QCoreApplication::applicationDirPath());
+    qDebug() << "Library Paths: " << QCoreApplication::libraryPaths();
 
     // NOTE: Need this right after GUI App creation
     QtWebView::initialize();
