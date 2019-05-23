@@ -12,8 +12,8 @@
  - copy translations/qtwebengine_locales to release folder
 
 *** Open SSL
- - Make sure you copy C:/Program Files/OpenSSL-Win64/bin/*.dll to release folder
- - Currently using OpenSSL 1.1.1b
+ - Make sure you copy OpenSSL-Win64/bin/*.dll to release folder
+ - Currently using OpenSSL 1.0.?
 
 
 

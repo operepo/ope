@@ -754,12 +754,22 @@ class SyncOPEApp(App, EventDispatcher):
                            {'server_ip': '127.0.0.1',
                             'server_user': 'root',
                             'server_folder': '/ope',
-                            'domain': 'ed'})
+                            'domain': 'ed',
+                            })
         config.setdefaults("Offline Settings",
                            {'server_ip': '127.0.0.1',
                             'server_user': 'root',
                             'server_folder': '/ope',
-                            'domain': 'ed'})
+                            'domain': 'ed',
+                            })
+
+        # Settings for ECASAS DNS
+        config.setdefaults("eCasas",
+                           {'ecasasweb_host': 'ecasas.ed',
+                            'ecasasweb_ip': '127.0.0.1',
+                            'ecasasdb_host': 'ecasasdb.ed',
+                            'ecasasdb_ip': '127.0.0.1'
+                            })
 
         # Generate defaults for selected apps
         selected_apps = {}
@@ -798,6 +808,8 @@ class SyncOPEApp(App, EventDispatcher):
                                 os.path.join(cwd, 'OnlineServerSettings.json'))
         settings.add_json_panel('Offline Settings', self.config,
                                 os.path.join(cwd, 'OfflineServerSettings.json'))
+        settings.add_json_panel('eCasas', self.config,
+                                os.path.join(cwd, 'eCasas.json'))
 
         # Don't show this in settings AND in selected apps screen
         # settings.add_json_panel('Selected Apps', self.config, 'SelectedApps.json')
@@ -1912,44 +1924,57 @@ class SyncOPEApp(App, EventDispatcher):
 
         return ret
 
+    def write_ope_env_values(self, ssh, ssh_pass, build_path, ip, domain):
+        # Write all ENV values for the OPE apps - used when rebuilding docker-compose.yml file
+
+        # - Server IP
+        self.write_ope_env_value(ssh, build_path, "ip", ip)
+        self.write_ope_env_value(ssh, build_path, "IP", ip)  # use caps for new builds
+        # - Server Domain (e.g. .ed)
+        self.write_ope_env_value(ssh, build_path, "domain", domain)
+        self.write_ope_env_value(ssh, build_path, "DOMAIN", domain)  # use caps for new builds
+        # - Psss apps will use as the admin/root pw
+        self.write_ope_env_value(ssh, build_path, "pw", ssh_pass)
+        self.write_ope_env_value(ssh, build_path, "IT_PW", ssh_pass)
+        self.write_ope_env_value(ssh, build_path, "OFFICE_PW", ssh_pass)
+        # - Running in online or offline mode
+        self.write_ope_env_value(ssh, build_path, "IS_ONLINE", self.is_online())
+        # - Extra settings for domain resolution
+        dns_extras = ""
+        # -- Add A entries for ecasas
+        dns_extras += " -A /" + self.config.getdefault("eCasas", "ecasasweb_host", "ecasas.ed") + \
+                      "/" + self.config.getdefault("eCasas", "ecasasweb_ip", "127.0.0.1") + \
+                      " -A /" + self.config.getdefault("eCasas", "ecasasdb_host", "ecasasdb.ed") + \
+                      "/" + self.config.getdefault("eCasas", "ecasasdb_ip", "127.0.0.1")
+        self.write_ope_env_value(ssh, build_path, "DNS_EXTRAS", dns_extras)
+
+    def write_ope_env_value(self, ssh, path, key, value):
+        ret = True
+
+        try:
+            f_name = "." + str(key)  # .upper()  # Don't do upper as file name case matters
+            stdin, stdout, stderr = ssh.exec_command(
+                "cd " + str(path) + "; echo \"" + str(value) + "\" > " + f_name + "; ",
+                get_pty=True)
+            for line in stdout:
+                pass
+        except Exception as ex:
+            ret = False
+            Logger.info("Error writing ENV value " + str(key) + "  ---> " + str(ex))
+
+        return ret
+
     def pull_docker_images(self, ssh, ssh_folder,  status_label, ip, domain, ssh_pass):
         # Run on the online server - pull the current docker images
         ret = ""
 
-        # Need to re-run the rebuild_compose.py file
+        # Figure out where we are dumping our ENV values
         build_path = os.path.join(ssh_folder, "docker_build_files").replace("\\", "/")
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ip + "\" > .ip; ", get_pty=True)
-        for line in stdout:
-            pass
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + domain + "\" > .domain; ",
-                                                 get_pty=True)
-        for line in stdout:
-            pass
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .pw; ",
-                                                 get_pty=True)
-        for line in stdout:
-            pass
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + domain + "\" > .DOMAIN; ",
-                                                 get_pty=True)
-        for line in stdout:
-            pass
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ip + "\" > .IP; ", get_pty=True)
-        for line in stdout:
-            pass
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .IT_PW; ",
-                                                 get_pty=True)
-        for line in stdout:
-            pass
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .OFFICE_PW; ",
-                                                 get_pty=True)
-        for line in stdout:
-            pass
 
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + str(self.is_online()) + "\" > .IS_ONLINE; ",
-                                                 get_pty=True)
-        for line in stdout:
-            pass
+        # Save out our ENV values to the server so we can use them when running
+        self.write_ope_env_values(ssh, ssh_pass, build_path, ip, domain)
 
+        # Need to re-run the rebuild_compose.py file to build the docker-compose.yml file
         rebuild_path = os.path.join(ssh_folder, "build_tools", "rebuild_compose.py").replace("\\", "/")
         stdin, stdout, stderr = ssh.exec_command("python " + rebuild_path + " auto", get_pty=True)
         try:
@@ -2009,35 +2034,8 @@ class SyncOPEApp(App, EventDispatcher):
 
         build_path = os.path.join(ssh_folder, "docker_build_files").replace("\\", "/")
 
-        # Make sure .ip and .domain and .pw files exist
-        # CHANGE - when logging in from the sync app, always set the IP to the current ip used to login
-        # stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; if [ ! -f .ip ]; then echo \"" + ip + "\" > .ip; fi ", get_pty=True)
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ip + "\" > .ip; ", get_pty=True)
-        for line in stdout:
-            pass
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + domain + "\" > .domain; ", get_pty=True)
-        for line in stdout:
-            pass
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .pw; ", get_pty=True)
-        for line in stdout:
-            pass
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + domain + "\" > .DOMAIN; ", get_pty=True)
-        for line in stdout:
-            pass
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ip + "\" > .IP; ", get_pty=True)
-        for line in stdout:
-            pass
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .IT_PW; ", get_pty=True)
-        for line in stdout:
-            pass
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + ssh_pass + "\" > .OFFICE_PW; ", get_pty=True)
-        for line in stdout:
-            pass
-
-        stdin, stdout, stderr = ssh.exec_command("cd " + build_path + "; echo \"" + str(self.is_online()) + "\" > .IS_ONLINE; ",
-                                                 get_pty=True)
-        for line in stdout:
-            pass
+        # Save out our ENV values to the server so we can use them when running
+        self.write_ope_env_values(ssh, ssh_pass, build_path, ip, domain)
 
         # Run twice - sometimes compose fails, so we just rerun it
         # Add auto param to up.sh - to prevent it from asking questions

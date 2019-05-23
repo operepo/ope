@@ -1,0 +1,30 @@
+[
+  {
+    "type": "string",
+    "title": "eCasas Web Host Name",
+    "desc": "The DNS name for the casas web server (e.g. ecasas.ed)",
+    "section": "eCasas",
+    "key": "ecasasweb_host"
+  },
+  {
+    "type": "string",
+    "title": "eCasas Web Server IP",
+    "desc": "IP address of the eCasas web server",
+    "section": "eCasas",
+    "key": "ecasasweb_ip"
+  },
+  {
+    "type": "string",
+    "title": "eCasas Database Host Name",
+    "desc": "The DNS name for the casas database server (e.g. ecasasdb.ed)",
+    "section": "eCasas",
+    "key": "ecasasdb_host"
+  },
+  {
+    "type": "string",
+    "title": "eCasas Database Server IP",
+    "desc": "IP address of the eCasas database server",
+    "section": "eCasas",
+    "key": "ecasasdb_ip"
+  }
+]
