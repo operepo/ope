@@ -4,7 +4,8 @@
         container_name: ope-redis
         network_mode: <NETWORK_MODE>
         restart: always
-        command: redis-server /etc/redis.conf
+        # command: /start/sh
+        # redis-server /etc/redis.conf
         # command: redis-server --appendonly no
         #ports:
         #    - "6379:6379"
