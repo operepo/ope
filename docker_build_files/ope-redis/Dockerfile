@@ -18,4 +18,4 @@ RUN chmod +x /start.sh
 VOLUME ["/data"]
 
 #CMD ["redis-server", "/etc/redis.conf"]
-CMD ["start.sh"]
+CMD ["/start.sh"]
