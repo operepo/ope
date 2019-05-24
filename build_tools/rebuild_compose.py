@@ -67,7 +67,7 @@ replacement_values = { '<DOMAIN>': 'ed', '<IP>': '', "<VOLUMES>": '',
     "<SMC_DEFAULT_DOMAIN>": "smc.<DOMAIN>",
     "<IS_ONLINE>": "0",
     "<DNS_EXTRAS>": "",
-    "<ACME_AUTH_CODE>": "",
+    "<ACME_AUTH_CODE>": "ZZZZ",
     }
 
 # A list of volumes that need to be specified in the volumes section
