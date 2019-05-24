@@ -1,4 +1,5 @@
-FROM alpine:3.4
+FROM alpine:3.9.4
+#FROM alpine:3.4
 
 # Pulled from andyshinn/docker-dnsmasq
 # ope-dns  - Open Prison Education dns device

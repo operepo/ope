@@ -11,8 +11,11 @@ FROM redis:5.0.3-alpine
 MAINTAINER Ray Pulsipher <ray@cmagic.biz>
 LABEL Description="Redis container used by canvas - Image for Open Prison Education" Vendor="openprisoneducation.com" Version="0.1"
 
-COPY redis.conf /etc/redis.conf
+COPY redis.conf /etc/redis.conf.tmpl
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
 VOLUME ["/data"]
 
-CMD ["redis-server", "/etc/redis.conf"]
+#CMD ["redis-server", "/etc/redis.conf"]
+CMD ["start.sh"]
