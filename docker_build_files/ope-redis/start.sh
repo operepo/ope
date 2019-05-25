@@ -1,14 +1,10 @@
 #!/bin/sh
 
 # Get the current free memory
-FREE_MEM=`awk '/MemFree/ {printf "%.3f \n", $2/1024/1024 }' /proc/meminfo`
+FREE_MEM=`awk '/MemFree/ {printf "%.0f \n", $2/1024/1024 }' /proc/meminfo`
 
 # Get the current total memory
-TOTAL_MEM=`awk '/MemTotal/ {printf "%.3f \n", $2/1024/1024 }' /proc/meminfo`
-
-# Convert to integers - cut off decimal places
-printf -v TOTAL_MEM '%d\n' $TOTAL_MEM 2>/dev/null
-printf -v FREE_MEM '%d\n' $FREE_MEM 2>/dev/null
+TOTAL_MEM=`awk '/MemTotal/ {printf "%.0f \n", $2/1024/1024 }' /proc/meminfo`
 
 # Decide how much memory to allocate to Redis
 # TOTAL_MEM should be in gigs
