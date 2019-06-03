@@ -14,5 +14,6 @@ LABEL version=0.1
 
 
 RUN apk --no-cache add dnsmasq
-EXPOSE 53 53/udp
-ENTRYPOINT ["dnsmasq", "-k", "--log-queries"]
+EXPOSE 53/tcp 53/udp
+ENTRYPOINT ["dnsmasq", "-k", "--bind-dynamic", "--log-queries", "--log-facility=-"]
+# "--bind-interfaces"

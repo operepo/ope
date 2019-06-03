@@ -6,8 +6,9 @@
         network_mode: <NETWORK_MODE>
         cap_add:
             - NET_ADMIN
-        command: "-A /<DOMAIN>/<IP> --txt-record=_acme-challenge.<DOMAIN>,<ACME_AUTH_CODE> <DNS_EXTRAS> --log-queries 
---log-facility=-"
+        command: " --auth-server=<DOMAIN> -A /<DOMAIN>/<IP> --txt-record=_acme-challenge.<DOMAIN>,<ACME_AUTH_CODE> <DNS_EXTRAS> " 
+        #--log-queries 
+        #--log-facility=-"
         # --log-facility=-
         ports:
             - "53:53/tcp"
