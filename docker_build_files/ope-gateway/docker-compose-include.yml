@@ -20,5 +20,6 @@
         environment:
             - PUBLIC_IP=${PUBLIC_IP}
             - DEFAULT_HOST=fog.<DOMAIN>
+            - VIRTUAL_HOST=gateway.<DOMAIN>
             - IT_PW=${IT_PW}
             - IS_DOCKER=true

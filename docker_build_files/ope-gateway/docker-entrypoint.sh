@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+echo "Starting OPE-Gateway..."
 # Make sure certs are setup
 /app/init_certs.sh
 
