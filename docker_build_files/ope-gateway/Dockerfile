@@ -43,7 +43,11 @@ RUN wget https://github.com/jwilder/docker-gen/releases/download/$DOCKER_GEN_VER
  && rm /docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz
 
 LABEL rebuild=31
-RUN mkdir -p /app
+# Make public_certs folder so we can make it easy to grab crt file
+RUN mkdir -p /public_certs \
+    && chmod 755 /public_certs \
+    && mkdir -p /app
+	
 #COPY fogserver.conf /etc/nginx/conf.d/
 COPY docker-entrypoint.sh /app/
 COPY init_certs.sh /app/
@@ -52,13 +56,10 @@ COPY nginx.tmpl /app/
 COPY forego /app/
 COPY Procfile /app/
 COPY uploads.conf /etc/nginx/conf.d/uploads.conf
+COPY index.html /public_certs/
 WORKDIR /app/
 RUN chmod +x /app/*.sh
 
-# Make public_certs folder so we can make it easy to grab crt file
-RUN mkdir /public_certs \
-    && chmod 755 /public_certs
-	
 ENV DOCKER_HOST unix:///tmp/docker.sock
 
 VOLUME ["/etc/nginx/certs", "/tmp/docker.sock"]

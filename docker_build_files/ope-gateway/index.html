@@ -1,0 +1,38 @@
+<html>
+<head></head>
+<body>
+
+<h1>OPE Certificates</h1>
+Download and trust the CA certificate. This will allow all OPE sites to 
+come up without errors when you visit the websites.
+
+<h2>Trust SSL Cert - Individual Computer</h2>
+<p>
+You can do this on each computer. If you pick "System" it will apply 
+to 
+all users. If you pick "User" it will only apply to the current user.
+<a href="/ca.crt">Download the CA crt</a> and install it (right click -> 
+install). Choose <b>Trusted Root Certificate Authorities</b>.
+</p>
+<p>
+After that, close and re-open your browser and navigating to an OPE site 
+should come up without error.
+</p>
+
+<h2>Trust SSL Cert - Active Directory</h2>
+<p>
+<a href="/ca.crt">Download the CA crt</a> and import it into your group 
+policy settings. Default group policy is a good one.
+</p>
+<p>GPO Path - Computer Policies --&gt; Windows Settings --&gt; Security 
+Settings --&gt; Public Key Policies --&gt; Trusted Root Certificate 
+Authorities
+</p>
+<p>
+On client machines, you may need to run <i>gpupdate /force</i> or reboot 
+for changes to take effect right away.
+</p>
+
+</body>
+
+</html>
