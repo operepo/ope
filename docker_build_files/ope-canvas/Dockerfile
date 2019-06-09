@@ -1,11 +1,10 @@
-FROM instructure/ruby-passenger:2.4
-#FROM instructure/ruby-passenger:2.4
+FROM instructure/ruby-passenger:2.4-xenial
 ##FROM instructure/canvas-lms:stable
 
 LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
 LABEL description="Canvas LMS by Instructure - Image for Open Prison Education"
 LABEL vendor="openprisoneducation.com"
-LABEL version="0.8"
+LABEL version="0.9"
 
 # ope-canvas - Canvas LMS System
 # Build with docker build -t ope-canvas .
@@ -21,9 +20,11 @@ ENV RAILS_ENV "production"
 ENV NGINX_MAX_UPLOAD_SIZE 50g
 #ENV YARN_VERSION 1.3.2-1
 #ENV YARN_VERSION 1.7.0-1
-ENV YARN_VERSION 1.9.4-1
+#ENV YARN_VERSION 1.9.4-1 # for 2018-10-27.23
 #ENV YARN_VERSION 1.10.1-1
-ENV CANVAS_RELEASE release/2018-10-27.23
+ENV YARN_VERSION 1.12.3-1
+ENV CANVAS_RELEASE release/2019-05-11.43
+#ENV CANVAS_RELEASE release/2018-10-27.23
 #ENV CANVAS_RELEASE release/2018-11-17.24
 
 # Work around github.com/zertosh/v8-compile-cache/issues/2
@@ -32,7 +33,7 @@ ENV CANVAS_RELEASE release/2018-10-27.23
 ENV DISABLE_V8_COMPILE_CACHE 1
 USER root
 
-RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - \
+RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
   && curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
   && echo "deb https://dl.yarnpkg.com/debian/ stable main" > /etc/apt/sources.list.d/yarn.list \
   && printf 'path-exclude /usr/share/doc/*\npath-exclude /usr/share/man/*' > /etc/dpkg/dpkg.cfg.d/01_nodoc \
@@ -57,7 +58,7 @@ RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - \
 
 RUN if [ -e /var/lib/gems/$RUBY_MAJOR.0/gems/bundler-* ]; then BUNDLER_INSTALL="-i /var/lib/gems/$RUBY_MAJOR.0"; fi \
   && gem uninstall --all --ignore-dependencies --force $BUNDLER_INSTALL bundler \
-  && gem install bundler --no-document -v 1.15.2 \
+  && gem install bundler --no-document -v 1.16.1 \
   && find $GEM_HOME ! -user docker | xargs chown docker:docker
 
 # Make sure this runs during build, will also run at at startup later
@@ -110,15 +111,24 @@ USER root
 
 RUN mkdir -p .yardoc \
              app/stylesheets/brandable_css_brands \
+             app/views/info \
+             client_apps/canvas_quizzes/dist \
              client_apps/canvas_quizzes/node_modules \
+             client_apps/canvas_quizzes/tmp \
+             config/locales/generated \
              gems/canvas_i18nliner/node_modules \
              gems/selinimum/node_modules \
              log \
              node_modules \
+             packages/canvas-planner/lib \
+             packages/canvas-planner/node_modules \
+             pacts \
              public/dist \
              public/doc/api \
              public/javascripts/client_apps \
              public/javascripts/compiled \
+             public/javascripts/translations \
+             reports \
              tmp \
              /home/docker/.bundler/ \
              /home/docker/.cache/yarn \
