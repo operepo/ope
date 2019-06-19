@@ -35,7 +35,7 @@ print(os.getcwd())
 # Copy in the assets we need
 assets = [("SyncOPEApp.kv", "."), ("OfflineServerSettings.json", "."), ("OnlineServerSettings.json", "."),
           ("logo_icon.ico", "."), ("logo_icon.png", "."), ("GettingStarted.md", "."),
-          ("version.json", "."), ]
+          ("version.json", "."), ("eCasas.json", "."), ]
 
 # This should be done in the Analysis portion
 # print("Copying Assets...")
