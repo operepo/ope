@@ -10,7 +10,7 @@ block_cipher = None
 kivy_deps_all = hooks.get_deps_all()
 kivy_factory_modules = hooks.get_factory_modules()
 
-datas = [('SyncOPEApp.kv', '.'), ('OfflineServerSettings.json', '.'), ('OnlineServerSettings.json', '.'), ('logo_icon.ico', '.'), ('logo_icon.png', '.'), ('GettingStarted.md', '.'), ('version.json', '.')]
+datas = [('SyncOPEApp.kv', '.'), ('OfflineServerSettings.json', '.'), ('OnlineServerSettings.json', '.'), ('logo_icon.ico', '.'), ('logo_icon.png', '.'), ('GettingStarted.md', '.'), ('version.json', '.'), ('eCasas.json', '.') ]
 
 # list of modules to exclude from analysis
 excludes = ['Tkinter', '_tkinter', 'twisted', 'pygments']
