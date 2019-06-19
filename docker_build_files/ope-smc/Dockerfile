@@ -16,7 +16,7 @@ RUN apk update \
         openssl zip postgresql-dev openldap-dev \
         supervisor libffi-dev \
     && pip install --upgrade pip \
-    && pip install --upgrade setuptools ldap3 pycryptodome requests paramiko ecdsa isodate pytube pywinrm xlrd crypto PyMySQL psycopg2-binary uwsgi uwsgitop psutil \
+    && pip install --upgrade setuptools ldap3 pycryptodome requests paramiko ecdsa isodate pywinrm xlrd crypto PyMySQL psycopg2-binary uwsgi uwsgitop psutil \
 # matplotlib reportlab ldap pycrypto changed to pycryptodome  python-ldap changed to ldap3
     && FFMPEG_VER=3.4.2 \ 
     && curl -s http://ffmpeg.org/releases/ffmpeg-${FFMPEG_VER}.tar.gz | tar zxvf - -C . \
@@ -88,7 +88,7 @@ LABEL rebuild_smc=9
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE v1.9.4
+ENV SMC_RELEASE v1.9.5
 
 RUN cd $W2P_DIR \
     && git init \
