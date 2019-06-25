@@ -41,3 +41,4 @@
             - ope-postgresql:postgresql
             # Send canvas connections through the gateway
             - ope-gateway:canvas.<DOMAIN>
+            - ope-redis:redis
