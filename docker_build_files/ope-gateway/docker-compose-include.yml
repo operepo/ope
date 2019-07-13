@@ -15,8 +15,8 @@
             - ../volumes/gateway/certs:/etc/nginx/certs:rw
             #- ../volumes/gateway/conf.d:/etc/nginx/conf.d:rw
         env_file: .env
-        depends_on:
-            - ope-router
+        #depends_on:
+        #    - ope-router
         environment:
             - PUBLIC_IP=${PUBLIC_IP}
             - DEFAULT_HOST=fog.<DOMAIN>
