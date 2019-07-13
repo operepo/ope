@@ -1,3 +1,3 @@
 #!/bin/sh
 
-python ../build_tools/rebuild_compose.python
+python ../build_tools/rebuild_compose.py
