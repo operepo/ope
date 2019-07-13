@@ -29,7 +29,7 @@
             - OFFICE_PW=${OFFICE_PW}
             - CANVAS_SECRET=${CANVAS_SECRET}
             - CANVAS_SERVER=https://canvas.<DOMAIN>
-            - VIRTUAL_HOST=smc.<DOMAIN>,admin.<DOMAIN>,videos.<DOMAIN>,media.<DOMAIN>
+            - VIRTUAL_HOST=smc.<DOMAIN>,admin.<DOMAIN>,videos.<DOMAIN>,media.<DOMAIN>,<SMC_DEFAULT_DOMAIN>
             - VIRTUAL_PORT=8000
             # Share the default cert on the gateway
             - CERT_NAME=default
