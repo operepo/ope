@@ -16,7 +16,7 @@
         #ports:
         #    - "80"
         labels:
-            - "desc=Routing, kernel modules, and multicast settings"
+            desc: "Routing, kernel modules, and multicast settings"
         #volumes:
         #    - ../volumes/gcf/www:/usr/share/nginx/html:ro
         #depends_on:
