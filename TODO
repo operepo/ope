@@ -1,3 +1,10 @@
+OPELMS
+- Canvas files download - some spaces/characters being replaced with _ when saving but not in links (file is in the folder, but link broken)
+- A ' character in the filename means it doesn't match when an orphan check is done so it is downloaded then deleted
+- Links to other canvas pages not working/translated
+
+
+
 
 - OPE Router Files - Backup - script to reset mac addresses not running on startup?
 - Assignments not always pushing?
