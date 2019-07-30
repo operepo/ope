@@ -88,14 +88,16 @@ LABEL rebuild_smc=9
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE v1.9.26
+ENV SMC_RELEASE v1.9.27
 
 RUN cd $W2P_DIR \
     && git init \
     && git remote add origin https://github.com/operepo/smc \
     && git fetch origin --no-tags --depth 1 refs/tags/${SMC_RELEASE}:refs/tags/${SMC_RELEASE}  \
-    && git checkout ${SMC_RELEASE} \
-    && echo ${SMC_RELEASE} > $W2P_DIR/applications/smc/private/app_version.txt
+    && git checkout ${SMC_RELEASE}
+
+RUN cd $W2P_DIR \
+    && echo "${SMC_RELEASE}" > web2py/applications/smc/app_version.txt
 
 
 
