@@ -88,13 +88,14 @@ LABEL rebuild_smc=9
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE v1.9.24
+ENV SMC_RELEASE v1.9.26
 
 RUN cd $W2P_DIR \
     && git init \
     && git remote add origin https://github.com/operepo/smc \
     && git fetch origin --no-tags --depth 1 refs/tags/${SMC_RELEASE}:refs/tags/${SMC_RELEASE}  \
-    && git checkout ${SMC_RELEASE}
+    && git checkout ${SMC_RELEASE} \
+    && echo ${SMC_RELEASE} > $W2P_DIR/applications/smc/private/app_version.txt
 
 
 
@@ -106,7 +107,8 @@ COPY supervisord.conf /etc/supervisor/supervisord.conf
 COPY ViewerJS $W2P_DIR/web2py/applications/smc/static/
 
 # TEMP - Need this 4/30/19 - fix pytube error in current version
-COPY extract.py /usr/lib/python2.7/site-packages/pytube/extract.py
+# shouldn't need now
+# COPY extract.py /usr/lib/python2.7/site-packages/pytube/extract.py
 
 
 RUN chmod +x /start.sh \
