@@ -899,6 +899,7 @@ void GenericQueryModel::setCombinedQuery()
             q += " DESC";
         }
     }
+    // qDebug() << "Set filter: " << q;
 
     setQuery(q);
     generateRoleNames();

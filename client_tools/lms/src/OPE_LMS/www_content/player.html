@@ -10,6 +10,8 @@
 <link rel="stylesheet" href="projekktor-1.8.2/themes/maccaco/projekktor.style.css" type="text/css" media="screen">
 <script type="text/javascript" src="projekktor-1.8.2/jquery-min.js"></script>
 <script type="text/javascript" src="projekktor-1.8.2/projekktor-1.8.2.min.js"></script>
+<!--script type="text/javascript" src="/qwebchannel.js"></script-->
+<script type="text/javascript" src="/opeWebViewClient.js"></script>
 
 
 
@@ -30,6 +32,13 @@ $(document).ready(function() {
     
     // Get movie id from query string
     movie_id = getQueryParam("movie_id");
+
+    // Fix link for external open
+    $("#open_movie_external").attr('href', '/smc_video_cache/' + movie_id + '.mp4');
+    //$("#open_movie_external").click(function() {
+    //        console.log('TEST!');
+    //    });
+    console.log("WC ONREADY");
 
     projekktor('#player', {
             debug: false,
@@ -104,6 +113,7 @@ $(document).ready(function() {
     <!--div>
         <button id="dummybutton" onclick="console.log('dummyclick');">TEST</button>
     </div-->
+    <a id="open_movie_external" href="#">OPEN VIDEO IN EXTERNAL PLAYER</a>
     <div id="player" class="projekktor">
         <noscript>
             <p>No JavaScript support.</p>

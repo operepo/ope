@@ -988,8 +988,8 @@ bool EX_Canvas::pullCourseFilesBinaries()
             // Skip these
             continue;
         }
-        // See if this file exists in the files database
-        files_model->setFilter("pull_file='/canvas_file_cache/" + f_name + "'");
+        // See if this file exists in the files database  - NOTE - '' for escaped 's?
+        files_model->setFilter("pull_file='/canvas_file_cache/" + f_name.replace("'", "''") + "'");
         files_model->select();
         if (files_model->rowCount() < 1) {
             // File isn't in the database, delete it
@@ -2518,12 +2518,14 @@ bool EX_Canvas::updateDownloadLinks()
     while(q.next()) {
         QString file_id = q.value("id").toString();
         QString file_name = q.value("filename").toString();
+        QString pull_file = q.value("pull_file").toString();
         QString content_type = q.value("content_type").toString();
         QString f_ext = CM_MimeTypes::GetExtentionForMimeType(content_type);
 
         QString file_tag = "<CANVAS_FILE_" + file_id + ">";
         //QString new_url = _localhost_url + "/canvas_file_cache/" + file_id + f_ext;
-        QString new_url = _localhost_url + "/canvas_file_cache/" + file_name;
+        // QString new_url = _localhost_url + "/canvas_file_cache/" + file_name;
+        QString new_url = _localhost_url + pull_file;
 
         qDebug() << "Replacing " << file_tag << " with " << new_url;
 
@@ -2909,7 +2911,7 @@ QSqlRecord EX_Canvas::pullSinglePage(QString course_id, QString page_url)
     // Convert SMC Video/Document/Etc links to local links
     page_body = ProcessAllLinks(page_body);
 
-    pages_model->setFilter("url='" + page_url.replace("'", "\'") + "' AND course_id='" + course_id.replace("'", "\'") + "'");
+    pages_model->setFilter("url='" + page_url.replace("'", "''") + "' AND course_id='" + course_id.replace("'", "''") + "'");
     pages_model->select();
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(pages_model->canFetchMore()) { pages_model->fetchMore(); }

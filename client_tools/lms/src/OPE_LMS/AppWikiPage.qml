@@ -6,7 +6,10 @@ import QtQuick.Controls.Styles 1.4
 import QtQuick.Controls.Imagine 2.3
 import QtQuick.Layouts 1.3
 
+import QtWebChannel 1.0
+import QtWebSockets 1.1
 import QtWebView 1.1
+import cm.WebSocketTransport 1.0
 
 
 import com.openprisoneducation.ope 1.0
@@ -16,6 +19,41 @@ Page {
     property QtObject global;
     property string current_course_id: "";
     property string current_page_url: "";
+
+
+    // WebChannel Object that can be called from the webview
+    QtObject {
+        id: wcBackend;
+        WebChannel.id: "wcBackend"
+        function desktopOpen(path) {
+            console.log("Opening: " + path);
+        }
+
+    }
+
+    WebSocketTransport {
+        id: wcTransport
+    }
+    WebSocketServer {
+        id: wcServer
+        listen: true
+        port: 55222
+        onClientConnected: {
+            if(webSocket.status === webSocket.Open){
+                wcChannel.connectTo(wcTransport);
+                webSocket.onTextMessageReceived.connect(wcTransport.textMessageReceive);
+                wcTransport.onMessageChanged.connect(webSocket.sendTextMessage);
+            }
+        }
+        onErrorStringChanged: {
+            console.log("WCServer Error: %1").arg(errorString);
+        }
+    }
+    WebChannel {
+        id: wcChannel
+        registeredObjects: [wcBackend]
+    }
+
 
     onCurrent_page_urlChanged: {
         console.log("AppWikiPage - current_page_url changed " + current_page_url);
@@ -85,15 +123,19 @@ Page {
                     var status = loadRequest.status
                     var url = loadRequest.url
                     if (status == WebView.LoadStartedStatus) {
-                        //console.log("AppWikiPage - Load Started " + url);
+                        console.log("AppWikiPage - Load Started " + url);
                     }
                     if (status == WebView.LoadFailedStatus) {
                         console.log("AppWikiPage - Load Failed " + url);
                         console.log(err);
                     }
                     if (status == WebView.LoadSucceededStatus) {
-                        //console.log("AppWikiPage - Load Succeeded " + url);
+                        console.log("AppWikiPage - Load Succeeded " + url);
                     }
+                    if (err) {
+                        console.log("WView Error: " + err);
+                    }
+
                 }
 
             }

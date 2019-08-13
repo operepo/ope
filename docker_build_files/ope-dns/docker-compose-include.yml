@@ -6,7 +6,8 @@
         network_mode: <NETWORK_MODE>
         cap_add:
             - NET_ADMIN
-        command: " --auth-server=<DOMAIN> -A /<DOMAIN>/<IP> --txt-record=_acme-challenge.<DOMAIN>,<ACME_AUTH_CODE> <DNS_EXTRAS> " 
+        command: " -A /<DOMAIN>/<IP> --txt-record=_acme-challenge.<DOMAIN>,<ACME_AUTH_CODE> <DNS_EXTRAS> " 
+        # --auth-server=<DOMAIN>  - caused error on older container?
         #--log-queries 
         #--log-facility=-"
         # --log-facility=-
