@@ -61,7 +61,7 @@ private:
 
     // builtin http server
     CM_HTTPServer *server;
-    qint16 HTTP_SERVER_PORT;
+    quint16 HTTP_SERVER_PORT;
 
     // Location of the www root folder
     QString _www_root;

@@ -182,74 +182,103 @@ bool EX_Canvas::pullCourses()
             QString course_name = o["name"].toString("");
             QJsonArray enrollments = o["enrollments"].toArray();
             bool isStudent = false;
+            bool isTA_plus = false; // marked for any other enrollment besides student
+            QString enrollment_type = "";
+            QString enrollment_role = "";
+            QString enrollment_role_id = "";
+            QString enrollment_state = "";
+            //  ---- this helps prevent TAs from uploading things and syncing those classes
             ret = true;
             foreach (QJsonValue enrollmentVal, enrollments)
             {
                 QJsonObject enrollment = enrollmentVal.toObject();
-                if (enrollment["type"].toString("") == "student") {
+                if (enrollment["type"].toString("") == "student" &&
+                        (enrollment["enrollment_state"] == "active" ||
+                         enrollment["enrollment_state"] == "invited")) {
+
                     isStudent = true;
 
-                    model->setFilter("id = '" + course_id + "'"  );
-                    model->select();
-                    // NOTE - Make sure to fetch all or we may only get 256 records
-                    while(model->canFetchMore()) { model->fetchMore(); }
+                    enrollment_type = enrollment["type"].toString("");
+                    enrollment_role = enrollment["role"].toString("");
+                    enrollment_role_id = enrollment["role_id"].toString("");
+                    enrollment_state = enrollment["enrollment_state"].toString("");
 
-                    QSqlRecord record;
-                    bool is_insert = false;
-                    if (model->rowCount() == 1) {
-                        // Row exists, update it with current info
-                        record = model->record(0);
-                        is_insert = false;
-                        qDebug() << "\tUpdating course..." << course_id << course_name;
-                    } else {
-                        // Need to insert a record clear the filter
-                        model->setFilter(""); // Clear the filter
-                        record = model->record();
-                        is_insert = true;
-                        qDebug() << "\tImporting course..." << course_id << course_name;
-                    }
-
-
-                    record.setValue("id", o["id"].toString(""));
-                    record.setValue("name", o["name"].toString(""));
-                    record.setValue("account_id", o["account_id"].toString(""));
-                    record.setValue("start_at", o["start_at"].toString(""));
-                    record.setValue("grading_standard_id", o["grading_standard_id"].toString(""));
-                    record.setValue("is_public", o["is_public"].toBool(false));
-                    record.setValue("course_code", o["course_code"].toString(""));
-                    record.setValue("default_view", o["default_view"].toString(""));
-                    record.setValue("root_account_id", o["root_account_id"].toString(""));
-                    record.setValue("enrollment_term_id", o["enrollment_term_id"].toString(""));
-                    record.setValue("end_at", o["end_at"].toString(""));
-                    record.setValue("public_syllabus", o["public_syllabus"].toBool(false));
-                    record.setValue("public_syllabus_to_auth", o["public_syllabus_to_auth"].toBool(false));
-                    record.setValue("storage_quota_mb", o["storage_quota_mb"].toString(""));
-                    record.setValue("is_public_to_auth_users", o["is_public_to_auth_users"].toBool(false));
-                    record.setValue("apply_assignment_group_weights", o["apply_assignment_group_weights"].toBool(false));
-                    record.setValue("calendar", QJsonDocument(o["calendar"].toObject()).toJson());
-                    record.setValue("time_zone", o["time_zone"].toString(""));
-                    record.setValue("hide_final_grades", o["hide_final_grades"].toString(""));
-                    record.setValue("workflow_state", o["workflow_state"].toString(""));
-                    record.setValue("restrict_enrollments_to_course_dates", o["restrict_enrollments_to_course_dates"].toBool(false));
-                    record.setValue("enrollment_type", enrollment["type"].toString(""));
-                    record.setValue("enrollment_role", enrollment["role"].toString(""));
-                    record.setValue("enrollment_role_id", enrollment["role_id"].toString(""));
-                    record.setValue("enrollment_state", enrollment["state"].toString(""));
-                    record.setValue("enrollment_user_id", o["user_id"].toString(""));
-                    record.setValue("is_active", "true");
-
-                    if(is_insert) {
-                        model->insertRecord(-1, record);
-                    } else {
-                        // Filter should be on so record 0 should still be this record
-                        model->setRecord(0, record);
-                    }
-                    // Write changes to the database
-                    if(!model->submitAll()) { ret = false; }
-                    model->setFilter(""); // Clear the filter
+                    qDebug() << "   --> Found active student enrollment " << course_name << ":" << course_id << ":" << enrollment["type"];
+                } else if (enrollment["type"].toString("") == "student" &&
+                        enrollment["enrollment_state"] != "active") {
+                    // Student but not active
+                    qDebug() << "   --> Found inactive student enrollment (not syncing) " << course_name << ":" << course_id << ":" << enrollment["type"];
+                } else {
+                    qDebug() << "   --> Found NON student enrollment (not syncing) " << course_name << ":" << course_id << ":" << enrollment["type"];
+                    isTA_plus = true;
                 }
             }
 
+            if (isStudent == true && isTA_plus != true) {
+                // Is a student, but NOT a TA or higher... do the sync.
+                model->setFilter("id = '" + course_id + "'"  );
+                model->select();
+                // NOTE - Make sure to fetch all or we may only get 256 records
+                while(model->canFetchMore()) { model->fetchMore(); }
+
+                QSqlRecord record;
+                bool is_insert = false;
+                if (model->rowCount() == 1) {
+                    // Row exists, update it with current info
+                    record = model->record(0);
+                    is_insert = false;
+                    qDebug() << "\tUpdating course..." << course_id << course_name;
+                } else {
+                    // Need to insert a record clear the filter
+                    model->setFilter(""); // Clear the filter
+                    record = model->record();
+                    is_insert = true;
+                    qDebug() << "\tImporting course..." << course_id << course_name;
+                }
+
+
+                record.setValue("id", o["id"].toString(""));
+                record.setValue("name", o["name"].toString(""));
+                record.setValue("account_id", o["account_id"].toString(""));
+                record.setValue("start_at", o["start_at"].toString(""));
+                record.setValue("grading_standard_id", o["grading_standard_id"].toString(""));
+                record.setValue("is_public", o["is_public"].toBool(false));
+                record.setValue("course_code", o["course_code"].toString(""));
+                record.setValue("default_view", o["default_view"].toString(""));
+                record.setValue("root_account_id", o["root_account_id"].toString(""));
+                record.setValue("enrollment_term_id", o["enrollment_term_id"].toString(""));
+                record.setValue("end_at", o["end_at"].toString(""));
+                record.setValue("public_syllabus", o["public_syllabus"].toBool(false));
+                record.setValue("public_syllabus_to_auth", o["public_syllabus_to_auth"].toBool(false));
+                record.setValue("storage_quota_mb", o["storage_quota_mb"].toString(""));
+                record.setValue("is_public_to_auth_users", o["is_public_to_auth_users"].toBool(false));
+                record.setValue("apply_assignment_group_weights", o["apply_assignment_group_weights"].toBool(false));
+                record.setValue("calendar", QJsonDocument(o["calendar"].toObject()).toJson());
+                record.setValue("time_zone", o["time_zone"].toString(""));
+                record.setValue("hide_final_grades", o["hide_final_grades"].toString(""));
+                record.setValue("workflow_state", o["workflow_state"].toString(""));
+                record.setValue("restrict_enrollments_to_course_dates", o["restrict_enrollments_to_course_dates"].toBool(false));
+                record.setValue("enrollment_type", enrollment_type);
+                record.setValue("enrollment_role", enrollment_role);
+                record.setValue("enrollment_role_id", enrollment_role_id);
+                record.setValue("enrollment_state", enrollment_state);
+                record.setValue("enrollment_user_id", o["user_id"].toString(""));
+                record.setValue("is_active", "true");
+
+                if(is_insert) {
+                    model->insertRecord(-1, record);
+                } else {
+                    // Filter should be on so record 0 should still be this record
+                    model->setRecord(0, record);
+                }
+                // Write changes to the database
+                if(!model->submitAll()) { ret = false; }
+                model->setFilter(""); // Clear the filter
+
+            } else {
+                // Log that we aren't syncing this course
+                qDebug() << "*** TA+ permissions detected, not syncing this course " << course_name << ":" << course_id;
+            }
             //qDebug() << "Course: " << course_name << " " << course_id << " is student " << isStudent;
         }
 

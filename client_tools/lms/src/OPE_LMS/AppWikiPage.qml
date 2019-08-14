@@ -6,11 +6,7 @@ import QtQuick.Controls.Styles 1.4
 import QtQuick.Controls.Imagine 2.3
 import QtQuick.Layouts 1.3
 
-import QtWebChannel 1.0
-import QtWebSockets 1.1
 import QtWebView 1.1
-import cm.WebSocketTransport 1.0
-
 
 import com.openprisoneducation.ope 1.0
 import "App.js" as App
@@ -19,40 +15,7 @@ Page {
     property QtObject global;
     property string current_course_id: "";
     property string current_page_url: "";
-
-
-    // WebChannel Object that can be called from the webview
-    QtObject {
-        id: wcBackend;
-        WebChannel.id: "wcBackend"
-        function desktopOpen(path) {
-            console.log("Opening: " + path);
-        }
-
-    }
-
-    WebSocketTransport {
-        id: wcTransport
-    }
-    WebSocketServer {
-        id: wcServer
-        listen: true
-        port: 55222
-        onClientConnected: {
-            if(webSocket.status === webSocket.Open){
-                wcChannel.connectTo(wcTransport);
-                webSocket.onTextMessageReceived.connect(wcTransport.textMessageReceive);
-                wcTransport.onMessageChanged.connect(webSocket.sendTextMessage);
-            }
-        }
-        onErrorStringChanged: {
-            console.log("WCServer Error: %1").arg(errorString);
-        }
-    }
-    WebChannel {
-        id: wcChannel
-        registeredObjects: [wcBackend]
-    }
+    property bool is_loading: false;
 
 
     onCurrent_page_urlChanged: {
@@ -65,6 +28,13 @@ Page {
     }
 
     function loadCanvasWikiPage() {
+        if (is_loading === true) {
+            // Cancel load if we are already loading?
+            console.log("Canceling load - already loading...");
+            return;
+        }
+
+        is_loading = true;
 
         console.log("  - loadPage: " +  current_page_url);
         var m = pages_model
@@ -79,6 +49,7 @@ Page {
         }
 
         // Add injected javascript to page
+        console.log("Injecting ope webchannel...");
         page_body += "\n" + App.WebChannelJS;
 
         //console.log("Wiki Page Body: " + page_body);
@@ -116,6 +87,7 @@ Page {
                 anchors.fill: parent
                 id: webView
                 focus: true
+
                 //loadProgress: 0
 
                 onLoadingChanged: {
@@ -128,9 +100,11 @@ Page {
                     if (status == WebView.LoadFailedStatus) {
                         console.log("AppWikiPage - Load Failed " + url);
                         console.log(err);
+                        is_loading = false;
                     }
                     if (status == WebView.LoadSucceededStatus) {
                         console.log("AppWikiPage - Load Succeeded " + url);
+                        is_loading = true;
                     }
                     if (err) {
                         console.log("WView Error: " + err);

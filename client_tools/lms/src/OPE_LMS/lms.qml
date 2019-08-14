@@ -40,13 +40,18 @@ ApplicationWindow {
         id: lmsObject
         WebChannel.id: "LMS"
         // property string somProperty: "value";
-        // signal someSignal(string message);
+        signal someSignal(string message);
 
         function openDesktopLink(link_url) {
             // Open the link using the desktop app
-            console.log("Opening Link: " + link_url);
+            console.log("lmsObject===> Opening Link: " + link_url);
             var r = mainWidget.desktopLaunch(link_url);
             return r;
+        }
+
+        function log(msg) {
+            console.log("lmsObject===> WVLog: " + msg);
+            return 0;
         }
     }
 

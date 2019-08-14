@@ -3,14 +3,15 @@
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 
-        <link rel="stylesheet" href="qrc:/bootstrap.min.css">
+        <!--link rel="stylesheet" href="qrc:/bootstrap.min.css"-->
 
         <!-- that's a special resource with JS-library for WebChannel -->
-        <script type="text/javascript" src="http://localhost:65525/qwebchannel.js"></script>
+        <!--script type="text/javascript" src="http://localhost:65525/qwebchannel.js"></script-->
+        <script type="text/javascript" src="http://localhost:65525/opeWebViewClient.js"></script>
 
         <script type="text/javascript">
             // here will be our QtObject from QML side
-            var backend;
+            /* var backend;
             window.onload = function()
             {
                 var socket = new WebSocket("ws://127.0.0.1:55222");
@@ -40,7 +41,8 @@
                     // websocket is closed.
                     alert("Connection is closed: " + evt.code + " - " + evt.reason);
                 };
-            }
+            } 
+            
             // just to demonstrate you async interaction
             var result = "ololo";
             function changeLabel()
@@ -71,7 +73,22 @@
                 backend.someProperty = "some another value";
                 alert(backend.someProperty);
                 backend.someProperty = originalValue;
+            }*/
+            
+            
+            function btnClick(btn) {
+                console.log("Button Click");
+                
+                if (LMS) {
+                    console.log("LMS FOUND");
+                    var textInputValue = document.getElementById("input").value.trim();
+                    LMS.log(textInputValue, function(ret) {
+                        console.log("LMS.log returned");
+                        console.log(ret);
+                    });
+                }
             }
+            
         </script>
 
         <style>
@@ -94,7 +111,7 @@
             <div class="input-group mb-3">
                 <input id="input" type="text" class="form-control"/>
                 <div class="input-group-append">
-                    <button type="button" class="btn btn-lg btn-primary" onclick="changeLabel();">
+                    <button type="button" class="btn btn-lg btn-primary" onclick="btnClick(this);">
                         send
                     </button>
                 </div>

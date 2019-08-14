@@ -1,6 +1,6 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
-//#include <QMessageBox>
+// #include <QMessageBox>
 #include <QTextCodec>
 #include <QtWebView/QtWebView>
 #include <QtWebEngine/qtwebengineglobal.h>
@@ -13,6 +13,7 @@
 #include <QLocale>
 #include <QTime>
 #include <QFile>
+#include <QLockFile>
 
 #include "openetworkaccessmanagerfactory.h"
 #include "appmodule.h"
@@ -28,7 +29,6 @@ int main(int argc, char *argv[])
     //json = json.replace(regex, "\\1\"\\2\"\\3");  //  :\"\\1\",");
     //qDebug() << json;
     //return 0;
-
 
     // Set global app parameters - used by settings later
     QCoreApplication::setOrganizationName("OPE");
@@ -52,6 +52,21 @@ int main(int argc, char *argv[])
         is_in_IDE = true;
         log_to_file = false;
     }
+
+    // Prevent app from running twice
+    QString tmp_dir = QDir::tempPath();
+    QLockFile lf(tmp_dir + "/ope_lms.lock");
+
+    if (!lf.tryLock(100))
+    {
+        qDebug() << "=====================================================\n" <<
+                    "WARNING - App already running, exiting...\n" <<
+                    "only one instance allowed to run. If this is an " <<
+                    " error, remove the temp/ope_lms.lock file and try again" <<
+                    "=====================================================\n";
+        return 1;
+    }
+
 
     // Show SSL info
     qDebug() << "SSL Library Info: " << QSslSocket::supportsSsl() << QSslSocket::sslLibraryBuildVersionString() << QSslSocket::sslLibraryVersionString();

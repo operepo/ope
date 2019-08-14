@@ -1,24 +1,9 @@
 <RCC>
     <qresource prefix="/">
-        <file>main.qml</file>
         <file>qtquickcontrols2.conf</file>
         <file>lms.qml</file>
-        <file>CanvasSync.qml</file>
-        <file>HomePage.qml</file>
-        <file>Modules.qml</file>
-        <file>Pages.qml</file>
-        <file>Assignments.qml</file>
-        <file>Quizzes.qml</file>
-        <file>Inbox.qml</file>
-        <file>Calendar.qml</file>
-        <file>Discussions.qml</file>
-        <file>Grades.qml</file>
-        <file>Files.qml</file>
-        <file>Syllabus.qml</file>
         <file>App.js</file>
-        <file>CanvasPage.qml</file>
         <file>dropTest.qml</file>
-        <file>AssignmentPage.qml</file>
         <file>AppSideBar.qml</file>
         <file>AppCourseSelector.qml</file>
         <file>AppSyncPage.qml</file>
@@ -31,7 +16,6 @@
         <file>AppFiles.qml</file>
         <file>AppAnnouncements.qml</file>
         <file>not_credentialed.qml</file>
-        <file>TestButton.qml</file>
         <file>websockettest.qml</file>
         <file>qwebchannel.js</file>
         <file>wc_index.html</file>

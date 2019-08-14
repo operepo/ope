@@ -11,11 +11,34 @@
 <script type="text/javascript" src="projekktor-1.8.2/jquery-min.js"></script>
 <script type="text/javascript" src="projekktor-1.8.2/projekktor-1.8.2.min.js"></script>
 <!--script type="text/javascript" src="/qwebchannel.js"></script-->
+
 <script type="text/javascript" src="/opeWebViewClient.js"></script>
 
 
-
 <script type="text/javascript">
+
+var log_txt = "";
+var retry_waiting = false;
+
+function log(msg) {
+    if (log_txt !== "") { log_txt += "\n"; }
+    log_txt += msg;
+    if (LMS) {
+        var l = log_txt;
+        log_txt = "";
+        LMS.log(l, function(ret){
+            // Will be called when log function is done
+
+            });
+
+    } else {
+        if (retry_waiting === true) { return; }
+        // LMS not ready - fire a timeout so that we call this again later...
+        retry_waiting = true;
+        setTimeout(function(){ retry_waiting = false; log('log retry...'); }, 750);
+    }
+}
+
 function getQueryParam(param) {
     location.search.substr(1)
         .split("&")
@@ -38,7 +61,7 @@ $(document).ready(function() {
     //$("#open_movie_external").click(function() {
     //        console.log('TEST!');
     //    });
-    console.log("WC ONREADY");
+    log("WC ONREADY", function(ret) {});
 
     projekktor('#player', {
             debug: false,
@@ -104,6 +127,10 @@ $(document).ready(function() {
             ]
     }, function(player) {} // on ready
     );
+
+    // TODO - Webview pages not calling lms stuff like it should?
+    // Adjust the full screen button
+    $(".ppfsenter").attr('href', '/smc_video_cache/' + movie_id + '.mp4');
 });
 </script>
 
@@ -111,7 +138,7 @@ $(document).ready(function() {
 
 <body>
     <!--div>
-        <button id="dummybutton" onclick="console.log('dummyclick');">TEST</button>
+        <button id="dummybutton" onclick="log('dummyclick!!!');">TEST</button>
     </div-->
     <a id="open_movie_external" href="#">OPEN VIDEO IN EXTERNAL PLAYER</a>
     <div id="player" class="projekktor">
