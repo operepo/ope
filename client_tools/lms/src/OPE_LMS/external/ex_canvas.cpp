@@ -54,6 +54,13 @@ bool EX_Canvas::pullStudentInfo()
     // Loop through the users and add them to the database
     if (doc.isObject())
     {
+        // Hide records - re-enable them during sync
+        QString sql = "UPDATE `users` SET is_active='false'";
+        QSqlQuery query;
+        if (!query.exec(sql)) {
+            qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+        }
+
         // JSON Pulled:
         // {"id":26664700000000083,"name":"Smith, Bob (s777777)",
         // "sortable_name":"Smith, Bob (s777777)","short_name":"Smith, Bob (s777777)",
@@ -93,6 +100,7 @@ bool EX_Canvas::pullStudentInfo()
         record.setValue("short_name", o["short_name"].toString(""));
         record.setValue("locale", o["locale"].toString(""));
         record.setValue("permissions", QJsonDocument(o["permissions"].toObject()).toJson());
+        record.setValue("is_active", "true");
 
         if(is_insert) {
             model->insertRecord(-1, record);
@@ -120,6 +128,14 @@ bool EX_Canvas::pullStudentInfo()
         }
 
     }
+
+    // Cleanup records not active
+    QString cleanup_sql = "DELETE FROM `users` WHERE is_active != 'true'";
+    QSqlQuery cleanup_query;
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+    }
+    _app_db->commit();
 
     return ret;
 }
@@ -347,6 +363,13 @@ bool EX_Canvas::pullModules()
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
 
+    // Hide records - re-enable them during sync
+    QString sql = "UPDATE `modules` SET is_active='false'";
+    QSqlQuery query;
+    if (!query.exec(sql)) {
+        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+    }
+
     ret = true;
     int rowCount = courses_model->rowCount();
     for (int i=0; i<rowCount; i++) {
@@ -360,6 +383,7 @@ bool EX_Canvas::pullModules()
 
         if (doc.isArray()) {
             qDebug() << "\tModules for course:";
+
             // Should be an array of modules
             QJsonArray arr = doc.array();
             foreach(QJsonValue val, arr) {
@@ -408,6 +432,7 @@ bool EX_Canvas::pullModules()
                 record.setValue("items_count", o["items_count"].toString(""));
                 record.setValue("items_url", o["items_url"].toString(""));
                 record.setValue("course_id", course_id);
+                record.setValue("is_active", "true");
 
                if (is_insert) {
                    model->insertRecord(-1, record);
@@ -427,6 +452,14 @@ bool EX_Canvas::pullModules()
         }
     }
 
+    // Cleanup records not active
+    QString cleanup_sql = "DELETE FROM `modules` WHERE is_active != 'true'";
+    QSqlQuery cleanup_query;
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+    }
+    _app_db->commit();
+
     return ret;
 }
 
@@ -445,11 +478,19 @@ bool EX_Canvas::pullModuleItems()
         return false;
     }
 
+    // Hide records - re-enable them during sync
+    QString sql = "UPDATE `module_items` SET is_active='false'";
+    QSqlQuery query;
+    if (!query.exec(sql)) {
+        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+    }
+
     // Get module items for each module
     modules_model->setFilter("");
     modules_model->select();
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(modules_model->canFetchMore()) { modules_model->fetchMore(); }
+
 
     ret = true;
     int rowCount = modules_model->rowCount();
@@ -520,6 +561,7 @@ bool EX_Canvas::pullModuleItems()
                 record.setValue("completion_requirement", o["completion_requirement"].toString(""));
                 // TOOD - also an array
                 record.setValue("content_details", o["content_details"].toString(""));
+                record.setValue("is_active", "true");
 
                 // If this is a page item, make sure it is in the page table too
                 if (o["type"].toString("") == "Page") {
@@ -556,6 +598,14 @@ bool EX_Canvas::pullModuleItems()
         }
     }
 
+    // Cleanup records not active
+    QString cleanup_sql = "DELETE FROM `module_items` WHERE is_active != 'true'";
+    QSqlQuery cleanup_query;
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+    }
+    _app_db->commit();
+
     return ret;
 }
 
@@ -579,6 +629,13 @@ bool EX_Canvas::pullCourseFileFolders()
     courses_model->select();
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
+
+    // Hide records - re-enable them during sync
+    QString sql = "UPDATE `folders` SET is_active='false'";
+    QSqlQuery query;
+    if (!query.exec(sql)) {
+        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+    }
 
     ret = true;
     int rowCount = courses_model->rowCount();
@@ -658,6 +715,7 @@ bool EX_Canvas::pullCourseFileFolders()
                 record.setValue("locked_for_user", o["locked_for_user"].toBool(false));
                 record.setValue("hidden_for_user", o["hidden_for_user"].toBool(false));
                 record.setValue("for_submissions", o["for_submissions"].toBool(false));
+                record.setValue("is_active", "true");
 
                if (is_insert) {
                    model->insertRecord(-1, record);
@@ -677,6 +735,14 @@ bool EX_Canvas::pullCourseFileFolders()
             }
         }
     }
+
+    // Cleanup records not active
+    QString cleanup_sql = "DELETE FROM `folders` WHERE is_active != 'true'";
+    QSqlQuery cleanup_query;
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+    }
+    _app_db->commit();
 
     return ret;
 }
@@ -740,6 +806,13 @@ bool EX_Canvas::pullCourseFilesInfo()
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
 
+    // Hide records - re-enable them during sync
+    QString sql = "UPDATE `files` SET is_active='false'";
+    QSqlQuery query;
+    if (!query.exec(sql)) {
+        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+    }
+
     ret = true;
     int rowCount = courses_model->rowCount();
     for (int i=0; i<rowCount; i++) {
@@ -771,6 +844,14 @@ bool EX_Canvas::pullCourseFilesInfo()
             }
         }
     }
+
+    // Cleanup records not active
+    QString cleanup_sql = "DELETE FROM `files` WHERE is_active != 'true'";
+    QSqlQuery cleanup_query;
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+    }
+    _app_db->commit();
 
     return ret;
 }
@@ -862,7 +943,7 @@ bool EX_Canvas::pullSingleCourseFileInfo(QString file_id, QString course_id)
         record.setValue("media_entry_id", o["media_entry_id"].toString(""));
         record.setValue("locked_for_user", o["locked_for_user"].toBool(false));
         record.setValue("course_id", course_id);
-
+        record.setValue("is_active", "true");
 
        if (is_insert) {
            files_model->insertRecord(-1, record);
@@ -1080,6 +1161,13 @@ bool EX_Canvas::pullCoursePages()
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
 
+    // Hide records - re-enable them during sync
+    QString sql = "UPDATE `pages` SET is_active='false'";
+    QSqlQuery query;
+    if (!query.exec(sql)) {
+        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+    }
+
     ret = true;
     int rowCount = courses_model->rowCount();
     for (int i=0; i<rowCount; i++) {
@@ -1115,6 +1203,14 @@ bool EX_Canvas::pullCoursePages()
             qDebug() << "\t\t!!! Unable to pull array of pages: " << doc;
         }
     }
+
+    // Cleanup records not active
+    QString cleanup_sql = "DELETE FROM `pages` WHERE is_active != 'true'";
+    QSqlQuery cleanup_query;
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+    }
+    _app_db->commit();
 
     return ret;
 }
@@ -1157,6 +1253,18 @@ bool EX_Canvas::pullMessages(QString scope)
 
     // Should be an array of conversations
     if (conversations_doc.isArray()) {
+        // Hide records - re-enable them during sync
+        QString sql = "UPDATE `conversations` SET is_active='false'";
+        QSqlQuery query;
+        if (!query.exec(sql)) {
+            qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+        }
+        // Hide records - re-enable them during sync
+        sql = "UPDATE `messages` SET is_active='false'";
+        if (!query.exec(sql)) {
+            qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+        }
+
         // Should have something like this:
         // [{"id":26664700000000089,"subject":"Next conversation",
         // "workflow_state":"read","last_message":"Hello",
@@ -1241,6 +1349,7 @@ bool EX_Canvas::pullMessages(QString scope)
                 record.setValue("context_code", o["context_code"].toString(""));
                 record.setValue("context_name", o["context_name"].toString(""));
                 record.setValue("submissions", QJsonDocument(o["submissions"].toArray()).toJson());
+                record.setValue("is_active", "true");
 
                 if (is_insert) {
                     conversations_model->insertRecord(-1, record);
@@ -1323,6 +1432,19 @@ qDebug() << "Got conversation, going for messages: " << o["messages"];
         }
     }
 
+    // Cleanup records not active
+    QString cleanup_sql = "DELETE FROM `conversations` WHERE is_active != 'true'";
+    QSqlQuery cleanup_query;
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+    }
+    // Cleanup records not active
+    cleanup_sql = "DELETE FROM `messages` WHERE is_active != 'true'";
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+    }
+    _app_db->commit();
+
     return ret;
 }
 
@@ -1346,6 +1468,13 @@ bool EX_Canvas::pullAssignments()
     courses_model->select();
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
+
+    // Hide records - re-enable them during sync
+    QString sql = "UPDATE `assignments` SET is_active='false'";
+    QSqlQuery query;
+    if (!query.exec(sql)) {
+        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+    }
 
     ret = true;
     int rowCount = courses_model->rowCount();
@@ -1473,6 +1602,7 @@ bool EX_Canvas::pullAssignments()
                 record.setValue("only_visible_to_overrides", o["only_visible_to_overrides"].toBool(false));
                 record.setValue("locked_for_user", o["locked_for_user"].toBool(false));
                 record.setValue("submissions_download_url", o["submissions_download_url"].toString(""));
+                record.setValue("is_active", "true");
 
                 if (is_insert) {
                     model->insertRecord(-1, record);
@@ -1489,6 +1619,14 @@ bool EX_Canvas::pullAssignments()
             }
         }
     }
+
+    // Cleanup records not active
+    QString cleanup_sql = "DELETE FROM `assignments` WHERE is_active != 'true'";
+    QSqlQuery cleanup_query;
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+    }
+    _app_db->commit();
 
     return ret;
 }
@@ -1513,6 +1651,13 @@ bool EX_Canvas::pullAnnouncements()
     courses_model->select();
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
+
+    // Hide records - re-enable them during sync
+    QString sql = "UPDATE `announcements` SET is_active='false'";
+    QSqlQuery query;
+    if (!query.exec(sql)) {
+        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+    }
 
     ret = true;
     int rowCount = courses_model->rowCount();
@@ -1691,6 +1836,7 @@ bool EX_Canvas::pullAnnouncements()
                 // Set this item as active
                 record.setValue("active", "true");
                 record.setValue("course_id", course_id);
+                record.setValue("is_active", "true");
 
                 if (is_insert) {
                    model->insertRecord(-1, record);
@@ -1712,6 +1858,14 @@ bool EX_Canvas::pullAnnouncements()
             qDebug() << "Invalid Response for Announcement: " <<  doc;
         }
     }
+
+    // Cleanup records not active
+    QString cleanup_sql = "DELETE FROM `announcements` WHERE is_active != 'true'";
+    QSqlQuery cleanup_query;
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+    }
+    _app_db->commit();
 
     return ret;
 
@@ -2984,6 +3138,7 @@ QSqlRecord EX_Canvas::pullSinglePage(QString course_id, QString page_url)
     record.setValue("body", page_body);
     record.setValue("lock_info", page_object["lock_info"].toString(""));
     record.setValue("lock_explanation", page_object["lock_explanation"].toString(""));
+    record.setValue("is_active", "true");
 
     if (is_insert) {
        pages_model->insertRecord(-1, record);

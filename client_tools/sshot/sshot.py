@@ -125,7 +125,9 @@ def grabScreenShot():
         # sshot_img = sshot_img.convert('P', palette=Image.ADAPTIVE, colors=256)
 
         # Build overlay graphic w user/time banner
-        curr_user = getpass.getuser()
+        # Ends up w computer name when run from service?
+        #curr_user = getpass.getuser()
+        curr_user = win32api.GetUserName()
         banner_height = 40
         banner_width = sshot_img.width
         banner_img = Image.new('RGBA', (banner_width, banner_height), 'black')

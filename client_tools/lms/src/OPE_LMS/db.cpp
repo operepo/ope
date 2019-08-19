@@ -1,6 +1,6 @@
 #include "db.h"
 
-QQmlEngine *APP_DB::_engine = NULL;
+QQmlEngine *APP_DB::_engine = nullptr;
 
 APP_DB::APP_DB(QQmlApplicationEngine *parent) : QObject(parent)
 {
@@ -14,7 +14,7 @@ APP_DB::APP_DB(QQmlApplicationEngine *parent) : QObject(parent)
 
     //QQmlApplicationEngine *p = qobject_cast<QQmlApplicationEngine*>(this->parent());
     APP_DB::_engine = qobject_cast<QQmlApplicationEngine*>(this->parent());
-    if (APP_DB::_engine == NULL) {
+    if (APP_DB::_engine == nullptr) {
         // Unable to get app engine
         qDebug() << "FATAL ERROR - APP_DB Unable to get the QML Application Engine.";
         QCoreApplication::quit();
@@ -72,6 +72,18 @@ bool APP_DB::init_db()
         }
         // Add to the table models list
         model = new GenericTableModel(this, "users", _db);
+
+        // Modify table - add is_active field to mark items that are active
+        if (model->getColumnIndex("is_active") == -1)  {
+            // Column doesn't exit
+            qDebug() << "Adding is_active column to courses";
+            sql = "ALTER TABLE `users` ADD COLUMN `is_active` TEXT NOT NULL DEFAULT ''";
+            if (!query.exec(sql)) {
+                qDebug() << "DB Error: " << query.lastError().text();
+            }
+            // Reload the model with the latest changes
+            model->select();
+        }
 
         // ===========================================
         // Create the courses table
@@ -147,6 +159,18 @@ bool APP_DB::init_db()
         // Add to the table models list
         model = new GenericTableModel(this, "modules", _db);
 
+        // Modify table - add is_active field to mark items that are active
+        if (model->getColumnIndex("is_active") == -1)  {
+            // Column doesn't exit
+            qDebug() << "Adding is_active column to courses";
+            sql = "ALTER TABLE modules ADD COLUMN `is_active` TEXT NOT NULL DEFAULT ''";
+            if (!query.exec(sql)) {
+                qDebug() << "DB Error: " << query.lastError().text();
+            }
+            // Reload the model with the latest changes
+            model->select();
+        }
+
 
         // ===========================================
         // Create module_items table
@@ -191,6 +215,18 @@ bool APP_DB::init_db()
             model->select();
         }
 
+        // Modify table - add is_active field to mark items that are active
+        if (model->getColumnIndex("is_active") == -1)  {
+            // Column doesn't exit
+            qDebug() << "Adding is_active column to courses";
+            sql = "ALTER TABLE module_items ADD COLUMN `is_active` TEXT NOT NULL DEFAULT ''";
+            if (!query.exec(sql)) {
+                qDebug() << "DB Error: " << query.lastError().text();
+            }
+            // Reload the model with the latest changes
+            model->select();
+        }
+
 
         // ===========================================
         // Create folders table - holds folders for files
@@ -223,6 +259,18 @@ bool APP_DB::init_db()
          }
          // Add to the table models list
          model = new GenericTableModel(this, "folders", _db);
+
+         // Modify table - add is_active field to mark items that are active
+         if (model->getColumnIndex("is_active") == -1)  {
+             // Column doesn't exit
+             qDebug() << "Adding is_active column to courses";
+             sql = "ALTER TABLE folders ADD COLUMN `is_active` TEXT NOT NULL DEFAULT ''";
+             if (!query.exec(sql)) {
+                 qDebug() << "DB Error: " << query.lastError().text();
+             }
+             // Reload the model with the latest changes
+             model->select();
+         }
 
         // ===========================================
         // Create files table - holds file info
@@ -258,6 +306,18 @@ bool APP_DB::init_db()
         // Add to the table models list
         model = new GenericTableModel(this, "files", _db);
 
+        // Modify table - add is_active field to mark items that are active
+        if (model->getColumnIndex("is_active") == -1)  {
+            // Column doesn't exit
+            qDebug() << "Adding is_active column to courses";
+            sql = "ALTER TABLE files ADD COLUMN `is_active` TEXT NOT NULL DEFAULT ''";
+            if (!query.exec(sql)) {
+                qDebug() << "DB Error: " << query.lastError().text();
+            }
+            // Reload the model with the latest changes
+            model->select();
+        }
+
 
         // ===========================================
         // Create pages table
@@ -285,6 +345,18 @@ bool APP_DB::init_db()
         }
         // Add to the table models list
         model = new GenericTableModel(this, "pages", _db);
+
+        // Modify table - add is_active field to mark items that are active
+        if (model->getColumnIndex("is_active") == -1)  {
+            // Column doesn't exit
+            qDebug() << "Adding is_active column to courses";
+            sql = "ALTER TABLE pages ADD COLUMN `is_active` TEXT NOT NULL DEFAULT ''";
+            if (!query.exec(sql)) {
+                qDebug() << "DB Error: " << query.lastError().text();
+            }
+            // Reload the model with the latest changes
+            model->select();
+        }
 
 
 
@@ -320,6 +392,18 @@ bool APP_DB::init_db()
         // Add to the table models list
         model = new GenericTableModel(this, "conversations", _db);
 
+        // Modify table - add is_active field to mark items that are active
+        if (model->getColumnIndex("is_active") == -1)  {
+            // Column doesn't exit
+            qDebug() << "Adding is_active column to courses";
+            sql = "ALTER TABLE conversations ADD COLUMN `is_active` TEXT NOT NULL DEFAULT ''";
+            if (!query.exec(sql)) {
+                qDebug() << "DB Error: " << query.lastError().text();
+            }
+            // Reload the model with the latest changes
+            model->select();
+        }
+
 
         // ===========================================
         // Create messages table
@@ -343,6 +427,18 @@ bool APP_DB::init_db()
         }
         // Add to the table models list
         model = new GenericTableModel(this, "messages", _db);
+
+        // Modify table - add is_active field to mark items that are active
+        if (model->getColumnIndex("is_active") == -1)  {
+            // Column doesn't exit
+            qDebug() << "Adding is_active column to courses";
+            sql = "ALTER TABLE messages ADD COLUMN `is_active` TEXT NOT NULL DEFAULT ''";
+            if (!query.exec(sql)) {
+                qDebug() << "DB Error: " << query.lastError().text();
+            }
+            // Reload the model with the latest changes
+            model->select();
+        }
 
         // Create assignment_submissions table
         // assignment_type = file (upload), url, text, none, on_paper, external
@@ -415,6 +511,18 @@ bool APP_DB::init_db()
         }
         model = new GenericTableModel(this, "assignments", _db);
 
+        // Modify table - add is_active field to mark items that are active
+        if (model->getColumnIndex("is_active") == -1)  {
+            // Column doesn't exit
+            qDebug() << "Adding is_active column to courses";
+            sql = "ALTER TABLE assignments ADD COLUMN `is_active` TEXT NOT NULL DEFAULT ''";
+            if (!query.exec(sql)) {
+                qDebug() << "DB Error: " << query.lastError().text();
+            }
+            // Reload the model with the latest changes
+            model->select();
+        }
+
         // Create Announcements table
         sql = "CREATE TABLE IF NOT EXISTS `announcements` ( \
                 `id`        TEXT NOT NULL DEFAULT '', \
@@ -462,6 +570,18 @@ bool APP_DB::init_db()
         // Add to the table models list
         model = new GenericTableModel(this, "announcements", _db);
 
+        // Modify table - add is_active field to mark items that are active
+        if (model->getColumnIndex("is_active") == -1)  {
+            // Column doesn't exit
+            qDebug() << "Adding is_active column to courses";
+            sql = "ALTER TABLE announcements ADD COLUMN `is_active` TEXT NOT NULL DEFAULT ''";
+            if (!query.exec(sql)) {
+                qDebug() << "DB Error: " << query.lastError().text();
+            }
+            // Reload the model with the latest changes
+            model->select();
+        }
+
 
         // Create the resources table
         sql = "CREATE TABLE IF NOT EXISTS `resources` ( \
@@ -477,6 +597,18 @@ bool APP_DB::init_db()
         }
         // Add to the table models list
         model = new GenericTableModel(this, "resources", _db);
+
+        // Modify table - add is_active field to mark items that are active
+        if (model->getColumnIndex("is_active") == -1)  {
+            // Column doesn't exit
+            qDebug() << "Adding is_active column to courses";
+            sql = "ALTER TABLE resources ADD COLUMN `is_active` TEXT NOT NULL DEFAULT ''";
+            if (!query.exec(sql)) {
+                qDebug() << "DB Error: " << query.lastError().text();
+            }
+            // Reload the model with the latest changes
+            model->select();
+        }
 
         // Make sure the default resource entries are in place
         add_resource("Start Here", "/start_here/index.html", "Getting started...", 0);
@@ -627,13 +759,13 @@ GenericTableModel *APP_DB::getTable(QString table_name)
 {
     //qDebug() << "getTable " << this;
     if (_tables.isEmpty())
-        return NULL;
+        return nullptr;
 
     if (_tables.contains(table_name)) {
         return _tables[table_name];
     }
 
-    return NULL;
+    return nullptr;
 }
 
 bool APP_DB::commit()
@@ -651,12 +783,12 @@ GenericTableModel::GenericTableModel(APP_DB *parent, QString table_name, QSqlDat
     setTable(table_name);
     setEditStrategy(QSqlTableModel::OnManualSubmit);
     select();
-    if (parent != NULL) {
+    if (parent != nullptr) {
         parent->_tables[table_name] = this;
 
         // Expose this to QML
         //QQmlEngine *p = qobject_cast<QQmlApplicationEngine*>(this->parent()->parent());
-        if (APP_DB::_engine == NULL) {
+        if (APP_DB::_engine == nullptr) {
             // Unable to get app engine
             qDebug() << "FATAL ERROR - Generic Table Model Unable to get the QML Application Engine.";
             QCoreApplication::quit();
@@ -737,7 +869,7 @@ void GenericTableModel::sortOn(QString col_name, Qt::SortOrder order)
 GenericTableModel *GenericTableModel::copy()
 {
     // Generate a copy of this table model
-    GenericTableModel *m = new GenericTableModel(NULL, this->tableName(), database());
+    GenericTableModel *m = new GenericTableModel(nullptr, this->tableName(), database());
     m->setFilter(this->filter());
 
     return m;
@@ -752,7 +884,8 @@ void GenericTableModel::generateRoleNames()
 }
 
 
-GenericQueryModel::GenericQueryModel(APP_DB *parent, QString query_name, QString query, QSqlDatabase db)
+GenericQueryModel::GenericQueryModel(APP_DB *parent, QString query_name,
+                                     QString query, QSqlDatabase db)
 {
     m_sort_column = "";
     m_sort_type = Qt::AscendingOrder;
@@ -761,12 +894,12 @@ GenericQueryModel::GenericQueryModel(APP_DB *parent, QString query_name, QString
     m_sql_select = query;
     m_query_name = query_name;
     setCombinedQuery();
-    if (parent != NULL) {
+    if (parent != nullptr) {
         parent->_queries[query_name] = this;
 
         // Expose this to QML
         //QQmlEngine *p = qobject_cast<QQmlApplicationEngine*>(this->parent()->parent());
-        if (APP_DB::_engine == NULL) {
+        if (APP_DB::_engine == nullptr) {
             // Unable to get app engine
             qDebug() << "FATAL ERROR - Generic Query Model Unable to get the QML Application Engine.";
             QCoreApplication::quit();

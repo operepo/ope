@@ -20,6 +20,7 @@ import win32con
 import win32gui_struct
 import win32ts
 import win32process
+import win32profile
 import PIL
 import pyscreenshot as ImageGrab
 import ctypes
@@ -81,7 +82,7 @@ def show_cacls(filename):
     print
     print
     for line in os.popen("cacls %s" % filename).read().splitlines():
-        print line
+        print(line)
 
 
 def set_ope_permissions():
@@ -287,10 +288,10 @@ def scanNics():
             if dev_id:
                 logging.info("     ---> !!! Approved device !!!, enabling..." + str(dev_id))
                 cmd = "netsh interface set interface \"" + dev_id + "\" admin=ENABLED"
-                # print cmd
+                # print(cmd)
                 os.system(cmd)
             else:
-                # print "     ---> unauthorized, not plugged in..."
+                # print("     ---> unauthorized, not plugged in...")
                 pass
             continue
         elif objItem.Name in system_nics:
@@ -302,60 +303,60 @@ def scanNics():
             if dev_id:
                 logging.info("     ---> !!! unauthorized !!!, disabling..." + str(dev_id))
                 cmd = "netsh interface set interface \"" + dev_id + "\" admin=DISABLED"
-                # print cmd
+                # print(cmd)
                 os.system(cmd)
             else:
-                # print "     ---> unauthorized, not plugged in..."
+                # print("     ---> unauthorized, not plugged in...")
                 pass
             continue
 
-        # print "========================================================"
-        # print "Adapter Type: ", objItem.AdapterType
-        # print "Adapter Type Id: ", objItem.AdapterTypeId
-        # print "AutoSense: ", objItem.AutoSense
-        # print "Availability: ", objItem.Availability
-        # print "Caption: ", objItem.Caption
-        # print "Config Manager Error Code: ", objItem.ConfigManagerErrorCode
-        # print "Config Manager User Config: ", objItem.ConfigManagerUserConfig
-        # print "Creation Class Name: ", objItem.CreationClassName
-        # print "Description: ", objItem.Description
-        # print "Device ID: ", objItem.DeviceID
-        # print "Error Cleared: ", objItem.ErrorCleared
-        # print "Error Description: ", objItem.ErrorDescription
-        # print "Index: ", objItem.Index
-        # print "Install Date: ", objItem.InstallDate
-        # print "Installed: ", objItem.Installed
-        # print "Last Error Code: ", objItem.LastErrorCode
-        # print "MAC Address: ", objItem.MACAddress
-        # print "Manufacturer: ", objItem.Manufacturer
-        # print "Max Number Controlled: ", objItem.MaxNumberControlled
-        # print "Max Speed: ", objItem.MaxSpeed
-        # print "Name: ", objItem.Name
-        # print "Net Connection ID: ", objItem.NetConnectionID
-        # print "Net Connection Status: ", objItem.NetConnectionStatus
+        # print("========================================================")
+        # print("Adapter Type: ", objItem.AdapterType)
+        # print("Adapter Type Id: ", objItem.AdapterTypeId)
+        # print("AutoSense: ", objItem.AutoSense)
+        # print("Availability: ", objItem.Availability)
+        # print("Caption: ", objItem.Caption)
+        # print("Config Manager Error Code: ", objItem.ConfigManagerErrorCode)
+        # print("Config Manager User Config: ", objItem.ConfigManagerUserConfig)
+        # print("Creation Class Name: ", objItem.CreationClassName)
+        # print("Description: ", objItem.Description)
+        # print("Device ID: ", objItem.DeviceID)
+        # print("Error Cleared: ", objItem.ErrorCleared)
+        # print("Error Description: ", objItem.ErrorDescription)
+        # print("Index: ", objItem.Index)
+        # print("Install Date: ", objItem.InstallDate)
+        # print("Installed: ", objItem.Installed)
+        # print("Last Error Code: ", objItem.LastErrorCode)
+        # print("MAC Address: ", objItem.MACAddress)
+        # print("Manufacturer: ", objItem.Manufacturer)
+        # print("Max Number Controlled: ", objItem.MaxNumberControlled)
+        # print("Max Speed: ", objItem.MaxSpeed)
+        # print("Name: ", objItem.Name)
+        # print("Net Connection ID: ", objItem.NetConnectionID)
+        # print("Net Connection Status: ", objItem.NetConnectionStatus)
         # z = objItem.NetworkAddresses
         # if z is None:
         #    a = 1
         # else:
         #    for x in z:
-        #        print "Network Addresses: ", x
-        # print "Permanent Address: ", objItem.PermanentAddress
-        # print "PNP Device ID: ", objItem.PNPDeviceID
+        #        print("Network Addresses: ", x)
+        # print("Permanent Address: ", objItem.PermanentAddress)
+        # print("PNP Device ID: ", objItem.PNPDeviceID)
         # z = objItem.PowerManagementCapabilities
         # if z is None:
         #    a = 1
         # else:
         #    for x in z:
-        #        print "Power Management Capabilities: ", x
-        # print "Power Management Supported: ", objItem.PowerManagementSupported
-        # print "Product Name: ", objItem.ProductName
-        # print "Service Name: ", objItem.ServiceName
-        # print "Speed: ", objItem.Speed
-        # print "Status: ", objItem.Status
-        # print "Status Info: ", objItem.StatusInfo
-        # print "System Creation Class Name: ", objItem.SystemCreationClassName
-        # print "System Name: ", objItem.SystemName
-        # print "Time Of Last Reset: ", objItem.TimeOfLastReset
+        #        print("Power Management Capabilities: ", x)
+        # print("Power Management Supported: ", objItem.PowerManagementSupported)
+        # print("Product Name: ", objItem.ProductName)
+        # print("Service Name: ", objItem.ServiceName)
+        # print("Speed: ", objItem.Speed)
+        # print("Status: ", objItem.Status)
+        # print("Status Info: ", objItem.StatusInfo)
+        # print("System Creation Class Name: ", objItem.SystemCreationClassName)
+        # print("System Name: ", objItem.SystemName)
+        # print("Time Of Last Reset: ", objItem.TimeOfLastReset)
 
 
 class OPEService(win32serviceutil.ServiceFramework):
@@ -450,7 +451,7 @@ class OPEService(win32serviceutil.ServiceFramework):
                 (self._svc_name_, '')
                 )
 
-    def runScreenShotApp3(self):
+    def runScreenShotApp3_old(self):
         # Get the current security token
         token = win32security.OpenProcessToken(win32process.GetCurrentProcess(),
                                                win32security.TOKEN_ALL_ACCESS)
@@ -503,7 +504,7 @@ class OPEService(win32serviceutil.ServiceFramework):
         # logging.info("Impersonating " + win32api.GetUserName())
 
         # Run the screen shot app
-        app_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
+        # app_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
         # cmd = os.path.join(app_path, "sshot\\dist\\sshot.exe")
         cmd = os.path.join(ROOT_FOLDER, "ope_laptop_binaries\\sshot\\sshot.exe")  # "c:\\programdata\\ope\\bin\\sshot.exe"
         # cmd = "cmd.exe"
@@ -516,6 +517,9 @@ class OPEService(win32serviceutil.ServiceFramework):
         # si.lpDesktop = "WinSta0\Default"
         si.lpDesktop = ""
 
+        # Setup envinroment for the user
+        environment = win32profile.CreateEnvironmentBlock(user_token, False)
+
         try:
             (hProcess, hThread, dwProcessId, dwThreadId) = win32process.CreateProcessAsUser(user_token_copy,
                                              None,   # AppName (really command line, blank if cmd line supplied)
@@ -524,7 +528,7 @@ class OPEService(win32serviceutil.ServiceFramework):
                                              None,  # Thread Attributes
                                              0,  # Inherits Handles
                                              win32con.NORMAL_PRIORITY_CLASS,  # or win32con.CREATE_NEW_CONSOLE,
-                                             None,  # Environment
+                                             environment,  # Environment
                                              os.path.dirname(cmd),  # Curr directory
                                              si)  # Startup info
 
@@ -545,7 +549,7 @@ class OPEService(win32serviceutil.ServiceFramework):
 
         return
 
-    def runScreenShotApp2(self):
+    def runScreenShotApp2_old(self):
         console_id = win32ts.WTSGetActiveConsoleSessionId()
         if console_id == 0xffffffff:
             # User not logged in right now?
@@ -588,7 +592,7 @@ class OPEService(win32serviceutil.ServiceFramework):
 
         return
 
-    def grabScreenShot(self):
+    def grabScreenShot_old(self):
         # Grab the screen shot and save it to the logs folder
         # Get the hwnd for the current desktop window
         try:
