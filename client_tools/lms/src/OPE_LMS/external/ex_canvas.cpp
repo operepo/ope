@@ -28,12 +28,183 @@ EX_Canvas::EX_Canvas(QObject *parent, APP_DB *db, QSettings *app_settings, QStri
             this, SLOT(downloadProgress(qint64, qint64)));
 }
 
+bool EX_Canvas::markItemsAsInactive()
+{
+    bool ret = true;
+
+    _app_db->commit();
+
+    // Hide records - re-enable them during sync
+    QString sql = "UPDATE `users` SET is_active='false'";
+    QSqlQuery query;
+    if (!query.exec(sql)) {
+        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+        ret = false;
+    }
+
+    // Hide courses - re-enable them during sync
+    sql = "UPDATE courses SET is_active='false'";
+    if (!query.exec(sql)) {
+        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+        ret = false;
+    }
+
+    // Hide records - re-enable them during sync
+    sql = "UPDATE `announcements` SET is_active='false'";
+    if (!query.exec(sql)) {
+        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+        ret = false;
+    }
+
+    // Hide records - re-enable them during sync
+    sql = "UPDATE `assignments` SET is_active='false'";
+    if (!query.exec(sql)) {
+        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+        ret = false;
+    }
+
+    // Hide records - re-enable them during sync
+    sql = "UPDATE `folders` SET is_active='false'";
+    if (!query.exec(sql)) {
+        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+        ret = false;
+    }
+
+    // Hide records - re-enable them during sync
+    sql = "UPDATE `files` SET is_active='false'";
+    if (!query.exec(sql)) {
+        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+        ret = false;
+    }
+
+    // Hide records - re-enable them during sync
+    sql = "UPDATE `pages` SET is_active='false'";
+    if (!query.exec(sql)) {
+        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+        ret = false;
+    }
+
+    // Hide records - re-enable them during sync
+    sql = "UPDATE `conversations` SET is_active='false'";
+    if (!query.exec(sql)) {
+        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+        ret = false;
+    }
+
+    // Hide records - re-enable them during sync
+    sql = "UPDATE `messages` SET is_active='false'";
+    if (!query.exec(sql)) {
+        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+        ret = false;
+    }
+
+    // Hide records - re-enable them during sync
+    sql = "UPDATE `module_items` SET is_active='false'";
+    if (!query.exec(sql)) {
+        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+        ret = false;
+    }
+
+    // Hide records - re-enable them during sync
+    sql = "UPDATE `modules` SET is_active='false'";
+    if (!query.exec(sql)) {
+        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
+        ret = false;
+    }
+
+    _app_db->commit();
+
+    return ret;
+}
+
+bool EX_Canvas::clearInactiveItems()
+{
+    bool ret = true;
+
+    _app_db->commit();
+
+    // Cleanup records not active
+    QString cleanup_sql = "DELETE FROM `files` WHERE is_active != 'true'";
+    QSqlQuery cleanup_query;
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+    }
+
+    // Cleanup records not active
+    cleanup_sql = "DELETE FROM `announcements` WHERE is_active != 'true'";
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+    }
+
+    // Cleanup records not active
+    cleanup_sql = "DELETE FROM `assignments` WHERE is_active != 'true'";
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+        ret = false;
+    }
+
+    // Cleanup records not active
+    cleanup_sql = "DELETE FROM `folders` WHERE is_active != 'true'";
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+        ret = false;
+    }
+
+    // Cleanup records not active
+    cleanup_sql = "DELETE FROM `pages` WHERE is_active != 'true'";
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+    }
+
+    // Cleanup records not active
+    cleanup_sql = "DELETE FROM `conversations` WHERE is_active != 'true'";
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+        ret = false;
+    }
+
+    // Cleanup records not active
+    cleanup_sql = "DELETE FROM `messages` WHERE is_active != 'true'";
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+        ret = false;
+    }
+
+    // Cleanup records not active
+    cleanup_sql = "DELETE FROM `module_items` WHERE is_active != 'true'";
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+        ret = false;
+    }
+
+    // Cleanup records not active
+    cleanup_sql = "DELETE FROM `modules` WHERE is_active != 'true'";
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+        ret = false;
+    }
+
+    // Cleanup records not active
+    cleanup_sql = "DELETE FROM `users` WHERE is_active != 'true'";
+    if (!cleanup_query.exec(cleanup_sql)) {
+        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
+        ret = false;
+    }
+
+    _app_db->commit();
+
+    return ret;
+}
+
 bool EX_Canvas::pullStudentInfo()
 {
     bool ret =  false;
     if (_app_db == nullptr) {
        return ret;
     }
+
+    // Mark items as inactive so we can tell what came in on the new sync
+    markItemsAsInactive();
 
     // Get the courses table
     GenericTableModel *model = _app_db->getTable("users");
@@ -54,12 +225,6 @@ bool EX_Canvas::pullStudentInfo()
     // Loop through the users and add them to the database
     if (doc.isObject())
     {
-        // Hide records - re-enable them during sync
-        QString sql = "UPDATE `users` SET is_active='false'";
-        QSqlQuery query;
-        if (!query.exec(sql)) {
-            qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
-        }
 
         // JSON Pulled:
         // {"id":26664700000000083,"name":"Smith, Bob (s777777)",
@@ -129,14 +294,6 @@ bool EX_Canvas::pullStudentInfo()
 
     }
 
-    // Cleanup records not active
-    QString cleanup_sql = "DELETE FROM `users` WHERE is_active != 'true'";
-    QSqlQuery cleanup_query;
-    if (!cleanup_query.exec(cleanup_sql)) {
-        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
-    }
-    _app_db->commit();
-
     return ret;
 }
 
@@ -169,11 +326,6 @@ bool EX_Canvas::pullCourses()
     // Loop through the courses and add them to the database
     if (doc.isArray())
     {
-        // Hide courses - re-enable them during sync
-        sql = "UPDATE courses SET is_active='false'";
-        if (!query.exec(sql)) {
-            qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
-        }
 
         // JSON Pulled:
         // id":26664700000000082,"name":"Auto Create - CSE100","account_id":1,
@@ -363,13 +515,6 @@ bool EX_Canvas::pullModules()
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
 
-    // Hide records - re-enable them during sync
-    QString sql = "UPDATE `modules` SET is_active='false'";
-    QSqlQuery query;
-    if (!query.exec(sql)) {
-        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
-    }
-
     ret = true;
     int rowCount = courses_model->rowCount();
     for (int i=0; i<rowCount; i++) {
@@ -452,14 +597,6 @@ bool EX_Canvas::pullModules()
         }
     }
 
-    // Cleanup records not active
-    QString cleanup_sql = "DELETE FROM `modules` WHERE is_active != 'true'";
-    QSqlQuery cleanup_query;
-    if (!cleanup_query.exec(cleanup_sql)) {
-        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
-    }
-    _app_db->commit();
-
     return ret;
 }
 
@@ -478,19 +615,11 @@ bool EX_Canvas::pullModuleItems()
         return false;
     }
 
-    // Hide records - re-enable them during sync
-    QString sql = "UPDATE `module_items` SET is_active='false'";
-    QSqlQuery query;
-    if (!query.exec(sql)) {
-        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
-    }
-
     // Get module items for each module
     modules_model->setFilter("");
     modules_model->select();
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(modules_model->canFetchMore()) { modules_model->fetchMore(); }
-
 
     ret = true;
     int rowCount = modules_model->rowCount();
@@ -598,14 +727,6 @@ bool EX_Canvas::pullModuleItems()
         }
     }
 
-    // Cleanup records not active
-    QString cleanup_sql = "DELETE FROM `module_items` WHERE is_active != 'true'";
-    QSqlQuery cleanup_query;
-    if (!cleanup_query.exec(cleanup_sql)) {
-        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
-    }
-    _app_db->commit();
-
     return ret;
 }
 
@@ -629,13 +750,6 @@ bool EX_Canvas::pullCourseFileFolders()
     courses_model->select();
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
-
-    // Hide records - re-enable them during sync
-    QString sql = "UPDATE `folders` SET is_active='false'";
-    QSqlQuery query;
-    if (!query.exec(sql)) {
-        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
-    }
 
     ret = true;
     int rowCount = courses_model->rowCount();
@@ -736,14 +850,6 @@ bool EX_Canvas::pullCourseFileFolders()
         }
     }
 
-    // Cleanup records not active
-    QString cleanup_sql = "DELETE FROM `folders` WHERE is_active != 'true'";
-    QSqlQuery cleanup_query;
-    if (!cleanup_query.exec(cleanup_sql)) {
-        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
-    }
-    _app_db->commit();
-
     return ret;
 }
 
@@ -806,13 +912,6 @@ bool EX_Canvas::pullCourseFilesInfo()
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
 
-    // Hide records - re-enable them during sync
-    QString sql = "UPDATE `files` SET is_active='false'";
-    QSqlQuery query;
-    if (!query.exec(sql)) {
-        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
-    }
-
     ret = true;
     int rowCount = courses_model->rowCount();
     for (int i=0; i<rowCount; i++) {
@@ -845,13 +944,9 @@ bool EX_Canvas::pullCourseFilesInfo()
         }
     }
 
-    // Cleanup records not active
-    QString cleanup_sql = "DELETE FROM `files` WHERE is_active != 'true'";
-    QSqlQuery cleanup_query;
-    if (!cleanup_query.exec(cleanup_sql)) {
-        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
-    }
-    _app_db->commit();
+    // Clean up inactive canvas items
+    // NOTE - this is the last step before downloading binaries
+    clearInactiveItems();
 
     return ret;
 }
@@ -1161,13 +1256,6 @@ bool EX_Canvas::pullCoursePages()
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
 
-    // Hide records - re-enable them during sync
-    QString sql = "UPDATE `pages` SET is_active='false'";
-    QSqlQuery query;
-    if (!query.exec(sql)) {
-        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
-    }
-
     ret = true;
     int rowCount = courses_model->rowCount();
     for (int i=0; i<rowCount; i++) {
@@ -1203,14 +1291,6 @@ bool EX_Canvas::pullCoursePages()
             qDebug() << "\t\t!!! Unable to pull array of pages: " << doc;
         }
     }
-
-    // Cleanup records not active
-    QString cleanup_sql = "DELETE FROM `pages` WHERE is_active != 'true'";
-    QSqlQuery cleanup_query;
-    if (!cleanup_query.exec(cleanup_sql)) {
-        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
-    }
-    _app_db->commit();
 
     return ret;
 }
@@ -1253,17 +1333,6 @@ bool EX_Canvas::pullMessages(QString scope)
 
     // Should be an array of conversations
     if (conversations_doc.isArray()) {
-        // Hide records - re-enable them during sync
-        QString sql = "UPDATE `conversations` SET is_active='false'";
-        QSqlQuery query;
-        if (!query.exec(sql)) {
-            qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
-        }
-        // Hide records - re-enable them during sync
-        sql = "UPDATE `messages` SET is_active='false'";
-        if (!query.exec(sql)) {
-            qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
-        }
 
         // Should have something like this:
         // [{"id":26664700000000089,"subject":"Next conversation",
@@ -1404,6 +1473,7 @@ qDebug() << "Got conversation, going for messages: " << o["messages"];
                     record.setValue("media_comment", mo["media_comment"].toString(""));
                     record.setValue("participating_user_ids", QJsonDocument(mo["participating_user_ids"].toArray()).toJson());
                     record.setValue("conversation_id", conversations_id);
+                    record.setValue("is_active", "true");
                     if (mo["author_id"].toString("") == student_id) {
                         record.setValue("scope", "sent");
                     } else {
@@ -1432,17 +1502,6 @@ qDebug() << "Got conversation, going for messages: " << o["messages"];
         }
     }
 
-    // Cleanup records not active
-    QString cleanup_sql = "DELETE FROM `conversations` WHERE is_active != 'true'";
-    QSqlQuery cleanup_query;
-    if (!cleanup_query.exec(cleanup_sql)) {
-        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
-    }
-    // Cleanup records not active
-    cleanup_sql = "DELETE FROM `messages` WHERE is_active != 'true'";
-    if (!cleanup_query.exec(cleanup_sql)) {
-        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
-    }
     _app_db->commit();
 
     return ret;
@@ -1468,13 +1527,6 @@ bool EX_Canvas::pullAssignments()
     courses_model->select();
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
-
-    // Hide records - re-enable them during sync
-    QString sql = "UPDATE `assignments` SET is_active='false'";
-    QSqlQuery query;
-    if (!query.exec(sql)) {
-        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
-    }
 
     ret = true;
     int rowCount = courses_model->rowCount();
@@ -1620,14 +1672,6 @@ bool EX_Canvas::pullAssignments()
         }
     }
 
-    // Cleanup records not active
-    QString cleanup_sql = "DELETE FROM `assignments` WHERE is_active != 'true'";
-    QSqlQuery cleanup_query;
-    if (!cleanup_query.exec(cleanup_sql)) {
-        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
-    }
-    _app_db->commit();
-
     return ret;
 }
 
@@ -1651,13 +1695,6 @@ bool EX_Canvas::pullAnnouncements()
     courses_model->select();
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
-
-    // Hide records - re-enable them during sync
-    QString sql = "UPDATE `announcements` SET is_active='false'";
-    QSqlQuery query;
-    if (!query.exec(sql)) {
-        qDebug() << "DB Error: " << query.lastError().text() << query.lastQuery();
-    }
 
     ret = true;
     int rowCount = courses_model->rowCount();
@@ -1858,14 +1895,6 @@ bool EX_Canvas::pullAnnouncements()
             qDebug() << "Invalid Response for Announcement: " <<  doc;
         }
     }
-
-    // Cleanup records not active
-    QString cleanup_sql = "DELETE FROM `announcements` WHERE is_active != 'true'";
-    QSqlQuery cleanup_query;
-    if (!cleanup_query.exec(cleanup_sql)) {
-        qDebug() << "DB Error: " << cleanup_query.lastError().text() << cleanup_query.lastQuery();
-    }
-    _app_db->commit();
 
     return ret;
 

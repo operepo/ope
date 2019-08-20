@@ -30,6 +30,11 @@ public slots:
     // ==================================================
     // pull data from canvas - used during sync
 
+    // Mark records as inactive prior to sync so that we can keep track
+    // of what is new and what should go away.
+    bool markItemsAsInactive();
+    bool clearInactiveItems();
+
     // Get the info for the current student
     bool pullStudentInfo();
     // Get the list of courses for the current student

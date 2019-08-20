@@ -81,6 +81,9 @@ quint16 CM_HTTPServer::getHTTPPort()
 bool CM_HTTPServer::registerPathHandler(QString path, qintptr handler)
 {
     bool ret = false;
+    // Hide unused warnings
+    if (handler || path == "") {
+    }
  ////TODO
     return ret;
 }
@@ -88,6 +91,9 @@ bool CM_HTTPServer::registerPathHandler(QString path, qintptr handler)
 bool CM_HTTPServer::registerExtentionHandler(QString extention, qintptr handler)
 {
     bool ret = false;
+    // Hide unused warnings
+    if (handler || extention == "") {
+    }
     ////TODO
     return ret;
 }
@@ -95,6 +101,9 @@ bool CM_HTTPServer::registerExtentionHandler(QString extention, qintptr handler)
 bool CM_HTTPServer::registerHandler(qintptr handler)
 {
     bool ret = false;
+    // Hide unused warnings
+    if (handler) {
+    }
     ////TODO
     return ret;
 }

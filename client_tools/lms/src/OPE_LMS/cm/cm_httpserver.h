@@ -28,6 +28,11 @@
 
 #include "cm_mimetypes.h"
 
+namespace cm_pem_certs {
+    extern char pemdata_cert[];
+    extern char pemdata_privkey[];
+    extern char pemdata_cacert[];
+}
 
 // Early Declare
 class CM_HTTPRequest;

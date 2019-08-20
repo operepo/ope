@@ -21,6 +21,14 @@ CM_WebRequest::CM_WebRequest(QObject *parent) :
 
 QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString, QString> *parameters, QHash<QString, QString> *headers, QString content_type, QString post_file)
 {
+    // Make sure the networkmanager is set to accessible
+    QNetworkAccessManager::NetworkAccessibility n = http_manager.networkAccessible();
+    if (n != QNetworkAccessManager::Accessible) {
+        qDebug() << "NetworkCall - Network not Accessible - switching manually... " << n;
+        http_manager.setNetworkAccessible(QNetworkAccessManager::Accessible);
+    }
+
+
     // NOTE - For ordered parameters, you can use ___A_rest_of_key to preserve the parameter order.
     // e.g.  mykey would become ___B_mykey to make sure it is second.
     // ONLY WORKS FOR POST/Form-data
@@ -221,6 +229,13 @@ bool CM_WebRequest::DownloadFile(QString url, QString local_path)
 {
     bool ret = false;
 
+    // Make sure the networkmanager is set to accessible
+    QNetworkAccessManager::NetworkAccessibility n = download_manager.networkAccessible();
+    if (n != QNetworkAccessManager::Accessible) {
+        qDebug() << "DownloadFile - Network not Accessible - switching manually... " << n;
+        download_manager.setNetworkAccessible(QNetworkAccessManager::Accessible);
+    }
+
     download_active = true;
 
     // Store our local path
@@ -367,7 +382,7 @@ void CM_WebRequest::downloadReadyRead()
     }
     download_progress += r;
 
-    download_size = download_reply->header(QNetworkRequest::ContentLengthHeader).toULongLong();
+    download_size = download_reply->header(QNetworkRequest::ContentLengthHeader).toLongLong();
 
     //qDebug() << "chunk saved: " << download_progress;
 
@@ -377,6 +392,10 @@ void CM_WebRequest::downloadReplyFinished(QNetworkReply *reply)
 {
     // Retired this in favor of writing during readyRead to limit
     // memory size issues
+
+    // Do something to remove warning about unused reply
+    QUrl u = reply->url();
+
     return;
     // Deal with the downloaded file
 //    if (reply->error()) {
@@ -543,7 +562,7 @@ void CM_WebRequest::httpFinished()
 
     // Make sure we use delete later for the reply object
     http_reply->deleteLater();
-    http_reply = 0;
+    http_reply = nullptr;
 
     http_request_active = false;
 }
