@@ -190,7 +190,7 @@ QObject *CM_PersistentObjectModel::get(int index)
 {
     if (index < 0 || index >= item_list.count())
     {
-        return 0;
+        return nullptr;
     }
 
     return item_list[index];

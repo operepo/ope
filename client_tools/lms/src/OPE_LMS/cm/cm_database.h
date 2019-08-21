@@ -11,7 +11,7 @@ public:
 
 
 
-    explicit CM_Database(QObject *parent = 0);
+    explicit CM_Database(QObject *parent = nullptr);
 
     static QSqlQuery *Query(QString sql);
 

@@ -88,22 +88,16 @@ bool CM_HTTPServer::registerPathHandler(QString path, qintptr handler)
     return ret;
 }
 
-bool CM_HTTPServer::registerExtentionHandler(QString extention, qintptr handler)
+bool CM_HTTPServer::registerExtentionHandler(QString /*extention*/, qintptr /*handler*/)
 {
     bool ret = false;
-    // Hide unused warnings
-    if (handler || extention == "") {
-    }
     ////TODO
     return ret;
 }
 
-bool CM_HTTPServer::registerHandler(qintptr handler)
+bool CM_HTTPServer::registerHandler(qintptr /*handler*/)
 {
     bool ret = false;
-    // Hide unused warnings
-    if (handler) {
-    }
     ////TODO
     return ret;
 }
@@ -208,7 +202,8 @@ void CM_HTTPServer::setCACert(char pem_data[])
     }
 
     // Set the CA cert globally and on each client socket during connection
-    QSslSocket::setDefaultCaCertificates(ca_certs);
+    QSslConfiguration::defaultConfiguration().setCaCertificates(ca_certs);
+    //QSslSocket::setDefaultCaCertificates(ca_certs);
     ca_cert = QSslCertificate(pem_data, QSsl::Pem);
 }
 #endif
@@ -239,13 +234,15 @@ void CM_HTTPServer::setSSLCert(char ca_data[], char cert_data[], char key_data[]
 // Client Socket Signals
 void CM_HTTPServer::slot_clientAboutToClose()
 {
-    QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = static_cast<QTcpSocket*>(sender());
     //qDebug() << "slot_ClientAboutToClose: " << s;
 }
 
 void CM_HTTPServer::slot_clientBytesWritten(qint64 bytes)
 {
-    QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = static_cast<QTcpSocket*>(sender());
     bytesWritten+=bytes;
     //CM_HTTPServer::totalBytesWritten+=bytes;
     //qDebug() << "slot_clientBytesWritten: " << s << " - " << bytes;
@@ -253,25 +250,29 @@ void CM_HTTPServer::slot_clientBytesWritten(qint64 bytes)
 
 void CM_HTTPServer::slot_clientConnected()
 {
-    QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = static_cast<QTcpSocket*>(sender());
     //qDebug() << "slot_clientConnected: " << s;
 }
 
 void CM_HTTPServer::slot_clientDestroyed()
 {
-    QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = static_cast<QTcpSocket*>(sender());
     //qDebug() << "slot_clientDestroyed: " << s;
 }
 
 void CM_HTTPServer::slot_clientDestroyed(QObject*)
 {
-    QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = static_cast<QTcpSocket*>(sender());
     //qDebug() << "slot_clientDestroyed *: " << s;
 }
 
 void CM_HTTPServer::slot_clientDisconnected()
 {
-    QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = (QTcpSocket *)sender();
+    QTcpSocket *s = static_cast<QTcpSocket*>(sender());
     //qDebug() << "slot_clientDisconnected: " << s;
     s->deleteLater();
 }
@@ -279,7 +280,8 @@ void CM_HTTPServer::slot_clientDisconnected()
 #ifndef CM_DISABLE_SSL
 void CM_HTTPServer::slot_clientEncrypted()
 {
-    QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = static_cast<QTcpSocket*>(sender());
     //qDebug() << "slot_clientEncrypted: " << s;
 }
 #endif
@@ -287,66 +289,75 @@ void CM_HTTPServer::slot_clientEncrypted()
 #ifndef CM_DISABLE_SSL
 void CM_HTTPServer::slot_clientEncryptedBytesWritten(qint64 bytes)
 {
-    QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = static_cast<QTcpSocket*>(sender());
     encryptedBytesWritten += bytes;
     //qDebug() << "slot_clientEncryptedBytesWritten: " << s << " - " << bytes;
 }
 #endif
 
-void CM_HTTPServer::slot_clientError(QAbstractSocket::SocketError error)
+void CM_HTTPServer::slot_clientError(QAbstractSocket::SocketError /*error*/)
 {
-    QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = static_cast<QTcpSocket*>(sender());
     //qDebug() << "slot_clientError: " << s;
     //qDebug() << "\t" << error;
 }
 
 void CM_HTTPServer::slot_clientHostFound()
 {
-    QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = static_cast<QTcpSocket*>(sender());
     //qDebug() << "slot_clientHostFount: " << s;
 }
 
 #ifndef CM_DISABLE_SSL
-void CM_HTTPServer::slot_clientModeChanged(QSslSocket::SslMode mode)
+void CM_HTTPServer::slot_clientModeChanged(QSslSocket::SslMode /* mode */)
 {
-    QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = static_cast<QTcpSocket*>(sender());
     //qDebug() << "slot_clientModeChanged: " << s;
     //qDebug() << "\t" << mode;
 }
 #endif
 
-void CM_HTTPServer::slot_clientObjectNameChanged(QString name, QPrivateSignal)
+void CM_HTTPServer::slot_clientObjectNameChanged(QString /*name*/, QPrivateSignal)
 {
-    QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = static_cast<QTcpSocket*>(sender());
     //qDebug() << "slot_clientObjectNameChanged: " << s;
     //qDebug() << "\t" << name;
 }
 
 #ifndef CM_DISABLE_SSL
-void CM_HTTPServer::slot_clientPeerVerifyError(QSslError error)
+void CM_HTTPServer::slot_clientPeerVerifyError(QSslError /*error*/)
 {
-    QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = static_cast<QTcpSocket*>(sender());
     //qDebug() << "slot_clientPeerVerifyError: " << s;
     //qDebug() << "\t" << error;
 }
 #endif
 
-void CM_HTTPServer::slot_clientProxyAuthenticationRequest(QNetworkProxy proxy, QAuthenticator *auth)
+void CM_HTTPServer::slot_clientProxyAuthenticationRequest(QNetworkProxy /*proxy*/, QAuthenticator* /*auth*/)
 {
-    QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = static_cast<QTcpSocket*>(sender());
     //qDebug() << "slot_clientProxyAuthenticationRequest: " << s;
     //qDebug() << "\t" << proxy << " - " << auth;
 }
 
 void CM_HTTPServer::slot_clientReadChannelFinished()
 {
-    QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = static_cast<QTcpSocket*>(sender());
     //qDebug() << "slot_clientReadChannelFinished: " << s;
 }
 
 void CM_HTTPServer::slot_clientReadyRead()
 {
-    QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = (QTcpSocket *)sender();
+    QTcpSocket *s = static_cast<QTcpSocket*>(sender());
     //qDebug() << "slot_clientReadyRead: " << s;
     if (disabled)
          return;
@@ -382,17 +393,19 @@ void CM_HTTPServer::slot_clientReadyRead()
 }
 
 #ifndef CM_DISABLE_SSL
-void CM_HTTPServer::slot_clientSslErrors(QList<QSslError> errors)
+void CM_HTTPServer::slot_clientSslErrors(QList<QSslError> /*errors*/)
 {
-    QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = static_cast<QTcpSocket*>(sender());
     //qDebug() << "slot_clientSslErrors: " << s;
     //qDebug() << "SSL Error!" << errors.first().errorString();
 }
 #endif
 
-void CM_HTTPServer::slot_clientStateChanged(QAbstractSocket::SocketState state)
+void CM_HTTPServer::slot_clientStateChanged(QAbstractSocket::SocketState /*state*/)
 {
-    QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = (QTcpSocket *)sender();
+    //QTcpSocket *s = static_cast<QTcpSocket*>(sender());
     //qDebug() << "slot_clientStateChanged" << s;
     //qDebug() << "\t" << state;
 }

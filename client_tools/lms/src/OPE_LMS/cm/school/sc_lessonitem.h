@@ -10,9 +10,9 @@ class SC_LessonItem : public CM_PersistentObject
 {
     Q_OBJECT
 public:
-    explicit SC_LessonItem(QObject *parent = 0);
+    explicit SC_LessonItem(QObject *parent = nullptr);
 
-    virtual CM_PersistentObject* createItemObject(QObject *parent = 0)
+    virtual CM_PersistentObject* createItemObject(QObject *parent = nullptr)
     {
         //qDebug() << "SC_LessonItem - createItemObject";
         SC_LessonItem *p = new SC_LessonItem(parent);

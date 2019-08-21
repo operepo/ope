@@ -10,7 +10,7 @@ class CM_ScreenGrab : public QObject
 {
     Q_OBJECT
 public:
-    explicit CM_ScreenGrab(QObject *parent = 0);
+    explicit CM_ScreenGrab(QObject *parent = nullptr);
     
     static QPixmap GrabScreen(int width=0, int height=0);
 

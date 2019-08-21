@@ -21,14 +21,14 @@ class CM_WebRequest : public QObject
 {
     Q_OBJECT
 public:
-    explicit CM_WebRequest(QObject *parent = 0);
+    explicit CM_WebRequest(QObject *parent = nullptr);
 
 signals:
     void progress(qint64 bytesRead, qint64 totalBytes);
     void ulProgress(qint64 bytesSent, qint64 totalBytes);
 
 public slots:
-    QByteArray NetworkCall(QString url, QString method = "GET", QHash<QString, QString> *p = NULL, QHash<QString, QString> *headers = NULL, QString content_type = "text/html", QString post_file="");
+    QByteArray NetworkCall(QString url, QString method = "GET", QHash<QString, QString> *p = nullptr, QHash<QString, QString> *headers = nullptr, QString content_type = "text/html", QString post_file="");
     bool DownloadFile(QString url, QString local_path);
 
     QString ConvertHashToQueryString(QHash<QString, QString> *arr);

@@ -30,9 +30,9 @@ public:
 
     static QString db_folder;
 
-    explicit CM_PersistentObject(QObject *parent = 0);
+    explicit CM_PersistentObject(QObject *parent = nullptr);
 
-    virtual CM_PersistentObject* createItemObject(QObject *parent = 0)
+    virtual CM_PersistentObject* createItemObject(QObject *parent = nullptr)
     {
         //qDebug() << "CM_PersistentObject - createItemObject";
         CM_PersistentObject *p = new CM_PersistentObject(parent);

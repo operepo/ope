@@ -74,8 +74,8 @@ AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
 
         //qDebug() << "Pulling SMC Videos " << _canvas->pullSMCVideos();
 
-        qDebug() << "Processing Course Page: " << _canvas->pullCoursePages();
-        qDebug() << "Turning In Assignments " << _canvas->pushAssignments();
+        //qDebug() << "Processing Course Page: " << _canvas->pullCoursePages();
+        //qDebug() << "Turning In Assignments " << _canvas->pushAssignments();
     }
 
 }
@@ -383,7 +383,7 @@ bool AppModule::markAsSyncedWithCanvas()
     return ret;
 }
 
-bool AppModule::authenticateUser(QString user_name, QString password){
+bool AppModule::authenticateUser(QString /*user_name*/, QString /*password*/){
     // Try to login against local db
     bool ret = false;
 
@@ -396,7 +396,7 @@ bool AppModule::authenticateUser(QString user_name, QString password){
     return ret;
 }
 
-bool AppModule::canvasAuthenticateUser(QString user_name, QString password)
+bool AppModule::canvasAuthenticateUser(QString /*user_name*/, QString /*password*/)
 {
     bool ret = false;
 
@@ -462,6 +462,7 @@ void AppModule::launchBrowser(const QUrl &url)
 
     return;
 
+    /*
     //QDesktopServices::openUrl(QUrl(url));
     // Have the web view display the url
     QQmlApplicationEngine *p = qobject_cast<QQmlApplicationEngine*>(this->parent());
@@ -483,6 +484,7 @@ p->rootObjects().first()->dumpObjectTree();
     if (wv) {
         wv->setProperty("url", url);
     }
+    */
 
 }
 
@@ -496,7 +498,7 @@ void AppModule::syncLMS(QString lms)
     }
 }
 
-void AppModule::setupLoginWebView(QObject *wv)
+void AppModule::setupLoginWebView(QObject* /*wv*/)
 {
     //QWebEngineView *v = qobject_cast<QWebEngineView*>(wv);
     //qDebug() << " NAM: " << v->page()-
@@ -504,6 +506,7 @@ void AppModule::setupLoginWebView(QObject *wv)
     //wv->dumpObjectTree();
     //QQuickWebView *w;
 return;
+/*
     QObject *page = wv->property("page").value<QObject*>();
     QNetworkAccessManager *nm = page->property("networkAccessManager").value<QNetworkAccessManager*>();
 
@@ -511,6 +514,7 @@ return;
                      this, SLOT(sslErrorHandler(QNetworkReply*, const QList<QSslError>)));
 
     qDebug() << "||||Connected sslerrorhandler";
+    */
 }
 
 void AppModule::sslErrorHandler(QNetworkReply *reply, QList<QSslError> errors)

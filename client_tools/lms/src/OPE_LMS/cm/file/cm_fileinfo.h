@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef CM_FILEINFO_H
 #define CM_FILEINFO_H
 

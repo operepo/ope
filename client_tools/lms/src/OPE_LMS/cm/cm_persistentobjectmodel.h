@@ -11,13 +11,13 @@ class CM_PersistentObjectModel : public QAbstractListModel
 {
     Q_OBJECT
 public:
-    explicit CM_PersistentObjectModel(QObject *parent = 0);
+    explicit CM_PersistentObjectModel(QObject *parent = nullptr);
 
     // Redefine this to create the item object
-    virtual CM_PersistentObject* createItemObject(QObject *parent = 0)
+    virtual CM_PersistentObject* createItemObject(QObject *parent = nullptr)
     {
         //qDebug() << "CM_PersistentObjectModel - CreateItemObject";
-        CM_PersistentObject *p = createItemObject(parent);
+        CM_PersistentObject *p = new CM_PersistentObject(parent);
         return p;
     }
 

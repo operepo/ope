@@ -124,7 +124,7 @@ QList<CM_PersistentObject*> CM_PersistentObject::GetItemList(QString parent_item
 
 CM_PersistentObject * CM_PersistentObject::CreateItem(QString name, QString parent_item)
 {
-    CM_PersistentObject * ret = NULL;
+    CM_PersistentObject * ret = nullptr;
 
     if (!ItemExists(name))
     {

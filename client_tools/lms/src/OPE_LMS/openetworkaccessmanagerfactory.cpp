@@ -7,7 +7,7 @@ QNetworkAccessManager *OPENetworkAccessManagerFactory::create(QObject *parent)
     return new OPENetworkAccessManager(parent); // QNetworkAccessManager(parent);
 }
 
-OPENetworkAccessManager::OPENetworkAccessManager(QObject *parent)
+OPENetworkAccessManager::OPENetworkAccessManager(QObject* /*parent*/)
 {
     //qDebug() << "----> NEW OPENAM";
     //QObject::connect(this, SIGNAL(sslErrors(QNetworkReply*,QList<QSslError>)),

@@ -798,7 +798,7 @@ GenericTableModel::GenericTableModel(APP_DB *parent, QString table_name, QSqlDat
     }
 }
 
-void GenericTableModel::setTable(QString tableName)
+void GenericTableModel::setTable(const QString &tableName)
 {
     QSqlTableModel::setTable(tableName);
     generateRoleNames();
@@ -885,7 +885,7 @@ void GenericTableModel::generateRoleNames()
 
 
 GenericQueryModel::GenericQueryModel(APP_DB *parent, QString query_name,
-                                     QString query, QSqlDatabase db)
+                                     QString query, QSqlDatabase /*db*/)
 {
     m_sort_column = "";
     m_sort_type = Qt::AscendingOrder;

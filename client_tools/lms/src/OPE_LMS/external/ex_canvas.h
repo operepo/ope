@@ -21,7 +21,7 @@ class EX_Canvas : public QObject
     Q_OBJECT
 public:
     // Must provide db and settings objects during object creation
-    explicit EX_Canvas(QObject *parent = 0, APP_DB *db = NULL, QSettings *app_settings = NULL,
+    explicit EX_Canvas(QObject *parent = nullptr, APP_DB *db = nullptr, QSettings *app_settings = nullptr,
                        QString localhost_url = "http://localhost:65525");
 
     Q_PROPERTY(qint64 dlProgress READ dlProgress WRITE setDlProgress NOTIFY dlProgressChanged)

@@ -33,7 +33,7 @@ bool CM_Database::DBConnect() {
 
 QSqlQuery *CM_Database::Query(QString sql)
 {
-    if (!DBConnect()) { return NULL; }
+    if (!DBConnect()) { return nullptr; }
 
     QSqlQuery *ret = new QSqlQuery();
     ret->exec(sql);

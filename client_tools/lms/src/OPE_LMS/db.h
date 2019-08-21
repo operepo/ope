@@ -25,7 +25,7 @@ class GenericTableModel;
 class GenericQueryModel : public QSqlQueryModel {
     Q_OBJECT
 public:
-    explicit GenericQueryModel(APP_DB *parent=0, QString query_name="", QString query="", QSqlDatabase db = QSqlDatabase());
+    explicit GenericQueryModel(APP_DB *parent=nullptr, QString query_name="", QString query="", QSqlDatabase db = QSqlDatabase());
 
 
 signals:
@@ -67,10 +67,10 @@ private:
 class GenericTableModel : public QSqlTableModel {
     Q_OBJECT
 public:
-    explicit GenericTableModel(APP_DB *parent=0, QString table_name="", QSqlDatabase db = QSqlDatabase());
+    explicit GenericTableModel(APP_DB *parent=nullptr, QString table_name="", QSqlDatabase db = QSqlDatabase());
 
 public slots:
-    void setTable(QString tableName);
+    void setTable(const QString &tableName);
 
     QVariant data(const QModelIndex &index, int role) const;
     QHash<int, QByteArray> roleNames() const { return m_roleNames; }

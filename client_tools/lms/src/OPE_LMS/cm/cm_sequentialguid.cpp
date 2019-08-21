@@ -12,7 +12,8 @@ CM_SequentialGUID::CM_SequentialGUID(QObject *parent) :
 void CM_SequentialGUID::InitRand() {
     if (!rand_init) {
         QTime t = QTime::currentTime();
-        qsrand((uint) t.msec());
+        //qsrand((uint) t.msec());
+        qsrand(static_cast<uint>(t.msec()));
 
         rand_init = true;
     }
@@ -28,7 +29,8 @@ QUuid CM_SequentialGUID::GetSequentialGUID(SequentialGUIDType guid_type)
     QByteArray randBytes;
     // Get some random bytes
     for(int i=0; i<10; i++) {
-        char b = (char)randInt(0, 255);
+        //char b = (char)randInt(0, 255);
+        char b = static_cast<char>(randInt(0, 255));
         randBytes.append(b);
     }
     // Would prefer a cryptographically secure rng
@@ -42,7 +44,8 @@ QUuid CM_SequentialGUID::GetSequentialGUID(SequentialGUIDType guid_type)
     QByteArray timestampBytesRev;
     timestampBytesRev.resize(sizeof(timestamp));
 
-    char *ptr = (char *)&timestamp;
+    //char *ptr = (char *)&timestamp;
+    char *ptr = reinterpret_cast<char *>(&timestamp);
     for(int i=0; i<8; i++) {
         timestampBytes[i] = ptr[i];
         timestampBytesRev[7-i] = ptr[i];

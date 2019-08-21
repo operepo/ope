@@ -12,9 +12,9 @@ class SC_ModuleModel : public CM_PersistentObjectModel
 {
     Q_OBJECT
 public:
-    explicit SC_ModuleModel(QObject *parent = 0);
+    explicit SC_ModuleModel(QObject *parent = nullptr);
 
-    virtual CM_PersistentObject* createItemObject(QObject *parent = 0)
+    virtual CM_PersistentObject* createItemObject(QObject *parent = nullptr)
     {
         //qDebug() << "SC_ProgramModel - CreateItemObject";
         SC_Modules *p = new SC_Modules(parent);

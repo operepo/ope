@@ -13,7 +13,7 @@ class CM_Classroom : public QObject
 {
     Q_OBJECT
 public:
-    explicit CM_Classroom(QObject *parent = 0);
+    explicit CM_Classroom(QObject *parent = nullptr);
     
     void InitDB();
 

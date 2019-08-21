@@ -17,6 +17,10 @@ static QFile log_file;
 
 void customLogOutput(QtMsgType type, const QMessageLogContext &context,
                      const QString &msg) {
+
+    // Hide warnings - is_in_IDE not used
+    if(is_in_IDE) {}
+
     QHash<QtMsgType, QString> msgLevelHash({{QtDebugMsg, "Debug"},
                                             {QtInfoMsg, "Info"},
                                             {QtWarningMsg, "Warning"},

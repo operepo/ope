@@ -8,9 +8,9 @@ class SC_Classes : public CM_PersistentObject
 {
     Q_OBJECT
 public:
-    explicit SC_Classes(QObject *parent=0);
+    explicit SC_Classes(QObject *parent=nullptr);
 
-    virtual CM_PersistentObject* createItemObject(QObject *parent = 0)
+    virtual CM_PersistentObject* createItemObject(QObject *parent = nullptr)
     {
         //qDebug() << "SC_Classes - createItemObject";
         SC_Classes *p = new SC_Classes(parent);

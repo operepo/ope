@@ -79,7 +79,7 @@ private:
 
 public:
 
-    explicit AppModule(QQmlApplicationEngine *parent = 0);
+    explicit AppModule(QQmlApplicationEngine *parent = nullptr);
     ~AppModule();
 
     Q_PROPERTY(QString wwwRoot READ wwwRoot WRITE setwwwRoot NOTIFY wwwRootChanged)

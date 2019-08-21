@@ -7,7 +7,7 @@ class EX_LDAP : public QObject
 {
     Q_OBJECT
 public:
-    explicit EX_LDAP(QObject *parent = 0);
+    explicit EX_LDAP(QObject *parent = nullptr);
 
 signals:
 

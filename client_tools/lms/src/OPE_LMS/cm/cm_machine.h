@@ -19,7 +19,7 @@ class CM_Machine : public QObject
 {
     Q_OBJECT
 public:
-    explicit CM_Machine(QObject *parent = 0);
+    explicit CM_Machine(QObject *parent = nullptr);
     
     // Make sure that the machines data is setup properly
     void InitDB();

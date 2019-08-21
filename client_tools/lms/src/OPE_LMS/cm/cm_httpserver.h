@@ -25,6 +25,7 @@
 #include <QSslKey>
 #include <QSslCipher>
 #include <QSslCertificate>
+#include <QSslConfiguration>
 
 #include "cm_mimetypes.h"
 
@@ -42,8 +43,8 @@ class CM_HTTPServer : public QTcpServer
 {
     Q_OBJECT
 public:
-    quint64 static totalBytesRead;
-    quint64 static totalBytesWritten;
+    qint64 static totalBytesRead;
+    qint64 static totalBytesWritten;
 
     explicit CM_HTTPServer(QObject *parent = nullptr);
     
@@ -99,11 +100,11 @@ public slots:
 
 private:
 
-    quint64 bytesRead;
-    quint64 bytesWritten;
+    qint64 bytesRead;
+    qint64 bytesWritten;
 
-    quint64 encryptedBytesRead;
-    quint64 encryptedBytesWritten;
+    qint64 encryptedBytesRead;
+    qint64 encryptedBytesWritten;
 
 
 

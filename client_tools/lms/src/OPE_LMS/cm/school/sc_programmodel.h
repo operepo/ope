@@ -13,9 +13,9 @@ class SC_ProgramModel : public CM_PersistentObjectModel
     Q_OBJECT
 public:
 
-    explicit SC_ProgramModel(QObject *parent = 0);
+    explicit SC_ProgramModel(QObject *parent = nullptr);
 
-    virtual CM_PersistentObject* createItemObject(QObject *parent = 0)
+    virtual CM_PersistentObject* createItemObject(QObject *parent = nullptr)
     {
         //qDebug() << "SC_ProgramModel - CreateItemObject";
         SC_Programs *p = new SC_Programs(parent);

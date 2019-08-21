@@ -18,7 +18,7 @@ public:
 //        return CM_SequentialGUID::GetSequentialGUID(SequentialAsString);
 //    }
 
-    explicit CM_SequentialGUID(QObject *parent = 0);
+    explicit CM_SequentialGUID(QObject *parent = nullptr);
     
     enum SequentialGUIDType {
         SequentialAsString = 0,
