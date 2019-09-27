@@ -4,6 +4,10 @@ OPELMS
 - Links to other canvas pages not working/translated
 
 
+DOCKER
+- dm.min_free_space - error - not enough space?  plenty of space on the
+   drive.
+
 
 
 - OPE Router Files - Backup - script to reset mac addresses not running on startup?
