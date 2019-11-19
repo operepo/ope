@@ -7,7 +7,7 @@ test:
   username: postgres
   password: "<IT_PW>"
   timeout: 50000
-  pool: 20
+  pool: 15
 
 login: &login
   adapter: postgresql
@@ -15,7 +15,7 @@ login: &login
   timeout: 50000
   username: "postgres"
   password: "<IT_PW>"
-  pool: 20
+  pool: 15
 
 development:
   <<: *login

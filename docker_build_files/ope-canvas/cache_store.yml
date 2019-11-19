@@ -1,6 +1,3 @@
-test:
-  cache_store: redis_store
-
 development:
   cache_store: redis_store
 

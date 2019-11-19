@@ -43,8 +43,8 @@
             - "9000-9005:9000-9005/udp"
             - "50102-50112:50102-50112/udp"
             - "43145-43145/udp"
-        labels:
-            - fogproject="Open Source PC Imaging Server"
+        #labels:
+        #    - fogproject="Open Source PC Imaging Server"
         volumes:
             - ../volumes/fog/images:/images:rw
             - ../volumes/fog/backup:/backup:rw

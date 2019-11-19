@@ -69,10 +69,18 @@ sed -i -- "s/<IT_PW>/$ESC_IT_PW/g" config/database.yml
 cp config/security.yml.tmpl config/security.yml
 sed -i -- "s/<CANVAS_SECRET>/$CANVAS_SECRET/g" config/security.yml
 
+cp config/dynamic_settings.yml.tmpl config/dynamic_settings.yml
+sed -i -- "s/<CANVAS_ENC_SECRET>/$CANVAS_ENC_SECRET/g" config/dynamic_settings.yml
+sed -i -- "s/<CANVAS_SIGN_SECRET>/$CANVAS_SIGN_SECRET/g" config/dynamic_settings.yml
+sed -i -- "s/<CANVAS_RCE_DEFAULT_DOMAIN>/$CANVAS_RCE_DEFAULT_DOMAIN/g" config/dynamic_settings.yml
+
 
 # Fix ::int4[] instead of ::int8[] in app/models/assignment.rb (line 2477, issue #1238)
 echo "=== Applying patch for issue #1238 ==="
 sed -i -- "s/\:\:int4\[\]/\:\:int8\[\]/g" app/models/assignment.rb
+
+# Replace fonts.googleapis.com with local link
+find . -name "*.css" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \;
 
 
 # Javascript - uses float to store ints, so max is 53 bits instead of 64?

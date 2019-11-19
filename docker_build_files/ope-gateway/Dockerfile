@@ -36,13 +36,13 @@ RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
 COPY forego /usr/local/bin/forego
 RUN chmod u+x /usr/local/bin/forego
 
-ENV DOCKER_GEN_VERSION 0.7.3
+ENV DOCKER_GEN_VERSION 0.7.4
 
 RUN wget https://github.com/jwilder/docker-gen/releases/download/$DOCKER_GEN_VERSION/docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz \
  && tar -C /usr/local/bin -xvzf docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz \
  && rm /docker-gen-linux-amd64-$DOCKER_GEN_VERSION.tar.gz
 
-LABEL rebuild=31
+LABEL rebuild=34
 # Make public_certs folder so we can make it easy to grab crt file
 RUN mkdir -p /public_certs \
     && chmod 755 /public_certs \
@@ -51,7 +51,7 @@ RUN mkdir -p /public_certs \
 #COPY fogserver.conf /etc/nginx/conf.d/
 COPY docker-entrypoint.sh /app/
 COPY init_certs.sh /app/
-COPY openssl.cnf /app/
+COPY openssl.cnf.tmpl /app/
 COPY nginx.tmpl /app/
 COPY forego /app/
 COPY Procfile /app/

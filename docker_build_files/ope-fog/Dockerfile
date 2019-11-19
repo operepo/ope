@@ -24,19 +24,19 @@ ENV LC_TYPE en_US.UTF-8
 ENV DEBIAN_FRONTEND=noninteractive
 
 LABEL REBULID=13
-RUN echo "deb http://ftp.us.debian.org/debian jessie-backports main" >> /etc/apt/sources.list \
-&& apt-get update \
+#RUN echo "deb http://ftp.us.debian.org/debian jessie-backports main" >> /etc/apt/sources.list \
+RUN apt-get update \
 && apt-get -y upgrade \
 && apt-get install -y wget net-tools nano python-pip python-dev libmysqlclient-dev git \
 apache2 bc build-essential cpp curl g++ gawk gcc gzip htmldoc lftp libapache2-mod-php5 libc6 libcurl3 \
 m4 mysql-client mysql-server net-tools nfs-kernel-server openssh-server php5 php5-cli php5-curl php5-fpm \ 
 php5-gd php5-json php5-mcrypt php5-mysqlnd php-gettext sysv-rc-conf tar tftpd-hpa tftp-hpa \
 unzip vsftpd wget xinetd zlib1g dos2unix supervisor iptables syslinux nfs-kernel-server netbase locales \
-kmod genisoimage isolinux liblzma-dev pimd \
+kmod genisoimage isolinux liblzma-dev \
 && pip install MySQL-python \
 && apt-get clean \
 && /usr/bin/mysql_install_db
-
+# pimd?? Need to get multicast working?
 
 #RUN apt-get install -y wget nano python-pip python-dev git \
 #apache2 bc build-essential cpp curl g++ gawk gcc genisoimage gzip \ 
@@ -95,7 +95,9 @@ RUN cd /fog_src/bin/ \
 LABEL rebuild=63
 RUN mkdir -p /etc/nginx/conf.d
 COPY nginx.tmpl /nginx.tmpl
-RUN rm /etc/apache2/sites-enabled/000-default.conf
+# exit 0 at the end to ignore error if this file doesn't exist
+RUN rm /etc/apache2/sites-enabled/000-default.conf; exit 0
+
 #COPY 001-fog.conf /001-fog.conf.orig 
 #COPY 001-fog.conf /etc/apache2/sites-enabled/001-fog.conf
 #COPY ports.conf /ports.conf
@@ -114,12 +116,13 @@ COPY vsftpd.conf /etc/vsftpd.conf
 COPY update_password.sh /fog_src/bin/
 
 # Setup permissions and ownership as needed
+# NOTE - user fog became fogproject
 RUN chmod +x /start.sh \
     && chmod 644 /etc/default/tftpd-hpa \
     && chmod +x /fog_src/bin/update_fog_ip.py \
     && dos2unix /start.sh /etc/default/tftpd-hpa /fog_src/bin/update_fog_ip.py \
     && chown -R www-data:www-data /var/www/fog/management/other/ssl \
-    && chown -R fog:www-data /opt/fog/snapins/ssl \
+    && chown -R fogproject:www-data /opt/fog/snapins/ssl \
     && chmod +x /fog_src/bin/update_password.sh
 
 # Deal with sgdisk uuid error during deploy - Will want to take this out when fixes get pulled into main code 7/15/17

@@ -68,6 +68,9 @@ replacement_values = { '<DOMAIN>': 'ed', '<IP>': '', "<VOLUMES>": '',
     "<IS_ONLINE>": "0",
     "<DNS_EXTRAS>": "",
     "<ACME_AUTH_CODE>": "ZZZZ",
+    "<CANVAS_ENC_SECRET>": '<NEW_UUID>',
+    "<CANVAS_SIGN_SECRET>": '<NEW_UUID>',
+    "<CANVAS_RCE_DEFAULT_DOMAIN>": "rce.<DOMAIN>",
     }
 
 # A list of volumes that need to be specified in the volumes section
@@ -186,6 +189,14 @@ for k in replacement_values:
 # Make sure canvas secret is a new uuid if it is blank
 if replacement_values['<CANVAS_SECRET>'] == "<NEW_UUID>" or replacement_values['<CANVAS_SECRET>'] == "":
     replacement_values['<CANVAS_SECRET>'] = str(str(uuid.uuid4()) + "000").strip()
+
+# Make sure enc secrets are 32byte strings
+if replacement_values['<CANVAS_ENC_SECRET>'] == "<NEW_UUID>" or replacement_values['<CANVAS_ENC_SECRET>'] == "":
+    replacement_values['<CANVAS_ENC_SECRET>'] = str(str(uuid.uuid4()) + "000").strip()[:32]
+
+if replacement_values['<CANVAS_SIGN_SECRET>'] == "<NEW_UUID>" or replacement_values['<CANVAS_SIGN_SECRET>'] == "":
+    replacement_values['<CANVAS_SIGN_SECRET>'] = str(str(uuid.uuid4()) + "000").strip()[:32]
+
 
 # Make sure IP is set to current IP if blank
 if replacement_values['<IP>'] == "":
