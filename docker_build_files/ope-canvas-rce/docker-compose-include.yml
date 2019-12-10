@@ -1,0 +1,42 @@
+    ope-canvas-rce:
+        build: ./ope-canvas-rce
+        image: operepo/ope-canvas-rce:release
+        container_name: ope-canvas-rce
+        network_mode: <NETWORK_MODE>
+        restart: always
+        ports:
+            - "3010:3010"
+        #volumes:
+        #    # Normal mounts
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        env_file: .env
+        environment:
+            - IT_PW=${IT_PW}
+            - OFFICE_PW=${OFFICE_PW}
+            - VIRTUAL_HOST=rce.<DOMAIN>,<CANVAS_RCE_DEFAULT_DOMAIN>
+            - CANVAS_LMS_ADMIN_PASSWORD=${IT_PW}
+            - CANVAS_RCE_DEFAULT_DOMAIN=${CANVAS_RCE_DEFAULT_DOMAIN}
+            - VIRTUAL_PORT=3010
+            # Share the default cert on the gateway
+            - CERT_NAME=default
+            - VIRTUAL_PROTO=http
+            #- HTTPS_METHOD=noredirect
+            # Params for the start script
+            - IS_ONLINE=${IS_ONLINE}
+            # RCE server params
+            - PORT=3010
+            - NODE_ENV=production
+            - CANVAS_ENC_SECRET=${CANVAS_ENC_SECRET}
+            - ECOSYSTEM_KEY=${CANVAS_ENC_SECRET}
+            - CANVAS_SIGN_SECRET=${CANVAS_SIGN_SECRET}
+            - ECOSYSTEM_SECRET=${CANVAS_SIGN_SECRET}
+            - CYPHER_PASSWORD=${CANVAS_SECRET}
+            - STATSD_HOST=127.0.0.1
+            - STATSD_PORT=8125
+            # allow test/self signed certs
+            - NODE_TLS_REJECT_UNAUTHORIZED=0
+        links:
+            # Send rce connections through the gateway
+            - ope-gateway:${CANVAS_DEFAULT_DOMAIN}

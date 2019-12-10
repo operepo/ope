@@ -1,4 +1,14 @@
 #!/bin/bash
+set -e
+
+re_quote() {
+	sed 's/[\/&]/\\&/g' <<< "$*"
+}
+
+echo "=== updating openssl.cnf ==="
+cp /app/openssl.cnf.tmpl /app/openssl.cnf
+sed -i "s/<DOMAIN>/${DOMAIN}/" /app/openssl.cnf
+
 
 CERT_PATH=/etc/nginx/certs
 VOLUME_PATH=/public_certs/
