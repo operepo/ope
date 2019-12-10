@@ -1,17 +1,27 @@
+
 OPELMS
-- Canvas files download - some spaces/characters being replaced with _ when saving but not in links (file is in the folder, but link broken)
-- A ' character in the filename means it doesn't match when an orphan check is done so it is downloaded then deleted
+- FIXED Canvas files download - some spaces/characters being replaced with _ when saving but not in links (file is in the folder, but link broken) 
+- FIXED A ' character in the filename means it doesn't match when an orphan check is done so it is downloaded then deleted
 - Links to other canvas pages not working/translated
 
 
 DOCKER
 - dm.min_free_space - error - not enough space?  plenty of space on the
    drive.
-
-
+    -> create /etc/docker/daemon.json and add
+        : { "storage-driver": "devicemapper", "storage-opts": ["dm.loopdatasize=200G"]}
+    : service docker restart
+    *** BETTER SOLUTION - create separate LVM block device and not use LOOP
+    -> /etc/docker/daemon.json
+        : { "storage-driver": "devicemapper", "storage-opts":[
+        "dm.thinpooldev=/dev/mapper/custom-pool",
+        "dm.use_deferred_deletion=true",
+        "dm.use_deferred_removal=true"]}
+    *** Also - cleanup/prune options should free up space
+    
 
 - OPE Router Files - Backup - script to reset mac addresses not running on startup?
-- Assignments not always pushing?
+- Assignments not always pushing? - Bugs w canvas upload fixed, forcing qtnetwork to be online always (not autodetect), need better messages on fail.
 - EXE, DLL, ?? files are all coming in as .exe???
 
 
