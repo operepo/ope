@@ -10,7 +10,9 @@
             #- "8080:8080"
             - "443:443"
         volumes:
-            - /var/run/docker.sock:/tmp/docker.sock
+            # Need to NOT mount individual file - mount folder instead
+            #- /var/run/docker.sock:/tmp/docker.sock
+            - /var/run:/var/run:rw
             # /certs directory can be mapped if you put your certs in the volumes folder
             - ../volumes/gateway/certs:/etc/nginx/certs:rw
             #- ../volumes/gateway/conf.d:/etc/nginx/conf.d:rw
