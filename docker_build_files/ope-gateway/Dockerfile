@@ -60,7 +60,9 @@ COPY index.html /public_certs/
 WORKDIR /app/
 RUN chmod +x /app/*.sh
 
-ENV DOCKER_HOST unix:///tmp/docker.sock
+# Update - do NOT wan't to mount individual files, mount folder instead
+#ENV DOCKER_HOST unix:///tmp/docker.sock
+ENV DOCKER_HOST unix:///var/run/docker.sock
 
 VOLUME ["/etc/nginx/certs", "/tmp/docker.sock"]
 
