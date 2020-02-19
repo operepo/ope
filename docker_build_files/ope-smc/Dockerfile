@@ -106,10 +106,12 @@ LABEL rebuild=19
 COPY set_admin_password /bin/set_admin_password
 COPY start.sh /start.sh
 COPY supervisord.conf /etc/supervisor/supervisord.conf
-COPY ViewerJS $W2P_DIR/web2py/applications/smc/static/
+# In smc now
+#COPY ViewerJS $W2P_DIR/web2py/applications/smc/static/
 
 # TEMP - Need this 4/30/19 - fix pytube error in current version
 # shouldn't need now
+# patched pytube in smc modules now
 # COPY extract.py /usr/lib/python2.7/site-packages/pytube/extract.py
 
 

@@ -1,3 +1,17 @@
+PASSWORD LENGTH
+- Canvas - now has pw too short errors on initial startup
+
+
+SYNC APP
+- Download button on fog images - not working, jumping to Done! right away.
+
+Credential App
+- MSVC Install - detect if already installed (reported by M. Huse)
+- Hangs on reset policy (reported by M. Huse)
+- After - fails to apply policy? - Need to catch the error!!!! Change color of error (reported by M. Huse)
+- Full down/up of apps after pw or ip change
+
+
 
 OPELMS
 - FIXED Canvas files download - some spaces/characters being replaced with _ when saving but not in links (file is in the folder, but link broken) 

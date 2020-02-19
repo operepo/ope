@@ -1341,7 +1341,14 @@
                     id: canvas_on
                     active: app.is_app_active('ope-canvas')
                     on_active: app.set_app_active('ope-canvas', self.active)
-
+                
+                GridLabel:
+                    text: "[b][color=00ff00]**[/color][/b] Canvas RCE Editor (DNS: rce[color=800080].ed[/color]) - Remote editor for Canvas (*** Required for full canvas functionality ***)"
+                GridSwitch:
+                    id: canvas_rce_on
+                    active: app.is_app_active('ope-canvas-rce')
+                    on_active: app.set_app_active('ope-canvas-rce', self.active)
+                
                 GridLabel:
                     text: "[b][color=00ff00]**[/color][/b] SMC (DNS: smc[color=800080].ed[/color]) - Student Management Console to import student accounts and integrate with Canvas and OPE Laptops"
                 GridSwitch:

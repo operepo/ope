@@ -57,6 +57,14 @@
   },
   {
     "type": "bool",
+    "title": "ope-canvas-rce",
+    "desc": "Remote Editor for Canvas (*** Required for full canvas functionality ***)",
+    "section": "Selected Apps",
+    "key": "ope-canvas-rce",
+    "true": "auto"
+  },
+  {
+    "type": "bool",
     "title": "ope-smc",
     "desc": "Student Management Console - import students and integrate with Canvas and other apps",
     "section": "Selected Apps",
