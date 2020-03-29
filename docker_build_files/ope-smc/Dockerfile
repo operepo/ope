@@ -16,7 +16,7 @@ RUN apk update \
         openssl zip postgresql-dev openldap-dev \
         supervisor libffi-dev \
     && pip install --upgrade pip \
-    && pip install --upgrade setuptools ldap3 pycryptodome requests paramiko ecdsa isodate pywinrm xlrd crypto PyMySQL psycopg2-binary uwsgi uwsgitop psutil redis pycanvas \
+    && pip install --upgrade setuptools ldap3 pycryptodome requests paramiko ecdsa isodate pywinrm xlrd crypto PyMySQL psycopg2-binary uwsgi uwsgitop psutil redis pycanvas lz4 \
 # matplotlib reportlab ldap pycrypto changed to pycryptodome  python-ldap changed to ldap3
     && FFMPEG_VER=3.4.2 \ 
     && curl -s http://ffmpeg.org/releases/ffmpeg-${FFMPEG_VER}.tar.gz | tar zxvf - -C . \
