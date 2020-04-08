@@ -1,0 +1,29 @@
+{
+  "name": "mathman",
+  "version": "1.0.0",
+  "description": "Microservice for converting LaTeX to MathML and SVG",
+  "dependencies": {
+    "mathjax": "2.7.4",
+    "mathjax-node": "2.1.0",
+    "redis": "^2.8.0"
+  },
+  "devDependencies": {
+    "aws-sdk": "^2.1.27",
+    "chai": "^4.1.2",
+    "colors": "^1.1.2",
+    "jsdom": "^11.11.0",
+    "mocha": "^5.1.1",
+    "sinon": "^5.0.7"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/instructure/mathman.git"
+  },
+  "homepage": "https://github.com/instructure/instructure-ui",
+  "bugs": "https://github.com/instructure/mathman/issues",
+  "author": "Instructure, Inc. Engineering",
+  "license": "MIT"
+}

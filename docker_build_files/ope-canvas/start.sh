@@ -73,6 +73,7 @@ cp config/dynamic_settings.yml.tmpl config/dynamic_settings.yml
 sed -i -- "s/<CANVAS_ENC_SECRET>/$CANVAS_ENC_SECRET/g" config/dynamic_settings.yml
 sed -i -- "s/<CANVAS_SIGN_SECRET>/$CANVAS_SIGN_SECRET/g" config/dynamic_settings.yml
 sed -i -- "s/<CANVAS_RCE_DEFAULT_DOMAIN>/$CANVAS_RCE_DEFAULT_DOMAIN/g" config/dynamic_settings.yml
+sed -i -- "s/<CANVAS_MATHMAN_DEFAULT_DOMAIN>/$CANVAS_MATHMAN_DEFAULT_DOMAIN/g" config/dynamic_settings.yml
 
 
 # Fix ::int4[] instead of ::int8[] in app/models/assignment.rb (line 2477, issue #1238)
@@ -81,6 +82,9 @@ sed -i -- "s/\:\:int4\[\]/\:\:int8\[\]/g" app/models/assignment.rb
 
 # Replace fonts.googleapis.com with local link
 find . -name "*.css" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \;
+
+# Replace mathjax links to pull from the local server
+find ./app/public/javascripts/ -name "*.js" -type f -exec sed -i 's/\/\/cdnjs.cloudflare.com//' {} \;
 
 
 # Javascript - uses float to store ints, so max is 53 bits instead of 64?
@@ -133,6 +137,9 @@ $GEM_HOME/bin/bundle exec rake ope:startup --trace
 
 rm -f /usr/src/app/log/app_init
 touch /usr/src/app/log/app_starting
+
+# Make sure no old server pid file is present
+rm -f /usr/src/app/tmp/pids/server.pid
 
 echo "=== Launching supervisord ==="
 exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf

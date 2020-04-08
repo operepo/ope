@@ -490,6 +490,14 @@ SQLSTRING
         site_admin_account.disable_service("skype")
         site_admin_account.disable_service("delicious")
 
+        # Enable the mathman plugin
+        mathman = Plugin.find(:mathman)
+        # Need its settings
+        mm_settings = PluginSetting.find_by_name(mathman.id)
+        mm_settings.disabled = false
+        mm_settings.posted_settings = {"use_for_svg"=>"1", "use_for_mml"=>"1"}        
+        mm_settings.save
+
         # Allow admin account to change / set passwords - needed by SMC
         site_admin_account.settings[:admins_can_change_passwords] = admin_account.settings[:admins_can_change_passwords] = true
         site_admin_account.settings[:edit_institution_email] = admin_account.settings[:edit_institution_email] = false
