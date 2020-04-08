@@ -16,6 +16,8 @@
             - ope-dns
             - ope-redis
             - ope-postgresql
+            - ope-canvas-rce
+            - ope-canvas-mathman
         env_file: .env
         environment:
             - IT_PW=${IT_PW}
@@ -46,8 +48,12 @@
             - CANVAS_SIGN_SECRET=${CANVAS_SIGN_SECRET}
             - CANVAS_RCE_DEFAULT_DOMAIN=${CANVAS_RCE_DEFAULT_DOMAIN}
             - NODE_TLS_REJECT_UNAUTHORIZED=0
+            # Params for Mathman service
+            - CANVAS_MATHMAN_DEFAULT_DOMAIN=${CANVAS_MATHMAN_DEFAULT_DOMAIN}
         links:
             - ope-postgresql:postgresql
             - ope-redis:redis
             # Send links to rce server through the gateway
             - ope-gateway:${CANVAS_RCE_DEFAULT_DOMAIN}
+            - ope-gateway:${CANVAS_MATHMAN_DEFAULT_DOMAIN}
+

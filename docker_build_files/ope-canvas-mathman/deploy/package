@@ -1,0 +1,80 @@
+#!/usr/bin/env node
+
+var execSync = require('child_process').execSync;
+var colors = require('colors/safe');
+var fs = require('fs');
+
+var BUILD_TARGET = 'build/tmp/';
+var DEPLOY_FILES = [
+  'package.json',
+  'lambda.js',
+  'typeset.js'
+];
+
+if (process.argv.length !== 3) {
+  log('Please pass the git sha that you are on (to be used as a version). For example:\n', 'red');
+  log('./package $(git rev-parse --short HEAD)\n', 'reset');
+  process.exit(1);
+}
+
+var VERSION = process.argv[2];
+
+function lexec(cmd) {
+  log(cmd);
+  execSync(cmd);
+}
+
+function log(message, color) {
+  color = color || 'reset';
+  console.log(colors[color](message));
+}
+
+function copyFiles() {
+  log('copying deployable assets to ' + BUILD_TARGET, 'green');
+  DEPLOY_FILES.forEach(function(f) {
+    var stmnt = 'cp -r ' + f + ' ' + BUILD_TARGET + f;
+    lexec(stmnt);
+  });
+}
+
+function buildVersion() {
+  var version = JSON.stringify({version: VERSION});
+  log('Packaging version: ' + VERSION, 'green');
+  fs.writeFileSync(BUILD_TARGET + 'version.json', version, 'utf8');
+}
+
+function installProdDependencies() {
+  log('installing npm dependecies', 'green');
+  var initialDir = process.cwd();
+  process.chdir(BUILD_TARGET);
+  lexec('npm install --production --loglevel=error');
+  process.chdir(initialDir);
+}
+
+function resetBuildTarget() {
+  log('reseting ' + BUILD_TARGET, 'green');
+  lexec('rm -rf ' + BUILD_TARGET);
+  lexec('mkdir -p ' + BUILD_TARGET);
+}
+
+function createZipArchive() {
+  log('creating zip archive', 'green');
+  var initialDir = process.cwd();
+  log('Initial directory' + initialDir, 'green');
+  var zipName = '../lambda.zip';
+  process.chdir(BUILD_TARGET);
+  lexec('zip -r ' + zipName +' .');
+  process.chdir(initialDir);
+}
+
+function removeBuildTarget() {
+  log('removing temp build target: ' + BUILD_TARGET, 'green');
+  lexec('rm -rf ' + BUILD_TARGET);
+}
+
+resetBuildTarget();
+copyFiles();
+buildVersion();
+installProdDependencies();
+createZipArchive();
+removeBuildTarget();

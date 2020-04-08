@@ -174,7 +174,7 @@ RUN COMPILE_ASSETS_NPM_INSTALL=0 bundle exec rake canvas:compile_assets
 USER docker
 
 
-LABEL rebuild=60
+LABEL rebuild=65
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml
@@ -194,7 +194,7 @@ COPY puma.rb /usr/src/app/config/puma.rb
 COPY rack.rb /usr/src/app/config/initializers/rack.rb
 COPY dynamic_settings.yml.tmpl /usr/src/app/config/dynamic_settings.yml.tmpl
 
-LABEL rebuild=12
+LABEL rebuild=13
 COPY dbinit.sh /usr/src/dbinit.sh
 COPY start.sh /usr/src/start.sh
 COPY ope.rake lib/tasks/ope.rake
@@ -203,6 +203,9 @@ COPY ViewerJS/ /usr/src/app/public/vendor/ViewerJS/
 
 # Copy googleapi fonts into local folder
 COPY fonts/* /usr/src/app/public/fonts/
+
+# Copy mathjax files into local folder
+COPY ajax/* /usr/src/app/public/ajax/
 
 USER root
 

@@ -22,6 +22,7 @@ development:
   database: canvas_production
   host: postgresql
   port: 5432
+  pool: 15
   queue:
     <<: *login
     database: canvas_queue
@@ -31,6 +32,8 @@ production:
   database: canvas_production
   host: postgresql
   port: 5432
+  pool: 15
   queue:
     <<: *login
     database: canvas_queue
+    pool: 15

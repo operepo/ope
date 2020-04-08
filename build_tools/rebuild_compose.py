@@ -68,9 +68,10 @@ replacement_values = { '<DOMAIN>': 'ed', '<IP>': '', "<VOLUMES>": '',
     "<IS_ONLINE>": "0",
     "<DNS_EXTRAS>": "",
     "<ACME_AUTH_CODE>": "ZZZZ",
-    "<CANVAS_ENC_SECRET>": '<NEW_UUID>',
-    "<CANVAS_SIGN_SECRET>": '<NEW_UUID>',
+    "<CANVAS_ENC_SECRET>": '<NEW_UUID_32>',
+    "<CANVAS_SIGN_SECRET>": '<NEW_UUID_32>',
     "<CANVAS_RCE_DEFAULT_DOMAIN>": "rce.<DOMAIN>",
+    "<CANVAS_MATHMAN_DEFAULT_DOMAIN>": "mathman.<DOMAIN>",
     }
 
 # A list of volumes that need to be specified in the volumes section
@@ -187,20 +188,38 @@ for k in replacement_values:
     # print("Val " + str(replacement_values[k]))
 
 # Make sure canvas secret is a new uuid if it is blank
-if replacement_values['<CANVAS_SECRET>'] == "<NEW_UUID>" or replacement_values['<CANVAS_SECRET>'] == "":
-    replacement_values['<CANVAS_SECRET>'] = str(str(uuid.uuid4()) + "000").strip()
+if replacement_values['<CANVAS_SECRET>'] == "":
+    replacement_values['<CANVAS_SECRET>'] = "<NEW_UUID>"
 
 # Make sure enc secrets are 32byte strings
-if replacement_values['<CANVAS_ENC_SECRET>'] == "<NEW_UUID>" or replacement_values['<CANVAS_ENC_SECRET>'] == "":
-    replacement_values['<CANVAS_ENC_SECRET>'] = str(str(uuid.uuid4()) + "000").strip()[:32]
+if replacement_values['<CANVAS_ENC_SECRET>'] == "":
+    replacement_values['<CANVAS_ENC_SECRET>'] = "<NEW_UUID_32>"
 
-if replacement_values['<CANVAS_SIGN_SECRET>'] == "<NEW_UUID>" or replacement_values['<CANVAS_SIGN_SECRET>'] == "":
-    replacement_values['<CANVAS_SIGN_SECRET>'] = str(str(uuid.uuid4()) + "000").strip()[:32]
+if replacement_values['<CANVAS_SIGN_SECRET>'] == "":
+    replacement_values['<CANVAS_SIGN_SECRET>'] = "<NEW_UUID_32>"
 
 
 # Make sure IP is set to current IP if blank
 if replacement_values['<IP>'] == "":
     replacement_values['<IP>'] = getIP()
+
+# Make sure <NEW_UUID> values are replaced with an ID
+for k in replacement_values:
+    if replacement_values[k] == "<NEW_UUID>":
+        replacement_values[k] = str(uuid.uuid4() + "000").strip()
+
+# Make sure <NEW_UUID_32> values are replaced w a 32 byte value
+for k in replacement_values:
+    if replacement_values[k] == "<NEW_UUID_32>":
+        replacement_values[k] = str(uuid.uuid4() + "000").strip()[:32]
+
+t_ip = replacement_values['<IP>']
+t_domain = replacement_values['<DOMAIN>']
+
+# Make sure each value has the <DOMAIN> and <IP> values replaced in them
+for k in replacement_values:
+    replacement_values[k] = replacement_values[k].replace("<IP>", t_ip)
+    replacement_values[k] = replacement_values[k].replace("<DOMAIN>", t_domain)
 
 
 # Save current values

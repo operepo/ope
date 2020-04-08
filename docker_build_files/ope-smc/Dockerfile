@@ -1,8 +1,8 @@
-FROM alpine:3.4
+FROM alpine:3.11
 MAINTAINER Ray Pulspher <ray@cmagic.biz>
 LABEL Description="Student Management Console - Image for Open Prison Education"
 LABEL Vendor="openprisoneducation.com"
-LABEL Version="0.9"
+LABEL Version="1.0"
 
 # install base
 RUN apk update \
@@ -11,12 +11,15 @@ RUN apk update \
         openssl-dev zlib-dev yasm-dev lame-dev freetype-dev opus-dev \
         rtmpdump-dev x264-dev x265-dev xvidcore-dev libass-dev libwebp-dev \
         libvorbis-dev libogg-dev libtheora-dev libvpx-dev \
-        python python-dev mysql-client libxml2-dev py-pip \
+        python3 python3-dev mysql-client libxml2-dev \
         unzip wget net-tools git git-daemon unzip \
         openssl zip postgresql-dev openldap-dev \
-        supervisor libffi-dev \
-    && pip install --upgrade pip \
-    && pip install --upgrade setuptools ldap3 pycryptodome requests paramiko ecdsa isodate pywinrm xlrd crypto PyMySQL psycopg2-binary uwsgi uwsgitop psutil redis pycanvas lz4 \
+        supervisor libffi-dev pcre \
+# py-pip
+# Make sure python3 runs under the python command
+    && ln -s /usr/bin/python3 /usr/bin/python \
+    && pip3 install --upgrade pip \
+    && pip3 install --upgrade setuptools ldap3 pycryptodome requests paramiko ecdsa isodate pywinrm xlrd crypto PyMySQL psycopg2-binary uwsgi uwsgitop psutil redis pycanvas lz4 pytube3 \
 # matplotlib reportlab ldap pycrypto changed to pycryptodome  python-ldap changed to ldap3
     && FFMPEG_VER=3.4.2 \ 
     && curl -s http://ffmpeg.org/releases/ffmpeg-${FFMPEG_VER}.tar.gz | tar zxvf - -C . \
@@ -88,7 +91,7 @@ LABEL rebuild_smc=9
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE v1.9.30
+ENV SMC_RELEASE v1.9.33
 
 RUN cd $W2P_DIR \
     && git init \
@@ -122,7 +125,7 @@ RUN chmod +x /start.sh \
 
 ENV USER=www-data
 
-VOLUME ["/home/www-data/git", "/home/www-data/smc/web2py/applications/smc/cache", "/home/www-data/smc/web2py/applications/smc/databases", "/home/www-data/smc/web2py/applications/smc/errors", "/home/www-data/smc/web2py/applications/smc/private", "/home/www-data/smc/web2py/applications/smc/static/media", "/home/www-data/smc/web2py/applications/smc/uploads"]
+VOLUME ["/home/www-data/git", "/home/www-data/smc/web2py/applications/smc/cache", "/home/www-data/smc/web2py/applications/smc/databases", "/home/www-data/smc/web2py/applications/smc/errors", "/home/www-data/smc/web2py/applications/smc/private", "/home/www-data/smc/web2py/applications/smc/static/media", "/home/www-data/smc/web2py/applications/smc/uploads", "/home/www-data/smc/web2py/applications/data_sync/static/blocks"]
 
 EXPOSE 8000 9418
 
