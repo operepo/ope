@@ -1350,6 +1350,13 @@
                     on_active: app.set_app_active('ope-canvas-rce', self.active)
                 
                 GridLabel:
+                    text: "[b][color=00ff00]**[/color][/b] Canvas Mathman Editor (DNS: mathman[color=800080].ed[/color]) - Remote math equation renderer for Canvas (*** Required for full canvas functionality ***)"
+                GridSwitch:
+                    id: canvas_mathman_on
+                    active: app.is_app_active('ope-canvas-mathman')
+                    on_active: app.set_app_active('ope-canvas-mathman', self.active)
+                
+                GridLabel:
                     text: "[b][color=00ff00]**[/color][/b] SMC (DNS: smc[color=800080].ed[/color]) - Student Management Console to import student accounts and integrate with Canvas and OPE Laptops"
                 GridSwitch:
                     id: smc_on

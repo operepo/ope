@@ -121,7 +121,7 @@ import subprocess
 import stat
 
 # Make sure this is here so pyinstaller pulls it in
-import pydal
+#import pydal
 
 from security import Enc
 
@@ -628,9 +628,13 @@ class SyncOPEApp(App, EventDispatcher):
     use_kivy_settings = False
 
     required_apps = ["ope-gateway", "ope-router", "ope-dns", "ope-redis", "ope-postgresql"]
-    recommended_apps = ["ope-fog", "ope-canvas", "ope-canvas-rce", "ope-smc", "ope-clamav"]
+    recommended_apps = ["ope-fog", "ope-canvas", "ope-canvas-rce", "ope-smc", "ope-clamav", "ope-canvas-mathman"]
     stable_apps = ["ope-kalite", "ope-codecombat", "ope-gcf"]
     beta_apps = ["ope-freecodecamp", "ope-jsbin", "ope-rachel", "ope-stackdump", "ope-wamap", "ope-wsl"]
+    # If this app gets turned on, make sure the depends do too
+    app_depends = {
+        "ope-canvas": ["ope-canvas-rce", "ope-canvas-mathman"],    
+    }
 
     def set_internet_mode(self, mode):
         if mode.lower() == 'online':
@@ -2584,6 +2588,14 @@ class SyncOPEApp(App, EventDispatcher):
         Logger.info("Setting app: " + app_name + " " + str(ret))
         self.config.set("Selected Apps", app_name, ret)
         self.config.write()
+
+        # Make sure dependant apps are also on
+        if ret == "1" and app_name in SyncOPEApp.app_depends:
+            deps = SyncOPEApp.app_depends[app_name]
+            Logger.info("Enabling dependant apps: " + str(deps))
+            for dep in deps:
+                self.set_app_active(dep, True)
+
         return ret
 
     def is_app_active(self, app_name):
