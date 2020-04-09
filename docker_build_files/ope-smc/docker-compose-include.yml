@@ -19,6 +19,7 @@
             - ../volumes/smc/media:/home/www-data/smc/web2py/applications/smc/static/media:rw
             - ../volumes/smc/documents:/home/www-data/smc/web2py/applications/smc/static/documents:rw
             - ../volumes/smc/uploads:/home/www-data/smc/web2py/applications/smc/uploads:rw
+            - ../volumes/smc/sessions:/home/www-data/smc/web2py/applications/smc/sessions:rw
             # Dev mounts, mount the whole thing from outside the container - turn this off for production servers
             #- ../volumes/smc/src:/home/www-data/smc/web2py/applications/smc:rw
         depends_on:

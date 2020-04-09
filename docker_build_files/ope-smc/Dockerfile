@@ -91,7 +91,7 @@ LABEL rebuild_smc=9
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE v1.9.33
+ENV SMC_RELEASE v1.9.34
 
 RUN cd $W2P_DIR \
     && git init \
@@ -105,7 +105,7 @@ RUN cd $W2P_DIR \
 
 
 # Copy our files in
-LABEL rebuild=19
+LABEL rebuild=23
 COPY set_admin_password /bin/set_admin_password
 COPY start.sh /start.sh
 COPY supervisord.conf /etc/supervisor/supervisord.conf
@@ -125,7 +125,15 @@ RUN chmod +x /start.sh \
 
 ENV USER=www-data
 
-VOLUME ["/home/www-data/git", "/home/www-data/smc/web2py/applications/smc/cache", "/home/www-data/smc/web2py/applications/smc/databases", "/home/www-data/smc/web2py/applications/smc/errors", "/home/www-data/smc/web2py/applications/smc/private", "/home/www-data/smc/web2py/applications/smc/static/media", "/home/www-data/smc/web2py/applications/smc/uploads", "/home/www-data/smc/web2py/applications/data_sync/static/blocks"]
+VOLUME ["/home/www-data/git", "/home/www-data/smc/web2py/applications/smc/cache", \
+ "/home/www-data/smc/web2py/applications/smc/databases", \
+ "/home/www-data/smc/web2py/applications/smc/errors", \
+ "/home/www-data/smc/web2py/applications/smc/private", \
+ "/home/www-data/smc/web2py/applications/smc/static/media", \
+ "/home/www-data/smc/web2py/applications/smc/uploads", \
+ "/home/www-data/smc/web2py/applications/smc/sessions", \
+ "/home/www-data/smc/web2py/applications/data_sync/static/blocks" \
+ ]
 
 EXPOSE 8000 9418
 

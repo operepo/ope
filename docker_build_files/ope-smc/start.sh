@@ -1,7 +1,16 @@
 #!/bin/bash
 #set -d
 
+if [ ! -f /home/www-data/smc/web2py/applications/smc/private/.py2_cleared ]; then
+    # Possibly switching from py2 to py3 install, clear sessions and errors
+    echo Clearing old py2 sessions/errors    
+    rm -Rf /home/www-data/smc/web2py/applications/smc/sessions/*
+    rm -Rf /home/www-data/smc/web2py/applications/smc/errors/*
+    touch /home/www-data/smc/web2py/applications/smc/private/.py2_cleared
+fi
+
 # Make sure permissions are set on mounted folders
+chown -R www-data:www-data /home/www-data/smc/web2py/applications/smc/sessions
 chown -R www-data:www-data /home/www-data/smc/web2py/applications/smc/cache
 chown -R www-data:www-data /home/www-data/smc/web2py/applications/smc/databases
 chown -R www-data:www-data /home/www-data/smc/web2py/applications/smc/errors

@@ -491,7 +491,7 @@ SQLSTRING
         site_admin_account.disable_service("delicious")
 
         # Enable the mathman plugin
-        mathman = Plugin.find(:mathman)
+        mathman = Canvas::Plugin.find(:mathman)
         # Need its settings
         mm_settings = PluginSetting.find_by_name(mathman.id)
         mm_settings.disabled = false
