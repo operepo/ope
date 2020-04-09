@@ -492,8 +492,13 @@ SQLSTRING
 
         # Enable the mathman plugin
         mathman = Canvas::Plugin.find(:mathman)
+        #if mathman.has_settings_partial?
+        #    # Need to setup initial settings?
+        #end
         # Need its settings
         mm_settings = PluginSetting.find_by_name(mathman.id)
+        # Do this to load defaults if settings are empty
+        mm_settings ||= PluginSetting.new(:name => mathman.id, :settings => mathman.default_settings) { |ps| ps.disabled = false }
         mm_settings.disabled = false
         mm_settings.posted_settings = {"use_for_svg"=>"1", "use_for_mml"=>"1"}        
         mm_settings.save
