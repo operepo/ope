@@ -211,7 +211,7 @@ for k in replacement_values:
 # Make sure <NEW_UUID_32> values are replaced w a 32 byte value
 for k in replacement_values:
     if replacement_values[k] == "<NEW_UUID_32>":
-        replacement_values[k] = str(uuid.uuid4() + "000").strip()[:32]
+        replacement_values[k] = str(str(uuid.uuid4()) + "000").strip()[:32]
 
 t_ip = replacement_values['<IP>']
 t_domain = replacement_values['<DOMAIN>']
