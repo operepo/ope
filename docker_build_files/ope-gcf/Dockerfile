@@ -13,6 +13,12 @@ FROM nginx
 MAINTAINER Ray Pulsipher <ray@cmagic.biz>
 LABEL Description="GCFLearnFree.org offline website - Image for Open Prison Education" Vendor="openprisoneducation.com" Version="0.1"
 
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
 VOLUME ["/usr/share/nginx/html"]
 EXPOSE 80
+
+ENTRYPOINT ["/start.sh"]
+
+

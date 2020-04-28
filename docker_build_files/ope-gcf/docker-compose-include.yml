@@ -6,19 +6,16 @@
         restart: always
         ports:
             - "80"
-        labels:
-            - "traefik.backend=gcf"
-            - "traefik.frontend.rule=Host:gcf.<DOMAIN>, gcflearnfree.org, gcflearnfree.<DOMAIN>"
-            - "traefik.port=80"
-            - "traefik.frontend.entryPoints=http"
+        #labels:
         volumes:
-            - ../volumes/gcf/www:/usr/share/nginx/html:ro
+            - ../volumes/gcf/www:/usr/share/nginx/html:rw
         depends_on:
             - ope-gateway
             - ope-dns
         env_file: .env
         environment:
             - VIRTUAL_HOST=gcf.<DOMAIN>,gcflearnfree.org,gcflearnfree.<DOMAIN>
-        #    - NGINX_HOST=gcf.<DOMAIN>
-        #    - NGINX_PORT=80
-        #command: /bin/bash -c "envsubst < /etc/nginx/conf.d/mysite.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+            - VIRTUAL_PORT=80        
+            - CERT_NAME=default
+            - VIRTUAL_PROTO=http
+
