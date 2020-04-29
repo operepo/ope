@@ -206,7 +206,7 @@ if replacement_values['<IP>'] == "":
 # Make sure <NEW_UUID> values are replaced with an ID
 for k in replacement_values:
     if replacement_values[k] == "<NEW_UUID>":
-        replacement_values[k] = str(uuid.uuid4() + "000").strip()
+        replacement_values[k] = str(str(uuid.uuid4()) + "000").strip()
 
 # Make sure <NEW_UUID_32> values are replaced w a 32 byte value
 for k in replacement_values:
