@@ -39,7 +39,7 @@ def fast_urandom16(urandom=[], locker=threading.RLock()):
         try:
             locker.acquire()
             ur = os.urandom(16 * 1024)
-            urandom += [ur[i:i + 16] for i in xrange(16, 1024 * 16, 16)]
+            urandom += [ur[i:i + 16] for i in range(16, 1024 * 16, 16)]
             return ur[0:16]
         finally:
             locker.release()
@@ -68,6 +68,8 @@ def AES_new(key, iv=None):
     # Util.aes = pyaes.AESModeOfOperationCBC(key, iv = iv)
     # plaintext = "TextMustBe16Byte"
     # ciphertext = aes.encrypt(plaintext)
+    if not isinstance(key, bytes):
+            key = key.encode('utf-8')
     return AES.AESModeOfOperationOFB(key, iv = iv), iv
 
 
@@ -92,12 +94,30 @@ def decrypt(data, key):
         cipher, _ = AES_new(key, iv=iv)
     except:
         # bad IV = bad data
-        return data
+        return "" # data
     try:
         data = cipher.decrypt(data)
     except:
         # Don't let error blow things up
+        return ""
         pass
+
+    if isinstance(data, bytes):
+        #print("is bytes")
+        try:
+            data = data.decode('utf-8')
+            #print("f")
+        except:
+            print("err decoding encrypted data as utf-8")
+            try:
+                data = data.decode('ascii')
+            except:
+                print("err decoding encrypted data as ascii")
+                try:
+                    data = data.decode('latin-1')
+                except:
+                    print("err decoding encrypted data as latin-1 - returning raw data")
+                    data = str(data)
     data = data.rstrip(' ')
     return data
 
@@ -220,7 +240,7 @@ def create_local_student_account(user_name, full_name, password):
         accounts.User.create(user_name, password)
     # except pywintypes.error as err:
     except Exception as err:
-        if err[2] == "The account already exists.":
+        if err.args[2] == "The account already exists.":
             pass
         else:
             # Unexpected error
@@ -256,7 +276,7 @@ def create_local_student_account(user_name, full_name, password):
         grp.add(student)
     # except pywintypes.error as err:
     except Exception as err:
-        if err[2] == "The specified account name is already a member of the group.":
+        if err.args[2] == "The specified account name is already a member of the group.":
             pass
         else:
             # Unexpected error
@@ -267,7 +287,7 @@ def create_local_student_account(user_name, full_name, password):
         users_grp.add(student)
     # except pywintypes.error as err:
     except Exception as err:
-        if err[2] == "The specified account name is already a member of the group.":
+        if err.args[2] == "The specified account name is already a member of the group.":
             pass
         else:
             # Unexpected error
@@ -288,7 +308,7 @@ def create_local_students_group():
         accounts.LocalGroup.create(STUDENTS_GROUP)
     # except pywintypes.error as err:
     except Exception as err:
-        if err[2] == "The specified local group already exists.":
+        if err.args[2] == "The specified local group already exists.":
             pass
         else:
             # Unexpected error
@@ -309,7 +329,7 @@ def create_local_admin_account(user_name, full_name, password):
         # p("}}yn\t\tDone.}}xx")
     # except pywintypes.error as err:
     except Exception as err:
-        if err[2] == "The account already exists.":
+        if err.args[2] == "The account already exists.":
             pass
         else:
             # Unexpected error
@@ -345,7 +365,7 @@ def create_local_admin_account(user_name, full_name, password):
         grp.add(admin)
     # except pywintypes.error as err:
     except Exception as err:
-        if err[2] == "The specified account name is already a member of the group.":
+        if err.args[2] == "The specified account name is already a member of the group.":
             pass
         else:
             # Unexpected error
@@ -356,7 +376,7 @@ def create_local_admin_account(user_name, full_name, password):
         users_grp.add(admin)
     # except pywintypes.error as err:
     except Exception as err:
-        if err[2] == "The specified account name is already a member of the group.":
+        if err.args[2] == "The specified account name is already a member of the group.":
             pass
         else:
             # Unexpected error

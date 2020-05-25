@@ -131,7 +131,7 @@ def verify_ope_account_in_smc(user_name, smc_url, admin_user, admin_pw):
         api_url += "/"
 
     # Need to use basic auth for this
-    key = base64.b64encode(admin_user + ':' + admin_pass)
+    key = base64.b64encode(str(admin_user + ':' + admin_pass).encode()).decode()
     headers = {'Authorization': 'Basic ' + key}
 
     p("\n}}gnChecking user status in SMC tool...}}xx\n")
@@ -176,7 +176,7 @@ def verify_ope_account_in_smc(user_name, smc_url, admin_user, admin_pw):
     # Interpret response from SMC
     try:
         msg = smc_response["msg"]
-        if msg == "Invalid User!":
+        if msg.startswith("Invalid User!"):
             p("\n}}rbInvalid User!}}xx")
             p("}}mnUser doesn't exit in system, please import this student in the SMC first!}}xx")
             return None
@@ -222,13 +222,14 @@ def main():
     
     print_app_header()
     # Ask for admin user/pass and website
-    tmp = raw_input(term.translate_color_codes("}}ynEnter URL for SMC Server }}cn[enter for " + last_smc_url + "]:}}xx "))
+    p("}}ynEnter URL for SMC Server }}cn[enter for " + last_smc_url + "]:}}xx ", False)
+    tmp = input()
     tmp = tmp.strip()
     if tmp == "":
         tmp = last_smc_url
     smc_url = tmp
-
-    tmp = raw_input(term.translate_color_codes("}}ynPlease enter the ADMIN user name }}cn[enter for " + last_admin_user + "]:}}xx "))
+    p("}}ynPlease enter the ADMIN user name }}cn[enter for " + last_admin_user + "]:}}xx ", False)
+    tmp = input()
     tmp = tmp.strip()
     if tmp == "":
         tmp = last_admin_user
@@ -247,7 +248,8 @@ def main():
         if last_student_user != "":
             last_student_user_prompt = " }}cn[enter for previous student " + last_student_user + "]"
             # p("}}mb\t- Found previously credentialed user: }}xx" + str(last_student_user))
-        tmp = raw_input(term.translate_color_codes("}}ynPlease enter the username for the student" + last_student_user_prompt + ":}}xx "))
+        p("}}ynPlease enter the username for the student" + last_student_user_prompt + ":}}xx ", False)
+        tmp = input()
         if tmp.strip() == "":
             tmp = last_student_user
     student_user = tmp.strip()
@@ -283,7 +285,8 @@ def main():
     txt = txt.replace("<student_user>", student_text.ljust(47))
 
     p(txt)
-    tmp = raw_input(term.translate_color_codes("}}ybPress Y to continue: }}xx"))
+    p("}}ybPress Y to continue: }}xx", False)
+    tmp = input()
     tmp = tmp.strip().lower()
     if tmp != "y":
         p("}}cnCanceled / Not credentialing....}}xx")
@@ -293,7 +296,7 @@ def main():
     if not api_url.endswith("/"):
         api_url += "/"
 
-    key = base64.b64encode(admin_user + ':' + admin_pass)
+    key = base64.b64encode(str(admin_user + ':' + admin_pass).encode()).decode()
     headers = {'Authorization': 'Basic ' + key}
 
     # password_manager = urllib3.HTTPPasswordMgrWithDefaultRealm()
@@ -362,8 +365,8 @@ def main():
             p("\n}}rbInvalid User!}}xx")
             p("}}mnUser exists in SMC but not in Canvas, please rerun import this student in the SMC to correct the issue!}}xx")
         full_name = smc_response["full_name"]
-        canvas_access_token = str(smc_response["key"])
-        hash = str(smc_response["hash"])
+        canvas_access_token = smc_response["key"]
+        hash = smc_response["hash"]
         student_full_name = str(smc_response["full_name"])
         canvas_url = str(smc_response['canvas_url'])
     except Exception as error_message:
@@ -371,9 +374,14 @@ def main():
         p("}}mn" + str(ex) + "}}xx")
         return False
     
-    # p("Response: " + canvas_access_token + " ---- " + hash)
-    pw = win_util.decrypt(hash, canvas_access_token)
+    #print(json.dumps(smc_response))
 
+    #p("Response: " + canvas_access_token + " ---- " + str(hash))
+    #print(canvas_access_token)
+    #print(hash)
+    
+    pw = win_util.decrypt(hash, canvas_access_token)
+    
     p("}}gnCreating local student windows account...")
     win_util.create_local_student_account(student_user, student_full_name, pw)
     
@@ -567,7 +575,8 @@ def scratch():
 
     print_checklist_warning()
 
-    a = raw_input(term.translate_color_codes("}}ybPress enter when done}}xx"))
+    p("}}ybPress enter when done}}xx", False)
+    a = input()
 
     return True
 

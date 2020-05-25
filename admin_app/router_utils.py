@@ -9,6 +9,7 @@ import getpass
 import color
 # from color import p
 
+from kivy.clock import mainthread
 
 # Class to detect and manage secure sync boxes
 class SyncBoxes:
@@ -39,6 +40,17 @@ class SyncBoxes:
         self.router_files_folder = router_files_folder
         self.find_subnet_prefix = None
 
+    @mainthread
+    def set_text_property(self, label_control, text, clear_previous_text=False):
+        # Do this in the main thread so that it doesn't mess with kivy
+        if label_control is not None:
+            if clear_previous_text is True:
+                label_control.text = text
+            else:
+                label_control.text += text
+        else:
+            print("Skipping log - label_control is none!")
+    
     def p(self, msg="", end=True, out=None, debug_level=0):
         if self.output_label is None:
             color.p(msg, end=end, out=out, debug_level=debug_level)
@@ -50,7 +62,8 @@ class SyncBoxes:
         if end is True:
             end = "\n"
         # Print to the label
-        self.output_label.text += msg + end
+        self.set_text_property(self.output_label, msg + end)
+        #self.output_label.text += msg + end
 
     def find_routers(self, subnet_prefix=None):
         # Find routers on this subnet
@@ -362,6 +375,7 @@ class SyncBoxes:
         stdin.write("y\n")
         time.sleep(0.5)
         stdin.close()
+        # TODO TODO - Final restore not working on a new box, needs decrypt pw and error checking
         # exit_status = stdout.channel.recv_exit_status()
         # for line in stdout.readlines():
         #    print("Router Output: " + router_ip + ": " + line)

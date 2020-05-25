@@ -78,3 +78,8 @@ docker_build_files/.VOLUMES
 
 /SyncApp/ssh.log
 projekktor-1.8.2_build
+/client_tools/svc/MSG00001.bin
+/client_tools/svc/mgmt_EventLogMessages.h
+/client_tools/svc/mgmt_EventLogMessages.rc
+/client_tools/svc/mgmt_EventLogMessages.res
+/admin_app/.vscode

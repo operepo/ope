@@ -1,7 +1,8 @@
 
 cd %~dp0
 rem Use pyinstaller build, not old py2exe build
-python2 build.py
+rem python2 build.py
+python build.py
 
 REM python2 setup.py py2exe
 

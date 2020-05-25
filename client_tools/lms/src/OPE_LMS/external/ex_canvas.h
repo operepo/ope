@@ -36,9 +36,11 @@ public slots:
     bool clearInactiveItems();
 
     // Get the info for the current student
-    bool pullStudentInfo();
+    QString pullStudentInfo();
+    // Auto accept courses students have been added to
+    QString autoAcceptCourses();
     // Get the list of courses for the current student
-    bool pullCourses();
+    QString pullCourses();
     // Get the list of modules for all courses
     bool pullModules();
     // Get the list of pages for each module in all courses
@@ -63,7 +65,7 @@ public slots:
     // =================================================
     // push data to canvas - used during sync
     // Push assignments
-    bool pushAssignments();
+    QString pushAssignments();
     // Push messages
     bool pushMessages();
     // Push any files for this student (e.g. attachments)
@@ -118,9 +120,17 @@ public slots:
     bool pullSMCVideos();
     bool pullSMCDocuments();
 
+
+    // Reload the course list from the database.
+    bool reloadCourseList();
+    bool reloadAssignmentList();
+
     // Cache a copy of videos/documents locally
     //bool DownloadSMCVideos();
     //bool DownloadSMCDocuments();
+
+    // Reset current item to this text
+    bool setCurrentItem(QString item_text);
 
 private:
     // ?? Still needed?? Only if using full OAUTH cycle
@@ -149,6 +159,9 @@ private:
     QString _localhost_url;
 
 
+    // Get the list of courses so we can do an easy lookup later
+    QHash<QString, QString> _course_list;
+    QHash<QString, QString> _assignment_list;
 private slots:
 
 

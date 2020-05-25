@@ -196,22 +196,24 @@ bool EX_Canvas::clearInactiveItems()
     return ret;
 }
 
-bool EX_Canvas::pullStudentInfo()
+QString EX_Canvas::pullStudentInfo()
 {
-    bool ret =  false;
+    QString ret =  "";
+
     if (_app_db == nullptr) {
-       return ret;
+       return "ERROR - Invalid Pointer _app_db";
     }
 
     // Mark items as inactive so we can tell what came in on the new sync
     markItemsAsInactive();
+    reloadCourseList();
 
     // Get the courses table
     GenericTableModel *model = _app_db->getTable("users");
     if (model == nullptr) {
         // Unable to pull the table, error with database?
         qDebug() << "ERROR pulling users table!!!";
-        return false;
+        return "ERROR - DB Error - getting users table";
     }
 
     //qDebug() << " Trying to pull canvas student info...";
@@ -237,6 +239,16 @@ bool EX_Canvas::pullStudentInfo()
         QString id = o["id"].toString("");
         QString name = o["name"].toString("");
         QJsonArray permissions = o["permissions"].toArray();
+
+        if (id == "") {
+            // Invalid user id?
+            qDebug() << "Unable to get student information? " << doc.toJson();
+            //ret = "Invalid Student ID from Canvas - stopping sync!";
+            QJsonArray err_arr = o["errors"].toArray();
+            QJsonObject err_obj = err_arr.first().toObject();
+            ret = "ERROR - " + err_obj["message"].toString("");
+            return ret;
+        }
 
         model->setFilter("id = '" + id + "'"  );
         model->select();
@@ -267,6 +279,8 @@ bool EX_Canvas::pullStudentInfo()
         record.setValue("permissions", QJsonDocument(o["permissions"].toObject()).toJson());
         record.setValue("is_active", "true");
 
+        ret = o["name"].toString("");
+
         if(is_insert) {
             model->insertRecord(-1, record);
         } else {
@@ -274,13 +288,24 @@ bool EX_Canvas::pullStudentInfo()
             model->setRecord(0, record);
         }
         // Write changes to the database
-        ret = model->submitAll();
+        if(!model->submitAll()) {
+            qDebug() << "Error on model->submitAll()";
+            ret = "ERROR - Unable to write changes to database!";
+            return ret;
+        }
+
         model->setFilter(""); // Clear the filter
 
         //qDebug() << "Student: " << name << " " << id;
 
         // Commit the transaction
         model->database().commit();
+        /*  Don't check commit status? Transaction not started?
+        if (!model->database().commit()) {
+            qDebug() << "Error on commit!" << model->database().lastError();
+            ret = "Unable to commit changes to database!";
+            return ret;
+        }*/
         //qDebug() << model->lastError();
 
         // Make sure to set the current user id and name in the registry
@@ -292,36 +317,206 @@ bool EX_Canvas::pullStudentInfo()
 
         }
 
+    } else {
+        // Not an object? Invalid json response?
+        ret = "ERROR - Invalid Json response from server: " + doc.toJson();
     }
 
     return ret;
 }
 
-bool EX_Canvas::pullCourses()
+QString EX_Canvas::autoAcceptCourses()
 {
-    bool ret =  false;
+    QString ret = "";
+
+    if (!_app_settings) {
+        QString err = "ERROR - autoAcceptCourses -- No _app_settings?";
+        qDebug() << err;
+        return err;
+    }
+
+    QString student_id = _app_settings->value("student/id", "").toString();
+    if (student_id == "") {
+        // No student id? Fatal error!
+        QString err = "ERROR - No student id in settings, is app credentialed?";
+        qDebug() << err;
+        return err;
+    }
+
+    // Get the list of courses for this user
+    QHash<QString, QString> course_list;
+    QHash<QString, QString> course_workflow_state;
+
+    QString params = "?per_page=10000&state[]=unpublished&state[]=available"
+            "&state[]=completed&enrollment_state[]=invited_or_pending"
+            "&enrollment_state[]=active&enrollment_state[]=completed";
+    QString api_url = "/api/v1/users/" + student_id + "/courses?per_page=10000&state[]=all";
+
+    QJsonDocument doc = CanvasAPICall(api_url, "GET");
+    //qDebug() << "Json Response" << doc.toJson();
+
+    if (doc.isArray()) {
+        QJsonArray arr = doc.array();
+        foreach(QJsonValue val, arr) {
+            QJsonObject o = val.toObject();
+
+            QString course_id = o["id"].toString("");
+            QString course_name = o["name"].toString("");
+            QString course_code = o["course_code"].toString("");
+            QString workflow_state = o["workflow_state"].toString("");
+
+
+            if (course_name != "") {
+                course_list[course_id] = course_name + " (" + course_code + ")";
+                course_workflow_state[course_id] = workflow_state;
+                //qDebug() << " FOUND COURSE INFO " << course_name << workflow_state;
+            }
+        }
+    }
+
+    // Parameters
+    QHash<QString,QString> p;
+    // Get the list of pending courses
+
+    api_url = "api/v1/users/" + student_id + "/enrollments"
+            "?per_page=10000&state[]=invited&state[]=creation_pending";
+    doc = CanvasAPICall(api_url, "GET");
+
+    QHash<QString, QString> course_status;
+
+    if (doc.isArray()) {
+        // Loop through entries accepting each course
+
+        /* JSON Pulled - list of these objects
+         *
+         * [{"id":999999000000448,"user_id":999999000000036,"course_id":999999000000457,
+         * "type":"StudentEnrollment","created_at":"2019-02-02T21:18:45Z",
+         * "updated_at":"2019-02-02T21:18:45Z","associated_user_id":null,"start_at":null,
+         * "end_at":null,"course_section_id":999999000000424,"root_account_id":1,
+         * "limit_privileges_to_course_section":false,"enrollment_state":"creation_pending",
+         * "role":"StudentEnrollment","role_id":3,"last_activity_at":null,
+         * "last_attended_at":null,"total_activity_time":0,
+         * "grades":{"html_url":"https://canvas.ed/courses/999999000000457/grades/999999000000036",
+         * "current_grade":null,"current_score":null,"final_grade":null,"final_score":null},
+         * "html_url":"https://canvas.ed/courses/999999000000457/users/999999000000036",
+         * "user":{"id":999999000000036,"name":"Smith, Bob (s777777)","created_at":"2018-02-22T13:48:15-08:00","sortable_name":"Smith, Bob (s777777)","short_name":"Smith, Bob (s777777)","login_id":"s777777"}}
+         *
+         * */
+
+        QJsonArray arr = doc.array();
+        foreach (QJsonValue val, arr) {
+            // Get the object
+            QJsonObject o = val.toObject();
+
+            QString enrollment_state = o["enrollment_state"].toString();
+            QString enrollment_type = o["type"].toString();
+            QString course_id = o["course_id"].toString();
+            QString invitation_id = o["id"].toString();
+            QString workflow_state = course_workflow_state.value(course_id);
+            // Course name not returned, would need additional queries, so just use ID for now
+            QString course_name = course_list.value(course_id); //QString(o["name"].toString() + " ("+ o["course_code"].toString() + ")");
+            if (course_name == "") { course_name = course_id; }
+
+            if (workflow_state == "unpublished") {
+                // This course isn't published, we can't accept the enrollment yet
+                qDebug() << "Course Unpublished! Students will not be able to see materials!" << course_name << course_id;
+                course_status[course_id] = " - <span class='failed'>Not Accepted</span> " + course_name + " - Course not published!";
+            } else if (enrollment_type != "StudentEnrollment") {
+                qDebug() << "Skipping AutoAcceptCourse since enrollment isn't as a student " << course_name << enrollment_type;
+                course_status[course_id] = " - <span class='failed'>Not Accepted</span> " + course_name + " - Won't accept non student enrollment (" + enrollment_type + ")";
+            } else if (enrollment_state == "invited" || enrollment_state == "creation_pending") {
+                // Hit the accept URL to make sure this course is accepted
+                api_url = "/api/v1/courses/" + course_id + "/enrollments/" + invitation_id + "/accept";
+                // DEBUG
+                //api_url = "/api/v1/courses/" + course_id + "/enrollments/debug" + invitation_id + "/accept";
+                p.clear();
+                QString err = "Accepting enrollment for pending course " + course_id + "/" + invitation_id;
+                qDebug() << err;
+                //ret += err;
+                QJsonDocument accept_json = CanvasAPICall(api_url, "POST", &p);
+                qDebug() << "Accept Response: " << course_name << course_id << accept_json.toJson();
+
+                // Should be an object
+                if (accept_json.isObject()) {
+                    QJsonObject accept_object = accept_json.object();
+                    bool is_success = accept_object["success"].toBool();
+                    qDebug() << "Accepted Course " << course_name << "Success: " << is_success;
+                    if (is_success) {
+                        course_status[course_id] = " - <span class='accepted'>Accepted</span> " + course_name;
+                    } else {
+                        course_status[course_id] = " - <span class='failed'>Not Accepted</span> " + course_name + " - Is course published? (" + workflow_state + ")";
+                    }
+
+                } else {
+                    qDebug() << "Error activating course? " << course_name << course_id << accept_json.toJson();
+                    course_status[course_id] = " - <span class='failed'>Not Accepted</span> " + course_name + " - Error accepting course, invalid Json response";
+                }
+
+            } else {
+                QString err = "Skipping auto accept of pending course " + course_id + " - " + invitation_id + " - " + enrollment_type + " - " + enrollment_state + " - " + student_id;
+                qDebug() << err;
+                //ret += err;
+                course_status[course_id] = " - <span class='failed'>No Accepted</span> " + course_name + " - Skipping due to unknown state (" + enrollment_state + ")";
+            }
+        }
+
+    } else {
+        QString err = "ERROR - Invalid JSON Response in autoAcceptCourses\n  " + doc.toJson();
+        qDebug() << err;
+        ret = err;
+    }
+
+
+    // Build up output to return
+    if (course_status.count() > 0) {
+        // Loop through each course listed and add output
+        foreach (QString key, course_status.keys()) {
+            QString course_name = key;
+            // Translate from course id to course name
+            if (course_list.contains(key)) {
+                course_name = course_list[key];
+            }
+            ret += course_status[key] + "\n";
+        }
+    } else {
+        // No courses found to accept
+        ret += " - No invitations found";
+    }
+
+    return ret;
+}
+
+QString EX_Canvas::pullCourses()
+{
+    QString ret =  "";
     QString sql = "";
     QSqlQuery query;
 
     if (_app_db == nullptr) {
-       return ret;
+       return "ERROR - No valid _app_db";
     }
 
     // Get the courses table
     GenericTableModel *model = _app_db->getTable("courses");
     if (model == nullptr) {
         // Unable to pull the courses table, error with database?
-        qDebug() << "ERROR pulling courses table!!!";
-        return false;
+        QString err = "ERROR - pulling courses table!!!";
+        qDebug() << err;
+        return err;
     }
 
     //qDebug() << " Trying to pull canvas courses...";
 
     // Pull the list of classes from the server
     QHash<QString,QString> p;
-    p["per_page"] = "10000"; // Cuts down number of calls significantly
-    QJsonDocument doc = CanvasAPICall("/api/v1/courses", "GET", &p);
+    //p["per_page"] = "10000"; // Cuts down number of calls significantly
+    // Add extra filter so we get ALL courses (even unpublished and pending)
+    //p["state[]"] = "all";
+    QJsonDocument doc = CanvasAPICall("/api/v1/courses?per_page=10000&state[]=all", "GET", &p);
     //qDebug() << doc.toJson();
+
+    QHash<QString, QString> courses_pulled;
+
 
     // Loop through the courses and add them to the database
     if (doc.isArray())
@@ -347,6 +542,7 @@ bool EX_Canvas::pullCourses()
             QJsonObject o = val.toObject();
             // Go variant first then convert to long
             QString course_id = o["id"].toString("");
+            bool access_restricted_by_date = o["access_restricted_by_date"].toBool();
             QString course_name = o["name"].toString("");
             QJsonArray enrollments = o["enrollments"].toArray();
             bool isStudent = false;
@@ -355,8 +551,11 @@ bool EX_Canvas::pullCourses()
             QString enrollment_role = "";
             QString enrollment_role_id = "";
             QString enrollment_state = "";
+            QString workflow_state = o["workflow_state"].toString("");
             //  ---- this helps prevent TAs from uploading things and syncing those classes
-            ret = true;
+            bool is_syncing = false; // Are we going to sync this course?
+
+
             foreach (QJsonValue enrollmentVal, enrollments)
             {
                 QJsonObject enrollment = enrollmentVal.toObject();
@@ -375,14 +574,25 @@ bool EX_Canvas::pullCourses()
                 } else if (enrollment["type"].toString("") == "student" &&
                         enrollment["enrollment_state"] != "active") {
                     // Student but not active
+                    enrollment_state = enrollment["enrollment_state"].toString("");
                     qDebug() << "   --> Found inactive student enrollment (not syncing) " << course_name << ":" << course_id << ":" << enrollment["type"];
                 } else {
                     qDebug() << "   --> Found NON student enrollment (not syncing) " << course_name << ":" << course_id << ":" << enrollment["type"];
+                    enrollment_state = enrollment["enrollment_state"].toString("");
                     isTA_plus = true;
                 }
             }
 
-            if (isStudent == true && isTA_plus != true) {
+            qDebug() << "ACCESS: " << access_restricted_by_date;
+
+            if (access_restricted_by_date == true) {
+                courses_pulled[course_id] = " - <span class='failed'>NOT SYNCING</span> " + course_id + " - COURSE RESTRICTED BY DATE";
+                qDebug() << "*** Course access restricted by date - not syncing " << course_name << ":" << course_id;
+            } else if (workflow_state != "available") {
+                courses_pulled[course_name] = " - <span class='failed'>NOT SYNCING</span> " + course_name + " - Course not published? (" + workflow_state + "/" + enrollment_state + ")";
+                qDebug() << "*** Course not published - not syncing " << course_name << ":" << course_id;
+            }else if (isStudent == true && isTA_plus != true) {
+                is_syncing = true;
                 // Is a student, but NOT a TA or higher... do the sync.
                 model->setFilter("id = '" + course_id + "'"  );
                 model->select();
@@ -440,11 +650,21 @@ bool EX_Canvas::pullCourses()
                     model->setRecord(0, record);
                 }
                 // Write changes to the database
-                if(!model->submitAll()) { ret = false; }
+                if(!model->submitAll()) {
+                    qDebug() << "Error submitting database changes " << model->database().lastError();
+                    return "ERROR - Unable to submit database changes!";
+                }
                 model->setFilter(""); // Clear the filter
+
+                if (is_syncing) {
+                    courses_pulled[course_name] = " - <span class='accepted'>SYNCING</span> " + course_name + " (" + workflow_state + "/" + enrollment_state + ")";
+                } else {
+                    courses_pulled[course_name] = " - <span class='failed'>NOT SYNCING</span> " + course_name + " (" + workflow_state + "/" + enrollment_state + ")";
+                }
 
             } else {
                 // Log that we aren't syncing this course
+                courses_pulled[course_name] = " - <span class='failed'>NOT SYNCING</span> " + course_name + " - TA+ permissions found, will only sync student access (" + workflow_state + "/" + enrollment_state + ")";
                 qDebug() << "*** TA+ permissions detected, not syncing this course " << course_name << ":" << course_id;
             }
             //qDebug() << "Course: " << course_name << " " << course_id << " is student " << isStudent;
@@ -459,7 +679,7 @@ bool EX_Canvas::pullCourses()
     QSqlQuery q;
     q.prepare("DELETE FROM courses WHERE is_active != 'true'");
     if (!q.exec()) {
-        qDebug() << "SQL ERROR " << q.lastError();
+        qDebug() << "ERROR - SQL Query Failed: " << q.lastError();
     } else {
         _app_db->commit();
     }
@@ -468,7 +688,7 @@ bool EX_Canvas::pullCourses()
     q.clear();
     q.prepare("DELETE FROM canvas_dl_queue");
     if (!q.exec()) {
-        qDebug() << "SQL ERROR " << q.lastError();
+        qDebug() << "ERROR - SQL Query Failed: " << q.lastError();
     } else {
         _app_db->commit();
     }
@@ -477,7 +697,7 @@ bool EX_Canvas::pullCourses()
     q.clear();
     q.prepare("DELETE FROM smc_media_dl_queue2");
     if (!q.exec()) {
-        qDebug() << "SQL ERROR " << q.lastError();
+        qDebug() << "ERROR - SQL Query Failed: " << q.lastError();
     } else {
         _app_db->commit();
     }
@@ -486,9 +706,17 @@ bool EX_Canvas::pullCourses()
     q.clear();
     q.prepare("DELETE FROM smc_document_dl_queue2");
     if (!q.exec()) {
-        qDebug() << "SQL ERROR " << q.lastError();
+        qDebug() << "ERROR - SQL Query Failed: " << q.lastError();
     } else {
         _app_db->commit();
+    }
+
+    // Make sure the list of courses in memory is reloaded for later use
+    reloadCourseList();
+
+    // Return the list of courses
+    foreach (QString key, courses_pulled.keys()) {
+        ret += courses_pulled[key] + "\n";
     }
 
     return ret;
@@ -1900,21 +2128,28 @@ bool EX_Canvas::pullAnnouncements()
 
 }
 
-bool EX_Canvas::pushAssignments()
+QString EX_Canvas::pushAssignments()
 {
-    // Push any submitted assignments back to canvas
-    bool ret = false;
-    bool had_errors = false;
+    // Make sure we have the list so we can do name lookups
+    reloadAssignmentList();
 
-    if (_app_db == nullptr) { return false; }
+    // Push any submitted assignments back to canvas
+    QString ret = "";
+    bool had_errors = false;
+    QStringList error_list;
+
+    if (_app_db == nullptr) { return "ERROR - No valid _app_db"; }
+
     QSqlRecord record;
     GenericTableModel *model = nullptr;
+
+    QHash<QString,QString> assignment_push_list;
 
     // Get a list of assignments waiting to be submitted
     model = _app_db->getTable("assignment_submissions");
     if (!model) {
         qDebug() << "Unable to get assignment_submissions model!";
-        return false;
+        return "ERROR - Unable to get assignment_submissions model";
     }
 
     qDebug() << "-- Pushing assignment submissions...";
@@ -1929,8 +2164,23 @@ bool EX_Canvas::pushAssignments()
         record = model->record(i);
         qDebug() << "--- Submitting assignment file " << record.value("course_id").toString() << " " << record.value("assignment_id").toString() << " " << record.value("origin_url").toString() << "/" << record.value("queue_url").toString();
         QString course_id = record.value("course_id").toString();
+        QString course_name = course_id;
         QString assignment_id = record.value("assignment_id").toString();
+        QString assignment_name = assignment_id;
         QString post_file = record.value("queue_url").toString();
+        QFileInfo post_file_info(post_file);
+
+        if (_course_list.contains(course_id)) {
+            course_name = _course_list[course_id];
+        }
+        //qDebug() << "COURSE NAME: " << course_name;
+        if (_assignment_list.contains(assignment_id)) {
+            assignment_name = _assignment_list[assignment_id];
+        }
+
+        QString assignment_info = post_file_info.fileName() + " (" + course_name + "/" + assignment_name + ") ";
+        progressCurrentItem = "Pushing Assignment: " + assignment_info;
+        emit progress(i, rowCount, progressCurrentItem);
 
         QHash<QString, QString> p;
         QFileInfo fi = QFileInfo(post_file);
@@ -1968,8 +2218,9 @@ bool EX_Canvas::pushAssignments()
             QJsonObject o = doc.object();
             if (!o.contains("upload_url") || !o.contains("upload_params")) {
                 qDebug() << "*** ASSIGNMENT UPLOAD ERROR! missing upload_url "
-                         << assignment_id << "\n" << doc;
-                // Dump to next assignment
+                         << assignment_id << "\n" << doc.toJson();
+                assignment_push_list[post_file] = " - <span class='failed'>Error></span> " + assignment_info + " - No upload_url recieved from canvas server (Step 2 failed)";
+                // Jump to next assignment
                 continue;
             }
             QString next_url = o["upload_url"].toString();
@@ -1981,9 +2232,9 @@ bool EX_Canvas::pushAssignments()
                 p["___" + QString(order) + "_" + key] = params[key].toString();
                 order++;
             }
-            // Do the actual file upload - NOTE - this will send back non JSON formatted
-            // text??
-            // NOTE2 - NetworkCall will auto follow location link
+            // Do the actual file upload - NOTE - this will send back a redirect?
+            // NOTE2 - NetworkCall will auto follow location redirect so we should
+            // get json response from
             qDebug() << "Sending SUBMIT STEP 2 " << next_url;
             QJsonDocument doc2 = CanvasAPICall(next_url, "POST", &p,
                             "multipart/form-data", post_file);
@@ -1994,7 +2245,19 @@ bool EX_Canvas::pushAssignments()
 
                 // Pull the file id
                 QJsonObject o = doc2.object();
-                QString file_id = o["id"].toString();
+                QString file_id = o["id"].toString("");
+                QString file_url = o["url"].toString("");
+                QString content_type = o["content-type"].toString("");
+                QString display_name = o["display_name"].toString("");
+                QString file_size = o["size"].toString("");
+
+                if (file_id == "") {
+                    qDebug() << "*** ERROR - No file id returned on step 2 - pushing assinment! " << assignment_name << assignment_id;
+                    assignment_push_list[post_file] = " - <span class='failed'>Error</span>" + assignment_info + " - No file id returned from canvas assignment upload! ";
+                    // Jump to next assignment
+                    continue;
+                }
+
 
                 // We should now have a json object with a file id, we need
                 // to link it to the assignment so it shows up for the teacher
@@ -2003,45 +2266,77 @@ bool EX_Canvas::pushAssignments()
                 p["comment[text_comment]"] = "Submitted via OPE LMS App";
                 p["submission[submission_type]"] = "online_upload";
                 p["submission[file_ids][]"] = file_id;
-//TODO - This isn't coming back with valid json document?? it gets a 201 code ?
                 QJsonDocument doc3 = CanvasAPICall("/api/v1/courses/" + course_id
                         + "/assignments/" + assignment_id
                         + "/submissions", "POST", &p);
                 if (doc3.isObject()) {
-                    // Valid submission
-                    qDebug() << "Assignment pushed - TODO";
-                    // Mark that the assignment has been synced so we don't try to
-                    // upload it again.
-                    record.setValue("synced_on", QDateTime::currentDateTime().toString());
-                    model->setRecord(i, record);
+                    // Check if valid submission
+                    QJsonObject doc3_object = doc3.object();
+                    QJsonArray attachments_arr = doc3_object["attachments"].toArray();
+                    QString upload_success = attachments_arr.first().toObject()["upload_status"].toString("");
+
+                    qDebug() << "Assignment pushed - TODO" << doc3.toJson();
+
+                    if (upload_success == "success") {
+                        // Mark that the assignment has been synced so we don't try to
+                        // upload it again.
+                        record.setValue("synced_on", QDateTime::currentDateTime().toString());
+                        model->setRecord(i, record);
+
+                        assignment_push_list[post_file] = " - <span class='accepted'>SUCCESS</span> " + assignment_info;
+                    } else {
+                        assignment_push_list[post_file] = " - <span class='failed'>FAILED</span> " + assignment_info;
+                        qDebug() << "ERROR - Final step linking assignment failed " << doc3.toJson();
+                        had_errors = true;
+                    }
+
+
                 } else {
-                    qDebug() << "Problem linking uploaded file with assignment " << assignment_id << doc3.toJson();
+                    QString err = assignment_info + " - ERROR - Problem linking uploaded file with assignment " + assignment_id;
+                    qDebug() << err << " --- " << doc3.toJson();
+                    assignment_push_list[post_file] = " - <span class='failed'>Error</span> " + assignment_info + " - Problem linking uploaded file with assignment " + assignment_id;
                     had_errors = true;
                 }
 
             } else {
                 // Invalid response??
-                qDebug() << "*** ASSIGNMENT UPLOAD ERROR!! - Invalid response for upload link! " << assignment_id << doc2.toJson();
+                QString err = assignment_info + " - ERROR - *** ASSIGNMENT UPLOAD ERROR!! - Invalid response for upload link! " + assignment_id;
+                qDebug() << err << " -- " << doc2.toJson();
                 had_errors = true;
+                assignment_push_list[post_file] = " - <span class='failed'>Error</span> " + assignment_info + " - *** ASSIGNMENT UPLOAD ERROR!! - Invalid response for upload link! " + assignment_id;
                 continue; // Jump to next assignmment
             }
 
         } else {
-            qDebug() << "ASSIGNMENT UPLOAD ERROR!!! - Invalid json object: pushAssignments " << assignment_id << doc.toJson();
+            QString err =  assignment_info + " ERROR - ASSIGNMENT UPLOAD ERROR!!! - Invalid json object: pushAssignments " + assignment_id;
+            qDebug() << err << " -- " << doc.toJson();
+            assignment_push_list[post_file] = " - <span class='failed'>Error</span> " + assignment_info + " - ASSIGNMENT UPLOAD ERROR!!! - Invalid json object: pushAssignments " + assignment_id;
             had_errors = true;
         }
     }
     bool submit_sucess = model->submitAll();
     if (!submit_sucess) {
         qDebug() << "DB ERROR: "  << model->lastError();
+        return "ERROR - Unable to submit changes to database!";
     }
-    bool db_commit_success = model->database().commit();
 
-    if (db_commit_success == true || had_errors != true) {
-        ret = true;
-    } else {
-        qDebug() << "DB ERROR - Problem submitting assignment " << model->database().lastError();
+    // NOTE - May fail if commit not started, that is ok.
+    model->database().commit();
+
+    foreach(QString key, assignment_push_list.keys()) {
+        ret += assignment_push_list[key] + "\n";
     }
+    if (assignment_push_list.count() == 0) {
+        ret += " - No assignments to push";
+    }
+
+    if (had_errors) {
+        ret += "\n **** <span class='failed'>Error</span> **** - One or more assignments failed to properly submit!";
+    }
+
+    progressCurrentItem = "";
+    //emit progress(i, rowCount, progressCurrentItem);
+
     return ret;
 }
 
@@ -3083,6 +3378,91 @@ bool EX_Canvas::pullSMCDocuments()
     ret = true;
 
     return ret;
+}
+
+bool EX_Canvas::reloadCourseList()
+{
+    // Clear and reload the course list
+    _course_list.clear();
+
+    if (_app_db == nullptr) {
+        qDebug() << "ERROR - No valid _app_db";
+        return false;
+    }
+
+    QSqlRecord record;
+    GenericTableModel *model = nullptr;
+
+    // Get the courses table
+    model = _app_db->getTable("courses");
+    if (model == nullptr) {
+        // Unable to pull the courses table, error with database?
+        QString err = "ERROR - pulling courses table!!!";
+        qDebug() << err;
+        return false;
+    }
+
+    model->setFilter("");
+    model->select();
+    // NOTE - Make sure to fetch all or we may only get 256 records
+    while(model->canFetchMore()) { model->fetchMore(); }
+
+    int rowCount = model->rowCount();
+    for (int i=0; i < rowCount; i++) {
+        record = model->record(i);
+        QString course_id = record.value("id").toString();
+        QString course_name = record.value("name").toString();
+        _course_list[course_id] = course_name;
+        qDebug() << "ADDED COURSE TO LIST " << course_id << course_name;
+    }
+
+    return true;
+}
+
+bool EX_Canvas::reloadAssignmentList()
+{
+    // Clear and reload the assignment list
+    _assignment_list.clear();
+
+    if (_app_db == nullptr) {
+        qDebug() << "ERROR - No valid _app_db";
+        return false;
+    }
+
+    QSqlRecord record;
+    GenericTableModel *model = nullptr;
+
+    // Get the courses table
+    model = _app_db->getTable("assignments");
+    if (model == nullptr) {
+        // Unable to pull the courses table, error with database?
+        QString err = "ERROR - pulling assignments table!!!";
+        qDebug() << err;
+        return false;
+    }
+
+    model->setFilter("");
+    model->select();
+    // NOTE - Make sure to fetch all or we may only get 256 records
+    while(model->canFetchMore()) { model->fetchMore(); }
+
+    int rowCount = model->rowCount();
+    for (int i=0; i < rowCount; i++) {
+        record = model->record(i);
+        QString assignment_id = record.value("id").toString();
+        QString assignment_name = record.value("name").toString();
+        _assignment_list[assignment_id] = assignment_name;
+        qDebug() << "ADDED ASSIGNMENT TO LIST " << assignment_id << assignment_name;
+    }
+
+    return true;
+}
+
+bool EX_Canvas::setCurrentItem(QString item_text)
+{
+    progressCurrentItem = item_text;
+
+    return true;
 }
 
 QSqlRecord EX_Canvas::pullSinglePage(QString course_id, QString page_url)

@@ -5,10 +5,10 @@ import shutil
 project_name = "credential"
 main_file = "app.py"
 
-print os.getcwd()
+print(os.getcwd())
 # == Build the app for windows using pyinstaller ==
 #os.system("python -m PyInstaller --noconfirm --name {0} {1}".format(project_name, main_file))
-os.system("python2 -m PyInstaller --noconfirm --name {0} --icon logo_icon.ico {1}".format(project_name, main_file))
+os.system("python -m PyInstaller --noconfirm --name {0} --icon logo_icon.ico {1}".format(project_name, main_file))
 
 # Add imports to beginning of spec file
 #f = open("{0}.spec".format(project_name), "r")
@@ -25,7 +25,7 @@ os.system("python2 -m PyInstaller --noconfirm --name {0} --icon logo_icon.ico {1
 
 
 # Now rebuild with the adjusted spec file
-os.system("python2 -m PyInstaller --noconfirm {0}.spec".format(project_name))
+os.system("python -m PyInstaller --noconfirm {0}.spec".format(project_name))
 
 # Copy in the assets we need
 #assets = ["SyncOPEApp.kv", "OfflineServerSettings.json", "OnlineServerSettings.json", "logo_icon.ico", "logo_icon.png",

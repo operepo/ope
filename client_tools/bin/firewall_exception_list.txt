@@ -1,0 +1,15 @@
+
+---- IN ----
+
+OPE - Service: IN/%ALLUSERSPROFILE%\ope\ope_laptop_binaries\svc\OPEService.exe
+OPE - LMS App1: IN/%ALLUSERSPROFILE%\ope\ope_laptop_binaries\lms\OPE_LMS.exe
+
+---- OUT ----
+
+OPE - DHCP: OUT/UDP/67,68
+OPE - DNS: OUT/UDP/53
+OPE - Laptop Credential App: OUT/%ALLUSERSPROFILE%\ope\ope_laptop_binaries\laptop_credential\credential.exe
+OPE - LMS App1: OUT/%ALLUSERSPROFILE%\ope\ope_laptop_binaries\lms\OPE_LMS.exe
+OPE - LMS App2: OUT/%ALLUSERSPROFILE%\ope\ope_laptop_binaries\lms\QtWebEngineProcess.exe
+OPE - Service: OUT/%ALLUSERSPROFILE%\ope\ope_laptop_binaries\svc\OPEService.exe
+OPE - SMC Git Server: OUT/TCP/9418

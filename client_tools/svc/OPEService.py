@@ -1,396 +1,333 @@
-import pythoncom
+# Needed for external stuff?
+#import pythoncom
+
+## Service Imports
 import win32serviceutil
 import win32service
 import win32event
 import servicemanager
 import socket
+
+import win32traceutil
+import traceback
+import threading
+
+# Needed for device events
+import win32gui
+import win32gui_struct
+import win32con
+
 import time
-import datetime
+import random
+import subprocess
 import sys
 import os
-import logging
-import random
-from win32com.shell import shell, shellcon
-import ntsecuritycon
-import win32security
-import win32api
-import win32gui
-import win32ui
-import win32con
-import win32gui_struct
-import win32ts
-import win32process
-import win32profile
-import PIL
-import pyscreenshot as ImageGrab
-import ctypes
-import wmi
 
-# TODO - Set recovery options for service so it restarts on failure
-
-# Most event notification support lives around win32gui
-GUID_DEVINTERFACE_USB_DEVICE = "{A5DCBF10-6530-11D2-901F-00C04FB951ED}"
-
-ROOT_FOLDER = os.path.join(shell.SHGetFolderPath(0, shellcon.CSIDL_COMMON_APPDATA, None, 0), "ope")
-TMP_FOLDER = os.path.join(ROOT_FOLDER, "tmp")
-LOG_FOLDER = os.path.join(TMP_FOLDER, "log")
-SCREEN_SHOTS_FOLDER = os.path.join(TMP_FOLDER, "screen_shots")
-BINARIES_FOLDER = os.path.join(ROOT_FOLDER, "ope_laptop_binaries")
-
-EVERYONE, domain, type = win32security.LookupAccountName("", "Everyone")
-ADMINISTRATORS, domain, type = win32security.LookupAccountName("", "Administrators")
-# CURRENT_USER, domain, type = win32security.LookupAccountName("", win32api.GetUserName())
-CURRENT_USER = None
-try:
-    CURRENT_USER, domain, type = win32security.LookupAccountName("", "huskers")
-except:
-    CURRENT_USER = None
-if CURRENT_USER is None:
-    try:
-        CURRENT_USER, domain, type = win32security.LookupAccountName("", "ray")
-    except:
-        CURRENT_USER = None
-SYSTEM_USER, domain, type = win32security.LookupAccountName("", "System")
-
-
-# Disable ALL nics if this is set
-DISABLE_ALL_NICS = False
-DEBUG_NICS = False
-if os.path.isfile(os.path.join(ROOT_FOLDER, ".debug_nics")):
-    DEBUG_NICS = True
-# Disable sshot if this is set
-DISABLE_SSHOT = False
-if os.path.isfile(os.path.join(ROOT_FOLDER, ".disable_sshot")):
-    DISABLE_SSHOT = True
-
-system_nics = ["WAN Miniport (IP)", "WAN Miniport (IPv6)", "WAN Miniport (Network Monitor)",
-                   "WAN Miniport (PPPOE)", "WAN Miniport (PPTP)", "WAN Miniport (L2TP)", "WAN Miniport (IKEv2)",
-                   "WAN Miniport (SSTP)", "Microsoft Wi-Fi Direct Virtual Adapter", "Teredo Tunneling Pseudo-Interface",
-                   "Microsoft Kernel Debug Network Adapter",
-                  ]
-approved_nics = ["Realtek USB GbE Family Controller",
-                 "Thinkpad USB 3.0 Ethernet Adapter"]
-if DEBUG_NICS is True:
-    # Add these nics so we don't cut off network on our dev machines
-    approved_nics.append("Intel(R) 82579LM Gigabit Network Connection")
-    approved_nics.append("150Mbps Wireless 802.11bgn Nano USB Adapter")
-    approved_nics.append("Intel(R) PRO/1000 MT Network Connection")
-    approved_nics.append("Intel(R) Centrino(R) Wireless-N 1000")
-
-
-def show_cacls(filename):
-    print
-    print
-    for line in os.popen("cacls %s" % filename).read().splitlines():
-        print(line)
-
-
-def set_ope_permissions():
-    global ROOT_FOLDER, LOG_FOLDER, SCREEN_SHOTS_FOLDER, BINARIES_FOLDER, TMP_FOLDER
-
-    # Make sure folders exits
-    if not os.path.isdir(ROOT_FOLDER):
-        os.makedirs(ROOT_FOLDER)
-    if not os.path.isdir(TMP_FOLDER):
-        os.makedirs(TMP_FOLDER)
-    if not os.path.isdir(LOG_FOLDER):
-        os.makedirs(LOG_FOLDER)
-    if not os.path.isdir(SCREEN_SHOTS_FOLDER):
-        os.makedirs(SCREEN_SHOTS_FOLDER)
-    if not os.path.isdir(BINARIES_FOLDER):
-        os.makedirs(BINARIES_FOLDER)
-
-    # Make sure the ope-sshot.log file exists so we can set permissions on it later
-    if not os.path.isfile(os.path.join(LOG_FOLDER, "ope-sshot.log")):
-        f = open(os.path.join(LOG_FOLDER, "ope-sshot.log"), "w")
-        f.close()
-
-    # --- Set permissions on OPE folder - viewable by not writable
-    # Set inheritance flags
-    flags = win32security.OBJECT_INHERIT_ACE | win32security.CONTAINER_INHERIT_ACE
-    sd = win32security.GetFileSecurity(ROOT_FOLDER, win32security.DACL_SECURITY_INFORMATION)
-    # Create the blank DACL and add our ACE's
-    dacl = win32security.ACL()
-    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
-    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
-    if not CURRENT_USER is None:
-        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, CURRENT_USER)
-    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags,
-                               ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE,
-                               EVERYONE)
-    # Set our ACL
-    sd.SetSecurityDescriptorDacl(1, dacl, 0)
-    win32security.SetFileSecurity(ROOT_FOLDER, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
-
-    # --- Set permissions on TMP folder - viewable by not writable
-    # Set inheritance flags
-    flags = win32security.OBJECT_INHERIT_ACE | win32security.CONTAINER_INHERIT_ACE
-    sd = win32security.GetFileSecurity(TMP_FOLDER, win32security.DACL_SECURITY_INFORMATION)
-    # Create the blank DACL and add our ACE's
-    dacl = win32security.ACL()
-    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
-    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
-    if not CURRENT_USER is None:
-        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, CURRENT_USER)
-    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags,
-                               ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE,
-                               EVERYONE)
-    # Set our ACL
-    sd.SetSecurityDescriptorDacl(1, dacl, 0)
-    win32security.SetFileSecurity(TMP_FOLDER, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
-
-
-    # --- Set permissions on ope_laptop_binaries folder - viewable by not writable
-    # Set inheritance flags
-    flags = win32security.OBJECT_INHERIT_ACE | win32security.CONTAINER_INHERIT_ACE
-    sd = win32security.GetFileSecurity(BINARIES_FOLDER, win32security.DACL_SECURITY_INFORMATION)
-    # Create the blank DACL and add our ACE's
-    dacl = win32security.ACL()
-    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
-    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
-    if not CURRENT_USER is None:
-        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, CURRENT_USER)
-    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags,
-                               ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE,
-                               EVERYONE)
-    # Set our ACL
-    sd.SetSecurityDescriptorDacl(1, dacl, 0)
-    # Set on all folders
-    win32security.SetFileSecurity(BINARIES_FOLDER, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
-    for root, dirs, files in os.walk(BINARIES_FOLDER, topdown=False):
-        for f in files:
-            try:
-                win32security.SetFileSecurity(os.path.join(root, f), win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
-            except:
-                logging.info("Error setting file permissions " + os.path.join(root, f))
-        for d in dirs:
-            try:
-                win32security.SetFileSecurity(os.path.join(root, d), win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
-            except:
-                logging.info("Error setting folder permissions " + os.path.join(root, d))
-
-    # win32security.TreeSetNamedSecurityInfo(BINARIES_FOLDER, win32security.SE_FILE_OBJECT, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, None, None, sd, None)
-
-
-    # --- Set permissions on the log folder - create file or append only
-    # Set inheritance flags
-    flags = win32security.OBJECT_INHERIT_ACE | win32security.CONTAINER_INHERIT_ACE
-    sd = win32security.GetFileSecurity(LOG_FOLDER, win32security.DACL_SECURITY_INFORMATION)
-    # Create the blank DACL and add our ACE's
-    dacl = win32security.ACL()
-    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
-    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
-    if not CURRENT_USER is None:
-        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, CURRENT_USER)
-    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION, flags,
-                             ntsecuritycon.FILE_ADD_FILE | ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE,
-                             EVERYONE)
-    # Set our ACL
-    sd.SetSecurityDescriptorDacl(1, dacl, 0)
-    win32security.SetFileSecurity(LOG_FOLDER, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
-
-
-    # --- Set permissions on the log file for screen shots - append only
-    # Set inheritance flags
-    flags = win32security.OBJECT_INHERIT_ACE | win32security.CONTAINER_INHERIT_ACE
-    sd = win32security.GetFileSecurity(os.path.join(LOG_FOLDER, "ope-sshot.log"), win32security.DACL_SECURITY_INFORMATION)
-    # Create the blank DACL and add our ACE's
-    dacl = win32security.ACL()
-    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
-    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
-    if not CURRENT_USER is None:
-        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, CURRENT_USER)
-    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION, flags,
-                             ntsecuritycon.FILE_APPEND_DATA | ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE,
-                             EVERYONE)
-    # Set our ACL
-    sd.SetSecurityDescriptorDacl(1, dacl, 0)
-    win32security.SetFileSecurity(os.path.join(LOG_FOLDER, "ope-sshot.log"), win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
-
-
-
-    # --- Set permissions on the sshot folder - let students create but not modify/delete sshots
-    # Set inheritance flags
-    flags = win32security.OBJECT_INHERIT_ACE | win32security.CONTAINER_INHERIT_ACE
-    sd = win32security.GetFileSecurity(SCREEN_SHOTS_FOLDER, win32security.DACL_SECURITY_INFORMATION)
-
-    # Create the blank DACL and add our ACE's
-    dacl = win32security.ACL()
-    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, ADMINISTRATORS)
-    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, SYSTEM_USER)
-    if not CURRENT_USER is None:
-        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, CURRENT_USER)
-    dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION, flags,
-                             ntsecuritycon.FILE_ADD_FILE  | ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE,
-                             EVERYONE)
-    # Set our ACL
-    sd.SetSecurityDescriptorDacl(1, dacl, 0)
-    win32security.SetFileSecurity(SCREEN_SHOTS_FOLDER, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
-
-    # Possible to set whole tree?
-    # win32security.TreeSetNamedSecurityInfo(folder, win32security.SE_FILE_OBJECT, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, None, None, sd, None)
-
-
-def scan_com_ports():
-    # TODO - Need Debug
-    # Use WMI to pull a list of com ports
-    w = wmi.WMI()
-
-    logging.info("Scanning USB/Serial COM Ports...")
-
-    # Scan for PNP Devices that are ports
-    for port in w.Win32_PNPEntity(PNPClass="Ports"):
-        logging.info("PNP COM Port Found: " + str(port.name))
-        if port.Status == "OK":
-            # Port is on and working - turn it off
-            logging.info("COM Port " + str(port.Caption) + " is on - disabling...")
-            try:
-                port.Disable()
-            except Exception as ex:
-                logging.info("ERROR!!! " + str(ex))
-        else:
-            logging.info("COM Port " + str(port.Caption) + " is off...")
-
-    # Scan for Serial devices (may not be PNP)
-    for port in w.Win32_SerialPort():
-        print("Serial Port Found: " + str(port.name))
-        if port.Status == "OK":
-            logging.info("Serial Port " + str(port.Caption) + " is on - disabling...")
-            try:
-                port.Disable()
-            except Exception as ex:
-                logging.info("ERROR!!! " + str(ex))
-        else:
-            logging.info("Serial Port " + str(port.Caption) + " is off...")
-
-    return
-
-
-def scanNics():
-    # May need to call this before calling this function so that COM works
-    # pythoncom.CoInitialize() - called in the main function
-    global DISABLE_ALL_NICS, system_nics, approved_nics
-
-    if DISABLE_ALL_NICS is True:
-        approved_nics = []
-
-    logging.info("scanning for unauthorized nics...")
-        
-    import win32com.client
-    strComputer = "."
-    objWMIService = win32com.client.Dispatch("WbemScripting.SWbemLocator")
-    objSWbemServices = objWMIService.ConnectServer(strComputer,"root\cimv2")
-    colItems = objSWbemServices.ExecQuery("Select * from Win32_NetworkAdapter")
-    for objItem in colItems:
-        if objItem.Name in approved_nics:
-            # logging.info("***Device found - on approved list: " + str(objItem.Name) + str(objItem.NetConnectionID))
-            dev_id = objItem.NetConnectionID
-            if dev_id:
-                logging.info("     ---> !!! Approved device !!!, enabling..." + str(dev_id))
-                cmd = "netsh interface set interface \"" + dev_id + "\" admin=ENABLED"
-                # print(cmd)
-                os.system(cmd)
-            else:
-                # print("     ---> unauthorized, not plugged in...")
-                pass
-            continue
-        elif objItem.Name in system_nics:
-            # logging.info("***Device found - system nic - ignoring: " + str(objItem.Name))
-            continue
-        else:
-            # logging.info("***Device found :" + str(objItem.Name))
-            dev_id = objItem.NetConnectionID
-            if dev_id:
-                logging.info("     ---> !!! unauthorized !!!, disabling..." + str(dev_id))
-                cmd = "netsh interface set interface \"" + dev_id + "\" admin=DISABLED"
-                # print(cmd)
-                os.system(cmd)
-            else:
-                # print("     ---> unauthorized, not plugged in...")
-                pass
-            continue
-
-        # print("========================================================")
-        # print("Adapter Type: ", objItem.AdapterType)
-        # print("Adapter Type Id: ", objItem.AdapterTypeId)
-        # print("AutoSense: ", objItem.AutoSense)
-        # print("Availability: ", objItem.Availability)
-        # print("Caption: ", objItem.Caption)
-        # print("Config Manager Error Code: ", objItem.ConfigManagerErrorCode)
-        # print("Config Manager User Config: ", objItem.ConfigManagerUserConfig)
-        # print("Creation Class Name: ", objItem.CreationClassName)
-        # print("Description: ", objItem.Description)
-        # print("Device ID: ", objItem.DeviceID)
-        # print("Error Cleared: ", objItem.ErrorCleared)
-        # print("Error Description: ", objItem.ErrorDescription)
-        # print("Index: ", objItem.Index)
-        # print("Install Date: ", objItem.InstallDate)
-        # print("Installed: ", objItem.Installed)
-        # print("Last Error Code: ", objItem.LastErrorCode)
-        # print("MAC Address: ", objItem.MACAddress)
-        # print("Manufacturer: ", objItem.Manufacturer)
-        # print("Max Number Controlled: ", objItem.MaxNumberControlled)
-        # print("Max Speed: ", objItem.MaxSpeed)
-        # print("Name: ", objItem.Name)
-        # print("Net Connection ID: ", objItem.NetConnectionID)
-        # print("Net Connection Status: ", objItem.NetConnectionStatus)
-        # z = objItem.NetworkAddresses
-        # if z is None:
-        #    a = 1
-        # else:
-        #    for x in z:
-        #        print("Network Addresses: ", x)
-        # print("Permanent Address: ", objItem.PermanentAddress)
-        # print("PNP Device ID: ", objItem.PNPDeviceID)
-        # z = objItem.PowerManagementCapabilities
-        # if z is None:
-        #    a = 1
-        # else:
-        #    for x in z:
-        #        print("Power Management Capabilities: ", x)
-        # print("Power Management Supported: ", objItem.PowerManagementSupported)
-        # print("Product Name: ", objItem.ProductName)
-        # print("Service Name: ", objItem.ServiceName)
-        # print("Speed: ", objItem.Speed)
-        # print("Status: ", objItem.Status)
-        # print("Status Info: ", objItem.StatusInfo)
-        # print("System Creation Class Name: ", objItem.SystemCreationClassName)
-        # print("System Name: ", objItem.SystemName)
-        # print("Time Of Last Reset: ", objItem.TimeOfLastReset)
+# Import local modules
+from color import p
+import util
+from mgmt_RegistrySettings import RegistrySettings
+from mgmt_EventLog import EventLog
 
 
 class OPEService(win32serviceutil.ServiceFramework):
     _svc_name_ = 'OPEService'
     _svc_display_name_ = 'OPEService'
     _svc_description_ = "Open Prison Education Service"
+
+    _svc_instance = None
+
+    _WAIT_TIMEOUT_MSEC = 250
+
+    # GUID to subscribe to - we wan't USB events
+    GUID_DEVINTERFACE_USB_DEVICE = "{A5DCBF10-6530-11D2-901F-00C04FB951ED}"
+    
+    # Track last time the command was run
+    _COMMAND_NEXT_RUN_TIMES = {}
+
+    # Threads that are currently running
+    _RUNNING_COMMAND_THREADS = {}
+
+    _LOG_INSTANCE = None
+
+    @staticmethod
+    def reload_settings():
+        p("}}ybRunning reload_sttings}}xx")
+        # Reload settings for the service from the registry
+        if OPEService._svc_instance is None:
+            p("}}rbNo OPEService running? - NOT reloading settings!")
+            return False
+        
+        OPEService._svc_instance.log_event("}}mbReloading Settings}}xx", log_level=4)
+
+        #### Grab settings from the registry
+
+        if OPEService._LOG_INSTANCE is not None:
+            # Grab log level
+            value_name = "log_level"
+            value = RegistrySettings.get_reg_value(app="OPEService",
+                value_name=value_name, default=3, value_type="REG_DWORD")
+            old_val = OPEService._LOG_INSTANCE.log_level
+            if old_val != value:
+                OPEService._svc_instance.log_event("}}ybNew Setting " + value_name + ": " + str(value) + "}}xx", log_level=5)
+            OPEService._LOG_INSTANCE.log_level = value
+
+        # Grab how often to run default permissions (registry and ope folder)
+        value_name = "set_default_permissions_timer"
+        value = RegistrySettings.get_reg_value(app="OPEService",
+            value_name=value_name, default=3600, value_type="REG_DWORD")
+        old_val = OPEService._COMMANDS_TO_RUN["set_default_ope_folder_permissions"]["timer"]
+        if old_val != value:
+            OPEService._svc_instance.log_event("}}ybNew Setting " + value_name + ": " + str(value) + "}}xx", log_level=5)
+        OPEService._COMMANDS_TO_RUN["set_default_ope_folder_permissions"]["timer"] = value
+        OPEService._COMMANDS_TO_RUN["set_default_ope_registry_permissions"]["timer"] = value
+
+
+        # How often should we run reload_settings function?
+        value_name = "reload_settings"
+        value = RegistrySettings.get_reg_value(app="OPEService",
+            value_name=value_name, default=30, value_type="REG_DWORD")
+        old_val = OPEService._COMMANDS_TO_RUN["reload_settings"]["timer"]
+        if old_val != value:
+            OPEService._svc_instance.log_event("}}ybNew Setting " + value_name + ": " + str(value) + "}}xx", log_level=5)
+        OPEService._COMMANDS_TO_RUN["reload_settings"]["timer"] = value
+
+        # How often should we run scan_nics
+        value_name = "scan_nics_frequency"
+        value = RegistrySettings.get_reg_value(app="OPEService",
+            value_name=value_name, default=60, value_type="REG_DWORD")
+        old_val = OPEService._COMMANDS_TO_RUN["scan_nics"]["timer"]
+        if old_val != value:
+            OPEService._svc_instance.log_event("}}ybNew Setting " + value_name + ": " + str(value) + "}}xx", log_level=5)
+        OPEService._COMMANDS_TO_RUN["scan_nics"]["timer"] = value
+
+
+        # How often should we run screen_shot
+        value_name = "screen_shot_frequency"
+        value = RegistrySettings.get_reg_value(app="OPEService",
+            value_name=value_name, default="30-300", value_type="REG_SZ")
+        old_val = OPEService._COMMANDS_TO_RUN["screen_shot"]["timer"]
+        if old_val != value:
+            OPEService._svc_instance.log_event("}}ybNew Setting " + value_name + ": " + str(value) + "}}xx", log_level=5)
+        OPEService._COMMANDS_TO_RUN["screen_shot"]["timer"] = value
+
+
+        return True
+
+    # Command + time to run it
+    # -1 - disabled
+    # 0 - once at startup
+    # int - how often to run (in seconds)
+    # "1-10" - String - range for random time to run
+    #
+    # For cmd = %mgmt% will be translated to the path to the mgmt utility
+    # same with %sshot% (sshot shouldn't be needed anymore - run it all through mgmt)
+    _COMMANDS_TO_RUN = {
+        "set_default_ope_folder_permissions": {
+            "cmd": "%mgmt% set_default_ope_folder_permissions",
+            "timer": 3600  # Reset perms every hour
+        },
+        "set_default_ope_registry_permissions": {
+            "cmd": "%mgmt% set_default_ope_registry_permissions",
+            "timer": 3600  # Reset perms every hour
+        },
+        "reload_settings": {
+            # use.__func__ to access static methods function while defining
+            "cmd": reload_settings.__func__,
+            "timer": 30
+        },
+        "scan_nics": {
+            "cmd": "%mgmt% scan_nics",
+            "timer": 60
+        },
+        "screen_shot": {
+            "cmd": "%mgmt% screen_shot",
+            "timer": "30-300"
+            #"timer": "60-600"   # 1 - 10 minutes
+        }      
+        
+    }
+
+    def log_event(self, msg, is_error=False, show_in_event_log=True, log_level=3):
+
+        if OPEService._LOG_INSTANCE is None:
+            OPEService._LOG_INSTANCE = EventLog(os.path.join(util.LOG_FOLDER, 'ope-service.log'),
+                service_name="OPEService")
+        
+        OPEService._LOG_INSTANCE.log_event(msg, is_error, show_in_event_log, log_level)
+
+        return
+        
+    def get_next_command_run_time(self, command_name):
+        # Default to need to run (1 second ago) - any command that hasn't started yet
+        # needs to
+        next_run_time = time.time()-1
+        
+        if command_name in OPEService._COMMAND_NEXT_RUN_TIMES:
+            next_run_time = OPEService._COMMAND_NEXT_RUN_TIMES[command_name]
+        
+        #self.log_event(command_name + " - Next run time: " + str(next_run_time), log_level=4)
+        return next_run_time
+    
+    def reset_next_command_run_time(self, command_name):
+        # Calculate the time for running this command again
+        if command_name in OPEService._COMMANDS_TO_RUN:
+            timer = OPEService._COMMANDS_TO_RUN[command_name]["timer"]
+            
+            # if timer is a string (e.g. 1-10) then split it and make a new random value
+            # in that range
+            if isinstance(timer, str):
+                parts = timer.split("-")
+                if len(parts) == 2:
+                    start_int = int(parts[0])
+                    end_int = int(parts[1])
+                    timer = random.randint(start_int, end_int)
+                    self.log_event("Found random range - new timer = +" + str(timer) + " seconds", log_level=4)
+                else:
+                    # invalid format??
+                    self.log_event("Invalid timer format defaulting to 60 seconds? " +
+                        str(timer) + " / " + command_name, log_level=2)
+                    timer = 60
+            
+            # Calculate next run time
+            if timer != 0:
+                next_run_time = time.time() + timer
+                OPEService._COMMAND_NEXT_RUN_TIMES[command_name] = next_run_time
+                self.log_event("Next run time " + command_name + " (" + str(timer) + " seconds)", log_level=3)
+            else:
+                # Timer = 0 - set next run to -1 (disabled)
+                OPEService._COMMAND_NEXT_RUN_TIMES[command_name] = -1
+                self.log_event("Timer = 0 - skipping re-schedule " + command_name, log_level=4)
+                pass
+        else:
+            # Shouldn't be scheduling a command that doesn't exist?
+            self.log_event("Trying to schedule a bad command to run? " + command_name, log_level=1)
+            
+    
+    def run_command(self, command_name, args=None, force_run=False):
+        # Run the command - if force_run isn't True, it will not run
+        # the command if it isn't time yet (it will ignore the call)
+        time_to_run = False
+        # self.log_event("Run command called: " + command_name)
+        
+        try:
+            # See if it is time to run
+            next_run_time = self.get_next_command_run_time(command_name)
+            # Time left will be how many seconds to wait - anything = or negative means we are that far past time
+            time_left = next_run_time - time.time()
+            if next_run_time < 1:
+                # Don't run commands w a 0 unless they have force_run on
+                pass
+            elif time_left <= 0:
+                # Need to run command
+                time_to_run = True
+
+            if force_run is True:
+                time_to_run = True
+            
+            if time_to_run is True:
+                # Start the thread to run the command
+                thread_args = dict(command_name=command_name, args=args)
+                t = threading.Thread(target=self.run_command_thread, name="OPERunCommandThread", kwargs=thread_args)
+                # , daemon=True)
+                t.start()
+                self.running_command_threads.append(t)
+                
+                # Re-queue the command if needed
+                self.reset_next_command_run_time(command_name)
+            else:
+                # Note - This will generate a LOT of entries - need to collapse/limit this?
+                self.log_event("Not time to run command, ignoring: " + command_name +
+                    " (" + str(time_left) + " seconds left)", show_in_event_log=False, log_level=6)
+                pass
+        except Exception as ex:
+            self.log_event("}}rbUnknown Exception! Trying to run command " + command_name + "}}xx\n" + str(ex), log_level=1)
+    
+    def run_command_thread(self, command_name, args=None):
+        # Run the actual command in a different thread so it doesn't
+        # block the main app
+        
+        cmd = OPEService._COMMANDS_TO_RUN[command_name]["cmd"]
+
+         # Is this a function pointer or a command line string?
+        if callable(cmd):
+            # Function pointer
+            self.log_event("}}mbRunning command (function): " + command_name +
+                " - (" + str(cmd) + " Args: " + str(args) + ")}}xx",
+                log_level=3)
+            try:
+                r = cmd()
+            except Exception as ex:
+                self.log_event("}}rb*** ERROR RUNNING FUNCTION ***}}xx\n" + str(ex))
+                
+        else:
+            # Command string
+            # Replace %sshot% and %mgmt% w valid paths
+            cmd = self.fix_path_variables(cmd)
+
+            self.log_event("}}mbRunning command: " + command_name +
+                " - (" + str(cmd) + " Args: " + str(args) + ")}}xx",
+                log_level=3)
+
+            # Run the command
+            timeout = 20*60 # 20 mins?
+            try:
+                # Log an error if the process doesn't return 0
+                # stdout=PIPE and stderr=STDOUT instead of capture_output=True
+                proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,timeout=timeout, check=False)
+                if (proc.returncode == 0):
+                    self.log_event("}}mnCommand Results: " + command_name + " - Args: " +
+                        str(args) + "}}xx\n" + proc.stdout.decode(), log_level=3)
+                else:
+                    self.log_event("}}rn*** Command Failed!: " + command_name +
+                        "(Return: " + str(proc.returncode) + ") - " + str(args) +
+                        " --- }}xx\n" + proc.stdout.decode(), log_level=2)
+            except Exception as ex:
+                self.log_event("}}rb*** Command Exception! " + command_name + " - " + str(args) + " --- }}xx\n" + \
+                    str(ex), log_level=1)
+        
+        # Have thread remove itself from the list
+        self.running_command_threads.remove(threading.current_thread())
+        # self.log_event("Command Finished: " + command_name + " - " + str(args))
+        
+    
+    def fix_path_variables(self, cmd):
+        #p("util.BINARIES_FOLDER: " + util.BINARIES_FOLDER)
+
+        # Replace variables such as %sshot% and %mgmt% w proper paths
+        mgmt_path = os.path.normpath(os.path.join(util.BINARIES_FOLDER, "mgmt/mgmt.exe"))
+        sshot_path = os.path.normpath(os.path.join(util.BINARIES_FOLDER, "sshot/sshot.exe"))
+        
+        cmd = cmd.replace("%mgmt%", mgmt_path)
+        cmd = cmd.replace("%sshot%", sshot_path)
+
+        self.log_event("fix_path_variable: " + cmd, log_level=4)
+
+        return cmd
+        
     
     def __init__(self, args):
         win32serviceutil.ServiceFramework.__init__(self, args)
-        self.hWaitStop = win32event.CreateEvent(None, 0, 0, None)
-        
-        socket.setdefaulttimeout(60)
-        self.isAlive = True
-        
-        # Setup data folders and set permissions
-        set_ope_permissions()
 
-        # Setup logging
-        logging.basicConfig(
-            filename=os.path.join(LOG_FOLDER, 'ope-service.log'),
-            level=logging.DEBUG,
-            datefmt='%Y-%m-%d %H:%M:%S',
-            format='[ope-sshot] %(asctime)-15s %(levelname)-7.7s %(message)s'
-        )
-        logging.info("service init")
+        if OPEService._svc_instance is not None:
+            p("}}rbAnother instance of OPEService decteced?!?!? FIX}}xx")
+        OPEService._svc_instance = self
+                
 
-        # register for a device notification - we pass our service handle
-        # instead of a window handle.
-        filter = win32gui_struct.PackDEV_BROADCAST_DEVICEINTERFACE(
-                                        GUID_DEVINTERFACE_USB_DEVICE)
-        self.hdn = win32gui.RegisterDeviceNotification(self.ssh, filter,
-                                    win32con.DEVICE_NOTIFY_SERVICE_HANDLE)
+        self.running_command_threads = []
 
-    # Override the base class so we can accept additional events.
+        try:
+            # The signal that "stop" has been hit on the service
+            self.hWaitStop = win32event.CreateEvent(None, 0, 0, None)
+            
+            # Why set socket timeout? Not sure - in all the examples
+            socket.setdefaulttimeout(60)
+            self.isAlive = True
+           
+        except Exception as ex:
+            p("}}rnUnknonw Exception: }}xx\n" + str(ex))
+
+    # Override the base class so we can accept additional device events.
     def GetAcceptedControls(self):
         # say we accept them all.
         rc = win32serviceutil.ServiceFramework.GetAcceptedControls(self)
@@ -402,15 +339,31 @@ class OPEService(win32serviceutil.ServiceFramework):
               | win32service.SERVICE_ACCEPT_SESSIONCHANGE
         return rc
     
-        # All extra events are sent via SvcOtherEx (SvcOther remains as a
+    def ListenForDeviceEvents(self):
+
+        try:
+            # register for a device notification - we pass our service handle
+            # instead of a window handle.
+            filter = win32gui_struct.PackDEV_BROADCAST_DEVICEINTERFACE(
+                                            OPEService.GUID_DEVINTERFACE_USB_DEVICE)
+            self.hdn = win32gui.RegisterDeviceNotification(self.ssh, filter,
+                                        win32con.DEVICE_NOTIFY_SERVICE_HANDLE)
+            
+            self.log_event("Service now listening for device events", log_level=3)
+        except Exception as ex:
+            self.log_event("Unknown Error listening for device events " + str(ex), log_level=1)
+        
+        return
+
+    # All extra events are sent via SvcOtherEx (SvcOther remains as a
     # function taking only the first args for backwards compat)
     def SvcOtherEx(self, control, event_type, data):
         # This is only showing a few of the extra events - see the MSDN
         # docs for "HandlerEx callback" for more info.
         if control == win32service.SERVICE_CONTROL_DEVICEEVENT:
             info = win32gui_struct.UnpackDEV_BROADCAST(data)
-            msg = "A device event occurred: %x - %s" % (event_type, info)
-            scanNics()
+            msg = "A device event occurred (running scan_nics): %x - %s" % (event_type, info)
+            self.run_command("scan_nics", (event_type, info), force_run=True)
         elif control == win32service.SERVICE_CONTROL_HARDWAREPROFILECHANGE:
             msg = "A hardware profile changed: type=%s, data=%s" % (event_type, data)
         elif control == win32service.SERVICE_CONTROL_POWEREVENT:
@@ -423,280 +376,98 @@ class OPEService(win32serviceutil.ServiceFramework):
             msg = "Other event: code=%d, type=%s, data=%s" \
                   % (control, event_type, data)
 
-        logging.info("Event " + msg)
-        servicemanager.LogMsg(
-                servicemanager.EVENTLOG_INFORMATION_TYPE,
-                0xF000,  # generic message
-                (msg, '')
-                )
+        self.log_event("-- Event " + msg, log_level=3)
+        
 
     def SvcStop(self):
-        self.isAlive = False
-        self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
-        win32event.SetEvent(self.hWaitStop)
+        try:
+            self.isAlive = False
+
+            self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
+
+            win32event.SetEvent(self.hWaitStop)
+            self.log_event("Stopping Service", log_level=1)
+        except Exception as ex:
+            p("}}rbUnknown Exception: }}xx\n" + str(ex), log_level=1)
         
     def SvcDoRun(self):
         self.isAlive = True
-        logging.info("Service running")
-        servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE, 
-                              servicemanager.PYS_SERVICE_STARTED, (self._svc_name_, ''))
-        self.main()
-        # win32event.WaitForSingleObject(self.hWaitStop, win32event.INFINITE)
 
-        # Write a stop message.
-        logging.info("Service Stopped")
-        servicemanager.LogMsg(
-                servicemanager.EVENTLOG_INFORMATION_TYPE,
-                servicemanager.PYS_SERVICE_STOPPED,
-                (self._svc_name_, '')
-                )
+        # Make sure we are listening for device insert events
+        self.ListenForDeviceEvents()
 
-    def runScreenShotApp3_old(self):
-        # Get the current security token
-        token = win32security.OpenProcessToken(win32process.GetCurrentProcess(),
-                                               win32security.TOKEN_ALL_ACCESS)
-
-        # Make a copy
-        #token2 = win32security.DuplicateToken(token)
-        token2 = win32security.DuplicateTokenEx(token,
-                                                win32security.SecurityImpersonation,
-                                                win32security.TOKEN_ALL_ACCESS,
-                                                win32security.TokenPrimary)
-
-        # Find the session id - we will grab the console/keyboard
-        #proc_id = win32process.GetCurrentProcessId()
-        #session_id = win32ts.ProcessIdToSessionId(proc_id)
-        session_id = win32ts.WTSGetActiveConsoleSessionId()
-
-        # Make this token target our session
-        win32security.SetTokenInformation(token2, win32security.TokenSessionId, session_id)
-
-    def runScreenShotApp(self):
-        global DISABLE_SSHOT
-        if DISABLE_SSHOT is True:
-            return
-    
-        # Get the session id for the console
-        session_id = win32ts.WTSGetActiveConsoleSessionId()
-        if session_id == 0xffffffff:
-            # User not logged in right now?
-            logging.info("No console user")
-            return None
-
-        # logging.info("Got Console: " + str(session_id))
-
-        # Login to the terminal service to get the user token for the console id
-        svr = win32ts.WTSOpenServer(".")
-        user_token = win32ts.WTSQueryUserToken(session_id)
-        # logging.info("User Token " + str(user_token))
-
-        # Copy the token
-        user_token_copy = win32security.DuplicateTokenEx(user_token,
-                                                win32security.SecurityImpersonation,
-                                                win32security.TOKEN_ALL_ACCESS,
-                                                win32security.TokenPrimary)
-
-        # Put this token in the logged in session
-        win32security.SetTokenInformation(user_token_copy, win32security.TokenSessionId, session_id)
-
-        # Switch to the user
-        # win32security.ImpersonateLoggedOnUser(user_token)
-        # logging.info("Impersonating " + win32api.GetUserName())
-
-        # Run the screen shot app
-        # app_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
-        # cmd = os.path.join(app_path, "sshot\\dist\\sshot.exe")
-        cmd = os.path.join(ROOT_FOLDER, "ope_laptop_binaries\\sshot\\sshot.exe")  # "c:\\programdata\\ope\\bin\\sshot.exe"
-        # cmd = "cmd.exe"
-        logging.info("Running sshot app " + cmd)
-
-        # Use win create process function
-        si = win32process.STARTUPINFO()
-        si.dwFlags = win32process.STARTF_USESHOWWINDOW
-        si.wShowWindow = win32con.SW_NORMAL
-        # si.lpDesktop = "WinSta0\Default"
-        si.lpDesktop = ""
-
-        # Setup envinroment for the user
-        environment = win32profile.CreateEnvironmentBlock(user_token, False)
-
+        # Generic exception catch to protect app
         try:
-            (hProcess, hThread, dwProcessId, dwThreadId) = win32process.CreateProcessAsUser(user_token_copy,
-                                             None,   # AppName (really command line, blank if cmd line supplied)
-                                             "\"" + cmd + "\"",  # Command Line (blank if app supplied)
-                                             None,  # Process Attributes
-                                             None,  # Thread Attributes
-                                             0,  # Inherits Handles
-                                             win32con.NORMAL_PRIORITY_CLASS,  # or win32con.CREATE_NEW_CONSOLE,
-                                             environment,  # Environment
-                                             os.path.dirname(cmd),  # Curr directory
-                                             si)  # Startup info
 
-            # logging.info("Process Started: " + str(dwProcessId))
-            # logging.info(hProcess)
-        except Exception as e:
-            logging.info("Error launching process: " + str(e))
+            self.ReportServiceStatus(win32service.SERVICE_RUNNING)
+            self.log_event("}}mbOPEService running}}xx", log_level=1)
 
-        # logging.info(os.system(cmd))
+            # Do we need a seprate event entry for this?
+            servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE, 
+                                servicemanager.PYS_SERVICE_STARTED, (self._svc_name_, ''))
 
-        # Return us to normal security
-        # win32security.RevertToSelf()
+            self.main()
+            # win32event.WaitForSingleObject(self.hWaitStop, win32event.INFINITE)
 
-        # Cleanup
-        win32ts.WTSCloseServer(svr)
-        user_token.close()
-        user_token_copy.close()
-
-        return
-
-    def runScreenShotApp2_old(self):
-        console_id = win32ts.WTSGetActiveConsoleSessionId()
-        if console_id == 0xffffffff:
-            # User not logged in right now?
-            logging.info("No console user")
-            return None
-
-        dc = None
-
-        logging.info("Got console: " + str(console_id))
-
-        # Get processes running on this console
-        svr = win32ts.WTSOpenServer(".")
-        user_token = win32ts.WTSQueryUserToken(console_id)
-        logging.info("User Token " + str(user_token))
-
-        # hwnd = win32gui.GetDC(win32con.HWND_DESKTOP)  # win32gui.GetDesktopWindow()
-        # dc = ctypes.windll.user32.GetDC(win32con.HWND_DESKTOP)
-        # logging.info("DC before impersonation " + str(dc))
-        # win32gui.ReleaseDC(win32con.HWND_DESKTOP, dc)
-
-        # Switch to the user
-        win32security.ImpersonateLoggedOnUser(user_token)
-        logging.info("Impersonating " + win32api.GetUserName())
-
-        app_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
-        cmd = os.path.join(app_path, "sshot\\dist\\sshot.exe")
-        logging.info("Running sshot app " + cmd)
-        logging.info(os.system(cmd))
-
-        # hwnd = ctypes.windll.user32.GetDC(win32con.HWND_DESKTOP)
-        # logging.info("HWND after impersonation " + str(hwnd))
-        # ps_list = win32ts.WTSEnumerateProcesses(svr, 1, 0)
-        # for ps in ps_list:
-        #    logging.info("PS " + str(ps))
-        win32ts.WTSCloseServer(svr)
-
-        # Revert back to normal user
-        win32security.RevertToSelf()
-        user_token.close()
-
-        return
-
-    def grabScreenShot_old(self):
-        # Grab the screen shot and save it to the logs folder
-        # Get the hwnd for the current desktop window
-        try:
-            hwnd = win32gui.GetDesktopWindow()
-            # hwnd = self.getDesktopHWND()
-            l, t, r, b = win32gui.GetWindowRect(hwnd)
-            w = r - l
-            h = b - t
-            logging.info("SC - HWND " + str(hwnd) + " " + str(w) + "/" + str(h))
-            
-            dc = win32gui.GetDC(win32con.HWND_DESKTOP)
-            logging.info("DC " + str(dc))
-            
-            dcObj = win32ui.CreateDCFromHandle(dc)
-            drawDC = dcObj.CreateCompatibleDC()
-            logging.info("drawDC " + str(drawDC))
-            
-            # cDC = dcObj.CreateCompatibleDC() # Do we need this since it is the desktop dc?
-            bm = win32ui.CreateBitmap()
-            bm.CreateCompatibleBitmap(dcObj, w, h)
-            drawDC.SelectObject(bm)
-            drawDC.BitBlt((0, 0), (w, h), dcObj, (0, 0), win32con.SRCCOPY)
-            
-            bm.SaveBitmapFile(drawDC, os.path.join(SCREEN_SHOTS_FOLDER, "test.jpeg"))
-            
-            win32gui.DeleteObject(bm.GetHandle())
-            drawDC.DeleteDC()
-            dcObj.DeleteDC()
-            win32gui.ReleaseDC(win32con.HWND_DESKTOP, dc)
-            
-            # dc = win32gui.GetWindowDC(hwnd)
-            # logging.info("DC " + str(dc))
-            # dcObj = win32ui.CreateDCFromHandle(dc)
-            # logging.info("dcObj " + str(dcObj))
-            # cDC = dcObj.CreateCompatibleDC()
-            # logging.info("cDC " + str(cDC))
-            # bm = win32ui.CreateBitmap()
-            # logging.info("bm " + str(bm))
-            # bm.CreateCompatibleBitmap(dcObj, w, h)
-            # cDC.SelectObject(bm)
-            # r = cDC.BitBlt((0,0), (w,h), dcObj, (0,0), win32con.SRCCOPY)
-            # logging.info("bitblt " + str(r))
-            # bm.SaveBitmapFile(cDC, os.path.join(SCREEN_SHOTS_FOLDER, "test.jpeg"))
-            # dcObj.DeleteDC()
-            # cDC.DeleteDC()
-            # win32gui.ReleaseDC(hwnd, dc)
-            # win32gui.DeleteObject(bm.GetHandle())
+            # Write a stop message.
+            self.log_event("}}mbOPEService Stopped}}xx", log_level=1)
+            # Do we need a seperate event entry for this?
+            servicemanager.LogMsg(
+                    servicemanager.EVENTLOG_INFORMATION_TYPE,
+                    servicemanager.PYS_SERVICE_STOPPED,
+                    (self._svc_name_, '')
+                    )
         except Exception as ex:
-            logging.info("Error grabbing screenshot: " + str(ex))
+            p("}}rbUnknown Exception: }}xx\n" + str(ex), log_level=1)
+            pass
         
-        # m = ImageGrab.grab()
-
-        # Save the file
-        # p = os.path.join(SCREEN_SHOTS_FOLDER, str(datetime.datetime.now()) + ".png")
-        # im.save(p, optimize=True)
+        try:
+            self.log_event("}}ynCleaning up worker threads: " +
+                str(len(self.running_command_threads)) + "}}xx", log_level=3)
+            for t in self.running_command_threads:
+                try:
+                    t.join(30)
+                except Exception as ex:
+                    self.log_event("}}rnError trying to join thread!}}xx\n" + str(ex), log_level=1)
+        except Exception as ex:
+            self.log_event("}}rb Unknown exception when shutting down threads }}xx\n" + str(ex), log_level=1)
+        self.log_event("}}gnThreads cleaned up.}}xx", log_level=3)
 
     def main(self):
+    
         rc = None
-        nic_scan_time = 0
-        sshot_time = time.time() + 60 # Start by waiting at least a minute before trying
-        # Need this so scanNics doesn't fail
-        pythoncom.CoInitialize()
         
-        while rc != win32event.WAIT_OBJECT_0:
+        # Loop until we get the "Stop" signal from the service
+        while self.isAlive is True and rc != win32event.WAIT_OBJECT_0:
 
-            # Grab screen shots
-            if sshot_time - time.time() < 0:
-                # Reset the sshot_timer = now + 15 secs + up to 10 minutes rand value
-                sshot_time = time.time() + 15 + random.randint(0, 600)
-                # Time to take another screen shot
-                try:
-                    self.runScreenShotApp()
-                except Exception as ex:
-                    logging.error("Error grabbing screen shot: " + str(ex))
-
-            # Scan for inserted NICS
-            if time.time() - nic_scan_time > 60:
-                scanNics()
-                nic_scan_time = time.time()
-
-            # Grab event logs
-
-            # Grab firewall logs
-
-            # Run virus scanner
-
-            # Security checks - is current user the correct user?
-
-            # Is online?
-
-            # block for 24*60*60 seconds and wait for a stop event
-            # it is used for a one-day loop
-            rest = 5  # * 1000  # 24*60*60*1000
-            rc = win32event.WaitForSingleObject(self.hWaitStop, rest)
-            time.sleep(0.5)
-        
-        # Cleanup
-        pythoncom.CoUninitialize()
+            # Decide if it is time to run each command yet.
+            for cmd in OPEService._COMMANDS_TO_RUN:
+                # run_command will check if it is time to run the command yet
+                self.run_command(cmd, force_run=False)
+            
+            # See if "stop" has been signaled, or wait for the timeout if it hasn't
+            timeout_wait = OPEService._WAIT_TIMEOUT_MSEC # in miliseconds
+            # This also pauses the app so we aren't eating up etra CPU
+            rc = win32event.WaitForSingleObject(self.hWaitStop, timeout_wait)
+            # Do we need a time sleep also?
+            # time.sleep(0.5)
+        self.log_event("}}gnExiting main loop}}xx", log_level=3)
         
         
+
 if __name__ == '__main__':
     if len(sys.argv) == 1:
-        servicemanager.Initialize()
-        servicemanager.PrepareToHostSingle(OPEService)
-        servicemanager.StartServiceCtrlDispatcher()
+        try:
+            servicemanager.Initialize()
+            servicemanager.PrepareToHostSingle(OPEService)
+            servicemanager.StartServiceCtrlDispatcher()
+        except Exception as ex:
+            p("}}rbUnknown Exception! }}xx\n" + str(ex))
+            sys.exit(2)
     else:
-        win32serviceutil.HandleCommandLine(OPEService)
+        try:
+            win32serviceutil.HandleCommandLine(OPEService)
+        except Exception as ex:
+            p("}}rbUnknown Exception! }}xx\n" + str(ex))
+            sys.exit(2)
+

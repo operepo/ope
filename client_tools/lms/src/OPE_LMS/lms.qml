@@ -419,11 +419,6 @@ ApplicationWindow {
 
 
 
-
-
-
-
-
     Drawer {
         id: syncDrawer
         y: appPage.y
@@ -431,9 +426,20 @@ ApplicationWindow {
         height: appPage.height
         edge: Qt.RightEdge
         dragMargin: 0
+        interactive: false;
+        position: 0.0;
 
         AppSyncPage {
-            anchors.fill: parent;
+            //anchors.fill: parent;
+            width: parent.width;
+            height: parent.height;
+            //implicitWidth: parent.width;
+            //implicitHeight: parent.height;
+            Layout.preferredHeight: parent.height;
+            Layout.preferredWidth: parent.width;
+            Layout.fillWidth: true;
+            Layout.fillHeight: true;
+
         }
 
     }

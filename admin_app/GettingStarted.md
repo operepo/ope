@@ -2,40 +2,32 @@
 # Getting Started - OPE System
 
 ## Purpose:
-To allow easy access to educational resources to inmates who have no internet connectivity.on_press
+To allow easy deployment of educational resources to inmates who have no internet connectivity. This includes deployment of servers (canvas, smc, gcflearnfree, etc...), tools to help with offline conversion (smc video tools to replace youtube and find/replace for converting curriculum), and last mile delivery on laptop systems that can work fully offline and sync with the education server.
 
 ## System Components:
 The main OPE components includes the following parts:
-- Server Components - Docker containers that run server apps such as Canvas that can be used on your local network
-- Docking Station - A device that inmate laptops can plug into and sync with Canvas
+- Server Components - Docker containers that run server apps such as Canvas that are prison ready and can be used on your local network
+- Docking Station - A device that inmate laptops can plug into and sync with Canvas (custom sync box, or newer style dock on 2nd generation laptops)
 - Inmate Laptops - A laptop device that meets DOC security requirements
 
-# Server Components
+## Further Documentation
+Documentation and videos showing how to setup and use the system are located at:
+https://github.com/operepo/ope_documentation
+and
+https://github.com/operepo/ope_vids
 
-## Initial Setup
-To begin using the OPE server components, you will need to setup your servers on a computer outside the DOC facility
-with internet access.
+The main github repository is at:
+https://github.com/operepo
 
-We recommend a desktop or laptop on campus that has at 8 gig of ram and a terabyte or more of hard disk space.
+[b]These are the repos you will want to check out:[/b]
+- ope_vids - Screen cast instructional videos showing the full setup process
+- ope_documentation - Written documentation
+- ope_server_sync_binaries - The admin app and stuff it needs to run. This is the one you download to get this app and get started
 
-### Install with VirutalBox - Recommended
-The recommended method of setup is to install the OPE system on a windows machine using VirtualBox. This is the easiest
-method and requires the least knowledge of Linux or other system tools.
+[b]Optional Repos for developers - Check these out if you are a developer or want to dig deeper into the system:[/b]
+- ope - The source code for most of the project - use this if you want to write code and help modify the project
+- smc - The source code for the SMC server
+- ope_laptop_binaries - The built copies of software that runs on the laptop when credentialed - automatically pulled in during sync/credential - all source is in the ope repo
+- wsl_wiki - Source code for the WA State Library Re-Entry wiki - Use to build a copy of the wiki that the WA State Library has compiled containing numerous re-entry resources
+- sysprep_scripts - Scripts used to ready a windows 10 desktop ready for sysprep as well as post setup scripts that activate win/office and fog service (auto join active directory)
 
-#### Download VirtualBox
-
-https://www.virtualbox.org/wiki/Downloads
-- Download the link that says "Windows Hosts"
-- Download the Extension Pack - "All Supported Platforms"
-- Install VirtualBox
-- Double click extension pack after installing VirtualBox and follow instructions
-
-#### Download OPE binary file (OVR Package)
-We have a pre-made package that has the parts already installed that you will need. All you need to do is set the
-password and IP address for your network.
-
-TODO - LINK
-
-This package contains:
-- OpenSuse Linux with Docker and other packages installed
-- IPTables rules to properly pass through NAT/TFTP/NFS and other needed protocols

@@ -1,4 +1,4 @@
-# RUN AS PYTHON2
+# RUN AS PYTHON3
 pywin32 
 pypiwin32 (pywintypes, pypiwin32 - had to do python2 -m pip --upgrade --force-reinstall pypiwin32)
 pywin32-ctypes

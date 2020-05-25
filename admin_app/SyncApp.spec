@@ -2,21 +2,21 @@ import os
 from os.path import join
 
 from kivy import kivy_data_dir
-from kivy.deps import sdl2, glew, angle
+from kivy_deps import sdl2, glew, angle
 from kivy.tools.packaging import pyinstaller_hooks as hooks
 from kivy.uix.label import Label
 
 block_cipher = None
-kivy_deps_all = hooks.get_deps_all()
+kivy_deps_all = hooks.get_deps_minimal(video=None, audio=None)  # hooks.get_deps_all()
 kivy_factory_modules = hooks.get_factory_modules()
 
-datas = [('SyncOPEApp.kv', '.'), ('OfflineServerSettings.json', '.'), ('OnlineServerSettings.json', '.'), ('logo_icon.ico', '.'), ('logo_icon.png', '.'), ('GettingStarted.md', '.'), ('version.json', '.'), ('eCasas.json', '.') ]
+datas = [('SyncOPEApp.kv', '.'), ('OfflineServerSettings.json', '.'), ('OnlineServerSettings.json', '.'), ('logo_icon.ico', '.'), ('logo_icon.png', '.'), ('GettingStarted.md', '.'), ('version.json', '.'), ('eCasas.json', '.'), ('ReleaseNotes.md', '.') ]
 
 # list of modules to exclude from analysis
 excludes = ['Tkinter', '_tkinter', 'twisted', 'pygments']
 
 # list of hiddenimports
-hiddenimports = kivy_deps_all['hiddenimports'] + kivy_factory_modules
+hiddenimports = kivy_deps_all['hiddenimports'] + kivy_factory_modules + ['pkg_resources.py2_warn']
 
 # binary data
 sdl2_bin_tocs = [Tree(p) for p in sdl2.dep_bins]
