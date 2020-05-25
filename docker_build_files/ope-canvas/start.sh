@@ -84,7 +84,8 @@ sed -i -- "s/\:\:int4\[\]/\:\:int8\[\]/g" app/models/assignment.rb
 find . -name "*.css" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \;
 
 # Replace mathjax links to pull from the local server
-find ./app/public/javascripts/ -name "*.js" -type f -exec sed -i 's/\/\/cdnjs.cloudflare.com//' {} \;
+find /usr/src/app/public/javascripts/ -name "*.js" -type f -exec sed -i 's/\/\/cdnjs.cloudflare.com//' {} \;
+find /usr/src/app/public/dist/ -name "*.js" -type f -exec sed -i 's/\/\/cdnjs.cloudflare.com//' {} \;
 
 
 # Javascript - uses float to store ints, so max is 53 bits instead of 64?
