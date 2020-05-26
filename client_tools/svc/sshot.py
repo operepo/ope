@@ -16,6 +16,7 @@ import getpass
 import datetime
 import ctypes
 import traceback
+from io import StringIO, BytesIO
 
 import util
 from mgmt_EventLog import EventLog
@@ -110,11 +111,19 @@ def grabScreenShot():
         LOGGER.log_event("Saving sshot (" + str(curr_user) + ") " + f_path, log_level=3)
 
         # Convert to an image and save
-        # bm.SaveBitmapFile(drawDC, f_path)
+        #bm.SaveBitmapFile(drawDC, f_path+".bmp")
         bmInfo = bm.GetInfo()
+        #print("BM Info", bmInfo)
         bmBits = bm.GetBitmapBits(True)
-        sshot_img = Image.frombuffer('RGB', (bmInfo['bmWidth'], bmInfo['bmHeight']),
-            bmBits, 'raw', 'BGRX', 0, 1)
+        #sshot_img = Image.frombuffer('RGB', (bmInfo['bmWidth'], bmInfo['bmHeight']),
+        #    bmBits, 'raw', 'BGRX', 0, 1)
+        src_mode = "BGRX"
+        # Handle 16 bits per pixel screens
+        if bmInfo['bmBitsPixel'] == 16:
+            src_mode = "BGR;16"
+        sshot_img = Image.frombytes('RGB', (bmInfo['bmWidth'], bmInfo['bmHeight']),
+            bmBits, 'raw', src_mode, 0, 1)
+        #sshot_img = Image.open(BytesIO(bmBits))
         
         size_multiplier = .5
         w = int(sshot_img.size[0] * size_multiplier)
@@ -158,7 +167,8 @@ def grabScreenShot():
        
     except Exception as ex:
         LOGGER.log_event("Error grabbing screen shot (" + str(curr_user) + "): " + str(ex), log_level=1)
-        #err_str = traceback.format_exc()
+        err_str = traceback.format_exc()
+        print(err_str)
         #LOGGER.log_event(err_str, log_level=1)
         return False
     return True
