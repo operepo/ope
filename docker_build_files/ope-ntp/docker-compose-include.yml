@@ -1,0 +1,17 @@
+    ope-ntp:
+        build: ./ope-ntp
+        image: operepo/ope-ntp:release
+        container_name: ope-ntp
+        restart: always
+        network_mode: <NETWORK_MODE>
+        cap_add:
+            - SYS_NICE
+            - SYS_RESOURCE
+            - SYS_TIME
+        ports:
+            - "123:123/udp"
+        env_file: .env
+        #depends_on:
+        #    - ope-router
+        environment:
+            - NTP_SERVERS=${NTP_SERVERS}
