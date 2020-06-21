@@ -22,25 +22,39 @@ winsys_logger = logging.getLogger("winsys")
 winsys_logger.setLevel(50)  # CRITIAL = 50
 
 from color import p
-
+import util
 
 class RegistrySettings:
-
-    # All student accounts get added to this group
-    STUDENTS_GROUP = "OPEStudents"
+    # Default registry path where settings are stored    
     ROOT_PATH = "HKLM\\Software\\OPE"
 
+    @staticmethod
+    def is_debug():
+        val = RegistrySettings.get_reg_value(value_name="debug", default="off")
+        if val == "on":
+            return True
+        
+        return False
 
     @staticmethod
     def test_reg():
-        print("Student: ", RegistrySettings.get_reg_value(value_name="laptop_student_name", default=""))
-        print("Admin: ", RegistrySettings.get_reg_value(app="OPEService", value_name="laptop_admin_name", default="administrator"))
+        canvas_access_token = "2043582439852400"
+        canvas_url = "https://canvas.ed"
+        smc_url = "https://smc.ed"
+        student_user = "s777777"
+        student_name = "Bob Smith"
+        admin_user = "huskers"
+        
+        RegistrySettings.store_credential_info(canvas_access_token, canvas_url, smc_url,
+            student_user, student_name, admin_user)
+        p("Student: ", RegistrySettings.get_reg_value(value_name="student_user", default=""))
+        p("Admin: ", RegistrySettings.get_reg_value(app="OPEService", value_name="admin_user", default="administrator"))
 
-        RegistrySettings.set_reg_value(app="TESTOPE", value_name="TestValue", value="slkfjsdl")
+        #RegistrySettings.set_reg_value(app="TESTOPE", value_name="TestValue", value="slkfjsdl")
 
         log_level = RegistrySettings.get_reg_value(app="OPEService", value_name="log_level", default=10,
             value_type="REG_DWORD")
-        print("Log Level: ", log_level)
+        p("Log Level: ", log_level)
 
 
         # key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, "Software\OPE", 0,
@@ -70,6 +84,56 @@ class RegistrySettings:
         #reg.create()
 
     @staticmethod
+    def add_mgmt_utility_to_path():
+        # Add the mgmt utility path environment variable
+
+        # System env path
+        # HLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment
+        # User path
+        # HKEY_CURRENT_USER\Environment\Path
+        # Application Path
+        # HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\
+
+        # Grab the system path variable
+
+        sys_path = RegistrySettings.get_reg_value(root="HKLM\\SYSTEM\\CurrentControlSet",
+            app="Control", subkey="Session Manager\\Environment",
+            value_name="Path", default="")
+        
+        if sys_path == "":
+            p("}}rbUnable to grab System path variable!}}xx")
+            return False
+        
+        mgmt_path = "%programdata%\\ope\\Services\\mgmt\\"
+        if not mgmt_path in sys_path:
+            sys_path += ";" + mgmt_path
+        
+        #p("}}ynNew Path: " + sys_path + "}}xx")
+
+        RegistrySettings.set_reg_value(root="HKLM\\SYSTEM\\CurrentControlSet",
+            app="Control", subkey="Session Manager\\Environment",
+            value_name="Path", value=sys_path)
+        
+        p("}}gnAdded to system path.")
+        p("}}gbYou will need to open a new command prompt for the change to take effect.}}xx")
+    
+        return True
+
+    @staticmethod
+    def remove_key(key_path):
+        try:
+            # Open the key
+            key = registry.registry(key_path, 
+                access=REGISTRY_ACCESS.KEY_READ|REGISTRY_ACCESS.KEY_WOW64_64KEY)
+            key.delete()
+        except Exception as ex:
+            p("}}rnError - couldn't remove registry key }}xx\n" + str(key_path) + "\n" + \
+                str(ex), debug_level=1)
+            return False
+        
+        return True
+
+    @staticmethod
     def get_reg_value(root="", app="", subkey="", value_name="", default="",
         value_type=""):
         ret = default
@@ -81,7 +145,7 @@ class RegistrySettings:
         path = os.path.join(root, app, subkey).replace("\\\\", "\\")
         # Make sure we don't have a tailing \\
         path = path.strip("\\")
-        # print("path: " + path)
+        # p("path: " + path)
 
         try:
             # Open the key
@@ -91,7 +155,7 @@ class RegistrySettings:
             key.create()
             
             val = key.get_value(value_name)
-            # print("Got Val: " + str(val))
+            # p("Got Val: " + str(val))
 
             if value_type == "REG_SZ":
                 ret = str(val)
@@ -118,39 +182,72 @@ class RegistrySettings:
         path = os.path.join(root, app, subkey).replace("\\\\", "\\")
         # Make sure we don't have a tailing \\
         path = path.strip("\\")
-        # print("path: " + path)
+        # p("path: " + path)
+
+        reg_type = None
 
         try:
             # Convert the value to the correct type
             if value_type == "REG_SZ":
+                #p("}}ynSetting To String}}xx")
                 value = str(value)
+                reg_type = registry.REGISTRY_VALUE_TYPE.REG_SZ
             elif value_type == "REG_DWORD":
                 value = int(value)
+                reg_type = registry.REGISTRY_VALUE_TYPE.REG_DWORD
             
             # Open the key
             key = registry.registry(path, 
                 access=REGISTRY_ACCESS.KEY_ALL_ACCESS|REGISTRY_ACCESS.KEY_WOW64_64KEY)
             # Make sure the key exists
             key.create()
-            key[value_name] = value
+            key.set_value(value_name, value, reg_type)
+            #key[value_name] = value
                         
             ret = True
         except Exception as ex:
-            p("}}rbException! - Error setting registry value!}}xx\n    (" +
+            p("}}rbException! - Error setting registry value!}}xx\n\t(" +
                 path + ":" + value_name + "=" + str(value)+")")
-            p(str(ex))
+            p("\t" + str(ex))
             pass
 
         return ret
 
     @staticmethod
+    def store_credential_info(canvas_access_token, canvas_url, smc_url,
+            student_user, student_name, admin_user):
+        # Store credential info in the proper places
+        RegistrySettings.set_reg_value(app="", value_name="canvas_access_token",
+            value=canvas_access_token, value_type="REG_SZ")
+        RegistrySettings.set_reg_value(app="OPELMS\student", value_name="canvas_access_token",
+            value=canvas_access_token, value_type="REG_SZ")
+
+        RegistrySettings.set_reg_value(app="", value_name="canvas_url", value=canvas_url)
+        RegistrySettings.set_reg_value(app="OPELMS\student", value_name="canvas_url",
+            value=canvas_url)
+
+        RegistrySettings.set_reg_value(app="", value_name="smc_url", value=smc_url)
+        RegistrySettings.set_reg_value(app="OPELMS\student", value_name="smc_url",
+            value=smc_url)
+
+        RegistrySettings.set_reg_value(app="", value_name="student_user", value=student_user)
+        RegistrySettings.set_reg_value(app="OPELMS\student", value_name="user_name",
+            value=student_user)
+
+        RegistrySettings.set_reg_value(app="", value_name="student_name", value=student_name)
+
+        RegistrySettings.set_reg_value(app="OPEService", value_name="admin_user", value=admin_user)
+
+        return True
+
+    @staticmethod
     def set_default_ope_registry_permissions(student_user = "", laptop_admin_user = ""):
         try:
             if student_user == "":
-                student_user = RegistrySettings.get_reg_value(value_name="laptop_student_name", default="")
+                student_user = RegistrySettings.get_reg_value(value_name="student_user", default="")
 
             if laptop_admin_user == "":
-                laptop_admin_user = RegistrySettings.get_reg_value(app="OPEService", value_name="laptop_admin_name", default="administrator")
+                laptop_admin_user = RegistrySettings.get_reg_value(app="OPEService", value_name="admin_user", default="administrator")
             
             if laptop_admin_user == "":
                 laptop_admin_user = None
@@ -251,11 +348,108 @@ class RegistrySettings:
                     s.dacl.append((student_user, registry.Registry.ACCESS["W"], "ALLOW"))
                 # s.dacl.dump()
 
-            p("}}gnRegistry Permissions Set}}xx")
+            p("}}gnRegistry Permissions Set}}xx", log_level=3)
         except Exception as ex:
             p("}}rbUnknown Exception! }}xx\n" + str(ex))
-            traceback.print_exc()
             return False
+        return True
+
+    @staticmethod
+    def set_screen_shot_timer():
+        # Set how often to reload scan nics
+        param = util.get_param(2)
+        if param == "":
+            p("}}rnInvalid frequency Specified}}xx")
+            return False
+        
+        frequency = "30-300"
+        try:
+            frequency = str(param)
+        except:
+            # Not an int? Set it as a string
+            frequency = param
+            #p("}}rnInvalid frequency Specified}}xx")
+            #return False
+
+        # Set the registry setting
+        RegistrySettings.set_reg_value(app="OPEService", value_name="screen_shot_timer",
+            value=frequency)
+        return True
+
+    @staticmethod
+    def set_log_level():
+        # Set the log level parameter in the registry
+        param = util.get_param(2)
+        if param == "":
+            p("}}rnInvalid Log Level Specified}}xx")
+            return False
+        
+        log_level = 3
+        try:
+            log_level = int(param)
+        except:
+            p("}}rnInvalid Log Level Specified}}xx")
+            return False
+
+        # Set the registry setting
+        RegistrySettings.set_reg_value(app="OPEService", value_name="log_level", value=log_level)
+        return True
+
+    @staticmethod
+    def set_default_permissions_timer():
+        # Set how often to reset permissions in the registry
+        param = util.get_param(2)
+        if param == "":
+            p("}}rnInvalid frequency Specified}}xx")
+            return False
+        
+        frequency = 3600
+        try:
+            frequency = int(param)
+        except:
+            p("}}rnInvalid frequency Specified}}xx")
+            return False
+
+        # Set the registry setting
+        RegistrySettings.set_reg_value(app="OPEService", value_name="set_default_permissions_timer", value=frequency)
+        return True
+
+    @staticmethod
+    def set_reload_settings_timer():
+        # Set how often to reload settings from the registry
+        param = util.get_param(2)
+        if param == "":
+            p("}}rnInvalid frequency Specified}}xx")
+            return False
+        
+        frequency = 30
+        try:
+            frequency = int(param)
+        except:
+            p("}}rnInvalid frequency Specified}}xx")
+            return False
+
+        # Set the registry setting
+        RegistrySettings.set_reg_value(app="OPEService", value_name="reload_settings_timer", value=frequency)
+        return True
+
+    @staticmethod
+    def set_scan_nics_timer():
+        # Set how often to reload scan nics
+        param = util.get_param(2)
+        if param == "":
+            p("}}rnInvalid frequency Specified}}xx")
+            return False
+        
+        frequency = 60
+        try:
+            frequency = int(param)
+        except:
+            p("}}rnInvalid frequency Specified}}xx")
+            return False
+
+        # Set the registry setting
+        RegistrySettings.set_reg_value(app="OPEService", value_name="scan_nics_timer", value=frequency)
         return True
 
 

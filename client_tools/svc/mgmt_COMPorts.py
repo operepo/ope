@@ -1,4 +1,7 @@
 
+from color import p
+
+from mgmt_Computer import Computer
 
 
 class COMPorts:
@@ -7,33 +10,33 @@ class COMPorts:
     def scan_com_ports():
         # TODO - Need Debug
         # Use WMI to pull a list of com ports
-        w = wmi.WMI()
+        w = Computer.get_wmi_connection()
 
-        logging.info("Scanning USB/Serial COM Ports...")
+        p("Scanning USB/Serial COM Ports...")
 
         # Scan for PNP Devices that are ports
         for port in w.Win32_PNPEntity(PNPClass="Ports"):
-            logging.info("PNP COM Port Found: " + str(port.name))
+            p("PNP COM Port Found: " + str(port.name))
             if port.Status == "OK":
                 # Port is on and working - turn it off
-                logging.info("COM Port " + str(port.Caption) + " is on - disabling...")
+                p("COM Port " + str(port.Caption) + " is on - disabling...")
                 try:
                     port.Disable()
                 except Exception as ex:
-                    logging.info("ERROR!!! " + str(ex))
+                    p("ERROR!!! " + str(ex))
             else:
-                logging.info("COM Port " + str(port.Caption) + " is off...")
+                p("COM Port " + str(port.Caption) + " is off...")
 
         # Scan for Serial devices (may not be PNP)
         for port in w.Win32_SerialPort():
             print("Serial Port Found: " + str(port.name))
             if port.Status == "OK":
-                logging.info("Serial Port " + str(port.Caption) + " is on - disabling...")
+                p("Serial Port " + str(port.Caption) + " is on - disabling...")
                 try:
                     port.Disable()
                 except Exception as ex:
-                    logging.info("ERROR!!! " + str(ex))
+                    p("ERROR!!! " + str(ex))
             else:
-                logging.info("Serial Port " + str(port.Caption) + " is off...")
+                p("Serial Port " + str(port.Caption) + " is off...")
 
         return

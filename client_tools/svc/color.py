@@ -1,9 +1,35 @@
+#import logging
+from mgmt_EventLog import EventLog
+global LOGGER
+LOGGER = None  # Grab it later - give it a chance to get initialized
+
+import re
 import sys
 from colorama import init  # , Fore, Back, Style
 # strip=False - so that colors work in pycharm console
 init(strip=False)
 
-DEBUG_LEVEL = 0
+LOG_LEVEL = 3
+
+def set_log_level(level=3):
+    global LOG_LEVEL
+    LOG_LEVEL = level
+    if LOGGER:
+        LOGGER.log_level = LOG_LEVEL
+
+def get_log_level():
+    global LOG_LEVEL
+    return LOG_LEVEL
+
+def init_logger():
+    global LOGGER
+    if LOGGER is None:
+        LOGGER = EventLog.get_current_instance()
+        # if LOGGER is None:
+        #     print("Unable to get logger instance!")
+        # else:
+        #     print("Logger: " + str(LOGGER.log_file))
+
 
 CSI = "\x1b["
 CLEAR_SCREEN = CSI + "2J"
@@ -168,7 +194,26 @@ def set_term_pos(x, y, out=sys.stdout):
 def tr(txt):
     return translate_color_codes(txt)
 
-def strip_color_codes(txt):
+def strip_ansii_codes(txt):
+    # Rip out any ansii colors (already translated from }}??)
+    ANSI_CSI_RE = re.compile('\001?\033\\[((?:\\d|;)*)([a-zA-Z])\002?')
+    out_text = ""
+    cursor = 0
+    found_matches = False
+    for match in ANSI_CSI_RE.finditer(txt):
+        found_matches = True
+        start, end = match.span()
+        if cursor < start:
+            out_text += txt[cursor: start]
+        cursor = end
+
+    # No matches? return original text
+    if found_matches is not True:
+        out_text = txt
+
+    return out_text
+
+def strip_color_codes(txt, strip_ansii=True):
     global color_codes
 
     for c in color_codes:
@@ -194,6 +239,9 @@ def strip_color_codes(txt):
 
         i = txt.find("{{", i+1)
 
+    if strip_ansii:
+        # Also strip ansii codes too
+        txt = strip_ansii_codes(txt)
     return txt
 
 def translate_color_codes(txt):
@@ -252,25 +300,42 @@ def translate_color_codes_to_markup(txt):
     return txt
 
 
-def p(txt="", end=True, out=None, debug_level=0):
+def p(txt="", end=True, out=None, debug_level=0, log_level=0,
+    is_error=False, from_logger=False):
+    global LOGGER, LOG_LEVEL
     # Print using the translate colors code
 
-    global DEBUG_LEVEL
-    if debug_level > DEBUG_LEVEL:
-        # Skip printing anything that is a higher level then our current debug setting
-        return
+    # Compatibility - take log_level OR debug_level - whichever is higher
+    if debug_level > log_level:
+        log_level = debug_level
 
-    if out is None:
-        out = sys.stdout
+    # Make sure the string is a string
+    txt = str(txt)
 
-    txt = translate_color_codes(txt)
-    # Add a line feed when appropriate
-    if end is True:
-        txt += "\r\n"
-    out.write(txt)
+    logger_txt = strip_color_codes(txt)
+
+    if log_level <= LOG_LEVEL:
+        # Only print if logging is <= to LOG_LEVEL
+
+        if out is None:
+            out = sys.stdout
+
+        txt = translate_color_codes(txt)
+        # Add a line feed when appropriate
+        if end is True:
+            txt += "\r\n"
+        out.write(txt)
+        
+        out.flush()
+
+    # Make sure the logger has a chance to init
+    init_logger()
+
+    # If we have a logger instance, send it off to that too
+    if LOGGER and from_logger is not True:
+        LOGGER.log_level = LOG_LEVEL
+        LOGGER.log_event(logger_txt, log_level=log_level, is_error=is_error)
     
-    out.flush()
-
 
 if __name__ == "__main__":
     # Print out test stuff

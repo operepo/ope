@@ -5,15 +5,26 @@ import shutil
 project_name = "mgmt"
 main_file = "mgmt.py"
 
+# If you get corrupted errors, use this
+clean = " "  # " --clean "
+remove_spec_file = False
 
 spec_file = project_name + ".spec"
 
 # Don't wan't old spec files right now.
-if os.path.exists(spec_file):
+if remove_spec_file and os.path.exists(spec_file):
     os.unlink(spec_file)
+
+# options = [ ('v', None, 'OPTION'), ('W ignore', None, 'OPTION') ]
+# Put after exe=exe(...a.scripts, options)
 #--noconsole
-build_params = "python -m PyInstaller --hidden-import sip --hidden-import win32timezone --noupx " + \
-    " --add-binary logo_icon.ico;. --noconfirm --icon logo_icon.ico "
+data_files = " --add-data logo_icon.ico;. --add-data rc;rc --add-data mgmt.version;. " + \
+    " --add-data install_service.cmd;. "
+hidden_imports = "--hidden-import sip --hidden-import win32timezone"
+build_params = "python -m PyInstaller " + clean + \
+    hidden_imports + \
+    " --noupx " + \
+    data_files + " --noconfirm --icon logo_icon.ico "
 # == Build the app for windows using pyinstaller ==
 
 if os.path.exists(spec_file):

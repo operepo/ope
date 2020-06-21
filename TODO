@@ -4,10 +4,11 @@ PASSWORD LENGTH
 
 SYNC APP
 - Download button on fog images - not working, jumping to Done! right away.
+- Full down/up of apps after pw or ip change
 
 Credential App
 - Hangs on reset policy (reported by M. Huse)
-- Full down/up of apps after pw or ip change
+
 
 
 
@@ -32,7 +33,7 @@ DOCKER
     *** Also - cleanup/prune options should free up space
     
 
-- OPE Router Files - Backup - script to reset mac addresses not running on startup?
+
 - Assignments not always pushing? - Bugs w canvas upload fixed, forcing qtnetwork to be online always (not autodetect), need better messages on fail.
 - EXE, DLL, ?? files are all coming in as .exe???
 

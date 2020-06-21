@@ -14,6 +14,8 @@ import util
 
 from color import p
 
+from mgmt_ProcessManagement import ProcessManagement
+
 
 class FolderPermissions:
     # Class to deal with folder permissions
@@ -22,39 +24,6 @@ class FolderPermissions:
     GROUP_ADMINISTRATORS = None
     CURRENT_USER = None
     SYSTEM_USER = None
-
-    @staticmethod
-    def is_admin():
-        ret = False
-        r = ctypes.windll.shell32.IsUserAnAdmin()
-        if r == 1:
-            ret = True
-        
-        return ret
-
-    @staticmethod
-    def is_in_admin_group():
-        # Get the list of groups for this user - if not in admin, return false
-        ret = False
-        
-        try:
-            server_name = None  # None for local machine
-            user_name = win32api.GetUserName()
-            if user_name == "SYSTEM":
-                # SYSTEM user counts!
-                return True
-
-            # p("}}ynChecking Admin Membership for: " + user_name)
-            groups = win32net.NetUserGetLocalGroups(server_name, user_name, 0)
-
-            for g in groups:
-                if g.lower() == "administrators":
-                    ret = True
-        except Exception as ex:
-            p("}}rnERROR - Unknown Error! \n" + str(ex))
-            ret = False
-
-        return ret
     
     @staticmethod
     def init_win_user_accounts():
@@ -91,9 +60,9 @@ class FolderPermissions:
 
     @staticmethod
     def show_cacls(filename):
-        print("\n\n")    
+        p("\n\n")    
         for line in os.popen("cacls %s" % filename).read().splitlines():
-            print(line)
+            p(line)
     
     @staticmethod
     def set_ope_folder_permissions(folder_path, everyone_rights="r", walk_files=True):
@@ -213,12 +182,177 @@ class FolderPermissions:
         
         for f in app_folders.keys():
             everyone_rights = app_folders[f]
-            p("}}gnSetting permissions on " + f + " (rights for everyone " + everyone_rights + ")}}xx")
+            p("}}gnSetting permissions on " + f + " (rights for everyone " + \
+                everyone_rights + ")}}xx", log_level=5)
             FolderPermissions.set_ope_folder_permissions(f, everyone_rights=everyone_rights)
 
-        return
+        return True
+    
+    @staticmethod
+    def lock_boot_settings():
+        ret = True
+
+        # Get the default from the boot manager
+        cmd = "%SystemRoot%\\System32\\bcdedit.exe"
+        cmd = os.path.expandvars(cmd)
+        returncode, output = ProcessManagement.run_cmd(cmd,
+            attempts=3, require_return_code=0)
+        #p(str(returncode) + " - " + output)
+        if returncode == -2:
+            # Error running command?
+            p("}}rbError - get boot options!}}xx\n" + output)
+            return False
+        
+        # Is the boot manager listed as {current} or {default}
+        boot_identifier = "{current}"
+        if "{default}" in output:
+            boot_identifier = "{default}"
+        
+        p("}}gnBoot ID: " + boot_identifier + "}}xx", log_level=5)
+
+        # https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/%SystemRoot%\\system32\\bcdedit.exe--set
+
+        # Lock down boot settings
+        # (cmd, required_return_code)
+        cmds = [
+            ("%SystemRoot%\\System32\\bcdedit.exe /timeout 0", 0),
+            
+            ("%SystemRoot%\\system32\\bcdedit.exe /set {bootmgr} displaybootmenu no", 0),
+            # Use standard policy - no F8 key
+            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " bootmenupolicy Standard", 0),
+            # Try to boot normally every time - helps to not show recovery options
+            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " bootstatuspolicy ignoreallfailures", 0),
+            # Disable recovery
+            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " recoveryenabled off", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set {globalsettings} recoveryenabled off", 0),
+            # Disable Advanced Options
+            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " advancedoptions off", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set {globalsettings} advancedoptions off", 0),
+
+            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " bootems off", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " optionsedit off", 0),
+
+            # disable Win Recovery Environment (WinRE)
+            ("%SystemRoot%\\system32\\reagentc /disable", None),
+
+            ("%SystemRoot%\\system32\\bcdedit.exe /deletevalue " + boot_identifier + " safeboot ", None),
+
+        ]
+
+        for tcmd in cmds:
+            cmd = tcmd[0]
+            require_return_code = tcmd[1]
+            cmd = os.path.expandvars(cmd)
+            returncode, output = ProcessManagement.run_cmd(cmd,
+                attempts=3, require_return_code=require_return_code)
+            p(str(returncode) + " - " + output, log_level=5)
+            if returncode == -2:
+                # Error running command?
+                p("}}rbError - set boot options!}}xx\n" + output)
+                return False
+
+
+        # Ensure that RE is disabled
+        # Get the default from the boot manager
+        cmd = "%SystemRoot%\\system32\\reagentc /info"
+        cmd = os.path.expandvars(cmd)
+        returncode, output = ProcessManagement.run_cmd(cmd,
+            attempts=3, require_return_code=0)
+        p(str(returncode) + " - " + output, log_level=5)
+        if returncode == -2:
+            # Error running command?
+            p("}}rbError - get reagentc /info!}}xx\n" + output)
+            return False
+        
+        if "Disabled" not in output:
+            p("}}rbERROR - Windows Recovery Environment NOT disabled!}}xx")
+            return False
+        else:
+            p("}}gnWinRE Disabled!}}xx", log_level=3)
+
+        # ALT INFO - shouldn't need these w current commands
+        # rem Option to kill safemode w bluescreen/error
+        # rem HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\SafeBoot
+        # rem rename "minimal" and "Network" to cause blue screens
+        # rem OK IF THERE ARE FAILURES ON SECOND RUNS!
+        # rem echo Modifying Registry to break safeboot
+        # rem reg copy HKLM\System\CurrentControlSet\Control\SafeBoot\Minimal HKLM\System\CurrentControlSet\Control\SafeBoot\MinimalX /s /f
+        # rem reg delete HKLM\System\CurrentControlSet\Control\SafeBoot\Minimal /f
+
+        # rem reg copy HKLM\System\CurrentControlSet\Control\SafeBoot\Network HKLM\System\CurrentControlSet\Control\SafeBoot\NetworkX /s /f
+        # rem reg delete HKLM\System\CurrentControlSet\Control\SafeBoot\Network /f
+
+        # rem todo - return proper error
+        # rem return 0 for now so we don't blow up credential process
+
+
+
+        return ret
+
+    
+    @staticmethod
+    def unlock_boot_settings():
+        # Get the default from the boot manager
+        cmd = "%SystemRoot%\\System32\\bcdedit.exe"
+        cmd = os.path.expandvars(cmd)
+        returncode, output = ProcessManagement.run_cmd(cmd,
+            attempts=3, require_return_code=0)
+        #p(str(returncode) + " - " + output)
+        if returncode == -2:
+            # Error running command?
+            p("}}rbError - get boot options!}}xx\n" + output)
+            return False
+        
+        # Is the boot manager listed as {current} or {default}
+        boot_identifier = "{current}"
+        if "{default}" in output:
+            boot_identifier = "{default}"
+
+        p("}}gnBoot ID: " + boot_identifier + "}}xx", log_level=4)
+
+        cmds = [
+            ("%SystemRoot%\\System32\\bcdedit.exe /timeout 30", 0),
+            
+            ("%SystemRoot%\\system32\\bcdedit.exe /set {bootmgr} displaybootmenu yes", 0),
+            # Use standard policy - no F8 key
+            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " bootmenupolicy Standard", 0),
+            # Try to boot normally every time - helps to not show recovery options
+            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " bootstatuspolicy IgnoreShutdownFailures", 0),
+            # Disable recovery
+            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " recoveryenabled on", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set {globalsettings} recoveryenabled on", 0),
+            # Disable Advanced Options
+            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " advancedoptions on", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set {globalsettings} advancedoptions on", 0),
+
+            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " bootems on", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " optionsedit on", 0),
+
+            # enable Win Recovery Environment (WinRE)
+            ("%SystemRoot%\\system32\\reagentc /enable", None),
+            # issues enabling?
+            # https://www.terabyteunlimited.com/kb/article.php?id=587
+            # bcdboot c:\windows /v
+
+            #"%SystemRoot%\\system32\\bcdedit.exe /deletevalue " + boot_identifier + " safeboot ",
+
+        ]
+
+        for tcmd in cmds:
+            cmd = tcmd[0]
+            require_return_code = tcmd[1]
+            cmd = os.path.expandvars(cmd)
+            returncode, output = ProcessManagement.run_cmd(cmd,
+                attempts=3, require_return_code=require_return_code)
+            p(str(returncode) + " - " + output)
+            if returncode == -2:
+                # Error running command?
+                p("}}rbError - set boot options!}}xx\n" + output)
+                return False
+        
+        return False
       
 
 if __name__ == "__main__":
-    print("Testing:")
-    print(FolderPermissions.is_in_admin_group())
+    p("Testing:")
+    p(FolderPermissions.is_in_admin_group())

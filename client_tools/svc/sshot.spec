@@ -5,7 +5,7 @@ block_cipher = None
 
 a = Analysis(['sshot.py'],
              pathex=['C:\\Users\\ray\\Desktop\\git_projects\\ope\\ope\\client_tools\\svc'],
-             binaries=[('logo_icon.ico', '.')],
+             binaries=[('logo_icon.ico', '.'), ('STENCIL.TTF', '.')],
              datas=[],
              hiddenimports=['sip', 'pkg_resources.py2_warn'],
              hookspath=[],
