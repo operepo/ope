@@ -22,6 +22,8 @@
             - ../volumes/smc/sessions:/home/www-data/smc/web2py/applications/smc/sessions:rw
             # Dev mounts, mount the whole thing from outside the container - turn this off for production servers
             #- ../volumes/smc/src:/home/www-data/smc/web2py/applications/smc:rw
+            # Expose ca.crt file for other services
+            - ../volumes/gateway/certs:/home/www-data/smc/web2py/applications/smc/static/certs:rw
         depends_on:
             - ope-gateway
             - ope-dns
