@@ -41,14 +41,14 @@ class RegistrySettings:
         canvas_access_token = "2043582439852400"
         canvas_url = "https://canvas.ed"
         smc_url = "https://smc.ed"
-        student_user = "s777777"
+        student_user = "777777"
         student_name = "Bob Smith"
         admin_user = "huskers"
         
         RegistrySettings.store_credential_info(canvas_access_token, canvas_url, smc_url,
             student_user, student_name, admin_user)
-        p("Student: ", RegistrySettings.get_reg_value(value_name="student_user", default=""))
-        p("Admin: ", RegistrySettings.get_reg_value(app="OPEService", value_name="admin_user", default="administrator"))
+        p("Student: " + RegistrySettings.get_reg_value(value_name="student_user", default=""))
+        p("Admin: " + RegistrySettings.get_reg_value(app="OPEService", value_name="admin_user", default="administrator"))
 
         #RegistrySettings.set_reg_value(app="TESTOPE", value_name="TestValue", value="slkfjsdl")
 
@@ -222,21 +222,26 @@ class RegistrySettings:
         RegistrySettings.set_reg_value(app="OPELMS\student", value_name="canvas_access_token",
             value=canvas_access_token, value_type="REG_SZ")
 
-        RegistrySettings.set_reg_value(app="", value_name="canvas_url", value=canvas_url)
+        RegistrySettings.set_reg_value(app="", value_name="canvas_url", value=canvas_url,
+            value_type="REG_SZ")
         RegistrySettings.set_reg_value(app="OPELMS\student", value_name="canvas_url",
-            value=canvas_url)
+            value=canvas_url, value_type="REG_SZ")
 
-        RegistrySettings.set_reg_value(app="", value_name="smc_url", value=smc_url)
+        RegistrySettings.set_reg_value(app="", value_name="smc_url", value=smc_url,
+            value_type="REG_SZ")
         RegistrySettings.set_reg_value(app="OPELMS\student", value_name="smc_url",
-            value=smc_url)
+            value=smc_url, value_type="REG_SZ")
 
-        RegistrySettings.set_reg_value(app="", value_name="student_user", value=student_user)
+        RegistrySettings.set_reg_value(app="", value_name="student_user", value=student_user,
+            value_type="REG_SZ")
         RegistrySettings.set_reg_value(app="OPELMS\student", value_name="user_name",
-            value=student_user)
+            value=student_user, value_type="REG_SZ")
 
-        RegistrySettings.set_reg_value(app="", value_name="student_name", value=student_name)
+        RegistrySettings.set_reg_value(app="", value_name="student_name", value=student_name,
+            value_type="REG_SZ")
 
-        RegistrySettings.set_reg_value(app="OPEService", value_name="admin_user", value=admin_user)
+        RegistrySettings.set_reg_value(app="OPEService", value_name="admin_user", value=admin_user,
+            value_type="REG_SZ")
 
         return True
 
@@ -278,52 +283,68 @@ class RegistrySettings:
 
             base_dacl = [
                 ("Administrators", registry.Registry.ACCESS["F"], "ALLOW"),
-                ("System", registry.Registry.ACCESS["F"], "ALLOW"),
+                ("SYSTEM", registry.Registry.ACCESS["F"], "ALLOW"),
+                #("Users", registry.Registry.ACCESS["Q"], "ALLOW")
+            ]
+            service_base_dacl = [
+                ("Administrators", registry.Registry.ACCESS["F"], "ALLOW"),
+                ("SYSTEM", registry.Registry.ACCESS["F"], "ALLOW"),
+                # Don't let regular users read OPEService key
                 #("Users", registry.Registry.ACCESS["Q"], "ALLOW")
             ]
 
             logged_in_user = win32api.GetUserName()
             if logged_in_user.upper() != "SYSTEM" and logged_in_user != "":
-                base_dacl.append((logged_in_user, registry.Registry.ACCESS["F"], "ALLOW"),)
+                base_dacl.append((logged_in_user, registry.Registry.ACCESS["F"], "ALLOW"))
+                service_base_dacl.append((logged_in_user, registry.Registry.ACCESS["F"], "ALLOW"))
 
             if laptop_admin_user is not None and laptop_admin_user != "":
                 # Make sure this admin has registry access
                 base_dacl.append((laptop_admin_user, registry.Registry.ACCESS["F"], "ALLOW"))
+                service_base_dacl.append((laptop_admin_user, registry.Registry.ACCESS["F"], "ALLOW"))
 
             # Make sure the logging registry key has proper permissions
             reg = registry.registry(r"HKLM\System\CurrentControlSet\Services\EventLog\Application\OPE",
-                access=REGISTRY_ACCESS.KEY_READ|REGISTRY_ACCESS.KEY_WOW64_64KEY)
+                access=REGISTRY_ACCESS.KEY_ALL_ACCESS|REGISTRY_ACCESS.KEY_WOW64_64KEY)
             reg.create()
             with reg.security() as s:
                 # Break inheritance causes things to reapply properly
                 s.break_inheritance(copy_first=True)
                 #s.dacl = base_dacl
                 s.dacl.append(("Everyone",
-                    REGISTRY_ACCESS.KEY_QUERY_VALUE | REGISTRY_ACCESS.KEY_SET_VALUE |
-                    REGISTRY_ACCESS.KEY_ENUMERATE_SUB_KEYS | REGISTRY_ACCESS.KEY_NOTIFY,
+                    registry.Registry.ACCESS["R"],
                     "ALLOW"))
                 # s.dacl.dump()
 
             reg = registry.registry(r"HKLM\Software\OPE",
-                access=REGISTRY_ACCESS.KEY_READ|REGISTRY_ACCESS.KEY_WOW64_64KEY)
+                access=REGISTRY_ACCESS.KEY_ALL_ACCESS|REGISTRY_ACCESS.KEY_WOW64_64KEY)
             reg.create()
             with reg.security() as s:
                 # Break inheritance causes things to reapply properly
                 s.break_inheritance(copy_first=True)
                 s.dacl = base_dacl
                 if student_user is not None:
-                    s.dacl.append((student_user, registry.Registry.ACCESS["Q"], "ALLOW"))
+                    s.dacl.append((student_user, registry.Registry.ACCESS["R"], "ALLOW"))
+                s.dacl.append(("Everyone",
+                    registry.Registry.ACCESS["R"],
+                    "ALLOW"
+                ))
                 # s.dacl.dump()
             
             reg = registry.registry(r"HKLM\Software\OPE\OPELMS",
-                access=REGISTRY_ACCESS.KEY_READ|REGISTRY_ACCESS.KEY_WOW64_64KEY)
+                access=REGISTRY_ACCESS.KEY_ALL_ACCESS|REGISTRY_ACCESS.KEY_WOW64_64KEY)
             reg.create()
             with reg.security() as s:
                 # Break inheritance causes things to reapply properly
                 s.break_inheritance(copy_first=True)
                 s.dacl = base_dacl
                 if student_user is not None:
-                    s.dacl.append((student_user, registry.Registry.ACCESS["Q"], "ALLOW"))
+                    s.dacl.append((student_user, registry.Registry.ACCESS["C"],
+                    "ALLOW"))
+                s.dacl.append(("Everyone",
+                    registry.Registry.ACCESS["R"],
+                    "ALLOW"
+                ))
                 # s.dacl.dump()
             
             reg = registry.registry(r"HKLM\Software\OPE\OPEService",
@@ -332,7 +353,7 @@ class RegistrySettings:
             with reg.security() as s:
                 # Break inheritance causes things to reapply properly
                 s.break_inheritance(copy_first=True)
-                s.dacl = base_dacl
+                s.dacl = service_base_dacl
                 #if student_user is not None:
                 #    s.dacl.append((student_user, registry.Registry.ACCESS["Q"], "ALLOW"))
                 # s.dacl.dump()
@@ -345,7 +366,12 @@ class RegistrySettings:
                 s.break_inheritance(copy_first=True)
                 s.dacl = base_dacl
                 if student_user is not None:
-                    s.dacl.append((student_user, registry.Registry.ACCESS["W"], "ALLOW"))
+                    s.dacl.append((student_user, registry.Registry.ACCESS["C"],
+                    "ALLOW"))
+                s.dacl.append(("Everyone",
+                    registry.Registry.ACCESS["R"],
+                    "ALLOW"
+                ))
                 # s.dacl.dump()
 
             p("}}gnRegistry Permissions Set}}xx", log_level=3)

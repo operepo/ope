@@ -280,6 +280,11 @@ class CredentialProcess:
         p("}}gnDisabling guest account}}xx", debug_level=2)
         UserAccounts.disable_guest_account()
 
+        # Make sure folder exist and have proper permissions
+        if not FolderPermissions.set_default_ope_folder_permissions():
+            p("}}rbERROR - Unable to ensure folders are present and permissions are setup properly!}}xx")
+            return False
+
         CredentialProcess.trust_ope_certs()
 
         # Disable all student accounts
@@ -294,7 +299,9 @@ class CredentialProcess:
         
         # - Create local student account
         p("}}gnCreating local student windows account...}}xx")
-        UserAccounts.create_local_student_account(student_user, student_name, student_password)
+        if not UserAccounts.create_local_student_account(student_user, student_name, student_password):
+            p("}}rbError setting up OPE Student Account}}xx\n " + str(ex))
+            return False
 
         # - Setup admin user
         p("}}gnCreating local admin windows account...}}xx")

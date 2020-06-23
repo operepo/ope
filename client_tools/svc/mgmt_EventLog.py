@@ -20,7 +20,7 @@ class EventLog:
     def get_current_instance():
         if EventLog._LOG_INSTANCE is None:
             # Invalid log instance!
-            print("No Logger Setup!")
+            #print("No Logger Setup!")
             return None
 
         return EventLog._LOG_INSTANCE

@@ -82,7 +82,15 @@ class ProcessManagement:
                 else:
                     p("}}ynTimeout waiting for command, trying again...}}xx")
                     continue
-
+            except Exception as ex:
+                attempts = attempts - 1
+                if attempts < 1:
+                    p("}}rnUnkown Error - too many attempts, Giving up!}}xx", log_level=3)
+                    return ret
+                else:
+                    p("}}ynCommand failed (" + cmd + "), trying again...}}xx", log_level=5)
+                    continue
+                
         return ret
 
     @staticmethod
