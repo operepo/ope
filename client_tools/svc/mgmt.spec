@@ -5,8 +5,8 @@ block_cipher = None
 
 a = Analysis(['mgmt.py'],
              pathex=['C:\\Users\\ray\\Desktop\\git_projects\\ope\\ope\\client_tools\\svc'],
-             binaries=[('logo_icon.ico', '.')],
-             datas=[],
+             binaries=[],
+             datas=[('logo_icon.ico', '.'), ('rc', 'rc'), ('mgmt.version', '.'), ('install_service.cmd', '.')],
              hiddenimports=['sip', 'win32timezone'],
              hookspath=[],
              runtime_hooks=[],

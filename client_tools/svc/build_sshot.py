@@ -5,10 +5,16 @@ import shutil
 project_name = "sshot"
 main_file = "sshot.py"
 
+# If you get corrupted errors, use this
+clean = " "  # " --clean "
+remove_spec_file = False
+
 spec_file = project_name + ".spec"
 
 #--noconsole
-build_params = "python -m PyInstaller --hidden-import sip --noupx --add-binary logo_icon.ico;. " + \
+build_params = "python -m PyInstaller " + clean + \
+    " --hidden-import sip --noupx --add-data logo_icon.ico;. " + \
+    "--add-data STENCIL.TTF;. " + \
     " --noconfirm --hidden-import pkg_resources.py2_warn --icon logo_icon.ico "
 # == Build the app for windows using pyinstaller ==
 

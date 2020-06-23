@@ -23,11 +23,17 @@ import subprocess
 import sys
 import os
 
-# Import local modules
-from color import p
 import util
-from mgmt_RegistrySettings import RegistrySettings
+
+# Pull in logger first and set it up!
 from mgmt_EventLog import EventLog
+global LOGGER
+LOGGER = EventLog(os.path.join(util.LOG_FOLDER, 'ope-service.log'), service_name="OPEService")
+
+from color import p, set_log_level, get_log_level
+
+# Import local modules
+from mgmt_RegistrySettings import RegistrySettings
 
 
 class OPEService(win32serviceutil.ServiceFramework):
@@ -39,6 +45,16 @@ class OPEService(win32serviceutil.ServiceFramework):
 
     _WAIT_TIMEOUT_MSEC = 250
 
+    # Prevent device event storm (device event that causes another device event)
+    # When needed, don't fire the event for ?? seconds
+    # any new events reset the timer
+    _DEVICE_EVENT_NEEDED = False
+    _LAST_DEVICE_EVENT = 0
+    _LAST_DEVICE_EVENT_PARAMS = ()
+    # Delay before firing device event (e.g. don't scan_nics for a few seconds)
+    _DEVICE_EVENT_DELAY = 10
+    
+
     # GUID to subscribe to - we wan't USB events
     GUID_DEVINTERFACE_USB_DEVICE = "{A5DCBF10-6530-11D2-901F-00C04FB951ED}"
     
@@ -48,29 +64,55 @@ class OPEService(win32serviceutil.ServiceFramework):
     # Threads that are currently running
     _RUNNING_COMMAND_THREADS = {}
 
-    _LOG_INSTANCE = None
+    @staticmethod
+    def check_device_event_queue():
+        # Check if a device event has happend and if it is time to run the 
+        # mgmt command device_events (avoid event storm and double bounce)
+
+        # First - exit if there haven't been any events since the last time this
+        # was fired
+        if OPEService._DEVICE_EVENT_NEEDED is not True:
+            # Not needed, lets leave
+            p("Device event not queued, skipping", log_level=5)
+            return True
+
+        # We might get MANY of these events, basically don't run it until it has been < ??
+        # seconds since the last device event
+        if time.time() - OPEService._LAST_DEVICE_EVENT > OPEService._DEVICE_EVENT_DELAY:
+            p("Device event needed - appropriate time has passed since last event", log_level=4)
+            # Time to actually run the device_event/scan_nics
+            OPEService._svc_instance.run_command("device_event", OPEService._LAST_DEVICE_EVENT_PARAMS, force_run=True)
+            OPEService._DEVICE_EVENT_NEEDED = False
+            return True
+        
+        p("Device event needed, but not time to run", log_level=5)
+        return False
+                
 
     @staticmethod
     def reload_settings():
-        p("}}ybRunning reload_sttings}}xx")
+        p("}}ybRunning reload_settings}}xx")
         # Reload settings for the service from the registry
         if OPEService._svc_instance is None:
             p("}}rbNo OPEService running? - NOT reloading settings!")
             return False
         
-        OPEService._svc_instance.log_event("}}mbReloading Settings}}xx", log_level=4)
+        p("}}mbReloading Settings}}xx", log_level=4)
 
         #### Grab settings from the registry
 
-        if OPEService._LOG_INSTANCE is not None:
+        if LOGGER is not None:
             # Grab log level
             value_name = "log_level"
             value = RegistrySettings.get_reg_value(app="OPEService",
                 value_name=value_name, default=3, value_type="REG_DWORD")
-            old_val = OPEService._LOG_INSTANCE.log_level
+            # Set log_level through color/p - it passes things on to the logger
+            old_val = get_log_level()
+            set_log_level(value)
             if old_val != value:
-                OPEService._svc_instance.log_event("}}ybNew Setting " + value_name + ": " + str(value) + "}}xx", log_level=5)
-            OPEService._LOG_INSTANCE.log_level = value
+                p("}}ybNew Setting " + value_name + \
+                    ": " + str(value) + "}}xx", log_level=3)
+            
 
         # Grab how often to run default permissions (registry and ope folder)
         value_name = "set_default_permissions_timer"
@@ -78,46 +120,45 @@ class OPEService(win32serviceutil.ServiceFramework):
             value_name=value_name, default=3600, value_type="REG_DWORD")
         old_val = OPEService._COMMANDS_TO_RUN["set_default_ope_folder_permissions"]["timer"]
         if old_val != value:
-            OPEService._svc_instance.log_event("}}ybNew Setting " + value_name + ": " + str(value) + "}}xx", log_level=5)
+            p("}}ybNew Setting " + value_name + ": " + str(value) + "}}xx", log_level=3)
         OPEService._COMMANDS_TO_RUN["set_default_ope_folder_permissions"]["timer"] = value
         OPEService._COMMANDS_TO_RUN["set_default_ope_registry_permissions"]["timer"] = value
 
 
         # How often should we run reload_settings function?
-        value_name = "reload_settings"
+        value_name = "reload_settings_timer"
         value = RegistrySettings.get_reg_value(app="OPEService",
             value_name=value_name, default=30, value_type="REG_DWORD")
         old_val = OPEService._COMMANDS_TO_RUN["reload_settings"]["timer"]
         if old_val != value:
-            OPEService._svc_instance.log_event("}}ybNew Setting " + value_name + ": " + str(value) + "}}xx", log_level=5)
+            p("}}ybNew Setting " + value_name + ": " + str(value) + "}}xx", log_level=3)
         OPEService._COMMANDS_TO_RUN["reload_settings"]["timer"] = value
 
         # How often should we run scan_nics
-        value_name = "scan_nics_frequency"
+        value_name = "scan_nics_timer"
         value = RegistrySettings.get_reg_value(app="OPEService",
             value_name=value_name, default=60, value_type="REG_DWORD")
         old_val = OPEService._COMMANDS_TO_RUN["scan_nics"]["timer"]
         if old_val != value:
-            OPEService._svc_instance.log_event("}}ybNew Setting " + value_name + ": " + str(value) + "}}xx", log_level=5)
+            p("}}ybNew Setting " + value_name + ": " + str(value) + "}}xx", log_level=3)
         OPEService._COMMANDS_TO_RUN["scan_nics"]["timer"] = value
 
 
         # How often should we run screen_shot
-        value_name = "screen_shot_frequency"
+        value_name = "screen_shot_timer"
         value = RegistrySettings.get_reg_value(app="OPEService",
             value_name=value_name, default="30-300", value_type="REG_SZ")
         old_val = OPEService._COMMANDS_TO_RUN["screen_shot"]["timer"]
         if old_val != value:
-            OPEService._svc_instance.log_event("}}ybNew Setting " + value_name + ": " + str(value) + "}}xx", log_level=5)
+            p("}}ybNew Setting " + value_name + ": " + str(value) + "}}xx", log_level=3)
         OPEService._COMMANDS_TO_RUN["screen_shot"]["timer"] = value
-
 
         return True
 
     # Command + time to run it
-    # -1 - disabled
-    # 0 - once at startup
-    # int - how often to run (in seconds)
+    # -1 - Don't run at all unless called w force_run (no timer)
+    # 0 - Run once, then stop (startup only)
+    # int - when to run next (in seconds - curr_time + this)
     # "1-10" - String - range for random time to run
     #
     # For cmd = %mgmt% will be translated to the path to the mgmt utility
@@ -144,21 +185,49 @@ class OPEService(win32serviceutil.ServiceFramework):
             "cmd": "%mgmt% screen_shot",
             "timer": "30-300"
             #"timer": "60-600"   # 1 - 10 minutes
-        }      
+        },
+
+        # Check if a device event has happend and if it is time to run the 
+        # mgmt command device_events (avoid event storm and double bounce)
+        "check_device_event_queue": {
+            "cmd": check_device_event_queue.__func__,
+            "timer": 10     # run often - we will filter out extras in the function
+        },
+
+        # Run the actual device event (e.g. mgmt.exe device_event)
+        "device_event": {
+            "cmd": "%mgmt% device_event",
+            "timer": -1  # Don't run normally - only when fired from device event            
+        },
+        "ping_smc": {
+            "cmd": "%mgmt% ping_smc",
+            "timer": 45 # See if we can hit the smc server
+        }
         
     }
 
-    def log_event(self, msg, is_error=False, show_in_event_log=True, log_level=3):
-
-        if OPEService._LOG_INSTANCE is None:
-            OPEService._LOG_INSTANCE = EventLog(os.path.join(util.LOG_FOLDER, 'ope-service.log'),
-                service_name="OPEService")
-        
-        OPEService._LOG_INSTANCE.log_event(msg, is_error, show_in_event_log, log_level)
-
-        return
-        
     def get_next_command_run_time(self, command_name):
+        # Get the timer
+        timer = 0
+        if command_name in OPEService._COMMANDS_TO_RUN:
+            try:
+                timer = int(OPEService._COMMANDS_TO_RUN[command_name]["timer"])
+            except:
+                timer = 0
+        else:
+            # invalid command?
+            timer = -1
+
+        if timer == -1:
+            # Disable this one
+            OPEService._COMMAND_NEXT_RUN_TIMES[command_name] = timer
+            return timer
+        
+        if timer == 0 and command_name not in OPEService._COMMAND_NEXT_RUN_TIMES:
+            # Haven't run this yet - run it once
+            next_run_time = time.time()-1
+            return next_run_time
+        
         # Default to need to run (1 second ago) - any command that hasn't started yet
         # needs to
         next_run_time = time.time()-1
@@ -166,7 +235,7 @@ class OPEService(win32serviceutil.ServiceFramework):
         if command_name in OPEService._COMMAND_NEXT_RUN_TIMES:
             next_run_time = OPEService._COMMAND_NEXT_RUN_TIMES[command_name]
         
-        #self.log_event(command_name + " - Next run time: " + str(next_run_time), log_level=4)
+        #p(command_name + " - Next run time: " + str(next_run_time), log_level=4)
         return next_run_time
     
     def reset_next_command_run_time(self, command_name):
@@ -179,36 +248,47 @@ class OPEService(win32serviceutil.ServiceFramework):
             if isinstance(timer, str):
                 parts = timer.split("-")
                 if len(parts) == 2:
-                    start_int = int(parts[0])
-                    end_int = int(parts[1])
-                    timer = random.randint(start_int, end_int)
-                    self.log_event("Found random range - new timer = +" + str(timer) + " seconds", log_level=4)
+                    try:
+                        start_int = int(parts[0])
+                        end_int = int(parts[1])
+                        timer = random.randint(start_int, end_int)
+                        p("Found random range - new timer = +" + str(timer) + \
+                            " seconds", log_level=4)
+                    except:
+                        p("Invalid timer format defaulting to 60 seconds? " + \
+                            str(timer) + " / " + command_name, log_level=2)
+                        timer = 60
+            
                 else:
-                    # invalid format??
-                    self.log_event("Invalid timer format defaulting to 60 seconds? " +
-                        str(timer) + " / " + command_name, log_level=2)
-                    timer = 60
+                    # String value, try just converting to int
+                    try:
+                        timer = int(timer)
+                    except:
+                        # invalid format??
+                        p("Invalid timer format defaulting to 60 seconds? " + \
+                            str(timer) + " / " + command_name, log_level=2)
+                        timer = 60
             
             # Calculate next run time
-            if timer != 0:
+            if timer > 0:
                 next_run_time = time.time() + timer
                 OPEService._COMMAND_NEXT_RUN_TIMES[command_name] = next_run_time
-                self.log_event("Next run time " + command_name + " (" + str(timer) + " seconds)", log_level=3)
+                p("Next run time " + command_name + " (" + str(timer) + \
+                    " seconds)", log_level=3)
             else:
                 # Timer = 0 - set next run to -1 (disabled)
                 OPEService._COMMAND_NEXT_RUN_TIMES[command_name] = -1
-                self.log_event("Timer = 0 - skipping re-schedule " + command_name, log_level=4)
-                pass
+                p("Timer < 1 - skipping re-schedule " + command_name, log_level=4)
         else:
             # Shouldn't be scheduling a command that doesn't exist?
-            self.log_event("Trying to schedule a bad command to run? " + command_name, log_level=1)
+            p("Trying to schedule a bad command to run? " + command_name, log_level=1)
             
     
     def run_command(self, command_name, args=None, force_run=False):
         # Run the command - if force_run isn't True, it will not run
         # the command if it isn't time yet (it will ignore the call)
         time_to_run = False
-        # self.log_event("Run command called: " + command_name)
+        # p("Run command called: " + command_name)
         
         try:
             # See if it is time to run
@@ -216,7 +296,7 @@ class OPEService(win32serviceutil.ServiceFramework):
             # Time left will be how many seconds to wait - anything = or negative means we are that far past time
             time_left = next_run_time - time.time()
             if next_run_time < 1:
-                # Don't run commands w a 0 unless they have force_run on
+                # Don't run commands w a 0 or -1 unless they have force_run on
                 pass
             elif time_left <= 0:
                 # Need to run command
@@ -228,20 +308,24 @@ class OPEService(win32serviceutil.ServiceFramework):
             if time_to_run is True:
                 # Start the thread to run the command
                 thread_args = dict(command_name=command_name, args=args)
-                t = threading.Thread(target=self.run_command_thread, name="OPERunCommandThread", kwargs=thread_args)
+                t = threading.Thread(target=self.run_command_thread,
+                    daemon=True,    # Make sure threads die when service stops
+                    name="OPERunCommandThread (" + command_name + ")", kwargs=thread_args)
                 # , daemon=True)
-                t.start()
                 self.running_command_threads.append(t)
-                
+                t.start()
+                                
                 # Re-queue the command if needed
                 self.reset_next_command_run_time(command_name)
             else:
                 # Note - This will generate a LOT of entries - need to collapse/limit this?
-                self.log_event("Not time to run command, ignoring: " + command_name +
-                    " (" + str(time_left) + " seconds left)", show_in_event_log=False, log_level=6)
+                p("Not time to run command, ignoring: " + command_name + \
+                    " (" + str(time_left) + " seconds left)",
+                    log_level=6)
                 pass
         except Exception as ex:
-            self.log_event("}}rbUnknown Exception! Trying to run command " + command_name + "}}xx\n" + str(ex), log_level=1)
+            p("}}rbUnknown Exception! Trying to run command " + \
+                command_name + "}}xx\n" + str(ex), log_level=1)
     
     def run_command_thread(self, command_name, args=None):
         # Run the actual command in a different thread so it doesn't
@@ -252,20 +336,20 @@ class OPEService(win32serviceutil.ServiceFramework):
          # Is this a function pointer or a command line string?
         if callable(cmd):
             # Function pointer
-            self.log_event("}}mbRunning command (function): " + command_name +
+            p("}}mbRunning command (function): " + command_name +
                 " - (" + str(cmd) + " Args: " + str(args) + ")}}xx",
                 log_level=3)
             try:
                 r = cmd()
             except Exception as ex:
-                self.log_event("}}rb*** ERROR RUNNING FUNCTION ***}}xx\n" + str(ex))
+                p("}}rb*** ERROR RUNNING FUNCTION ***}}xx\n" + str(ex))
                 
         else:
             # Command string
-            # Replace %sshot% and %mgmt% w valid paths
+            # Replace %sshot% and %mgmt% w valid path
             cmd = self.fix_path_variables(cmd)
 
-            self.log_event("}}mbRunning command: " + command_name +
+            p("}}mbRunning command: " + command_name + \
                 " - (" + str(cmd) + " Args: " + str(args) + ")}}xx",
                 log_level=3)
 
@@ -276,32 +360,36 @@ class OPEService(win32serviceutil.ServiceFramework):
                 # stdout=PIPE and stderr=STDOUT instead of capture_output=True
                 proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,timeout=timeout, check=False)
                 if (proc.returncode == 0):
-                    self.log_event("}}mnCommand Results: " + command_name + " - Args: " +
+                    p("}}mnCommand Results: " + command_name + " - Args: " +
                         str(args) + "}}xx\n" + proc.stdout.decode(), log_level=3)
                 else:
-                    self.log_event("}}rn*** Command Failed!: " + command_name +
+                    p("}}rn*** Command Failed!: " + command_name +
                         "(Return: " + str(proc.returncode) + ") - " + str(args) +
                         " --- }}xx\n" + proc.stdout.decode(), log_level=2)
             except Exception as ex:
-                self.log_event("}}rb*** Command Exception! " + command_name + " - " + str(args) + " --- }}xx\n" + \
+                p("}}rb*** Command Exception! " + command_name + \
+                    " - " + str(args) + " --- }}xx\n" + \
                     str(ex), log_level=1)
         
+        # Make sure to flush logs to the win event log system
+        LOGGER.flush_win_logs()
+
         # Have thread remove itself from the list
         self.running_command_threads.remove(threading.current_thread())
-        # self.log_event("Command Finished: " + command_name + " - " + str(args))
+        # p("Command Finished: " + command_name + " - " + str(args))
         
     
     def fix_path_variables(self, cmd):
         #p("util.BINARIES_FOLDER: " + util.BINARIES_FOLDER)
 
-        # Replace variables such as %sshot% and %mgmt% w proper paths
+        # Replace variables such as %sshot% and %mgmt% w proper path
         mgmt_path = os.path.normpath(os.path.join(util.BINARIES_FOLDER, "mgmt/mgmt.exe"))
         sshot_path = os.path.normpath(os.path.join(util.BINARIES_FOLDER, "sshot/sshot.exe"))
         
         cmd = cmd.replace("%mgmt%", mgmt_path)
         cmd = cmd.replace("%sshot%", sshot_path)
 
-        self.log_event("fix_path_variable: " + cmd, log_level=4)
+        p("fix_path_variable: " + cmd, log_level=5)
 
         return cmd
         
@@ -349,9 +437,9 @@ class OPEService(win32serviceutil.ServiceFramework):
             self.hdn = win32gui.RegisterDeviceNotification(self.ssh, filter,
                                         win32con.DEVICE_NOTIFY_SERVICE_HANDLE)
             
-            self.log_event("Service now listening for device events", log_level=3)
+            p("}}cnService now listening for device events", log_level=3)
         except Exception as ex:
-            self.log_event("Unknown Error listening for device events " + str(ex), log_level=1)
+            p("Unknown Error listening for device events " + str(ex), log_level=1)
         
         return
 
@@ -362,12 +450,19 @@ class OPEService(win32serviceutil.ServiceFramework):
         # docs for "HandlerEx callback" for more info.
         if control == win32service.SERVICE_CONTROL_DEVICEEVENT:
             info = win32gui_struct.UnpackDEV_BROADCAST(data)
-            msg = "A device event occurred (running scan_nics): %x - %s" % (event_type, info)
-            self.run_command("scan_nics", (event_type, info), force_run=True)
+            msg = "A device event occurred (queued up running scan_nics): %x - %s" % (event_type, info)
+            OPEService._LAST_DEVICE_EVENT = time.time()
+            OPEService._LAST_DEVICE_EVENT_PARAMS = (event_type, info)
+            OPEService._DEVICE_EVENT_NEEDED = True
+            # command will run when it is time
+            p("-- Device Event Happended - queued device_event command for later " + msg, log_level=2)
+            return
+
         elif control == win32service.SERVICE_CONTROL_HARDWAREPROFILECHANGE:
             msg = "A hardware profile changed: type=%s, data=%s" % (event_type, data)
         elif control == win32service.SERVICE_CONTROL_POWEREVENT:
             msg = "A power event: setting %s" % data
+            self.run_command("device_event", (event_type, info), force_run=True)
         elif control == win32service.SERVICE_CONTROL_SESSIONCHANGE:
             # data is a single elt tuple, but this could potentially grow
             # in the future if the win32 struct does
@@ -376,7 +471,7 @@ class OPEService(win32serviceutil.ServiceFramework):
             msg = "Other event: code=%d, type=%s, data=%s" \
                   % (control, event_type, data)
 
-        self.log_event("-- Event " + msg, log_level=3)
+        p("-- Other Event " + msg, log_level=2)
         
 
     def SvcStop(self):
@@ -386,7 +481,7 @@ class OPEService(win32serviceutil.ServiceFramework):
             self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
 
             win32event.SetEvent(self.hWaitStop)
-            self.log_event("Stopping Service", log_level=1)
+            p("}}cnService Stop Event Recieved, Stopping Service", log_level=1)
         except Exception as ex:
             p("}}rbUnknown Exception: }}xx\n" + str(ex), log_level=1)
         
@@ -400,7 +495,7 @@ class OPEService(win32serviceutil.ServiceFramework):
         try:
 
             self.ReportServiceStatus(win32service.SERVICE_RUNNING)
-            self.log_event("}}mbOPEService running}}xx", log_level=1)
+            p("}}cb***** OPEService running *****}}xx", log_level=1)
 
             # Do we need a seprate event entry for this?
             servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE, 
@@ -410,7 +505,7 @@ class OPEService(win32serviceutil.ServiceFramework):
             # win32event.WaitForSingleObject(self.hWaitStop, win32event.INFINITE)
 
             # Write a stop message.
-            self.log_event("}}mbOPEService Stopped}}xx", log_level=1)
+            p("}}cb***** OPEService Stopping *****}}xx", log_level=1)
             # Do we need a seperate event entry for this?
             servicemanager.LogMsg(
                     servicemanager.EVENTLOG_INFORMATION_TYPE,
@@ -422,16 +517,23 @@ class OPEService(win32serviceutil.ServiceFramework):
             pass
         
         try:
-            self.log_event("}}ynCleaning up worker threads: " +
+            p("}}cn***** Cleaning up worker threads: " + \
                 str(len(self.running_command_threads)) + "}}xx", log_level=3)
             for t in self.running_command_threads:
                 try:
-                    t.join(30)
+                    t.join(3)
+                    if t.is_alive():
+                        # Still alive? kill it
+                        p("}}rnThread hasn't exited yet (" + t.name + ")}}xx")
+                        t.stop()
                 except Exception as ex:
-                    self.log_event("}}rnError trying to join thread!}}xx\n" + str(ex), log_level=1)
+                    p("}}rnError trying to join thread!}}xx\n" + str(ex), log_level=1)
         except Exception as ex:
-            self.log_event("}}rb Unknown exception when shutting down threads }}xx\n" + str(ex), log_level=1)
-        self.log_event("}}gnThreads cleaned up.}}xx", log_level=3)
+            p("}}rb Unknown exception when shutting down threads }}xx\n" + \
+                str(ex), log_level=1)
+        p("}}cn***** Threads cleaned up. *****}}xx", log_level=3)
+
+        p("}}cb***** OPEService Fully Stopped *****}}xx", log_level=1)
 
     def main(self):
     
@@ -451,7 +553,7 @@ class OPEService(win32serviceutil.ServiceFramework):
             rc = win32event.WaitForSingleObject(self.hWaitStop, timeout_wait)
             # Do we need a time sleep also?
             # time.sleep(0.5)
-        self.log_event("}}gnExiting main loop}}xx", log_level=3)
+        p("}}cnExiting main loop}}xx", log_level=3)
         
         
 

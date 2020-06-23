@@ -5,8 +5,8 @@ block_cipher = None
 
 a = Analysis(['OPEService.py'],
              pathex=['C:\\Users\\ray\\Desktop\\git_projects\\ope\\ope\\client_tools\\svc'],
-             binaries=[('logo_icon.ico', '.'), ('mgmt_EventLogMessages.dll', '.')],
-             datas=[],
+             binaries=[],
+             datas=[('logo_icon.ico', '.')],
              hiddenimports=['sip', 'win32timezone'],
              hookspath=[],
              runtime_hooks=[],

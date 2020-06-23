@@ -1424,6 +1424,13 @@
                     id: dns_on
                     disabled: True
                     active: app.is_app_active('ope-dns')
+                
+                GridLabel:
+                    text: "[b][color=ff0000]**[/color][/b] NTP (DNS: ntp[color=800080].ed[/color]) - Deals with netowrk time requests to allow syncing clocks"
+                GridSwitch:
+                    id: ntp_on
+                    disabled: True
+                    active: app.is_app_active('ope-ntp')
 
                 GridLabel:
                     text: "[b][color=ff0000]**[/color][/b] Redis (DNS: redis[color=800080].ed[/color]) - Memory caching server, used by Canvas and other apps"

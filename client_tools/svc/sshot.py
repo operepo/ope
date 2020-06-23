@@ -2,27 +2,29 @@
 import os
 import sys
 import time
-import pyscreenshot as ImageGrab
+#import pyscreenshot as ImageGrab
 from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
-import ntsecuritycon
-import win32security
+#import ntsecuritycon
+#import win32security
 import win32api
 import win32gui
 import win32ui
 import win32con
-import getpass
+#import getpass
 import datetime
 import ctypes
 import traceback
-from io import StringIO, BytesIO
+#from io import StringIO, BytesIO
+
+# Look at using mss??
 
 import util
 from mgmt_EventLog import EventLog
-
 global LOGGER
 LOGGER = EventLog(os.path.join(util.LOG_FOLDER, 'ope-sshot.log'), service_name="OPE")
+from color import p
 
 PIC_TYPE = ".png"
 
@@ -33,36 +35,36 @@ if not os.path.isdir(util.LOG_FOLDER):
     os.makedirs(util.LOG_FOLDER)
 
 
-def grab_screen_area(x1, y1, x2, y2):
-    # NOTE - Not used - early example
-    # Grab part of the screen
-    im = ImageGrab.grab(bbox=(x1, y1, x2, y2))
+# def grab_screen_area(x1, y1, x2, y2):
+#     # NOTE - Not used - early example
+#     # Grab part of the screen
+#     im = ImageGrab.grab(bbox=(x1, y1, x2, y2))
 
-    # Save the file
-    im.save(os.path.join(util.SCREEN_SHOTS_FOLDER, str(time.time()) + PIC_TYPE), optimize=True)
+#     # Save the file
+#     im.save(os.path.join(util.SCREEN_SHOTS_FOLDER, str(time.time()) + PIC_TYPE), optimize=True)
 
-    # Show image in a window
-    # im.show()
+#     # Show image in a window
+#     # im.show()
 
 
-def grab_full_screen():
-    # NOTE - Not used - early example
-    # Grab the screen
-    im = ImageGrab.grab()
+# def grab_full_screen():
+#     # NOTE - Not used - early example
+#     # Grab the screen
+#     im = ImageGrab.grab()
 
-    # Size it down
-    # im.thumbnail((512, 512))
-    size_multiplier = .5
-    w = int(im.size[0] * size_multiplier)
-    h = int(im.size[1] * size_multiplier)
-    im = im.resize((w, h), Image.ANTIALIAS)
-    im = im.convert('P', palette=Image.ADAPTIVE, colors=256)
+#     # Size it down
+#     # im.thumbnail((512, 512))
+#     size_multiplier = .5
+#     w = int(im.size[0] * size_multiplier)
+#     h = int(im.size[1] * size_multiplier)
+#     im = im.resize((w, h), Image.ANTIALIAS)
+#     im = im.convert('P', palette=Image.ADAPTIVE, colors=256)
 
-    # Save the file
-    im.save(os.path.join(util.SCREEN_SHOTS_FOLDER, str(time.time()) + PIC_TYPE), optimize=True)
+#     # Save the file
+#     im.save(os.path.join(util.SCREEN_SHOTS_FOLDER, str(time.time()) + PIC_TYPE), optimize=True)
 
-    # Show image in a window
-    # im.show()
+#     # Show image in a window
+#     # im.show()
 
 
 def grabScreenShot():
@@ -90,14 +92,14 @@ def grabScreenShot():
         r = l + w
         b = t + h
 
-        # logging.info("SC - HWND " + str(hwnd) + " " + str(w) + "/" + str(h))
+        # p("SC - HWND " + str(hwnd) + " " + str(w) + "/" + str(h))
         
         dc = win32gui.GetDC(hwnd)  # win32con.HWND_DESKTOP)
-        # logging.info("DC " + str(dc))
+        # p("DC " + str(dc))
         
         dcObj = win32ui.CreateDCFromHandle(dc)
         drawDC = dcObj.CreateCompatibleDC()
-        # logging.info("drawDC " + str(drawDC))
+        # p("drawDC " + str(drawDC))
         
         # cDC = dcObj.CreateCompatibleDC() # Do we need this since it is the desktop dc?
         bm = win32ui.CreateBitmap()
@@ -108,32 +110,27 @@ def grabScreenShot():
 
         sshot_time = str(time.time())
         f_path = os.path.join(util.SCREEN_SHOTS_FOLDER, sshot_time + PIC_TYPE)
-        LOGGER.log_event("Saving sshot (" + str(curr_user) + ") " + f_path, log_level=3)
+        p("Saving sshot (" + str(curr_user) + ") " + f_path, log_level=3)
 
         # Convert to an image and save
         #bm.SaveBitmapFile(drawDC, f_path+".bmp")
         bmInfo = bm.GetInfo()
         #print("BM Info", bmInfo)
         bmBits = bm.GetBitmapBits(True)
-        #sshot_img = Image.frombuffer('RGB', (bmInfo['bmWidth'], bmInfo['bmHeight']),
-        #    bmBits, 'raw', 'BGRX', 0, 1)
         src_mode = "BGRX"
         # Handle 16 bits per pixel screens
         if bmInfo['bmBitsPixel'] == 16:
             src_mode = "BGR;16"
         sshot_img = Image.frombytes('RGB', (bmInfo['bmWidth'], bmInfo['bmHeight']),
             bmBits, 'raw', src_mode, 0, 1)
-        #sshot_img = Image.open(BytesIO(bmBits))
         
         size_multiplier = .5
         w = int(sshot_img.size[0] * size_multiplier)
         h = int(sshot_img.size[1] * size_multiplier)
         sshot_img = sshot_img.resize((w, h), Image.ANTIALIAS)
-        # sshot_img = sshot_img.convert('P', palette=Image.ADAPTIVE, colors=256)
-
+        
         # Build overlay graphic w user/time banner
         # Ends up w computer name when run from service?
-        #curr_user = getpass.getuser()
         
         banner_height = 40
         banner_width = sshot_img.width
@@ -141,7 +138,7 @@ def grabScreenShot():
         draw = ImageDraw.Draw(banner_img)
         # Draw Rectangle
         # draw.rectangle((0, bmInfo['bmHeight'], 100, 30), outline='blue', fill='white')
-        font = ImageFont.truetype("STENCIL.ttf", 16)
+        font = ImageFont.truetype(os.path.join(util.APP_FOLDER, "STENCIL.ttf"), 16)
         draw.text((5, 5), "Current User: " + str(curr_user), (255, 255, 255), font=font)
         draw.text((5, 20), str(datetime.datetime.now()), (255, 255, 255), font=font)
         draw.text((300, 5), "Time Stamp: " + sshot_time, (255, 255, 255), font=font)
@@ -166,10 +163,10 @@ def grabScreenShot():
         
        
     except Exception as ex:
-        LOGGER.log_event("Error grabbing screen shot (" + str(curr_user) + "): " + str(ex), log_level=1)
+        p("Error grabbing screen shot (" + str(curr_user) + "): " + str(ex), log_level=1)
         err_str = traceback.format_exc()
-        print(err_str)
-        #LOGGER.log_event(err_str, log_level=1)
+        p(err_str)
+        #p(err_str, log_level=1)
         return False
     return True
 

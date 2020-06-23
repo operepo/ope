@@ -1,3 +1,4 @@
 {
-    "python.pythonPath": "C:\\Python36-32\\python.exe"
+    "python.pythonPath": "C:\\Python36-32\\python.exe",
+    "git.ignoreLimitWarning": true
 }

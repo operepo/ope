@@ -1,8 +1,9 @@
 @echo off
 
 rem Disable/Remove the OPE service
-call remove_service.cmd
+rem call remove_service.cmd
 
+rem ** NOT USING CUSTOM MESSAGE SOURCE **
 rem echo Building Event Viewer Message Source
 rem path=%path%;C:\Users\ray\AppData\Local\Programs\Common\Microsoft\Visual C++ for Python\9.0\VC\Bin\amd64
 rem path=%path%;C:\Users\ray\AppData\Local\Programs\Common\Microsoft\Visual C++ for Python\9.0\WinSDK\Bin\x64;
@@ -15,8 +16,7 @@ rem link -dll -noentry -out:mgmt_EventLogMessages.dll mgmt_EventLogMessages.res
 
 rem goto endofscript
 
-echo Building OPE Service Trace
-python build_trace.py
+
 
 echo Building OPE Service
 python build_svc.py

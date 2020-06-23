@@ -5,6 +5,8 @@ import pyaes as AES
 import threading
 import base64
 
+from color import p
+
 def fast_urandom16(urandom=[], locker=threading.RLock()):
     """
     this is 4x faster than calling os.urandom(16) and prevents
@@ -49,51 +51,53 @@ def AES_new(key, iv=None):
             key = key.encode('utf-8')
     return AES.AESModeOfOperationOFB(key, iv = iv), iv
 
+class Encryption:
+    @staticmethod
+    def encrypt(data, key):
+        key = pad(key[:32])
+        cipher, iv = AES_new(key)
+        encrypted_data = iv + cipher.encrypt(pad(data, 16))
+        return base64.urlsafe_b64encode(encrypted_data)
 
-def encrypt(data, key):
-    key = pad(key[:32])
-    cipher, iv = AES_new(key)
-    encrypted_data = iv + cipher.encrypt(pad(data, 16))
-    return base64.urlsafe_b64encode(encrypted_data)
-
-
-def decrypt(data, key):
-    key = pad(key[:32])
-    if data is None:
-        data = ""
-    try:
-        data = base64.urlsafe_b64decode(data)
-    except TypeError as ex:
-        # Don't let error blow things up
-        pass
-    iv, data = data[:16], data[16:]
-    try:
-        cipher, _ = AES_new(key, iv=iv)
-    except:
-        # bad IV = bad data
-        return "" # data
-    try:
-        data = cipher.decrypt(data)
-    except:
-        # Don't let error blow things up
-        return ""
-        pass
-
-    if isinstance(data, bytes):
-        #print("is bytes")
+    @staticmethod
+    def decrypt(data, key):
+        key = pad(key[:32])
+        if data is None:
+            data = ""
         try:
-            data = data.decode('utf-8')
-            #print("f")
+            data = base64.urlsafe_b64decode(data)
+        except TypeError as ex:
+            # Don't let error blow things up
+            pass
+        iv, data = data[:16], data[16:]
+        try:
+            cipher, _ = AES_new(key, iv=iv)
         except:
-            print("err decoding encrypted data as utf-8")
+            # bad IV = bad data
+            return "" # data
+        try:
+            data = cipher.decrypt(data)
+        except:
+            # Don't let error blow things up
+            return ""
+            pass
+
+        if isinstance(data, bytes):
+            #p("is bytes")
             try:
-                data = data.decode('ascii')
+                data = data.decode('utf-8')
+                #p("f")
             except:
-                print("err decoding encrypted data as ascii")
+                p("err decoding encrypted data as utf-8")
                 try:
-                    data = data.decode('latin-1')
+                    data = data.decode('ascii')
                 except:
-                    print("err decoding encrypted data as latin-1 - returning raw data")
-                    data = str(data)
-    data = data.rstrip(' ')
-    return data
+                    p("err decoding encrypted data as ascii", log_level=5)
+                    try:
+                        data = data.decode('latin-1')
+                    except:
+                        p("err decoding encrypted data as latin-1 - returning raw data",
+                            log_level=4)
+                        data = str(data)
+        data = data.rstrip(' ')
+        return data
