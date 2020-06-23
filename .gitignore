@@ -83,3 +83,4 @@ projekktor-1.8.2_build
 /client_tools/svc/mgmt_EventLogMessages.rc
 /client_tools/svc/mgmt_EventLogMessages.res
 /admin_app/.vscode
+exported_gpo

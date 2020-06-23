@@ -72,6 +72,7 @@ replacement_values = { '<DOMAIN>': 'ed', '<IP>': '', "<VOLUMES>": '',
     "<CANVAS_SIGN_SECRET>": '<NEW_UUID_32>',
     "<CANVAS_RCE_DEFAULT_DOMAIN>": "rce.<DOMAIN>",
     "<CANVAS_MATHMAN_DEFAULT_DOMAIN>": "mathman.<DOMAIN>",
+    "<NTP_SERVERS>": "time.windows.com",
     }
 
 # A list of volumes that need to be specified in the volumes section
