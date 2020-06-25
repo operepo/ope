@@ -26,7 +26,7 @@
         #    - ope-router
         environment:
             - PUBLIC_IP=${PUBLIC_IP}
-            #- DEFAULT_HOST=fog.<DOMAIN>
+            - DEFAULT_HOST=fog.<DOMAIN>
             # Custom vhost file is setup for this site
             #- AVIRTUAL_HOST=gateway.<DOMAIN>
             - IT_PW=${IT_PW}
