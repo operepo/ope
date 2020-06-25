@@ -93,4 +93,5 @@ cp /app/uploads.conf /etc/nginx/conf.d/
 
 # Copy the gateway conf file
 cp /app/gateway.conf /etc/nginx/conf.d/
+sed -i "s/<DOMAIN>/${DOMAIN}/" /etc/nginx/conf.d/gateway.conf
 
