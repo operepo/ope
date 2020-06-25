@@ -24,7 +24,12 @@ APP_PATH=/app
 
 
 # Remove certs from before 3/22/18
-find $CERT_PATH/default.* ! -newermt "2018-03-23 00:00:00" | xargs rm -rf
+# Create a tmp file w the proper file time
+touch -t 201803230000  /tmp/timestamp    # "2018-03-23 00:00:00"
+# remove older default.* files
+find $CERT_PATH/default.* ! -newer /tmp/timestamp | xargs rm -rf
+rm -f /tmp/timestamp
+
 
 # Make the CA cert
 if [ -e $CERT_PATH/ca.crt ]; then
@@ -73,4 +78,11 @@ fi
 # Copy the public certs to the server
 cp $CERT_PATH/ca.crt $VOLUME_PATH
 cp $CERT_PATH/default.crt $VOLUME_PATH
+
+# Copy CA cert to system
+cp $CERT_PATH/ca.crt /usr/local/share/ca-certificates/
+/usr/sbin/update-ca-certificates   > /dev/null
+
+# Copy the uploads.conf to the proper location
+cp /app/uploads.conf /etc/nginx/conf.d/
 

@@ -15,7 +15,12 @@
             - /var/run:/var/run:rw
             # /certs directory can be mapped if you put your certs in the volumes folder
             - ../volumes/gateway/certs:/etc/nginx/certs:rw
-            #- ../volumes/gateway/conf.d:/etc/nginx/conf.d:rw
+            - ../volumes/gateway/conf.d:/etc/nginx/conf.d:rw
+            # Expose vhost.d so we can use letsencrypt
+            - ../volumes/gateway/vhost.d:/etc/nginx/vhost.d:rw
+            # Expose html folder so letsencrypt can do its thing
+            - ../volumes/gateway/html:/usr/share/nginx/html:rw
+            - ../volumes/gateway/dhparam:/etc/nginx/dhparam:rw
         env_file: .env
         #depends_on:
         #    - ope-router
@@ -26,3 +31,11 @@
             - IT_PW=${IT_PW}
             - IS_DOCKER=true
             - DOMAIN=<DOMAIN>
+            # Need this to work w letsencrypt
+            - DHPARAM_GENERATION=false
+            # Default 2048 - need 1024 for compatibility/Mozilla-Old
+            - DHPARAM_BITS=1024
+            # Keep HSTS off if using self signed certs
+            - HSTS=off
+            #- HSTS=max-age=31536000; includeSubDomains; preload
+            - SSL_POLICY=Mozilla-Old

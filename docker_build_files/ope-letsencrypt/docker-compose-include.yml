@@ -1,0 +1,25 @@
+    ope-letsencrypt:
+        build: ./ope-letsencrypt
+        image: operepo/ope-letsencrypt:release
+        container_name: ope-letsencrypt
+        restart: always
+        network_mode: <NETWORK_MODE>
+        volumes:
+            # Need to NOT mount individual file - mount folder instead
+            #- /var/run/docker.sock:/tmp/docker.sock
+            - /var/run:/var/run:rw
+            # /certs directory can be mapped if you put your certs in the volumes folder
+            - ../volumes/gateway/certs:/etc/nginx/certs:rw
+            - ../volumes/gateway/vhost.d:/etc/nginx/vhost.d:rw
+            # Expose html folder so letsencrypt can do its thing
+            - ../volumes/gateway/html:/usr/share/nginx/html:rw
+        environment:
+            - PUBLIC_IP=${PUBLIC_IP}
+            - IS_DOCKER=true
+            - DOMAIN=<DOMAIN>
+            - DEFAULT_EMAIL=<ALERT_EMAIL>
+            - NGINX_PROXY_CONTAINER=ope-gateway
+        #depends_on:
+        #    - ope-gateway
+
+

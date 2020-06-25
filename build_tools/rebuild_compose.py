@@ -73,6 +73,8 @@ replacement_values = { '<DOMAIN>': 'ed', '<IP>': '', "<VOLUMES>": '',
     "<CANVAS_RCE_DEFAULT_DOMAIN>": "rce.<DOMAIN>",
     "<CANVAS_MATHMAN_DEFAULT_DOMAIN>": "mathman.<DOMAIN>",
     "<NTP_SERVERS>": "time.windows.com",
+    "<ALERT_EMAIL>": "alert@correctionsed.com",
+    "<CERT_NAME>": "default",
     }
 
 # A list of volumes that need to be specified in the volumes section
