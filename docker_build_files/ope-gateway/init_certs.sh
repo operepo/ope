@@ -11,8 +11,12 @@ sed -i "s/<DOMAIN>/${DOMAIN}/" /app/openssl.cnf
 
 
 CERT_PATH=/etc/nginx/certs
-VOLUME_PATH=/public_certs/
+#VOLUME_PATH=/public_certs/
+VOLUME_PATH=/usr/share/nginx/html/
 APP_PATH=/app
+
+# Make sure the VOLUME_PATH exists
+mkdir -p $VOLUME_PATH
 
 #### DEBUG VALUES - SHOULD BE COMMENTED IF NOT DEBUGGING ####
 #CERT_PATH=/ope/docker_build_files/ope-gateway
@@ -78,6 +82,7 @@ fi
 # Copy the public certs to the server
 cp $CERT_PATH/ca.crt $VOLUME_PATH
 cp $CERT_PATH/default.crt $VOLUME_PATH
+cp /app/index.html $VOLUME_PATH
 
 # Copy CA cert to system
 cp $CERT_PATH/ca.crt /usr/local/share/ca-certificates/
@@ -85,4 +90,7 @@ cp $CERT_PATH/ca.crt /usr/local/share/ca-certificates/
 
 # Copy the uploads.conf to the proper location
 cp /app/uploads.conf /etc/nginx/conf.d/
+
+# Copy the gateway conf file
+cp /app/gateway.conf /etc/nginx/conf.d/
 

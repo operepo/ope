@@ -12,11 +12,12 @@ LABEL version="0.6"
 ARG VERSION=dev
 ENV VIRTUAL_HOST=gateway.ed
 
-LABEL rebuild=56
+LABEL rebuild=60
+# public_certs moved under /usr/share/nginx/html
 # Make public_certs folder so we can make it easy to grab crt file
-RUN mkdir -p /public_certs \
-    && chmod 755 /public_certs \
-    && mkdir -p /app
+#RUN mkdir -p /public_certs \
+#    && chmod 755 /public_certs \
+#    && mkdir -p /app
 	
 #COPY fogserver.conf /etc/nginx/conf.d/
 COPY docker-entrypoint.sh /app/
@@ -26,8 +27,9 @@ COPY nginx.tmpl /app/
 #COPY forego /app/
 #COPY Procfile /app/
 COPY uploads.conf /app/
+COPY gateway.conf /app/
 # /etc/nginx/conf.d/uploads.conf
-COPY index.html /public_certs/
+COPY index.html /app/
 WORKDIR /app/
 RUN chmod +x /app/*.sh
 
