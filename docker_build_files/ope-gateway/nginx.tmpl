@@ -392,12 +392,7 @@ server {
 	{{ end }}
 	{{ $access_log }}
 
-        {{ if (hasPrefix "gateway." $host) }}
-            root /public_certs;
-        {{ else }}
         return 500;
-        {{ end }}
-	#return 500;
 
 	ssl_certificate /etc/nginx/certs/default.crt;
 	ssl_certificate_key /etc/nginx/certs/default.key;
