@@ -12,7 +12,7 @@ LABEL version="0.6"
 ARG VERSION=dev
 ENV VIRTUAL_HOST=gateway.ed
 
-LABEL rebuild=60
+LABEL rebuild=61
 # public_certs moved under /usr/share/nginx/html
 # Make public_certs folder so we can make it easy to grab crt file
 #RUN mkdir -p /public_certs \
