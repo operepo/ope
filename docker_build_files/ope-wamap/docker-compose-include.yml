@@ -23,5 +23,7 @@
             - LMS_ACCOUNT_NAME=${LMS_ACCOUNT_NAME}
             #- VIRTUAL_PROTO=http
             #- VIRTUAL_PORT=9000
+            - LETSENCRYPT_HOST=wamap.<DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
         links:
             - ope-mysql:mysql

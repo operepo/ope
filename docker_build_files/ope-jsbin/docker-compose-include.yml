@@ -20,5 +20,8 @@
             - VIRTUAL_HOST=jsbin.<DOMAIN>
             #- VIRTUAL_PORT=3000
             - VIRTUAL_PROTO=http
+            - LETSENCRYPT_HOST=jsbin.<DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
+
         
         

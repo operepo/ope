@@ -37,6 +37,8 @@
             - STATSD_PORT=8125
             # allow test/self signed certs
             - NODE_TLS_REJECT_UNAUTHORIZED=0
+            - LETSENCRYPT_HOST=<CANVAS_RCE_DEFAULT_DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
         links:
             # Send rce connections through the gateway
             - ope-gateway:${CANVAS_DEFAULT_DOMAIN}

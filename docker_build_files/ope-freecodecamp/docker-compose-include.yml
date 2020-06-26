@@ -25,3 +25,6 @@
             - CERT_NAME=default
             - VIRTUAL_PROTO=http
             #- HTTPS_METHOD=noredirect
+            - LETSENCRYPT_HOST=freecodecamp.<DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
+

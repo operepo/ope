@@ -237,7 +237,7 @@ upstream {{ $upstream_name }} {
 
 {{/* Use the cert specified on the container or fallback to the best vhost match */}}
 {{/* $cert := (coalesce $certName $vhostCert) --- RULE CHANGE - use vhost first if it is present */}}
-{{ $cert := or $certName $vhostCert }}
+{{ $cert := (coalesce (or $vhostCert $certName) "") }}
 
 {{ $is_https := (and (ne $https_method "nohttps") (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert))) }}
 # IsHTTPs: {{ $is_https }}   Cert: {{ $cert }}   vhostcert: {{ $vhostCert }}   certName: {{ $certName }}
@@ -300,7 +300,7 @@ server {
 	{{ end }}
 
 	{{ if (not (or (eq $https_method "noredirect") (eq $hsts "off"))) }}
-	add_header Strict-Transport-Security "{{ trim $hsts }}" always;
+	#add_header Strict-Transport-Security "{{ trim $hsts }}" always;
 	{{ end }}
 
 	{{ if (exists (printf "/etc/nginx/vhost.d/%s" $host)) }}

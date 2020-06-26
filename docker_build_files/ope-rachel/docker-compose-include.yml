@@ -22,3 +22,6 @@
             - CERT_NAME=default
             - VIRTUAL_PROTO=http
             #- HTTPS_METHOD=noredirect
+            - LETSENCRYPT_HOST=rachel.<DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
+

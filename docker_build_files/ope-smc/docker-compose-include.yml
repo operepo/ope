@@ -34,7 +34,7 @@
             - CANVAS_SECRET=${CANVAS_SECRET}
             - CANVAS_SERVER=https://canvas.<DOMAIN>
             - VIRTUAL_HOST=smc.<DOMAIN>,admin.<DOMAIN>,videos.<DOMAIN>,media.<DOMAIN>,<SMC_DEFAULT_DOMAIN>
-            - LETSENCRYPT_HOST=smc.<DOMAIN>
+            - LETSENCRYPT_HOST=<SMC_DEFAULT_DOMAIN>
             - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
             - VIRTUAL_PORT=8000
             # Share the default cert on the gateway

@@ -69,4 +69,7 @@
             - HTTPS_METHOD=noredirect
             #- UPSTREAM_IP=<IP>
             #- VIRTUAL_NETWORK=
+            - LETSENCRYPT_HOST=fog.<DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
+
 

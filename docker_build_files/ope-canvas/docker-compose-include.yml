@@ -50,6 +50,8 @@
             - NODE_TLS_REJECT_UNAUTHORIZED=0
             # Params for Mathman service
             - CANVAS_MATHMAN_DEFAULT_DOMAIN=${CANVAS_MATHMAN_DEFAULT_DOMAIN}
+            - LETSENCRYPT_HOST=<CANVAS_DEFAULT_DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
         links:
             - ope-postgresql:postgresql
             - ope-redis:redis

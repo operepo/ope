@@ -34,5 +34,8 @@
                 gitlab_rails['initial_root_password'] = '${IT_PW}'
                 gitlab_rails['gitlab_signup_enabled'] = false
                 nginx['proxy_set_headers']={'X-Forwarded-Proto'=>'https','X-Forwarded-Ssl'=>'on'}
+            - LETSENCRYPT_HOST=git.<DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
+
         
         
