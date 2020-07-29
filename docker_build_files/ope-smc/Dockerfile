@@ -22,7 +22,9 @@ RUN apk update \
     && pip3 install --upgrade setuptools ldap3 pycryptodome requests \
         paramiko ecdsa isodate pywinrm xlrd crypto PyMySQL \
         psycopg2-binary uwsgi uwsgitop psutil redis pycanvas lz4 \ 
-        pytube3 webvtt-py langcodes \
+        webvtt-py langcodes \
+# pytube3 - use fix 701 for now
+#pip install git+https://github.com/nficano/pytube.git@refs/pull/701/head
 # matplotlib reportlab ldap pycrypto changed to pycryptodome  python-ldap changed to ldap3
     && FFMPEG_VER=3.4.2 \ 
     && curl -s http://ffmpeg.org/releases/ffmpeg-${FFMPEG_VER}.tar.gz | tar zxvf - -C . \
@@ -47,6 +49,9 @@ RUN apk update \
         libtheora libvpx \
     && rm -rf /var/cache/apk/* \
     && echo "FFMPEG Build complete"
+
+# TEMP FIX FOR PYTUBE3
+RUN pip install git+https://github.com/nficano/pytube.git@refs/pull/701/head
 
 # Set ENV Vars
 ENV IT_PW changeme
@@ -94,7 +99,7 @@ LABEL rebuild_smc=10
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE v1.9.50
+ENV SMC_RELEASE v1.9.51
 
 RUN cd $W2P_DIR \
     && git init \
