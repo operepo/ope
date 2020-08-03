@@ -392,7 +392,9 @@ server {
 	{{ end }}
 	{{ $access_log }}
 
-        #return 500;
+        default_type text/html
+        # add_header Content-Type text/plain;
+        return 500 "<!DOCTYPE html><body><h1>INVALID CERT SETUP</h1>Make sure the .CERT_NAME value is set or that a proper cert exists.</body></html>";
 
 	ssl_certificate /etc/nginx/certs/default.crt;
 	ssl_certificate_key /etc/nginx/certs/default.key;
