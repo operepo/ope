@@ -19,7 +19,7 @@
             - VIRTUAL_HOST=rachel.<DOMAIN>
             - VIRTUAL_PORT=80
             # Share the default cert on the gateway
-            - CERT_NAME=default
+            - CERT_NAME=<CERT_NAME>
             - VIRTUAL_PROTO=http
             #- HTTPS_METHOD=noredirect
             - LETSENCRYPT_HOST=rachel.<DOMAIN>

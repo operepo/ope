@@ -64,7 +64,7 @@
             - PUBLIC_IP=${PUBLIC_IP}
             - VIRTUAL_PORT=80
             # Share the default cert on the gateway
-            - CERT_NAME=default
+            - CERT_NAME=<CERT_NAME>
             - VIRTUAL_PROTO=http
             - HTTPS_METHOD=noredirect
             #- UPSTREAM_IP=<IP>

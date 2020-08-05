@@ -22,7 +22,7 @@
             - VIRTUAL_HOST=freecodecamp.<DOMAIN>
             - VIRTUAL_PORT=3000
             # Share the default cert on the gateway
-            - CERT_NAME=default
+            - CERT_NAME=<CERT_NAME>
             - VIRTUAL_PROTO=http
             #- HTTPS_METHOD=noredirect
             - LETSENCRYPT_HOST=freecodecamp.<DOMAIN>

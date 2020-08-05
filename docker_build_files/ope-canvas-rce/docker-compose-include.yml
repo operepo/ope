@@ -20,7 +20,7 @@
             - CANVAS_RCE_DEFAULT_DOMAIN=${CANVAS_RCE_DEFAULT_DOMAIN}
             - VIRTUAL_PORT=3010
             # Share the default cert on the gateway
-            - CERT_NAME=default
+            - CERT_NAME=<CERT_NAME>
             - VIRTUAL_PROTO=http
             #- HTTPS_METHOD=noredirect
             # Params for the start script

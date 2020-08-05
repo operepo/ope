@@ -25,7 +25,7 @@
             - VIRTUAL_HOST=git.<DOMAIN>
             - VIRTUAL_PORT=80
             - VIRTUAL_PROTO=http
-            - CERT_NAME=default
+            - CERT_NAME=<CERT_NAME>
             - GITLAB_ROOT_PASSWORD=${IT_PW}
             - GITLAB_ROOT_EMAIL=admin@ed
             - GITLAB_OMNIBUS_CONFIG = |

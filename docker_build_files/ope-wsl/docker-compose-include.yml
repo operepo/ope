@@ -19,7 +19,7 @@
             - OFFICE_PW=${OFFICE_PW}
             - VIRTUAL_HOST=wsl.<DOMAIN>
             - VIRTUAL_PORT=80
-            - CERT_NAME=default
+            - CERT_NAME=<CERT_NAME>
             - VIRTUAL_PROTO=http
         #    - NGINX_HOST=wsl.<DOMAIN>
         #    - NGINX_PORT=80      
