@@ -99,7 +99,7 @@ LABEL rebuild_smc=10
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE v1.9.53
+ENV SMC_RELEASE v1.9.54
 
 RUN cd $W2P_DIR \
     && git init \
