@@ -1,5 +1,20 @@
 #!/bin/sh
 
+# Detect python path (py2 or py3 in the system)
+
+PY3=`which python3`
+PY2=`which python`
+
+PY=$PY3
+
+if [ -z "$PY" ]; then
+  echo Switching to py2
+  PY=$PY2
+fi;
+
+echo "Using Python: $PY"
+
+
 SCRIPT=$(readlink -f "$0")
 BASEDIR=$(dirname "$SCRIPT")
 ROOTDIR=$(dirname "$BASEDIR")
@@ -50,7 +65,7 @@ if [ "$build_flag" = "auto" ]; then
   rebuild_param="auto"
 fi
 echo "Rebuilding docker compose..."
-python $ROOTDIR/build_tools/rebuild_compose.py "$rebuild_param"
+$PY $ROOTDIR/build_tools/rebuild_compose.py "$rebuild_param"
 
 if [ "$build_flag" = "b" ]; then
   echo "Building docker containers..."
