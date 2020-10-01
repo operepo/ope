@@ -45,6 +45,8 @@ This project consists of building and staging of apps, easy deployment into faci
 ## Micro Service Architecture
 We utilize Docker containers for micro services. You will need a machine that can run docker containers on the outside to build and setup your services, and a docker machine on the inside to transfer images and data to.
 
+For full process , follow the chart given below
+
 ```
   +----------------------------------------------------------------------+
   | Online Server                                                        |
@@ -224,3 +226,4 @@ class "UEFI-32-1" {
     filename "undionly.kkpxe";
     }
 ```
+Thanking you!
