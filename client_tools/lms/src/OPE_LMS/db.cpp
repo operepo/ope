@@ -70,6 +70,8 @@ bool APP_DB::init_db()
             qDebug() << "DB Error: " << query.lastError().text();
             ret = false;
         }
+        commit();
+
         // Add to the table models list
         model = new GenericTableModel(this, "users", _db);
 
@@ -81,8 +83,10 @@ bool APP_DB::init_db()
             if (!query.exec(sql)) {
                 qDebug() << "DB Error: " << query.lastError().text();
             }
+            commit();
+
             // Reload the model with the latest changes
-            model->select();
+            model = new GenericTableModel(this, "users", _db);
         }
 
         // ===========================================
@@ -119,6 +123,8 @@ bool APP_DB::init_db()
             qDebug() << "DB Error: " << query.lastError().text();
             ret = false;
         }
+        commit();
+
         // Add to the table models list
         model = new GenericTableModel(this, "courses", _db);
 
@@ -130,8 +136,10 @@ bool APP_DB::init_db()
             if (!query.exec(sql)) {
                 qDebug() << "DB Error: " << query.lastError().text();
             }
+            commit();
+
             // Reload the model with the latest changes
-            model->select();
+            model = new GenericTableModel(this, "courses", _db);
         }
 
 
@@ -156,6 +164,8 @@ bool APP_DB::init_db()
             qDebug() << "DB Error: " << query.lastError().text();
             ret = false;
         }
+        commit();
+
         // Add to the table models list
         model = new GenericTableModel(this, "modules", _db);
 
@@ -167,8 +177,10 @@ bool APP_DB::init_db()
             if (!query.exec(sql)) {
                 qDebug() << "DB Error: " << query.lastError().text();
             }
+            commit();
+
             // Reload the model with the latest changes
-            model->select();
+            model = new GenericTableModel(this, "modules", _db);
         }
 
 
@@ -191,6 +203,7 @@ bool APP_DB::init_db()
             qDebug() << "DB Error: " << query.lastError().text();
             ret = false;
         }
+        commit();
 
         // Add to the table models list
         model = new GenericTableModel(this, "module_items", _db);
@@ -210,9 +223,10 @@ bool APP_DB::init_db()
                     qDebug() << "DB Error: " << query.lastError().text();
                 }
             }
+            commit();
 
             // Reload the model with the latest changes
-            model->select();
+            model = new GenericTableModel(this, "module_items", _db);
         }
 
         // Modify table - add is_active field to mark items that are active
@@ -223,8 +237,10 @@ bool APP_DB::init_db()
             if (!query.exec(sql)) {
                 qDebug() << "DB Error: " << query.lastError().text();
             }
+            commit();
+
             // Reload the model with the latest changes
-            model->select();
+            model = new GenericTableModel(this, "module_items", _db);
         }
 
 
@@ -257,6 +273,8 @@ bool APP_DB::init_db()
              qDebug() << "DB Error: " << query.lastError().text();
              ret = false;
          }
+         commit();
+
          // Add to the table models list
          model = new GenericTableModel(this, "folders", _db);
 
@@ -268,8 +286,10 @@ bool APP_DB::init_db()
              if (!query.exec(sql)) {
                  qDebug() << "DB Error: " << query.lastError().text();
              }
+             commit();
+
              // Reload the model with the latest changes
-             model->select();
+             model = new GenericTableModel(this, "folders", _db);
          }
 
         // ===========================================
@@ -303,6 +323,8 @@ bool APP_DB::init_db()
             qDebug() << "DB Error: " << query.lastError().text();
             ret = false;
         }
+        commit();
+
         // Add to the table models list
         model = new GenericTableModel(this, "files", _db);
 
@@ -314,8 +336,10 @@ bool APP_DB::init_db()
             if (!query.exec(sql)) {
                 qDebug() << "DB Error: " << query.lastError().text();
             }
+            commit();
+
             // Reload the model with the latest changes
-            model->select();
+            model = new GenericTableModel(this, "files", _db);
         }
 
 
@@ -343,6 +367,8 @@ bool APP_DB::init_db()
             qDebug() << "DB Error: " << query.lastError().text();
             ret = false;
         }
+        commit();
+
         // Add to the table models list
         model = new GenericTableModel(this, "pages", _db);
 
@@ -354,8 +380,10 @@ bool APP_DB::init_db()
             if (!query.exec(sql)) {
                 qDebug() << "DB Error: " << query.lastError().text();
             }
+            commit();
+
             // Reload the model with the latest changes
-            model->select();
+            model = new GenericTableModel(this, "pages", _db);
         }
 
 
@@ -389,6 +417,8 @@ bool APP_DB::init_db()
             qDebug() << "DB Error: " << query.lastError().text();
             ret = false;
         }
+        commit();
+
         // Add to the table models list
         model = new GenericTableModel(this, "conversations", _db);
 
@@ -400,8 +430,10 @@ bool APP_DB::init_db()
             if (!query.exec(sql)) {
                 qDebug() << "DB Error: " << query.lastError().text();
             }
+            commit();
+
             // Reload the model with the latest changes
-            model->select();
+            model = new GenericTableModel(this, "conversations", _db);
         }
 
 
@@ -425,6 +457,8 @@ bool APP_DB::init_db()
             qDebug() << "DB Error: " << query.lastError().text();
             ret = false;
         }
+        commit();
+
         // Add to the table models list
         model = new GenericTableModel(this, "messages", _db);
 
@@ -436,8 +470,21 @@ bool APP_DB::init_db()
             if (!query.exec(sql)) {
                 qDebug() << "DB Error: " << query.lastError().text();
             }
+            commit();
+
             // Reload the model with the latest changes
-            model->select();
+            model = new GenericTableModel(this, "messages", _db);
+        }
+        // Add flag to push this message if needed.
+        if (model->getColumnIndex("need_to_push") == -1) {
+            // Column doesn't exist
+            sql = "ALTER TABLE messages ADD COLUMN `need_to_push` TEXT NOT NULL DEFAULT ''";
+            if (!query.exec(sql)) {
+                qDebug() << "DB Error: " << query.lastError().text();
+            }
+            commit();
+
+            model = new GenericTableModel(this, "messages", _db);
         }
 
         // Create assignment_submissions table
@@ -458,6 +505,8 @@ bool APP_DB::init_db()
             qDebug() << "DB Error: " << query.lastError().text();
             ret = false;
         }
+        commit();
+
         // Add to the table models list
         model = new GenericTableModel(this, "assignment_submissions", _db);
 
@@ -509,6 +558,8 @@ bool APP_DB::init_db()
             qDebug() << "DB Error: " << query.lastError().text();
             ret = false;
         }
+        commit();
+
         model = new GenericTableModel(this, "assignments", _db);
 
         // Modify table - add is_active field to mark items that are active
@@ -519,8 +570,10 @@ bool APP_DB::init_db()
             if (!query.exec(sql)) {
                 qDebug() << "DB Error: " << query.lastError().text();
             }
+            commit();
+
             // Reload the model with the latest changes
-            model->select();
+            model = new GenericTableModel(this, "assignments", _db);
         }
 
         // Create Announcements table
@@ -567,6 +620,8 @@ bool APP_DB::init_db()
             qDebug() << "DB Error: " << query.lastError().text();
             ret = false;
         }
+        commit();
+
         // Add to the table models list
         model = new GenericTableModel(this, "announcements", _db);
 
@@ -578,8 +633,10 @@ bool APP_DB::init_db()
             if (!query.exec(sql)) {
                 qDebug() << "DB Error: " << query.lastError().text();
             }
+            commit();
+
             // Reload the model with the latest changes
-            model->select();
+            model = new GenericTableModel(this, "announcements", _db);
         }
 
 
@@ -595,6 +652,8 @@ bool APP_DB::init_db()
             qDebug() << "DB Error: " << query.lastError().text();
             ret = false;
         }
+        commit();
+
         // Add to the table models list
         model = new GenericTableModel(this, "resources", _db);
 
@@ -606,8 +665,10 @@ bool APP_DB::init_db()
             if (!query.exec(sql)) {
                 qDebug() << "DB Error: " << query.lastError().text();
             }
+            commit();
+
             // Reload the model with the latest changes
-            model->select();
+            model = new GenericTableModel(this, "resources", _db);
         }
 
         // Make sure the default resource entries are in place
@@ -626,6 +687,7 @@ bool APP_DB::init_db()
             qDebug() << "DB Error: " << query.lastError().text();
             ret = false;
         }
+        commit();
 
         // Create SMC Document Queue
         sql = "CREATE TABLE IF NOT EXISTS `smc_document_dl_queue2` ( \
@@ -638,6 +700,7 @@ bool APP_DB::init_db()
             qDebug() << "DB Error: " << query.lastError().text();
             ret = false;
         }
+        commit();
 
 
         // Add table for canvas file download queue
@@ -652,12 +715,200 @@ bool APP_DB::init_db()
             qDebug() << "DB Error: " << query.lastError().text();
             ret = false;
         }
+        commit();
 
-        // Make sure to commit and release locks
-        _db.commit();
+        // Add table for disucssion topics
+        sql = "CREATE TABLE IF NOT EXISTS `discussion_topics` ( \
+                `id` TEXT NOT NULL DEFAULT '', \
+                `course_id` TEXT NOT NULL DEFAULT '', \
+                `title` TEXT NOT NULL DEFAULT '', \
+                `message` TEXT NOT NULL DEFAULT '', \
+                `html_url` TEXT NOT NULL DEFAULT '', \
+                `posted_at` TEXT NOT NULL DEFAULT '', \
+                `last_reply_at` TEXT NOT NULL DEFAULT '', \
+                `require_initial_post` TEXT NOT NULL DEFAULT '', \
+                `user_can_see_posts` TEXT NOT NULL DEFAULT '', \
+                `discussion_subentry_count` TEXT NOT NULL DEFAULT '', \
+                `read_state` TEXT NOT NULL DEFAULT '', \
+                `unread_count` TEXT NOT NULL DEFAULT '', \
+                `subscribed` TEXT NOT NULL DEFAULT '', \
+                `subscription_hold` TEXT NOT NULL DEFAULT '', \
+                `assignment_id` TEXT NOT NULL DEFAULT '', \
+                `delayed_post_at` TEXT NOT NULL DEFAULT '', \
+                `published` TEXT NOT NULL DEFAULT '', \
+                `lock_at` TEXT NOT NULL DEFAULT '', \
+                `locked` TEXT NOT NULL DEFAULT '', \
+                `pinned` TEXT NOT NULL DEFAULT '', \
+                `locked_for_user` TEXT NOT NULL DEFAULT '', \
+                `lock_info` TEXT NOT NULL DEFAULT '', \
+                `lock_explanation` TEXT NOT NULL DEFAULT '', \
+                `user_name` TEXT NOT NULL DEFAULT '', \
+                `topic_children` TEXT NOT NULL DEFAULT '', \
+                `group_topic_children` TEXT NOT NULL DEFAULT '', \
+                `root_topic_id` TEXT NOT NULL DEFAULT '', \
+                `podcast_url` TEXT NOT NULL DEFAULT '', \
+                `discussion_type` TEXT NOT NULL DEFAULT '', \
+                `group_category_id` TEXT NOT NULL DEFAULT '', \
+                `attachments` TEXT NOT NULL DEFAULT '', \
+                `permissions` TEXT NOT NULL DEFAULT '', \
+                `allow_rating` TEXT NOT NULL DEFAULT '', \
+                `only_graders_can_rate` TEXT NOT NULL DEFAULT '', \
+                `sort_by_rating` TEXT NOT NULL DEFAULT '', \
+                `is_active` TEXT NOT NULL DEFAULT '' \
+             );";
+        if (!query.exec(sql)) {
+            qDebug() << "DB Error: " << query.lastError().text();
+            ret = false;
+        }
+        commit();
+
+        // Add to the table models list
+        model = new GenericTableModel(this, "discussion_topics", _db);
 
 
-        // Now create views
+
+        // Add table for Quizzes
+        sql = "CREATE TABLE IF NOT EXISTS `quizzes` ( \
+                `id` TEXT NOT NULL DEFAULT '', \
+                `course_id` TEXT NOT NULL DEFAULT '', \
+                `title` TEXT NOT NULL DEFAULT '', \
+                `html_url` TEXT NOT NULL DEFAULT '', \
+                `mobile_url` TEXT NOT NULL DEFAULT '', \
+                `preview_url` TEXT NOT NULL DEFAULT '', \
+                `description` TEXT NOT NULL DEFAULT '', \
+                `quiz_type` TEXT NOT NULL DEFAULT '', \
+                `assignment_group_id` TEXT NOT NULL DEFAULT '', \
+                `time_limit` TEXT NOT NULL DEFAULT '', \
+                `shuffle_answers` TEXT NOT NULL DEFAULT '', \
+                `hide_results` TEXT NOT NULL DEFAULT '', \
+                `show_correct_answers` TEXT NOT NULL DEFAULT '', \
+                `show_correct_answers_last_attempt` TEXT NOT NULL DEFAULT '', \
+                `show_correct_answers_at` TEXT NOT NULL DEFAULT '', \
+                `hide_correct_answers_at` TEXT NOT NULL DEFAULT '', \
+                `one_time_results` TEXT NOT NULL DEFAULT '', \
+                `scoring_policy` TEXT NOT NULL DEFAULT '', \
+                `allowed_attempts` TEXT NOT NULL DEFAULT '', \
+                `one_question_at_a_time` TEXT NOT NULL DEFAULT '', \
+                `question_count` TEXT NOT NULL DEFAULT '', \
+                `points_possible` TEXT NOT NULL DEFAULT '', \
+                `cant_go_back` TEXT NOT NULL DEFAULT '', \
+                `has_access_code` TEXT NOT NULL DEFAULT '', \
+                `access_code` TEXT NOT NULL DEFAULT '', \
+                `ip_filter` TEXT NOT NULL DEFAULT '', \
+                `due_at` TEXT NOT NULL DEFAULT '', \
+                `lock_at` TEXT NOT NULL DEFAULT '', \
+                `unlock_at` TEXT NOT NULL DEFAULT '', \
+                `published` TEXT NOT NULL DEFAULT '', \
+                `unpublishable` TEXT NOT NULL DEFAULT '', \
+                `locked_for_user` TEXT NOT NULL DEFAULT '', \
+                `lock_info` TEXT NOT NULL DEFAULT '', \
+                `lock_explanation` TEXT NOT NULL DEFAULT '', \
+                `speedgrader_url` TEXT NOT NULL DEFAULT '', \
+                `quiz_extensions_url` TEXT NOT NULL DEFAULT '', \
+                `permissions` TEXT NOT NULL DEFAULT '', \
+                `all_dates` TEXT NOT NULL DEFAULT '', \
+                `version_number` TEXT NOT NULL DEFAULT '', \
+                `question_types` TEXT NOT NULL DEFAULT '', \
+                `anonymous_submissions` TEXT NOT NULL DEFAULT '', \
+                `is_active` TEXT NOT NULL DEFAULT '' \
+             );";
+        if (!query.exec(sql)) {
+            qDebug() << "DB Error: " << query.lastError().text();
+            ret = false;
+        }
+        commit();
+
+        // Add to the table models list
+        model = new GenericTableModel(this, "quizzes", _db);
+
+
+
+        // Add table for Quiz questions
+        sql = "CREATE TABLE IF NOT EXISTS `quiz_questions` ( \
+                `id` TEXT NOT NULL DEFAULT '', \
+                `course_id` TEXT NOT NULL DEFAULT '', \
+                `quiz_id` TEXT NOT NULL DEFAULT '', \
+                `quiz_group_id` TEXT NOT NULL DEFAULT '', \
+                `assessment_question_id` TEXT NOT NULL DEFAULT '', \
+                `position` TEXT NOT NULL DEFAULT '', \
+                `question_type` TEXT NOT NULL DEFAULT '', \
+                `payload_token` TEXT NOT NULL DEFAULT '', \
+                `question_payload` TEXT NOT NULL DEFAULT '', \
+                `is_active` TEXT NOT NULL DEFAULT '' \
+             );";
+        if (!query.exec(sql)) {
+            qDebug() << "DB Error: " << query.lastError().text();
+            ret = false;
+        }
+        commit();
+
+        // Add to the table models list
+        model = new GenericTableModel(this, "quiz_questions", _db);
+
+
+
+        // Add table for Quiz submissions
+        sql = "CREATE TABLE IF NOT EXISTS `quiz_submissions` ( \
+                `id` TEXT NOT NULL DEFAULT '', \
+                `quiz_id` TEXT NOT NULL DEFAULT '', \
+                `user_id` TEXT NOT NULL DEFAULT '', \
+                `access_code` TEXT NOT NULL DEFAULT '', \
+                `validation_token` TEXT NOT NULL DEFAULT '', \
+                `submission_id` TEXT NOT NULL DEFAULT '', \
+                `started_at` TEXT NOT NULL DEFAULT '', \
+                `finished_at` TEXT NOT NULL DEFAULT '', \
+                `end_at` TEXT NOT NULL DEFAULT '', \
+                `attempt` TEXT NOT NULL DEFAULT '', \
+                `extra_attempts` TEXT NOT NULL DEFAULT '', \
+                `extra_time` TEXT NOT NULL DEFAULT '', \
+                `manually_locked` TEXT NOT NULL DEFAULT '', \
+                `time_spent` TEXT NOT NULL DEFAULT '', \
+                `score` TEXT NOT NULL DEFAULT '', \
+                `score_before_regrade` TEXT NOT NULL DEFAULT '', \
+                `kept_score` TEXT NOT NULL DEFAULT '', \
+                `fudge_points` TEXT NOT NULL DEFAULT '', \
+                `has_seen_results` TEXT NOT NULL DEFAULT '', \
+                `workflow_state` TEXT NOT NULL DEFAULT '', \
+                `overdue_and_needs_submission` TEXT NOT NULL DEFAULT '', \
+                `ready_to_submit` TEXT NOT NULL DEFAULT '', \
+                `is_active` TEXT NOT NULL DEFAULT '' \
+                );";
+        if (!query.exec(sql)) {
+           qDebug() << "DB Error: " << query.lastError().text();
+           ret = false;
+        }
+        commit();
+
+        // Add to the table models list
+        model = new GenericTableModel(this, "quiz_submissions", _db);
+
+
+        // Add table for Quiz question submissions
+        sql = "CREATE TABLE IF NOT EXISTS `quiz_questions_submissions` ( \
+                `id` TEXT NOT NULL DEFAULT '', \
+                `quiz_submission_id` TEXT NOT NULL DEFAULT '', \
+                `course_id` TEXT NOT NULL DEFAULT '', \
+                `quiz_id` TEXT NOT NULL DEFAULT '', \
+                `flagged` TEXT NOT NULL DEFAULT '', \
+                `answer_txt` TEXT NOT NULL DEFAULT '', \
+                `question_name` TEXT NOT NULL DEFAULT '', \
+                `question_type` TEXT NOT NULL DEFAULT '', \
+                `question_payload` TEXT NOT NULL DEFAULT '', \
+                `needs_submitted` TEXT NOT NULL DEFAULT '', \
+                `is_active` TEXT NOT NULL DEFAULT '' \
+             );";
+        if (!query.exec(sql)) {
+            qDebug() << "DB Error: " << query.lastError().text();
+            ret = false;
+        }
+        commit();
+
+        // Add to the table models list
+        model = new GenericTableModel(this, "quiz_questions_submissions", _db);
+
+
+
+        // ==== Now create views ====
 
         // Query to join modules and module_items
         sql = "SELECT module_items.*, modules.name, modules.course_id, (modules.position) as sort_order1, (module_items.position) as sort_order2  FROM module_items, modules WHERE modules.id=module_items.module_id ";
@@ -745,7 +996,7 @@ bool APP_DB::add_resource(QString resource_name, QString resource_url, QString r
     q.exec();
 
     // Write changes to the db
-    _db.commit();
+    commit();
 
     // Refresh data after insert? TODO - should this be an emit signal instead?
     //_tables["resources"]->select();
@@ -835,6 +1086,77 @@ QHash<QString, QVariant> GenericTableModel::getRecord(int row) const
     }
 
     return rhash;
+}
+
+bool GenericTableModel::newRecord(const QVariantMap &new_record)
+{
+    // Generate insert command (NOTE - DON'T use record interface - it sucks!)
+    QString field_names = "";
+    QString field_values = "";
+    QSqlQuery query(database());
+
+    QList<QString> bound_keys;
+
+    // Add the field names
+    foreach(QString field_name, new_record.keys()) {
+        if (field_names != "") {
+            field_names += ", ";
+        }
+        field_names += "`" + field_name + "`";
+
+        // Add the place holder
+        if(field_values != "") {
+            field_values += ", ";
+        }
+        field_values += ":" + field_name.replace(" ", "_");
+
+        // Add to the list to bind later (Can't bind before prepare)
+        bound_keys.append(field_name);
+    }
+
+
+    QString sql = "INSERT INTO `" + tableName() + "` (" + field_names +
+            ") VALUES (" + field_values + ");";
+    query.prepare(sql);
+
+    // Bind values - Do this w a QList to keep same order
+    for(int i=0; i< bound_keys.length(); i++) {
+        QString field_name = bound_keys[i];
+        // NOTE - Javascript empty strings need to be converted this way to not be "null"
+        // when bound to sql statement.
+        QString field_value = new_record[field_name].toByteArray();
+        //if (field_value == "") { field_value = ""; }
+
+        //qDebug() << "Binding Field Value: " << field_value;
+
+        query.bindValue(":" + field_name.replace(" ", "_"), field_value);
+
+    }
+    //query.bindValue(":forwarded_messages", "late_bind");
+
+    // Start transaction
+//    if (!database().transaction()) {
+//        // Unable to start transaction?
+//        qDebug() << "newRecord:" << tableName() << "ERROR - Unable to start transaction! "
+//                 << query.lastError().text();
+//        return false;
+//    }
+
+    if (!query.exec()) {
+        qDebug() << "newRecord:" << tableName() << "ERROR - Couldn't save new record! "
+                 << query.lastError().text() << query.lastQuery() << query.executedQuery()
+                 << query.boundValues()
+                 << query.boundValue(":forwarded_messages")
+                 << query.boundValue(":need_to_push")
+                 << database().hostName();
+        query.finish();
+        //database().rollback();
+        return false;
+    }
+    query.finish();
+    database().commit();
+
+    return true;
 }
 
 QString GenericTableModel::getColumnName(int col_index)

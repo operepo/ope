@@ -156,8 +156,12 @@ HEADERS += \
 #LIBS += -LC:/OpenSSL-Win64/lib # -lcrypto -lssl
 #INCLUDEPATH += C:/OpenSSL-Win64/include
 #OPEN_SSL_PATH = "C:/Program Files/OpenSSL-Win64"
-OPEN_SSL_PATH = "C:/OpenSSL-Win64"
-OPEN_SSL_DLL_PATH = $${OPEN_SSL_PATH}
+
+#OPEN_SSL_PATH = "C:/OpenSSL-Win64"
+
+OPENSSL_PREFIX = "C:/Qt/Tools/OpenSSL/Win_x64"
+OPEN_SSL_PATH = "C:/Qt/Tools/OpenSSL/Win_x64"
+OPEN_SSL_DLL_PATH = $${OPEN_SSL_PATH}/bin
 LIBS += -L"$${OPEN_SSL_PATH}/lib" # -lcrypto -lssl
 INCLUDEPATH += "$${OPEN_SSL_PATH}/include"
 
@@ -180,7 +184,18 @@ DISTFILES += \
     qwebchannel.js \
     wc_index.html \
     opeWebViewClient.js \
-    win_deploy.cmd
+    win_deploy.cmd \
+    mail.png \
+    mail_open.png \
+    box.png \
+    default_avatar.png \
+    reply.png \
+    new_message.png \
+    StyledButton.qml \
+    ReplyPopup.qml \
+    NewMessagePopup.qml
+
+
 
 # Rules to force qrc rebuild each time - deal with bug where qml files aren't updated on next run
 update_qml.target = qml.qrc

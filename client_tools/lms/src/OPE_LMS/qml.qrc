@@ -19,6 +19,13 @@
         <file>websockettest.qml</file>
         <file>qwebchannel.js</file>
         <file>wc_index.html</file>
+        <file>AppInbox.qml</file>
+        <file>AppConversation.qml</file>
+        <file>AppMessage.qml</file>
+        <file>moment-with-locales-2.26.0.js</file>
+        <file>StyledButton.qml</file>
+        <file>ReplyPopup.qml</file>
+        <file>NewMessagePopup.qml</file>
     </qresource>
     <qresource prefix="/images">
         <file>blue-folder.png</file>
@@ -29,5 +36,11 @@
         <file>logo_icon.ico</file>
         <file>up_arrow.png</file>
         <file>down_arrow.png</file>
+        <file>mail.png</file>
+        <file>mail_open.png</file>
+        <file>box.png</file>
+        <file>default_avatar.png</file>
+        <file>reply.png</file>
+        <file>new_message.png</file>
     </qresource>
 </RCC>

@@ -248,6 +248,9 @@ class CredentialProcess:
         if not UserAccounts.is_uac_admin():
             p("}}rbNot Admin in UAC mode! - UAC Is required for credential process.}}xx")
             return False
+
+        # Start time sync
+        SystemTime.sync_time_w_ntp(force=True)
         
         # Get computer info
         CredentialProcess.COMPUTER_INFO = Computer.get_machine_info(print_info=False)
@@ -266,7 +269,7 @@ class CredentialProcess:
         os_caption = CredentialProcess.COMPUTER_INFO["os_caption"]
         if "Microsoft Windows 10" in os_caption:
             is_win10 = True
-        if "Enterprise" in os_caption or "Professional" in os_caption or "Education" in os_caption:
+        if "Enterprise" in os_caption or "Professional" in os_caption or "Education" in os_caption or "Workstation" in os_caption:
             is_win10_home = False
         
         if is_win10 is not True:
@@ -378,6 +381,9 @@ class CredentialProcess:
         # maintenance/etc...
         ret = True
 
+        # Make sure mgmt is in the system path
+        RegistrySettings.add_mgmt_utility_to_path()
+
         # Make sure we disable student accounts!
         if not UserAccounts.disable_student_accounts():
             p("}}rbUnable to disable student accounts!}}xx")
@@ -422,6 +428,9 @@ class CredentialProcess:
         # Apply secuirty settings and re-enable student account so it can be 
         # handed back to a student
         ret = True
+
+        # Make sure mgmt is in the system path
+        RegistrySettings.add_mgmt_utility_to_path()
 
         # Get the current credentialed student
         student_user_name = CredentialProcess.get_credentialed_student()
@@ -661,7 +670,7 @@ class CredentialProcess:
     @staticmethod
     def sync_student_password():
         # Bounce off SMC to sync student password (in case it has changed)
-
+        # TODO 
         # Are we credentialed?
 
         # Send of info
@@ -679,17 +688,52 @@ class CredentialProcess:
         return True
 
     @staticmethod
+    def is_time_to_sync_lms_app_data():
+        # How long has it been since we tried to upgrade?
+        last_upgrade_time = RegistrySettings.get_reg_value(value_name="last_sync_lms_app_time", default=0)
+        curr_time = time.time()
+
+        # Only check for upgrades every 10 minutes
+        if curr_time - last_upgrade_time > 600:
+            return True
+        
+        return False
+
+    @staticmethod
     def sync_lms_app_data():
         # Make the LMS app sync in headless mode (auto sync)
+        p("}}gnSkipping LMS Sync - Coming Soon!}}xx")
+        return True # DEBUG - TODO - Finish this
+        if not CredentialProcess.is_time_to_sync_lms_app_data():
+            p("}}gnNot time to sync lms app data}}xx")
+            return True
 
-        p("}}ybComing Soon...}}xx")
+        RegistrySettings.set_reg_value(value_name="last_sync_lms_app_time", value=time.time())
+
+        cmd = "%programdata%\\ope\\Services\\lms\\ope_lms.exe quiet_sync"
+        returncode, output = ProcessManagement.run_cmd(cmd,
+            require_return_code=0, cmd_timeout=3600)
+        if returncode == -2:
+            # Error running command?
+            p("}}rbError - Unable to sync lms app data!}}xx\n" + output)
+            return False
+        p("Ret: " + str(returncode) + " - " + output, log_level=3)
+
         return True
     
     @staticmethod
     def sync_work_folder():
         # Start sync process to sync the home/work folder for the user
+        # TODO
 
         p("}}ybComing Soon...}}xx")
+        return True
+    
+    @staticmethod
+    def sync_logs_to_smc():
+        # TODO
+        # 
+        p("}}ybComing Soon...}}xx") 
         return True
 
     @staticmethod
@@ -739,8 +783,17 @@ class CredentialProcess:
         # Check if time to sync time
         SystemTime.sync_time_w_ntp()
 
-        # Check if time to sync stuff (lms app, folders, logs)...
-        # TODO 
+        # Make sure the student password is updated (if changed in SMC)
+        CredentialProcess.sync_student_password()
+
+        # Have the OPE_LMS app sync (assignments, course work)
+        CredentialProcess.sync_lms_app_data()
+
+        # Dropbox like sync - copy files back/forth between laptop/desktop home dir
+        CredentialProcess.sync_work_folder()
+
+        # Push logs and screenshots up to the SMC server
+        CredentialProcess.sync_logs_to_smc()
 
         # Check if time to auto upgrade
         CredentialProcess.start_upgrade_process()

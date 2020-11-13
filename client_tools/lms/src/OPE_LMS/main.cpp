@@ -1,4 +1,5 @@
 #include <QGuiApplication>
+#include <QCoreApplication>
 #include <QQmlApplicationEngine>
 // #include <QMessageBox>
 #include <QTextCodec>
@@ -14,10 +15,12 @@
 #include <QTime>
 #include <QFile>
 #include <QLockFile>
+#include <QOperatingSystemVersion>
 
 #include "openetworkaccessmanagerfactory.h"
 #include "appmodule.h"
 #include "customlogger.h"
+
 
 
 
@@ -35,9 +38,29 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationDomain("openprisoneducation.com");
     QCoreApplication::setApplicationName("OPELMS");
 
-    log_file_path = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/debug.log";
+    //QTextCodec::setCodecForLocale(QTextCodec::codecForName("UTF-8"));
+    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    // Possible help for high contrast refresh?
+    QGuiApplication::setAttribute(Qt::AA_UseOpenGLES);
+    QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+    //QApplication::setAttribute(Qt::AA_DisableWindowContextHelpButton);
 
-    qDebug() << log_file_path;
+    // NOTE: Need before now?  - - Need this right after GUI App creation
+    //QtWebEngine::initialize();
+    QtWebView::initialize();
+
+    log_file_path = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/lms_app_debug.log";
+    // In windows - put it in programdata/ope/tmp/logs/debug.log
+    if (QOperatingSystemVersion::currentType() == QOperatingSystemVersion::Windows) {
+        // returns ("c:/users/<USER>/AppData/Local/<APPNAME>", "c:/programdata/<APPNAME>")
+        // NOTE - Will need to adjust this if
+        QDir d = QDir(QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1));
+        qDebug() << "AppConfigLocation: " << d.path();
+        d.cdUp(); // Move back to c:/programdata
+        log_file_path = d.path() + "/tmp/log/lms_app_debug.log";
+    }
+    qDebug() << "Logging to: " << log_file_path;
+
     // Are we running in the Qt Creator IDE?
     QByteArray envVar = qgetenv("QTDIR");
     if (envVar.isEmpty()) {
@@ -82,20 +105,41 @@ int main(int argc, char *argv[])
     sslconf.setSslOption(QSsl::SslOptionDisableServerNameIndication,true);
     QSslConfiguration::setDefaultConfiguration(sslconf);
 
+    QString last_arg = ""; //QCoreApplication::arguments().last();
+    last_arg = argv[argc-1];
 
-    //QTextCodec::setCodecForLocale(QTextCodec::codecForName("UTF-8"));
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-    // Possible help for high contrast refresh?
-    QGuiApplication::setAttribute(Qt::AA_UseOpenGLES);
+    qDebug() << "Last arg: " << last_arg;
+
+    // Do we need to run headless (quiet_sync?)
+    if (last_arg == "quiet_sync") {
+        qDebug() << "Running quiet_sync - headless mode...";
+        QCoreApplication cmd_app(argc, argv);
+
+        QQmlApplicationEngine cmd_engine;
+
+        // -- Setup our app module which deals with QML/C++ integration
+        AppModule *cmd_appModule = new AppModule(&cmd_engine);
+
+        // Sync from command line, then exit.
+        if (cmd_appModule->isAppCredentialed() != true) {
+            // Can't sync if app not credentialed.
+            qDebug() << "ERROR - Can't sync app when not credentialed!";
+            return -1;
+        }
+
+        qDebug() << "Launching syncLMSQuiet...";
+        // Run sync in quiet mode then exit.
+        QTimer::singleShot(1, cmd_appModule,  SLOT(syncLMSQuiet()));
+        return cmd_app.exec();
+    }
 
     QGuiApplication app(argc, argv);
     // Put our local folder as first path to look at for dlls
     QCoreApplication::addLibraryPath(QCoreApplication::applicationDirPath());
     qDebug() << "Library Paths: " << QCoreApplication::libraryPaths();
 
-    // NOTE: Need this right after GUI App creation
-    QtWebView::initialize();
-    //QtWebEngine::initialize();
+    // NOTE: Need this right after GUI App creation? QtWebengine init earlier?
+    //QtWebView::initialize();
 
     app.setWindowIcon(QIcon(":/images/logo_icon.ico"));
 
@@ -108,15 +152,14 @@ int main(int argc, char *argv[])
 
     QString loadPage = "qrc:/lms.qml";
     //loadPage = "qrc:/websockettest.qml";
-
-
-    QString last_arg = QCoreApplication::arguments().last();
+    //
 
     bool is_app_credentialed = appModule->isAppCredentialed();
     if (is_app_credentialed != true) {
         // Load the error page for non credentialed apps
         loadPage = "qrc:/not_credentialed.qml";
     }
+
 
     bool need_sync = false;
     if (last_arg == "sync" || appModule->hasAppSycnedWithCanvas() != true)

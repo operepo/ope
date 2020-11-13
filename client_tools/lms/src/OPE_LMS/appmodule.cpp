@@ -47,7 +47,9 @@ AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
 
     // Setup the database connection
     _database = new APP_DB(parent);
-    _database->init_db();
+    if (!_database->init_db()) {
+        qDebug() << "FATAL ERROR - Unable to setup database!";
+    }
 
     // Start localhost web server
     startServer();
@@ -488,14 +490,106 @@ p->rootObjects().first()->dumpObjectTree();
 
 }
 
-void AppModule::syncLMS(QString lms)
+bool AppModule::syncLMSQuiet()
 {
-    if (lms == "Canvas") {
-        // Init Externals
-        //_canvas->InitTool();
-        _canvas->LinkToCanvas("http://localhost:8080/oath/response", "1");
-        //_canvas->Sync();
+    qDebug() << "\n\n**** Running syncLMSQuiet...\n\n";
+
+    // Run this then quit the app0
+    QCoreApplication *current_app = QCoreApplication::instance();
+    if (current_app == nullptr) {
+        qDebug() << "FALTAL ERROR - Couldn't find QCoreApplication instance";
+        return false;
     }
+
+    if (_canvas == nullptr) {
+        qDebug() << "ERROR - No Canvas object available!";
+        current_app->quit();
+        return false;
+    }
+
+    QString ret;
+    bool bret;
+    ret = _canvas->pullStudentInfo();
+    if (ret.contains("ERROR")) {
+        // ERROR
+        qDebug() << "ERROR - Unable to get Student Info from Canvas! " << ret;
+        current_app->quit();
+        return false;
+    }
+    qDebug() << ret;
+
+    ret = _canvas->autoAcceptCourses();
+    if (ret.contains("ERROR")) {
+        // ERROR
+        qDebug() << "ERROR - Unable to Accept Courses " << ret;
+        current_app->quit();
+        return false;
+    }
+    qDebug() << ret;
+
+    ret = _canvas->pushAssignments();
+    if (ret.contains("ERROR")) {
+        // ERROR
+        qDebug() << "ERROR - Unable to Push Assignments to Canvas " << ret;
+        current_app->quit();
+        return false;
+    }
+    qDebug() << ret;
+
+    ret = _canvas->pullCourses();
+    if (ret.contains("ERROR")) {
+        // ERROR
+        qDebug() << "ERROR - Unable to Pull Courses from Canvas " << ret;
+        return false;
+    }
+    qDebug() << ret;
+
+    bret = _canvas->pullModules();
+    bret = _canvas->pullModuleItems();
+
+    ret = _canvas->pullDiscussionTopics();
+    if (ret.contains("ERROR")) {
+        // ERROR
+        qDebug() << "ERROR - Unable to Pull discussion topics from Canvas " << ret;
+        return false;
+    }
+    qDebug() << ret;
+
+//    ret = _canvas->pullQuizzes();
+//    if (ret.contains("ERROR")) {
+//        // ERROR
+//        qDebug() << "ERROR - Unable to Pull quizzes from Canvas " << ret;
+//        return false;
+//    }
+//    qDebug() << ret;
+
+//    ret = _canvas->pullQuizQuestions();
+//    if (ret.contains("ERROR")) {
+//        // ERROR
+//        qDebug() << "ERROR - Unable to Pull quiz questions from Canvas " << ret;
+//        return false;
+//    }
+//    qDebug() << ret;
+
+
+    bret = _canvas->pullCoursePages();
+    bret = _canvas->pullAssignments();
+    bret = _canvas->pullMessages();
+    bret = _canvas->pullMessages("sent");
+    bret = _canvas->pullAnnouncements();
+    bret = _canvas->pullCourseFileFolders();
+    bret = _canvas->pullCourseFilesInfo();
+    bret = _canvas->pullSMCDocuments();
+    bret = _canvas->pullCourseFilesBinaries();
+    bret = _canvas->pullSMCVideos();
+    bret = _canvas->updateDownloadLinks();
+
+    // Mark that we have synced properly.
+    markAsSyncedWithCanvas();
+
+    qDebug() << "\n\n**** syncLMSQuiet - Finished!\n\n";
+    current_app->quit();
+    return true;
 }
 
 void AppModule::setupLoginWebView(QObject* /*wv*/)
@@ -521,5 +615,10 @@ void AppModule::sslErrorHandler(QNetworkReply *reply, QList<QSslError> errors)
 {
     qDebug() << "SSL Error!!!";
     reply->ignoreSslErrors(errors);
+}
+
+QString AppModule::get_current_student_user()
+{
+    return _app_settings->value("student/user_name", "").toString();
 }
 

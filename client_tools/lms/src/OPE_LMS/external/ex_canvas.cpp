@@ -548,6 +548,7 @@ QString EX_Canvas::pullCourses()
             QJsonArray enrollments = o["enrollments"].toArray();
             bool isStudent = false;
             bool isTA_plus = false; // marked for any other enrollment besides student
+            bool is_active = true; // determine if course/enrollment is active
             QString enrollment_type = "";
             QString enrollment_role = "";
             QString enrollment_role_id = "";
@@ -577,6 +578,8 @@ QString EX_Canvas::pullCourses()
                     // Student but not active
                     enrollment_state = enrollment["enrollment_state"].toString("");
                     qDebug() << "   --> Found inactive student enrollment (not syncing) " << course_name << ":" << course_id << ":" << enrollment["type"];
+                    is_active = false;
+                    isStudent = true;
                 } else {
                     qDebug() << "   --> Found NON student enrollment (not syncing) " << course_name << ":" << course_id << ":" << enrollment["type"];
                     enrollment_state = enrollment["enrollment_state"].toString("");
@@ -592,7 +595,7 @@ QString EX_Canvas::pullCourses()
             } else if (workflow_state != "available") {
                 courses_pulled[course_name] = " - <span class='failed'>NOT SYNCING</span> " + course_name + " - Course not published? (" + workflow_state + "/" + enrollment_state + ")";
                 qDebug() << "*** Course not published - not syncing " << course_name << ":" << course_id;
-            }else if (isStudent == true && isTA_plus != true) {
+            }else if (isStudent == true && is_active == true && isTA_plus != true) {
                 is_syncing = true;
                 // Is a student, but NOT a TA or higher... do the sync.
                 model->setFilter("id = '" + course_id + "'"  );
@@ -663,6 +666,10 @@ QString EX_Canvas::pullCourses()
                     courses_pulled[course_name] = " - <span class='failed'>NOT SYNCING</span> " + course_name + " (" + workflow_state + "/" + enrollment_state + ")";
                 }
 
+            }else if (isStudent == true && is_active != true) {
+                // Log that we aren't syncing this course
+                courses_pulled[course_name] = " - <span class='failed'>NOT SYNCING</span> " + course_name + " - Enrollment isn't active (" + workflow_state + "/" + enrollment_state + ")";
+                qDebug() << "*** Course enrollment isn't active, not syncing this course " << course_name << ":" << course_id;
             } else {
                 // Log that we aren't syncing this course
                 courses_pulled[course_name] = " - <span class='failed'>NOT SYNCING</span> " + course_name + " - TA+ permissions found, will only sync student access (" + workflow_state + "/" + enrollment_state + ")";
@@ -722,6 +729,634 @@ QString EX_Canvas::pullCourses()
 
     return ret;
 }
+
+QString EX_Canvas::pullDiscussionTopics()
+{
+    // Grab discussion topics for each course in the database
+    QString ret = "";
+    if (_app_db == nullptr) { return ret; }
+
+    // Get the list of courses for this student
+    GenericTableModel *courses_model = _app_db->getTable("courses");
+    GenericTableModel *model = _app_db->getTable("discussion_topics");
+
+    if (courses_model == nullptr || model == nullptr) {
+        QString err = "ERROR - Unable to get models for courses or discussion topics!";
+        qDebug() << err;
+        return err;
+    }
+
+    // All enteries should be for this student, so get them all
+    courses_model->setFilter("");
+    courses_model->select();
+    // NOTE - Make sure to fetch all or we may only get 256 records
+    while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
+
+    ret = true;
+    int rowCount = courses_model->rowCount();
+    for (int i=0; i<rowCount; i++) {
+        // Get modules for this course
+        QSqlRecord course_record = courses_model->record(i);
+        QString course_id = course_record.value("id").toString();
+        //qDebug() << "Retrieving modules for " << course_id;
+        QHash<QString,QString> p;
+        p["per_page"] = "10000"; // Cuts down number of calls significantly
+        QJsonDocument doc = CanvasAPICall("/api/v1/courses/" + course_id + "/discussion_topics", "GET", &p);
+
+        if (doc.isArray()) {
+            qDebug() << "\tDiscussion Topics for course:";
+
+            // Should be an array of discussion topics
+            QJsonArray arr = doc.array();
+            foreach(QJsonValue val, arr) {
+                //qDebug() << "got item...";
+                // This should be a topic
+                QJsonObject o = val.toObject();
+
+                QString id = o["id"].toString("");
+                //qDebug() << "Discussion Topic ID " << id;
+
+                model->setFilter("id = " + id);
+                model->select();
+                // NOTE - Make sure to fetch all or we may only get 256 records
+                while(model->canFetchMore()) { model->fetchMore(); }
+
+                QSqlRecord record;
+                bool is_insert = false;
+
+                if (model->rowCount() == 1) {
+                    // Row exists, update with current info
+                    record = model->record(0);
+                    is_insert = false;
+                    qDebug() << "\t\tUpdating discussion topic..." << id << o["title"].toString("");
+                } else {
+                    // Need to clear the filter to insert
+                    model->setFilter("");
+                    record = model->record();
+                    is_insert = true;
+                    qDebug() << "\t\tImporting discussion topic..." << id << o["title"].toString("");
+                }
+
+                // JSON - list of objects
+                /*
+// A discussion topic
+{
+  // The ID of this topic.
+  "id": 1,
+  // The topic title.
+  "title": "Topic 1",
+  // The HTML content of the message body.
+  "message": "<p>content here</p>",
+  // The URL to the discussion topic in canvas.
+  "html_url": "https://<canvas>/courses/1/discussion_topics/2",
+  // The datetime the topic was posted. If it is null it hasn't been posted yet.
+  // (see delayed_post_at)
+  "posted_at": "2037-07-21T13:29:31Z",
+  // The datetime for when the last reply was in the topic.
+  "last_reply_at": "2037-07-28T19:38:31Z",
+  // If true then a user may not respond to other replies until that user has made
+  // an initial reply. Defaults to false.
+  "require_initial_post": false,
+  // Whether or not posts in this topic are visible to the user.
+  "user_can_see_posts": true,
+  // The count of entries in the topic.
+  "discussion_subentry_count": 0,
+  // The read_state of the topic for the current user, 'read' or 'unread'.
+  "read_state": "read",
+  // The count of unread entries of this topic for the current user.
+  "unread_count": 0,
+  // Whether or not the current user is subscribed to this topic.
+  "subscribed": true,
+  // (Optional) Why the user cannot subscribe to this topic. Only one reason will
+  // be returned even if multiple apply. Can be one of: 'initial_post_required':
+  // The user must post a reply first; 'not_in_group_set': The user is not in the
+  // group set for this graded group discussion; 'not_in_group': The user is not
+  // in this topic's group; 'topic_is_announcement': This topic is an announcement
+  "subscription_hold": "not_in_group_set",
+  // The unique identifier of the assignment if the topic is for grading,
+  // otherwise null.
+  "assignment_id": null,
+  // The datetime to publish the topic (if not right away).
+  "delayed_post_at": null,
+  // Whether this discussion topic is published (true) or draft state (false)
+  "published": true,
+  // The datetime to lock the topic (if ever).
+  "lock_at": null,
+  // Whether or not the discussion is 'closed for comments'.
+  "locked": false,
+  // Whether or not the discussion has been 'pinned' by an instructor
+  "pinned": false,
+  // Whether or not this is locked for the user.
+  "locked_for_user": true,
+  // (Optional) Information for the user about the lock. Present when
+  // locked_for_user is true.
+  "lock_info": null,
+  // (Optional) An explanation of why this is locked for the user. Present when
+  // locked_for_user is true.
+  "lock_explanation": "This discussion is locked until September 1 at 12:00am",
+  // The username of the topic creator.
+  "user_name": "User Name",
+  // DEPRECATED An array of topic_ids for the group discussions the user is a part
+  // of.
+  "topic_children": [5, 7, 10],
+  // An array of group discussions the user is a part of. Fields include: id,
+  // group_id
+  "group_topic_children": [{"id":5,"group_id":1}, {"id":7,"group_id":5}, {"id":10,"group_id":4}],
+  // If the topic is for grading and a group assignment this will point to the
+  // original topic in the course.
+  "root_topic_id": null,
+  // If the topic is a podcast topic this is the feed url for the current user.
+  "podcast_url": "/feeds/topics/1/enrollment_1XAcepje4u228rt4mi7Z1oFbRpn3RAkTzuXIGOPe.rss",
+  // The type of discussion. Values are 'side_comment', for discussions that only
+  // allow one level of nested comments, and 'threaded' for fully threaded
+  // discussions.
+  "discussion_type": "side_comment",
+  // The unique identifier of the group category if the topic is a group
+  // discussion, otherwise null.
+  "group_category_id": null,
+  // Array of file attachments.
+  "attachments": null,
+  // The current user's permissions on this topic.
+  "permissions": {"attach":true},
+  // Whether or not users can rate entries in this topic.
+  "allow_rating": true,
+  // Whether or not grade permissions are required to rate entries.
+  "only_graders_can_rate": true,
+  // Whether or not entries should be sorted by rating.
+  "sort_by_rating": true
+}
+
+                 */
+
+                record.setValue("id", o["id"].toString(""));
+                record.setValue("course_id", course_id);
+                record.setValue("title", o["title"].toString(""));
+                record.setValue("message", o["message"].toString(""));
+                record.setValue("html_url", o["html_url"].toString(""));
+                record.setValue("posted_at", o["posted_at"].toString(""));
+                record.setValue("last_reply_at", o["last_reply_at"].toString(""));
+                record.setValue("require_initial_post", o["require_initial_post"].toString(""));
+                record.setValue("user_can_see_posts", o["user_can_see_posts"].toBool(true));
+                record.setValue("discussion_subentry_count", o["discussion_subentry_county"].toString("0"));
+                record.setValue("read_state", o["read_state"].toString("unread"));
+                record.setValue("unread_count", o["unread_count"].toString(""));
+                record.setValue("subscribed", o["subscribed"].toBool(true));
+                record.setValue("subscription_hold", o["subscription_hold"].toString("not_in_group_set"));
+                record.setValue("assignment_id", o["assignment_id"].toString(""));
+                record.setValue("delayed_post_at", o["delayed_post_at"].toString(""));
+                record.setValue("published", o["published"].toBool(true));
+                record.setValue("lock_at", o["lock_at"].toString(""));
+                record.setValue("locked", o["locked"].toBool(false));
+                record.setValue("pinned", o["pinned"].toBool(false));
+                record.setValue("locked_for_user", o["locked_for_user"].toBool(false));
+                record.setValue("lock_info", o["lock_info"].toString(""));
+                record.setValue("lock_explanation", o["lock_explanation"].toString(""));
+                record.setValue("user_name", o["user_name"].toString(""));
+                record.setValue("topic_children", QJsonDocument(o["topic_children"].toObject()).toJson());
+                record.setValue("group_topic_children", QJsonDocument(o["group_topic_children"].toObject()).toJson());
+                record.setValue("root_topic_id", o["root_topic_id"].toString(""));
+                record.setValue("podcast_url", o["podcast_url"].toString(""));
+                record.setValue("discussion_type", o["discussion_type"].toString("side_comment"));
+                record.setValue("group_category_id", o["group_category_id"].toString(""));
+                record.setValue("attachments", o["attachments"].toString(""));
+                record.setValue("permissions", QJsonDocument(o["permissions"].toObject()).toJson());
+                record.setValue("allow_rating", o["allow_rating"].toBool(true));
+                record.setValue("only_graders_can_rate", o["only_graders_can_rate"].toBool(true));
+                record.setValue("sort_by_rating", o["sort_by_rating"].toBool(true));
+                record.setValue("is_active", "true");
+
+                if (is_insert) {
+                   model->insertRecord(-1, record);
+                } else {
+                   // Filter should be set so 0 should be current record
+                   model->setRecord(0, record);
+                }
+                // Write changes
+                if(!model->submitAll()) {
+                    ret = "Error saving discussion topic! ";
+                    qDebug() << "ERROR - problem saving discussion topic " << id << model->lastError();
+                }
+                model->setFilter(""); // clear the filter
+
+                //qDebug() << "Module " << o["name"].toString("");
+                model->database().commit();
+                //qDebug() << model->lastError();
+
+            }
+        }
+    }
+
+    return ret;
+}
+
+QString EX_Canvas::pullQuizzes()
+{
+    // Grab discussion topics for each course in the database
+    QString ret = "";
+    if (_app_db == nullptr) { return ret; }
+
+    // Get the list of courses for this student
+    GenericTableModel *courses_model = _app_db->getTable("courses");
+    GenericTableModel *model = _app_db->getTable("quizzes");
+
+    if (courses_model == nullptr || model == nullptr) {
+        QString err = "ERROR - Unable to get models for courses or quizzes!";
+        qDebug() << err;
+        return err;
+    }
+
+    // All enteries should be for this student, so get them all
+    courses_model->setFilter("");
+    courses_model->select();
+    // NOTE - Make sure to fetch all or we may only get 256 records
+    while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
+
+    ret = true;
+    int rowCount = courses_model->rowCount();
+    for (int i=0; i<rowCount; i++) {
+        // Get quizzes for this course
+        QSqlRecord course_record = courses_model->record(i);
+        QString course_id = course_record.value("id").toString();
+        //qDebug() << "Retrieving quizzes for " << course_id;
+        QHash<QString,QString> p;
+        p["per_page"] = "10000"; // Cuts down number of calls significantly
+        QJsonDocument doc = CanvasAPICall("/api/v1/courses/" + course_id + "/quizzes", "GET", &p);
+
+        if (doc.isArray()) {
+            qDebug() << "\tQuizzes for course: " << course_id;
+
+            // Should be an array of discussion topics
+            QJsonArray arr = doc.array();
+            foreach(QJsonValue val, arr) {
+                //qDebug() << "got item...";
+                // This should be a quiz
+                QJsonObject o = val.toObject();
+
+                QString id = o["id"].toString("");
+                //qDebug() << "Quiz ID " << id;
+
+                model->setFilter("id = " + id);
+                model->select();
+                // NOTE - Make sure to fetch all or we may only get 256 records
+                while(model->canFetchMore()) { model->fetchMore(); }
+
+                QSqlRecord record;
+                bool is_insert = false;
+
+                if (model->rowCount() == 1) {
+                    // Row exists, update with current info
+                    record = model->record(0);
+                    is_insert = false;
+                    qDebug() << "\t\tUpdating quiz..." << id << o["title"].toString("");
+                } else {
+                    // Need to clear the filter to insert
+                    model->setFilter("");
+                    record = model->record();
+                    is_insert = true;
+                    qDebug() << "\t\tImporting quiz..." << id << o["title"].toString("");
+                }
+                ret += "\n\tProcessing Quiz: " + QString(id) + " - " + o["title"].toString("");
+
+                // JSON - list of objects
+                /*
+// A quiz
+{
+  // the ID of the quiz
+  "id": 5,
+  // the title of the quiz
+  "title": "Hamlet Act 3 Quiz",
+  // the HTTP/HTTPS URL to the quiz
+  "html_url": "http://canvas.example.edu/courses/1/quizzes/2",
+  // a url suitable for loading the quiz in a mobile webview.  it will persiste
+  // the headless session and, for quizzes in public courses, will force the user
+  // to login
+  "mobile_url": "http://canvas.example.edu/courses/1/quizzes/2?persist_healdess=1&force_user=1",
+  // A url that can be visited in the browser with a POST request to preview a
+  // quiz as the teacher. Only present when the user may grade
+  "preview_url": "http://canvas.example.edu/courses/1/quizzes/2/take?preview=1",
+  // the description of the quiz
+  "description": "This is a quiz on Act 3 of Hamlet",
+  // type of quiz possible values: 'practice_quiz', 'assignment', 'graded_survey',
+  // 'survey'
+  "quiz_type": "assignment",
+  // the ID of the quiz's assignment group:
+  "assignment_group_id": 3,
+  // quiz time limit in minutes
+  "time_limit": 5,
+  // shuffle answers for students?
+  "shuffle_answers": false,
+  // let students see their quiz responses? possible values: null, 'always',
+  // 'until_after_last_attempt'
+  "hide_results": "always",
+  // show which answers were correct when results are shown? only valid if
+  // hide_results=null
+  "show_correct_answers": true,
+  // restrict the show_correct_answers option above to apply only to the last
+  // submitted attempt of a quiz that allows multiple attempts. only valid if
+  // show_correct_answers=true and allowed_attempts > 1
+  "show_correct_answers_last_attempt": true,
+  // when should the correct answers be visible by students? only valid if
+  // show_correct_answers=true
+  "show_correct_answers_at": "2013-01-23T23:59:00-07:00",
+  // prevent the students from seeing correct answers after the specified date has
+  // passed. only valid if show_correct_answers=true
+  "hide_correct_answers_at": "2013-01-23T23:59:00-07:00",
+  // prevent the students from seeing their results more than once (right after
+  // they submit the quiz)
+  "one_time_results": true,
+  // which quiz score to keep (only if allowed_attempts != 1) possible values:
+  // 'keep_highest', 'keep_latest'
+  "scoring_policy": "keep_highest",
+  // how many times a student can take the quiz -1 = unlimited attempts
+  "allowed_attempts": 3,
+  // show one question at a time?
+  "one_question_at_a_time": false,
+  // the number of questions in the quiz
+  "question_count": 12,
+  // The total point value given to the quiz
+  "points_possible": 20,
+  // lock questions after answering? only valid if one_question_at_a_time=true
+  "cant_go_back": false,
+  // access code to restrict quiz access
+  "access_code": "2beornot2be",
+  // IP address or range that quiz access is limited to
+  "ip_filter": "123.123.123.123",
+  // when the quiz is due
+  "due_at": "2013-01-23T23:59:00-07:00",
+  // when to lock the quiz
+  "lock_at": null,
+  // when to unlock the quiz
+  "unlock_at": "2013-01-21T23:59:00-07:00",
+  // whether the quiz has a published or unpublished draft state.
+  "published": true,
+  // Whether the assignment's 'published' state can be changed to false. Will be
+  // false if there are student submissions for the quiz.
+  "unpublishable": true,
+  // Whether or not this is locked for the user.
+  "locked_for_user": false,
+  // (Optional) Information for the user about the lock. Present when
+  // locked_for_user is true.
+  "lock_info": null,
+  // (Optional) An explanation of why this is locked for the user. Present when
+  // locked_for_user is true.
+  "lock_explanation": "This quiz is locked until September 1 at 12:00am",
+  // Link to Speed Grader for this quiz. Will not be present if quiz is
+  // unpublished
+  "speedgrader_url": "http://canvas.instructure.com/courses/1/speed_grader?assignment_id=1",
+  // Link to endpoint to send extensions for this quiz.
+  "quiz_extensions_url": "http://canvas.instructure.com/courses/1/quizzes/2/quiz_extensions",
+  // Permissions the user has for the quiz
+  "permissions": null,
+  // list of due dates for the quiz
+  "all_dates": null,
+  // Current version number of the quiz
+  "version_number": 3,
+  // List of question types in the quiz
+  "question_types": ["multiple_choice", "essay"],
+  // Whether survey submissions will be kept anonymous (only applicable to
+  // 'graded_survey', 'survey' quiz types)
+  "anonymous_submissions": false
+}
+
+                 */
+
+                record.setValue("id", o["id"].toString(""));
+                record.setValue("course_id", course_id);
+                record.setValue("title", o["title"].toString(""));
+                record.setValue("html_url", o["html_url"].toString(""));
+                record.setValue("mobile_url", o["mobile_url"].toString(""));
+                record.setValue("preview_url", o["preview_url"].toString(""));
+                record.setValue("description", o["description"].toString(""));
+                record.setValue("quiz_type", o["quiz_type"].toString(""));
+                record.setValue("assignment_group_id", o["assignment_group_id"].toString(""));
+                record.setValue("time_limit", o["time_limit"].toString(""));
+                record.setValue("shuffle_answers", o["shuffle_answers"].toBool(false));
+                record.setValue("hide_results", o["hide_results"].toString("")); // always, null, until_after_last_attempt
+                record.setValue("show_correct_answers", o["show_correct_answers"].toBool(true));
+                record.setValue("show_correct_answers_last_attempt", o["show_correct_answers_last_attempt"].toBool(true));
+                record.setValue("show_correct_answers_at", o["show_correct_answers_at"].toString(""));
+                record.setValue("hide_correct_answers_at", o["hide_correct_answers_at"].toString(""));
+                record.setValue("one_time_results", o["one_time_results"].toBool(true));
+                record.setValue("scoring_policy", o["scoring_policy"].toString(""));
+                record.setValue("allowed_attempts", o["allowed_attempts"].toString(""));
+                record.setValue("one_question_at_a_time", o["one_question_at_a_time"].toBool(false));
+                record.setValue("question_count", o["question_count"].toString(""));
+                record.setValue("points_possible", o["points_possible"].toString(""));
+                record.setValue("cant_go_back", o["cant_go_back"].toBool(false));
+                record.setValue("has_access_code", o["has_access_code"].toBool(false));
+
+                // NOTE - access code not coming down?
+                QString access_code = o["access_code"].toString("");
+                if (access_code != "") {
+                    // Hash the code so students can't see it
+                    QCryptographicHash hash(QCryptographicHash::Sha256);
+                    hash.addData(access_code.toLocal8Bit());
+                    access_code = hash.result().toHex();
+                }
+                record.setValue("access_code", access_code); // Need to hash?
+                record.setValue("ip_filter", o["ip_filter"].toString(""));
+                record.setValue("due_at", o["due_at"].toString(""));
+                record.setValue("lock_at", o["lock_at"].toString(""));
+                record.setValue("unlock_at", o["unlock_at"].toString(""));
+                record.setValue("published", o["published"].toBool(true));
+                record.setValue("unpublishable", o["unpublishable"].toBool(true));
+                record.setValue("locked_for_user", o["locked_for_user"].toBool(false));
+                record.setValue("lock_info", o["lock_info"].toString(""));
+                record.setValue("lock_explanation", o["lock_explanation"].toString(""));
+                record.setValue("speedgrader_url", o["speedgrader_url"].toString(""));
+                record.setValue("quiz_extensions_url", o["quiz_extensions_url"].toString(""));
+                record.setValue("permissions", QJsonDocument(o["permissions"].toObject()).toJson());
+                record.setValue("all_dates", QJsonDocument(o["all_dates"].toObject()).toJson());
+                record.setValue("version_number", o["version_number"].toString(""));
+                record.setValue("question_types", QJsonDocument(o["question_types"].toObject()).toJson());
+                record.setValue("anonymous_submissions", o["anonymous_submissions"].toBool(false));
+                record.setValue("is_active", "true");
+
+                if (is_insert) {
+                   model->insertRecord(-1, record);
+                } else {
+                   // Filter should be set so 0 should be current record
+                   model->setRecord(0, record);
+                }
+                // Write changes
+                if(!model->submitAll()) {
+                    ret += "\n\t\tError saving quiz! " + QString(id) + " - " + o["title"].toString("");
+                    qDebug() << "ERROR - problem saving quiz " << id << model->lastError();
+                }
+                model->setFilter(""); // clear the filter
+
+                //qDebug() << "Quiz " << o["name"].toString("");
+                model->database().commit();
+                //qDebug() << model->lastError();
+
+            }
+        }
+    }
+    ret += "\nDone pulling quizzes";
+
+    return ret;
+}
+
+
+QString EX_Canvas::pullQuizQuestions()
+{
+    // NOTE - This has to bounce through SMC since canvas doesn't give up
+    // quizzes and answers through the API
+
+    // Grab questions for each course in the database
+    QString ret = "";
+    if (_app_db == nullptr) { return ret; }
+
+    // Get the list of quizzes for this student
+    GenericTableModel *quizzes_model = _app_db->getTable("quizzes");
+    GenericTableModel *model = _app_db->getTable("quiz_questions");
+
+    if (quizzes_model == nullptr || model == nullptr) {
+        QString err = "ERROR - Unable to get models for quizzes or quiz_questions!";
+        qDebug() << err;
+        return err;
+    }
+
+    // All enteries should be for this student, so get them all
+    quizzes_model->setFilter("");
+    quizzes_model->select();
+    // NOTE - Make sure to fetch all or we may only get 256 records
+    while(quizzes_model->canFetchMore()) { quizzes_model->fetchMore(); }
+
+    // Get the student username/userid
+    QString student_user = _app_settings->value("student/user_name", "").toString();
+    QString smc_url = _app_settings->value("student/smc_url", "https://smc.ed").toString();
+    if (!smc_url.endsWith("/")){ smc_url += "/"; }
+
+    ret = true;
+    int rowCount = quizzes_model->rowCount();
+    for (int i=0; i<rowCount; i++) {
+        // Get quiz questions for this quiz
+        QSqlRecord quiz_record = quizzes_model->record(i);
+        QString quiz_id = quiz_record.value("id").toString();
+        QString course_id = quiz_record.value("course_id").toString();
+        //qDebug() << "Retrieving quiz questions for " << quiz_id;
+        QHash<QString,QString> p;
+        p["per_page"] = "10000"; // Cuts down number of calls significantly
+        //QJsonDocument doc = CanvasAPICall("/api/v1/courses/" + course_id + "/quizzes/" + quiz_id + "/questions", "GET", &p);
+
+        //QJsonDocument doc = SMCAPICall("/lms/get_quiz_questions/" + student_user + "/" + course_id + "/" + quiz_id + "/<auth_key>", "GET", &p);
+        QString api_url = smc_url + "lms/get_quiz_questions_for_student/" + student_user + "/" + course_id + "/" + quiz_id + "/" + canvas_access_token;
+        QHash<QString,QString> headers;
+        headers["Authorization"] = "Bearer " + canvas_access_token;
+        headers["User-Agent"] = "OPE LMS";
+        headers["Accept-Language"] = "en-US,en;q=0.8";
+
+        QString json = NetworkCall(api_url, "GET", &p, &headers);
+        // Convert big id numbers to strings so they parse correctly
+        // NOTE: qjsondocument converts ints to doubles and ends up loosing presision
+        // find occurences of integer values in json documents and add quotes
+        // ("\s*:\s*)(\d+\.?\d*)([^"])|([\[])(\d+\.?\d*)|([,])(\d+\.?\d*)
+        // Was picking up digits in the body like $10,000.
+        //QRegularExpression regex("(\"\\s*:\\s*)(\\d+\\.?\\d*)([^\"])|([\\[])(\\d+\\.?\\d*)|([,])(\\d+\\.?\\d*)"); //   ":\\s*(\\d+)\\s*,");
+        //json = json.replace(regex, "\\1\\4\\6\"\\2\\5\\7\"\\3");  //  :\"\\1\",");
+        //qDebug() << "===================================\nParsing http data: " << json;
+        QRegularExpression regex("(\\\"\\s*:\\s*)([0-9.]+)(\\s*[,])"); //   ":\\s*(\\d+)\\s*,");
+        json = json.replace(regex, "\\1\"\\2\"\\3");  //  :\"\\1\",");
+
+        // Convert response to json
+        QJsonParseError *err = new QJsonParseError();
+        QJsonDocument doc(QJsonDocument::fromJson(json.toUtf8(), err));
+        if (err->error != QJsonParseError::NoError) {
+            qDebug() << "\tJSON Parse Err: " << err->errorString() << err->offset;
+            qDebug() << "\tJSON Response: " << json;
+            qDebug() << "\tJSON Doc: " << doc;
+            qDebug() << "\tIs Array: " << doc.isArray();
+            qDebug() << "\tIs Object: " << doc.isObject();
+            qDebug() << "\tIs nullptr: " << doc.isNull();
+        }
+        delete err;
+
+
+        if (doc.isArray()) {
+            qDebug() << "\tQuiz Question for Quiz: " << quiz_id;
+
+            // Should be an array of quiz questions
+            QJsonArray arr = doc.array();
+            foreach(QJsonValue val, arr) {
+                //qDebug() << "got item...";
+                // This should be a quiz question
+                QJsonObject o = val.toObject();
+
+                QString id = o["id"].toString("");
+                //qDebug() << "Quiz question ID " << id;
+
+                model->setFilter("id = " + id);
+                model->select();
+                // NOTE - Make sure to fetch all or we may only get 256 records
+                while(model->canFetchMore()) { model->fetchMore(); }
+
+                QSqlRecord record;
+                bool is_insert = false;
+
+                if (model->rowCount() == 1) {
+                    // Row exists, update with current info
+                    record = model->record(0);
+                    is_insert = false;
+                    qDebug() << "\t\tUpdating quiz question..." << id;
+                } else {
+                    // Need to clear the filter to insert
+                    model->setFilter("");
+                    record = model->record();
+                    is_insert = true;
+                    qDebug() << "\t\tImporting quiz..." << id;
+                }
+                ret += "\n\tProcessing Question: " + QString(id);
+
+                // JSON - list of objects
+                /*
+NOTE - This comes through the SMC which grabs questions and wrapps them up.
+
+                 */
+
+
+                record.setValue("id", o["id"].toString(""));
+                record.setValue("course_id", course_id);
+                record.setValue("quiz_id", o["quiz_id"].toString(""));
+                record.setValue("quiz_group_id", o["quiz_group_id"].toString(""));
+                record.setValue("assessment_question_id", o["assessment_question_id"].toString(""));
+                record.setValue("position", o["position"].toString(""));
+                record.setValue("question_type", o["question_type"].toString(""));
+                record.setValue("payload_token", o["payload_token"].toString(""));
+                // NOTE - To decrypt payload:
+                // sha256 hash:  auth_token + course_id + quiz_id + question id + payload_token - use resulting sha256 hash as key
+                record.setValue("question_payload", o["question_payload"].toString(""));
+                record.setValue("is_active", "true");
+
+                if (is_insert) {
+                   model->insertRecord(-1, record);
+                } else {
+                   // Filter should be set so 0 should be current record
+                   model->setRecord(0, record);
+                }
+                // Write changes
+                if(!model->submitAll()) {
+                    ret += "\n\t\tError saving quiz! " + QString(id);
+                    qDebug() << "ERROR - problem saving quiz " << id << model->lastError();
+                }
+                model->setFilter(""); // clear the filter
+
+                //qDebug() << "Quiz " << o["name"].toString("");
+                model->database().commit();
+                //qDebug() << model->lastError();
+
+            }
+        } else {
+            QString tmp_msg = "ERROR - Unable to pull quiz questions through SMC\n\t- make sure SMC version is >= 1.9.56 and that canvas integration is properly enabled.";
+            ret += "\n" + tmp_msg;
+            qDebug() << tmp_msg;
+        }
+    }
+    ret += "\nDone pulling quiz questions.";
+
+    return ret;
+}
+
 
 bool EX_Canvas::pullModules()
 {
@@ -1720,7 +2355,9 @@ qDebug() << "Got conversation, going for messages: " << o["messages"];
 
                     messages_model->setFilter(""); //clear filter
                     messages_model->database().commit();
-                    qDebug() << "ERR: " << messages_model->lastError();
+                    if (ret == false) {
+                        qDebug() << "ERR Saving message: " << messages_model->lastError();
+                    }
 
                 }
 

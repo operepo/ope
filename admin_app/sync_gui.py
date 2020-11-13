@@ -386,13 +386,13 @@ class SyncOPEApp(App, EventDispatcher):
 
     use_kivy_settings = False
 
-    required_apps = ["ope-gateway", "ope-router", "ope-dns", "ope-redis",
+    required_apps = ["ope-gateway", "ope-dns", "ope-redis",
         "ope-postgresql", "ope-ntp"]
     recommended_apps = ["ope-fog", "ope-canvas", "ope-canvas-rce",
         "ope-smc", "ope-clamav", "ope-canvas-mathman"]
     stable_apps = ["ope-kalite", "ope-codecombat", "ope-gcf"]
     beta_apps = ["ope-freecodecamp", "ope-jsbin", "ope-rachel",
-        "ope-stackdump", "ope-wamap", "ope-wsl"]
+        "ope-stackdump", "ope-wamap", "ope-wsl", "ope-router"]
     # If this app gets turned on, make sure the depends do too
     app_depends = {
         "ope-canvas": ["ope-canvas-rce", "ope-canvas-mathman"],    

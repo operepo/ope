@@ -42,7 +42,24 @@ class GroupPolicy:
         p(output)
 
         return ret
+    
+    @staticmethod
+    def get_gpo_count(gpo_folder=None):
+        if gpo_folder is None:
+            app_folder = util.get_app_folder()
+            lgpo_path = os.path.join(app_folder, "rc")
+
+            # Check to see if more then 1 folder exists in the gpo folder
+            gpo_folder = os.path.join(lgpo_path, "gpo")
+
+        gpo_count = 0
+        with os.scandir(gpo_folder) as it:
+            for entry in it:
+                if not entry.name.startswith(".") and entry.is_dir():
+                    gpo_count += 1
         
+        return gpo_count
+
     @staticmethod
     def apply_group_policy():
         ret = True
@@ -56,7 +73,17 @@ class GroupPolicy:
         # LGPO.exe is in the rc sub folder of the mgmt tool
         app_folder = util.get_app_folder()
         lgpo_path = os.path.join(app_folder, "rc")
-        
+
+        # Check to see if more then 1 folder exists in the gpo folder
+        gpo_folder = os.path.join(lgpo_path, "gpo")
+        gpo_count = GroupPolicy.get_gpo_count(gpo_folder)
+        if gpo_count == 0:
+            p("}}rbNO GPO FOLDER FOUND AT: " + gpo_folder + "\nPlease add your GPO settings to this folder to continue}}xx")
+            return False
+        if gpo_count > 1:
+            p("}}rbTOO MANY GPO FOLDERS FOUND AT: " + gpo_folder + "\nRemove all but the newest GPO to continue!}}xx")
+            return False
+         
         cmd = "lgpo.exe /g " + gpo_name
 
         returncode, output = ProcessManagement.run_cmd(cmd, cwd=lgpo_path, attempts=5,
@@ -70,7 +97,7 @@ class GroupPolicy:
         # Force gpupdate
         cmd = "%SystemRoot%\\system32\\gpupdate /force"
         returncode, output = ProcessManagement.run_cmd(cmd, attempts=5, 
-            require_return_code=0, cmd_timeout=30)
+            require_return_code=0, cmd_timeout=10)
         if returncode == -2:
             # Error running command?
             p("}}rnERROR - Unable to set force gpupdate!}}xx\n" + output)

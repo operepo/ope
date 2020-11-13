@@ -1415,8 +1415,9 @@
                     text: "[b][color=ff0000]**[/color][/b] Router (DNS: router[color=800080].ed[/color]) - Deals with multicast routing and firewall rules"
                 GridSwitch:
                     id: router_on
-                    disabled: True
+                    disabled: False
                     active: app.is_app_active('ope-router')
+                    on_active: app.set_app_active('ope-router', self.active)
 
                 GridLabel:
                     text: "[b][color=ff0000]**[/color][/b] DNS (DNS: dns[color=800080].ed[/color]) - Deals with DNS requests - add conditional forwarder on your main DNS server to this IP"

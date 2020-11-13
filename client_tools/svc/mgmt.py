@@ -213,7 +213,7 @@ valid_commands = {
     # Lock down permissions to OPE folders
     "set_default_ope_folder_permissions": {
         "function": FolderPermissions.set_default_ope_folder_permissions,
-        "help": "Reset permissions on %programdata%\ope folders",
+        "help": "Reset permissions on %programdata%\\ope folders",
     },
     # Lock down permissions to OPE registry entries
     "set_default_ope_registry_permissions": {

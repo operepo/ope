@@ -1,10 +1,12 @@
-import QtQuick 2.11
-import QtQuick.Controls 2.4
-import QtQuick.Controls.Material 2.3
-import QtQuick.Controls.Universal 2.3
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Controls.Material 2.15
+import QtQuick.Controls.Universal 2.15
 import QtQuick.Controls.Styles 1.4
-import QtQuick.Controls.Imagine 2.3
-import QtQuick.Layouts 1.3
+import QtQuick.Controls.Imagine 2.15
+import QtQuick.Layouts 1.15
+
+import QtWebView 1.15
 
 import com.openprisoneducation.ope 1.0
 import "App.js" as App
@@ -39,7 +41,7 @@ Page {
         font.bold: true;
         font.pixelSize: 26
         padding: 6
-        color: "steelblue";
+        color: App.text_color;
     }
 
     ListView {
@@ -64,13 +66,16 @@ Page {
             Rectangle {
                 width: parent.width
                 height: childrenRect.height
-                color: "lightsteelblue"
+                color: App.section_bg_color;
                 radius: 3
                 Text {
                     height: 30
                     text: section
                     font.bold: true
                     font.pixelSize: 17
+                    color: App.section_text_color;
+                    padding: 4;
+                    leftPadding: 12;
                 }
             }
         }
@@ -78,7 +83,7 @@ Page {
         highlight: Rectangle {
             width: filesList.width;
             height: 30
-            color: "steelblue" // "lightgrey"
+            color: App.highlight_color; // "lightgrey"
             radius: 3
             opacity: 0;
         }
@@ -90,9 +95,9 @@ Page {
                 width: parent.width
                 height: 30
                 implicitHeight: height
-                color: "lightgrey"
+                color: App.bg_color;
                 radius: 3
-                opacity: 0.5
+                //opacity: 0.5
                 property int indexOfThisDelegate: index;
 
                 Row {
@@ -101,13 +106,15 @@ Page {
                         verticalAlignment: Text.AlignVCenter
                         text: display_name
                         font.pixelSize: 14
+                        color: App.text_color;
+                        padding: 3;
                     }
                 }
                 MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
-                    onEntered: { parent.color="lightsteelblue" }
-                    onExited: { parent.color="lightgrey" }
+                    onEntered: { parent.color=App.highlight_color; }
+                    onExited: { parent.color=App.bg_color; }
                     onClicked: {
                         var item_name = App.getFieldValue(filesList.model, index, "display_name");
                         var pull_file = App.getFieldValue(filesList.model, index, "pull_file");

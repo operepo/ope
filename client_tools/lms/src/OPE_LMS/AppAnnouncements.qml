@@ -1,10 +1,12 @@
-import QtQuick 2.11
-import QtQuick.Controls 2.4
-import QtQuick.Controls.Material 2.3
-import QtQuick.Controls.Universal 2.3
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Controls.Material 2.15
+import QtQuick.Controls.Universal 2.15
 import QtQuick.Controls.Styles 1.4
-import QtQuick.Controls.Imagine 2.3
-import QtQuick.Layouts 1.3
+import QtQuick.Controls.Imagine 2.15
+import QtQuick.Layouts 1.15
+
+import QtWebView 1.15
 
 import com.openprisoneducation.ope 1.0
 import "App.js" as App
@@ -23,7 +25,7 @@ Page {
         font.bold: true;
         font.pixelSize: 26
         padding: 6
-        color: "steelblue"
+        color: App.text_color;
     }
     padding: 3
 
@@ -64,7 +66,7 @@ Page {
         highlight: Rectangle {
             width: announcementsList.width;
             height: 30
-            color: "steelblue"
+            color: App.highlight_color;
             radius: 3
             opacity: 0
         }
@@ -77,9 +79,9 @@ Page {
                 height: 85
                 implicitHeight: height
                 Layout.fillHeight: true
-                color: "lightgrey"
+                color: App.bg_color;
                 radius: 3
-                opacity: 0.5
+                //opacity: 0.5
                 property int indexOfThisDelegate: index;
 
                 RowLayout {
@@ -95,18 +97,24 @@ Page {
                             height: 30
                             verticalAlignment: Text.AlignVCenter
                             text: title
-                            font.pointSize: 12
+                            color: App.text_color;
+                            font.pointSize: 12;
+                            leftPadding: 3;
                         }
                         Text {
                             height: 15
                             verticalAlignment: Text.AlignVCenter
                             text: user_name
-                            font.pointSize: 9
+                            color: App.text_color;
+                            font.pointSize: 9;
+                            leftPadding: 3;
                         }
                         Text {
                             height: 30
                             text: message
-                            font.pointSize: 11
+                            color: App.text_color;
+                            font.pointSize: 11;
+                            leftPadding: 3;
                         }
                     }
 
@@ -118,14 +126,18 @@ Page {
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: Text.AlignRight
                         text: posted_at
+                        color: App.text_color;
                         font.pointSize: 9
+                        leftPadding: 3;
                     }
                     Text {
                         height: 15
                         Layout.minimumHeight: 15
                         Layout.minimumWidth: 32
                         text: "Att DL"
-                        font.pointSize: 9
+                        color: App.text_color;
+                        font.pointSize: 9;
+                        leftPadding: 3;
                     }
 
 
@@ -133,8 +145,8 @@ Page {
                 MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
-                    onEntered: { parent.color="lightsteelblue" }
-                    onExited: { parent.color="lightgrey" }
+                    onEntered: { parent.color=App.highlight_color; }
+                    onExited: { parent.color=App.bg_color; }
                     onClicked: {
                         var item_url = App.getFieldValue(announcementsList.model, index, "url");
                         //global.current_page_url = item_url;

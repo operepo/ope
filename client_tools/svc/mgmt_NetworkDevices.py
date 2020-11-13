@@ -46,7 +46,7 @@ class NetworkDevices:
         ("Realtek USB GbE Family Controller", "202.5.222"),  # Sync Box - Del usb adater
         ("Thinkpad USB 3.0 Ethernet Adapter", "202.5.222"),  # Sync Box - Alt IBM adapter
         ("Lenovo USB Ethernet", "202.5.222"),                # Sync Box - Alt IBM adapter
-        #("JusticeTechLaptopAdapter", "202.5.222"),  # Justice Tec Laptop NIC
+        ("Realtek USB FE Family Controller", "202.5.222"),   # Justice Tec Laptop NIC
     ]
     default_approved_nics_json = json.dumps(default_approved_nics)
 
@@ -203,7 +203,7 @@ class NetworkDevices:
             p("}}ybNOTE - Stripped off " + removed_suffix + " from nic name\n - All instances of this nic approved with this network}}xx")
             nic_name = t_nic
 
-        p("}}gnApproving " + nic_name + " on netowrk " + nic_network, log_level=1)
+        p("}}gnApproving " + nic_name + " on network " + nic_network, log_level=1)
 
         # Get the list of approved nics
         # Load the value from the registry
@@ -222,7 +222,11 @@ class NetworkDevices:
 
         # Force a reload of the device list
         NetworkDevices.init_device_list(refresh=True)
-        
+
+        # Force scan nics
+        p("}}gnRescanning nics...}}xx", log_level=1)
+        NetworkDevices.scan_nics()
+                
         return True
 
     @staticmethod
@@ -258,15 +262,19 @@ class NetworkDevices:
                 approved_nics_json = json.dumps(new_nic_list)
                 RegistrySettings.set_reg_value(app="OPEService", value_name="approved_nics",
                     value=approved_nics_json)
-                p("}}gnRemoved " + nic_name + " on netowrk " + nic_network + "}}xx", log_level=1)
+                p("}}gnRemoved " + nic_name + " on network " + nic_network + "}}xx", log_level=1)
             else:
-                p("}}rnNOT FOUND - NOT Removed " + nic_name + " on netowrk " + nic_network + " (Can't remove system pre-approved nic entries)}}xx")
+                p("}}rnNOT FOUND - NOT Removed " + nic_name + " on network " + nic_network + " (Can't remove system pre-approved nic entries)}}xx")
         except Exception as ex:
             p("}}rbUnable to write approved nics to the registry!}}xx\n" + str(ex), log_level=1)
             return False
         
         # Force device list refresh
         NetworkDevices.init_device_list(refresh=True)
+
+        # Force scan nics
+        p("}}gnRescanning nics...}}xx", log_level=1)
+        NetworkDevices.scan_nics()
         
         return True
 

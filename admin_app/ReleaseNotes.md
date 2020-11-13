@@ -10,23 +10,68 @@ Short passwords no longer work! Please make sure you use proper password complex
 - User accounts NOT showing up in canvas after SMC import
 - Canvas not properly starting up with admin/root password too short
 
-## [color=33ff33]CURRENT VERSIONS - Updated 5/8/2020[/color]
-- SyncApp 1.33
-- Laptop Credential 1.0.24
-- SMC 1.9.41
+## [color=33ff33]CURRENT VERSIONS[/color]
+- SyncApp 1.34
+- Laptop Credential 1.0.59
+- SMC 1.9.57
 
-## (NOT RELEASED YET)
-- LMS App
+## 9/23/2020
+- Laptop Credential 1.0.59
+  * Fix group policy - gen2 laptops not able to use other docking stations
+- SMC 1.9.57
+  * Add proxy support for youtube tools
+
+## 9/1/2020
+- SyncApp 1.34
+  * Add HOME environment variable to ensure .ssh files are loaded consistently
+  * Remove ope-router from required apps
+
+## 7/29/2020
+- SMC v1.9.52
+  * Add missing static resources (e.g. videojs, fontawsome) to git control and rebuild docker app
+
+## 7/28/2020
+- SMC v1.9.51
+  * Update to pytube3 to fix broken youtube download issues
+  * Fix 500 error when credentialing if canvas not properly linked
+
+## 7/22/2020
+- SMC v1.9.50
+  * Fix quizlet import tool - changes to quizlet site
+
+## 7/20/2020
+- SMC v1.9.49
+  * Fix missing graphics/fontawsome
+  * Publish caption support for videos and download caption files from YouTube
+  * Misc fixes for find/replace tool
+
+## 7/2/2020
+- LMS App 1.0.57
+  * Bug fixes on mgmt tool and ope service after initial release
+
+## 6/29/2020
+- SMC v1.9.46
+  * Fix google regex for find/replace tool - match more variations of google links
+
+## 6/24/2020
+- SMC v1.9.44
+  * Fix import error on student accounts
+- LMS App 1.0.55
   * Auto accept courses in Canvas during sync
   * Show courses that aren't published during sync
   * Better formatting/errors during sync
   * mgmt tool - allows greater control over settings
   * Auto Update - laptops now auto update and re-apply security settings without staff intervention
 
-- SMC
+## 6/15/2020
+- SMC v1.9.42
+  * Add lms/ping api for laptops to detect if online
+  * Laptop reports version info to SMC
   * Ability to prevent change password tools for students/faculty in SMC
   * Fixes for finding username - existing users should still work after changing username pattern
   * Added laptop logging rights on faculty management screen - allow staff to view laptop logs
+
+
 
 ## 6/1/2020
 - Sync App

@@ -1,10 +1,12 @@
-import QtQuick 2.11
-import QtQuick.Controls 2.4
-import QtQuick.Controls.Material 2.3
-import QtQuick.Controls.Universal 2.3
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Controls.Material 2.15
+import QtQuick.Controls.Universal 2.15
 import QtQuick.Controls.Styles 1.4
-import QtQuick.Controls.Imagine 2.3
-import QtQuick.Layouts 1.3
+import QtQuick.Controls.Imagine 2.15
+import QtQuick.Layouts 1.15
+
+import QtWebView 1.15
 
 import com.openprisoneducation.ope 1.0
 import "App.js" as App
@@ -14,8 +16,8 @@ ColumnLayout {
     //contentHeight: 4
     //contentWidth: -3
     //anchors.fill: parent
-    //implicitWidth: parent.width;
-    //implicitHeight: parent.height;
+    implicitWidth: parent.width;
+    implicitHeight: parent.height;
     Layout.fillHeight: true;
     Layout.fillWidth: true;
     Layout.preferredHeight: parent.height;
@@ -121,16 +123,46 @@ ColumnLayout {
         }
         syncProgress.value = .2;
 
-
         progressLabel.text += "<h2>Pulling modules for courses...</h2>";
         r = mainWidget.canvas.pullModules();
         if (r === false) { progressLabel.text += "\n  ERROR pulling module info"; }
-        syncProgress.value = .25;
+        syncProgress.value = .22;
 
         progressLabel.text += "<h2>Pulling items for all courses and modules...</h2>";
         r = mainWidget.canvas.pullModuleItems();
         if (r === false) { progressLabel.text += "\n  ERROR pulling item info"; }
-        syncProgress.value = .27;
+        syncProgress.value = .24;
+
+        progressLabel.text += "<h2>Pulling discussion topics for courses...</h2>";
+        r = mainWidget.canvas.pullDiscussionTopics();
+        r = fixUpHTMLText(r);
+        progressLabel.text += r;
+        if (r.includes("ERROR")) {
+            toggleRunning(false, "<span class='error'>Fatal error - stopping sync!</span>");
+            return false;
+        }
+        syncProgress.value = .26;
+
+//        progressLabel.text += "<h2>Pulling quizzes for courses...</h2>";
+//        r = mainWidget.canvas.pullQuizzes();
+//        r = fixUpHTMLText(r);
+//        progressLabel.text += r;
+//        if (r.includes("ERROR")) {
+//            toggleRunning(false, "<span class='error'>Fatal error - stopping sync!</span>");
+//            return false;
+//        }
+//        syncProgress.value = .28;
+
+//        progressLabel.text += "<h2>Pulling quiz questions for courses...</h2>";
+//        r = mainWidget.canvas.pullQuizQuestions();
+//        r = fixUpHTMLText(r);
+//        progressLabel.text += r;
+//        if (r.includes("ERROR")) {
+//            toggleRunning(false, "<span class='error'>Fatal error - stopping sync!</span>");
+//            return false;
+//        }
+//        syncProgress.value = .29;
+
 
         // Pull pages for courses
         progressLabel.text += "<h2>Pulling pages for courses...</h2>";
@@ -225,8 +257,8 @@ ColumnLayout {
             Layout.preferredWidth: -1
             Layout.minimumWidth: 140
             //width: 40;
-            property string text_color: "#032569";
-            property string text_down_color: "#032569";
+            property string text_color: App.text_color; // "#032569";
+            property string text_down_color: App.text_color; //"#032569";
             spacing: 1
             display: AbstractButton.TextOnly
             onClicked: {
@@ -254,8 +286,8 @@ ColumnLayout {
             Layout.fillHeight: false
             Layout.fillWidth: false
 
-            property string text_color: "#032569";
-            property string text_down_color: "#032569";
+            property string text_color: App.text_color; // "#032569";
+            property string text_down_color: App.text_color; // "#032569";
 
             display: AbstractButton.TextOnly
             onClicked: {
@@ -327,6 +359,7 @@ ColumnLayout {
                Layout.fillHeight: false
                font.pixelSize: 12
                textFormat: "RichText";
+               color: App.text_color;
            }
 
            ProgressBar {
@@ -401,8 +434,10 @@ ColumnLayout {
                    Layout.fillHeight: true
                    Layout.fillWidth: true
                    textFormat: "RichText";
-                   color: "#3e4c5f"
+                   color: App.text_color; //"#3e4c5f"
                    padding: 5;
+                   width: progressLabelScrollView.width;
+                   height: progressLabelScrollView.height;
 
                }
 

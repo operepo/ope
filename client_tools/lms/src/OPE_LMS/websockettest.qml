@@ -1,10 +1,17 @@
-import QtQuick 2.11
-import QtQuick.Window 2.11
-import QtQuick.Controls 2.4
-import QtQuick.Layouts 1.4
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Controls.Material 2.15
+import QtQuick.Controls.Universal 2.15
+import QtQuick.Controls.Styles 1.4
+import QtQuick.Controls.Imagine 2.15
+import QtQuick.Layouts 1.15
+
+import QtWebView 1.15
+
 import QtWebChannel 1.0
 import QtWebSockets 1.1
-import QtWebView 1.1
+import QtQuick.Window 2.15
+
 import cm.WebSocketTransport 1.0
 
 Window {

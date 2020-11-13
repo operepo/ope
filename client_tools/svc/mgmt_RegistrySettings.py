@@ -10,7 +10,8 @@ import logging
 #     import winreg
 
 import win32api    
-#import winsys
+# Make sure to import root winsys for exceptions
+import winsys
 from winsys import accounts, registry, security
 from winsys.registry import REGISTRY_ACCESS
 
@@ -108,14 +109,16 @@ class RegistrySettings:
         if not mgmt_path in sys_path:
             sys_path += ";" + mgmt_path
         
-        #p("}}ynNew Path: " + sys_path + "}}xx")
+            #p("}}ynNew Path: " + sys_path + "}}xx")
 
-        RegistrySettings.set_reg_value(root="HKLM\\SYSTEM\\CurrentControlSet",
-            app="Control", subkey="Session Manager\\Environment",
-            value_name="Path", value=sys_path)
+            RegistrySettings.set_reg_value(root="HKLM\\SYSTEM\\CurrentControlSet",
+                app="Control", subkey="Session Manager\\Environment",
+                value_name="Path", value=sys_path)
         
-        p("}}gnAdded to system path.")
-        p("}}gbYou will need to open a new command prompt for the change to take effect.}}xx")
+            p("}}gnAdded to system path.")
+            p("}}gbYou will need to open a new command prompt for the change to take effect.}}xx")
+        else:
+            p("}}gnAlready in the system path.")
     
         return True
 

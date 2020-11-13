@@ -42,8 +42,8 @@ class SystemTime:
 
 
     @staticmethod
-    def sync_time_w_ntp():
-        if not SystemTime.is_time_to_sync():
+    def sync_time_w_ntp(force=False):
+        if force is not True and not SystemTime.is_time_to_sync():
             p("}}gnNot time to sync w NTP servers yet, skipping.}}xx", log_level=4)
             return True
 

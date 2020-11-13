@@ -30,6 +30,10 @@ paramiko.Transport._preferred_ciphers = ('blowfish-cbc', 'aes128-gcm', 'aes128-c
 #    )
 # paramiko_logger.addHandler(console_handler)
 
+# NOTE - To deal with different profile/home drive paths, we need to set
+# the HOME env variable so all instances (git, putty, python) get the same path.
+os.environ['HOME'] = os.path.expanduser("~")
+print("Using " + os.environ['HOME'] + " as user home folder.")
 
 def get_ssh_connection(ssh_server, ssh_user, ssh_pass):
     # Make sure the id_rsa and id_rsa.pub files exist

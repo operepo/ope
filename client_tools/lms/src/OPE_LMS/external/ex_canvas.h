@@ -9,6 +9,7 @@
 #include <QUrl>
 #include <QDesktopServices>
 #include <QStandardPaths>
+#include <QCryptographicHash>
 
 #include "../db.h"
 #include "cm/cm_httpserver.h"
@@ -45,6 +46,13 @@ public slots:
     bool pullModules();
     // Get the list of pages for each module in all courses
     bool pullModuleItems();
+    // Get list of discussion boards
+    QString pullDiscussionTopics();
+    // Get list of quizzes
+    QString pullQuizzes();
+    // Get quiz questions
+    QString pullQuizQuestions();
+
     // Get list of file folders
     bool pullCourseFileFolders();
     // Get list of files to pull

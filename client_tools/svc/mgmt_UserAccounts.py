@@ -13,6 +13,8 @@ import traceback
 import shutil
 import random
 
+# Need this for winsys exceptions
+import winsys
 from winsys import accounts
 from color import p
 import util

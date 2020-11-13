@@ -1,14 +1,16 @@
-import QtQuick 2.11
-import QtQuick.Controls 2.4
-import QtQuick.Controls.Material 2.3
-import QtQuick.Controls.Universal 2.3
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Controls.Material 2.15
+import QtQuick.Controls.Universal 2.15
 import QtQuick.Controls.Styles 1.4
-import QtQuick.Controls.Imagine 2.3
-import QtQuick.Layouts 1.3
+import QtQuick.Controls.Imagine 2.15
+import QtQuick.Layouts 1.15
+
+import QtWebView 1.15
+
 
 import QtWebChannel 1.0
 import QtWebSockets 1.1
-import QtWebView 1.1
 import cm.WebSocketTransport 1.0
 
 import com.openprisoneducation.ope 1.0
@@ -79,7 +81,7 @@ ApplicationWindow {
             }
         }
         onErrorStringChanged: {
-            console.log("WS Server Error: %1").arg(errorString);
+            console.log("WS Server Error: %1".arg(errorString));
         }
 
         Component.onCompleted: {
@@ -272,6 +274,9 @@ ApplicationWindow {
                                 case "Announcements":
                                     appStack.replace(appAnnouncementsView);
                                     break;
+                                case "Inbox":
+                                    appStack.replace(appInboxView);
+                                    break;
                                 default:
                                     appStack.replace(appHomePageView);
                                     break;
@@ -308,7 +313,6 @@ ApplicationWindow {
         }
 
     }
-
 
 
 
@@ -414,6 +418,14 @@ ApplicationWindow {
         }
     }
 
+    Component {
+        id: appInboxView
+        AppInbox {
+            global: main_window;
+            current_course_id: main_window.current_course_id;
+        }
+    }
+
 
 
 
@@ -431,12 +443,12 @@ ApplicationWindow {
 
         AppSyncPage {
             //anchors.fill: parent;
-            width: parent.width;
-            height: parent.height;
+            width: syncDrawer.width;
+            height: syncDrawer.height;
             //implicitWidth: parent.width;
             //implicitHeight: parent.height;
-            Layout.preferredHeight: parent.height;
-            Layout.preferredWidth: parent.width;
+            Layout.preferredHeight: syncDrawer.height;
+            Layout.preferredWidth: syncDrawer.width;
             Layout.fillWidth: true;
             Layout.fillHeight: true;
 

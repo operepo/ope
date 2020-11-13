@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QDebug>
 #include <QList>
+#include <QCoreApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QtNetworkAuth>
@@ -150,13 +151,15 @@ public slots:
 
 
     // LMS Functions
-    void syncLMS(QString lms);
+    // Sync from the command line headless (auto sync?)
+    bool syncLMSQuiet();
 
 
     void setupLoginWebView(QObject *wv);
 
     void sslErrorHandler(QNetworkReply *reply, QList<QSslError> errors);
 
+    QString get_current_student_user();
 
 };
 

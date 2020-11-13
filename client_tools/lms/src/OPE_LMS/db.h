@@ -78,6 +78,7 @@ public slots:
     // A slot that exposes set filter to QML code
     void modifyFilter(QString f);
     QHash<QString, QVariant> getRecord(int row) const;
+    bool newRecord(const QVariantMap &new_record);
     QString getColumnName(int col_index);
     int getColumnIndex(QString col_name);
     void sortOn(QString col_name, Qt::SortOrder order = Qt::AscendingOrder);
@@ -88,7 +89,6 @@ private:
     void generateRoleNames();
 
     QHash<int, QByteArray> m_roleNames;
-
 };
 
 
