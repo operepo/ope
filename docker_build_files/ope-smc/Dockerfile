@@ -51,7 +51,9 @@ RUN apk update \
     && echo "FFMPEG Build complete"
 
 # TEMP FIX FOR PYTUBE3
-RUN pip install git+https://github.com/nficano/pytube.git@refs/pull/701/head
+#RUN pip install git+https://github.com/nficano/pytube.git@refs/pull/701/head
+# Install 9.7.0
+RUN pip install git+https://github.com/nficano/pytube.git@refs/tags/v9.7.0
 
 # Set ENV Vars
 ENV IT_PW changeme
@@ -99,7 +101,7 @@ LABEL rebuild_smc=10
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE v1.9.57
+ENV SMC_RELEASE v1.9.58
 
 RUN cd $W2P_DIR \
     && git init \
