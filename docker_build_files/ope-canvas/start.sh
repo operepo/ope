@@ -5,7 +5,21 @@ re_quote() {
         sed 's/[\/&]/\\&/g' <<< "$*"
 }
 
+#BUNDLE=$GEM_HOME/bin/bundle
+BUNDLE=/usr/local/bin/bundle
+
 echo "=== RUNNING start.sh ==="
+
+# Make sure this is all owned by the correct user
+echo "setting permissions..."
+#chown -R docker:docker $APP_DIR
+#chown -R docker:docker $APP_DIR/tmp
+#chown -R docker:docker $APP_DIR/log
+find $APP_DIR -not -user docker -exec chown docker:docker {} \+
+chown -R docker:docker /tmp
+
+
+
 if [ -f /usr/src/app/log/app_init ]; then
     rm /usr/src/app/log/app_init
 fi
@@ -99,8 +113,10 @@ find /usr/src/app/public/dist/ -name "*.js" -type f -exec sed -i 's/\/\/cdnjs.cl
 # School ids are calculated in ope.rake startup and applied to database tables
 
 # Change the shard ID so that we can use that space to sync servers - essentially turn shards off
-echo "=== Patching id range in shard_internal.rb ==="
-sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000/g" $GEM_HOME/gems/switchman-*/app/models/switchman/shard_internal.rb
+echo "=== Patching id range in shard_internal.rb (shard.rb) ==="
+# NOTE - changed to shard.rb
+sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000/g" $GEM_HOME/gems/switchman-*/app/models/switchman/shard.rb
+#sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000/g" $GEM_HOME/gems/switchman-*/app/models/switchman/shard_internal.rb
 #sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000_000/g" $GEM_HOME/gems/switchman-*/app/models/switchman/shard_internal.rb
 
 # Need to adjust the partitions values for version tables - tables aren't created when they should be with very large ids
@@ -113,7 +129,7 @@ sed -i -- "s/5_000_000/1_000_000_000_000_000/g" $APP_DIR/config/initializers/sim
 # Generate the initial db if a table called versions doesn't already exist
 # NOTE: moved to ope.rake -> startup
 count=`psql -d canvas_$RAILS_ENV -U postgres -h postgresql -tqc "select count(tablename) as count from pg_tables where tablename='versions'"`
-psql -d canvas_$RAILS_ENV -U postgres -h postgresql -tc "select 1 from pg_tables where tablename='versions'" | grep -q 1 || $GEM_HOME/bin/bundle exec rake db:initial_setup
+psql -d canvas_$RAILS_ENV -U postgres -h postgresql -tc "select 1 from pg_tables where tablename='versions'" | grep -q 1 || $BUNDLE exec rake db:initial_setup
 if [ $count == '1' ]; then
     # Make sure the key is setup or things fail later. 
     $GEM_HOME/bin/rake db:reset_encryption_key_hash
@@ -129,12 +145,8 @@ fi
 
 # Setup auditing, sequence range, db migrate and compile assets if needed
 echo "=== Running ope:startup ==="
-$GEM_HOME/bin/bundle exec rake ope:startup --trace
+$BUNDLE exec rake ope:startup --trace
 
-
-# Make sure this is all owned by the correct user
-#echo "setting permissions..."
-#chown -R docker:docker $APP_DIR
 
 rm -f /usr/src/app/log/app_init
 touch /usr/src/app/log/app_starting

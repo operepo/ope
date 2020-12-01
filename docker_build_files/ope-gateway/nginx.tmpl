@@ -214,7 +214,7 @@ upstream {{ $upstream_name }} {
 {{ $network_tag := or (first (groupByKeys $containers "Env.NETWORK_ACCESS")) "external" }}
 
 {{/* Get the HTTPS_METHOD defined by containers w/ the same vhost, falling back to "redirect" */}}
-{{ $https_method := or (first (groupByKeys $containers "Env.HTTPS_METHOD")) "redirect" }}
+{{ $https_method := trim (or (first (groupByKeys $containers "Env.HTTPS_METHOD")) "redirect") }}
 
 {{/* Get the SSL_POLICY defined by containers w/ the same vhost, falling back to empty string (use default) */}}
 {{ $ssl_policy := or (first (groupByKeys $containers "Env.SSL_POLICY")) "" }}
@@ -240,7 +240,7 @@ upstream {{ $upstream_name }} {
 {{ $cert := (coalesce (or $vhostCert $certName) "") }}
 
 {{ $is_https := (and (ne $https_method "nohttps") (ne $cert "") (exists (printf "/etc/nginx/certs/%s.crt" $cert)) (exists (printf "/etc/nginx/certs/%s.key" $cert))) }}
-# IsHTTPs: {{ $is_https }}   Cert: {{ $cert }}   vhostcert: {{ $vhostCert }}   certName: {{ $certName }}
+# IsHTTPs: {{ $is_https }}   Cert: {{ $cert }}   vhostcert: {{ $vhostCert }}   certName: {{ $certName }}  https_method: {{ $https_method }}
 {{ if $is_https }}
 
 {{ if eq $https_method "redirect" }}
@@ -392,7 +392,7 @@ server {
 	{{ end }}
 	{{ $access_log }}
 
-        default_type text/html
+        default_type text/html;
         # add_header Content-Type text/plain;
         return 500 "<!DOCTYPE html><body><h1>INVALID CERT SETUP</h1>Make sure the .CERT_NAME value is set or that a proper cert exists.</body></html>";
 

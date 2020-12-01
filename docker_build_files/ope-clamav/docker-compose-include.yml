@@ -14,3 +14,9 @@
         env_file: .env
         environment:
             - VIRTUAL_HOST=clamav.<DOMAIN>
+            - VIRTUAL_PORT=80
+            - CERT_NAME=<CERT_NAME>
+            - VIRTUAL_PROTO=http
+            - LETSENCRYPT_HOST=gcf.<DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
+

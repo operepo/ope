@@ -8,7 +8,7 @@ LABEL version="1.0"
 
 USER root
 
-LABEL rebuild=3
+LABEL rebuild=4
 
 # COPY supervisord.conf /etc/supervisor/supervisord.conf
 
