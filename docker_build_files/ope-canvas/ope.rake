@@ -74,8 +74,8 @@ namespace :ope do
     puts "====== OPE STARTUP_DB_INIT END ======"
   end
   
-  #task :startup_db_migrate => ["startup_db_init", "db:migrate:predeploy"] do
-  task :startup_db_migrate => [:environment, "startup_db_init"] do
+  # task :startup_db_migrate => [:environment, "startup_db_init"] do
+  task :startup_db_migrate => [:environment, "startup_db_init", "db:migrate:predeploy"] do
     puts "====== OPE STARTUP_DB_MIGRATE BEGIN ======"
     # ==== Init DB if not already done
     db_changed = 0
