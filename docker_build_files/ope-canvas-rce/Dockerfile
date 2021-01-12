@@ -8,7 +8,7 @@ LABEL version="1.0"
 
 USER root
 
-LABEL rebuild=4
+LABEL rebuild=7
 
 # COPY supervisord.conf /etc/supervisor/supervisord.conf
 
@@ -25,9 +25,10 @@ RUN mkdir -p ${RCE_APP_HOME} \
     && git checkout master \
     #&& git fetch origin --no-tags --depth 1 refs/tags/${RCE_RELEASE}:refs/tags/${RCE_RELEASE} \
     #&& git checkout ${RCE_RELEASE} \
-    && npm install --production
+    && npm install --production \
+    && echo Checkout done.
 
-LABEL rebuild=11
+LABEL rebuild=13
 COPY start.sh /usr/src/start.sh
 
 

@@ -22,7 +22,7 @@
         environment:
             - IT_PW=${IT_PW}
             - OFFICE_PW=${OFFICE_PW}
-            - VIRTUAL_HOST=rce.<DOMAIN>,canvas.<DOMAIN>,<DOMAIN>,<CANVAS_DEFAULT_DOMAIN>
+            - VIRTUAL_HOST=canvas.<DOMAIN>,<DOMAIN>,<CANVAS_DEFAULT_DOMAIN>
             - CANVAS_LMS_ADMIN_PASSWORD=${IT_PW}
             - CANVAS_LMS_ADMIN_EMAIL=${ADMIN_EMAIL}
             - CANVAS_LMS_ACCOUNT_NAME=${LMS_ACCOUNT_NAME}
@@ -55,7 +55,8 @@
         links:
             - ope-postgresql:postgresql
             - ope-redis:redis
+            #- ope-canvas-rce:ope-canvas-rce
+            # ${CANVAS_RCE_DEFAULT_DOMAIN}
             # Send links to rce server through the gateway
-            - ope-gateway:${CANVAS_RCE_DEFAULT_DOMAIN}
             - ope-gateway:${CANVAS_MATHMAN_DEFAULT_DOMAIN}
 

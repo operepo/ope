@@ -1,6 +1,6 @@
-ARG RUBY=2.6
+ARG RUBY=2.6-p6.0.4
 
-FROM instructure/passenger-nginx-alpine:${RUBY} AS dependencies
+FROM instructure/ruby-passenger:${RUBY} AS dependencies
 
 #FROM instructure/ruby-passenger:2.4-xenial
 ##FROM instructure/canvas-lms:stable
@@ -8,7 +8,7 @@ FROM instructure/passenger-nginx-alpine:${RUBY} AS dependencies
 LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
 LABEL description="Canvas LMS by Instructure - Image for Open Prison Education"
 LABEL vendor="openprisoneducation.com"
-LABEL version="1.0"
+LABEL version="1.1"
 
 # ope-canvas - Canvas LMS System
 # Build with docker build -t ope-canvas .
@@ -19,7 +19,7 @@ LABEL version="1.0"
 # Build the canvas container and run it with the docker-compose command
 # View the canvas website to set your admin password and configure.
 
-ARG POSTGRES_CLIENT=12.4
+ARG POSTGRES_CLIENT=12
 ARG ALPINE_MIRROR=http://dl-cdn.alpinelinux.org/alpine
 ARG NODE=10.19.0-r0
 
@@ -32,9 +32,13 @@ ENV LANGUAGE en_US.UTF-8
 ENV LC_CTYPE en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
 
+WORKDIR $APP_HOME
+
+ENV RUBY_VERSION 2.6
 ENV YARN_VERSION 1.19.1-1
 
-ENV CANVAS_RELEASE release/2020-09-23.35
+ENV CANVAS_RELEASE release/2020-10-21.32
+#ENV CANVAS_RELEASE release/2020-09-23.35
 #ENV CANVAS_RELEASE release/2019-10-23.21
 #ENV CANVAS_RELEASE release/2019-06-22.25
 
@@ -48,57 +52,34 @@ USER root
 RUN mkdir ${APP_HOME}; chown -R docker:docker ${APP_HOME}
 
 
-RUN set -eux; \
-  \
-  # Use specific alpine mirror \
-  sed -i -E "s|http://dl-cdn.alpinelinux.org/alpine|${ALPINE_MIRROR}|g" /etc/apk/repositories \
-  && apk add --no-cache \
-    bash \
-    coreutils \
-    file \
-    g++ \
-    git \
-    icu-dev \
-    imagemagick \
-    libffi-dev \
-    libxml2-dev \
-    libxslt-dev \
-    make \
-    postgresql-client~=$POSTGRES_CLIENT \
-    postgresql-dev~=$POSTGRES_CLIENT \
-    # TODO: need to upgrade to python 3 \
-    py2-pip \
-    python2 \
-    ruby-dev \
-    sqlite \
-    sqlite-dev \
-    tzdata \
-    xmlsec \
-    xmlsec-dev \
-    nano \
-    dos2unix \
-    supervisor \
-    unzip \
-  && apk add --no-cache --virtual .pbzip2deps \
-    bzip2-dev \
-  && apk add --no-cache --repository http://mirrors.gigenet.com/alpinelinux/v3.10/main \
-    # qti_migration_tool dependency \
-    py2-lxml \
-  \
-  # TODO: extract to its own build in a multi-image workflow \
-  # pbzip2 installation \
-  && cd /tmp/ \
-  && wget -q https://launchpad.net/pbzip2/1.1/1.1.13/+download/pbzip2-1.1.13.tar.gz \
-  && tar -xzf pbzip2-1.1.13.tar.gz \
-  && cd pbzip2-1.1.13/ \
-  && make install \
-  && apk del --no-network .pbzip2deps \
-  && cd $APP_HOME \
-  && rm -r /tmp/pbzip2-1.1.13/ \
-  \
-  # python symlinks \
-  && ln -s /usr/bin/python2 /usr/local/bin/python 
-
+RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
+  && curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
+  && echo "deb https://dl.yarnpkg.com/debian/ stable main" > /etc/apt/sources.list.d/yarn.list \
+  && printf 'path-exclude /usr/share/doc/*\npath-exclude /usr/share/man/*' > /etc/dpkg/dpkg.cfg.d/01_nodoc \
+  && echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
+  && curl -sS https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
+  && apt-get update -qq \
+  && apt-get install -qqy --no-install-recommends \
+       nodejs \
+       yarn="$YARN_VERSION" \
+       libxmlsec1-dev \
+       python-lxml \
+       libicu-dev \
+       parallel \
+       postgresql-client-$POSTGRES_CLIENT \
+       unzip \
+       pbzip2 \
+       fontforge \
+       bash \
+       nano \
+       dos2unix \
+       supervisor \       
+  && rm -rf /var/lib/apt/lists/* \
+  && mkdir -p /home/docker/.gem/ruby/$RUBY_MAJOR.0
+RUN if [ -e /var/lib/gems/$RUBY_MAJOR.0/gems/bundler-* ]; then BUNDLER_INSTALL="-i /var/lib/gems/$RUBY_MAJOR.0"; fi \
+  && gem uninstall --all --ignore-dependencies --force $BUNDLER_INSTALL bundler \
+  && gem install bundler --no-document -v 1.17.3 \
+  && find $GEM_HOME ! -user docker | xargs chown docker:docker
 
 
 USER docker
@@ -125,49 +106,9 @@ RUN set -eux; \
   && rm -rf $GEM_HOME/cache
 
 
-USER root
-RUN set -eux; \
-  \
-  # these packages are temporary for generating this image \
-  apk add --no-cache --virtual .builddeps --repository $ALPINE_MIRROR/v3.10/main \
-    g++ \
-    make \
-    libsass \
-  # these packages stick around in the final image \
-  && apk add --no-cache --repository $ALPINE_MIRROR/v3.10/main \
-    npm \
-    nodejs=${NODE} \
-    yarn \
-  && apk add --no-cache curl \
-  && cd /tmp \
-  && curl -Ls https://github.com/instructure/phantomized/releases/download/2.1.1a/dockerized-phantomjs.tar.gz | tar xzv -C / \
-  && curl -k -Ls https://bitbucket.org/ariya/phantomjs/downloads/phantomjs-2.1.1-linux-x86_64.tar.bz2 | tar -jxf - \
-  && cp phantomjs-2.1.1-linux-x86_64/bin/phantomjs /usr/local/bin/phantomjs \
-  && apk del --no-network curl \
-  && rm -rf /tmp/*
-
-
-
-
-#RUN if [ -e /var/lib/gems/$RUBY_MAJOR.0/gems/bundler-* ]; then BUNDLER_INSTALL="-i 
-#/var/lib/gems/$RUBY_MAJOR.0"; fi \
-#  && gem uninstall --all --ignore-dependencies --force $BUNDLER_INSTALL bundler \
-#  && gem install bundler --no-document -v 1.17.3 \
-#  && find $GEM_HOME ! -user docker | xargs chown docker:docker
-
-# Make sure this runs during build, will also run at at startup later
-#ENV CANVAS_BUILD_CONCURRENCY=1
-
 WORKDIR $APP_HOME
 
-
-# Fix fonts.googleapis.com links to point to local fonts folder
-RUN cd ${APP_HOME} \
-   && find . -name "*.html" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \; \
-   && find . -name "*.css" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \; \
-   && find . -name "*.erb" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \;
-
-
+USER root
 # We will need sfnt2woff in order to build fonts
 #COPY build/vendor/woff-code-latest.zip ./
 RUN cd build/vendor \
@@ -196,11 +137,24 @@ RUN set -eux; \
              client_apps/canvas_quizzes/tmp \
              config/locales/generated \
              gems/canvas_i18nliner/node_modules \
-             gems/selinimum/node_modules \
              log \
              node_modules \
+             packages/canvas-media/es \
+             packages/canvas-media/lib \
+             packages/canvas-media/node_modules \
              packages/canvas-planner/lib \
              packages/canvas-planner/node_modules \
+             packages/canvas-rce/canvas \
+             packages/canvas-rce/lib \
+             packages/canvas-rce/node_modules \
+             packages/jest-moxios-utils/node_modules \
+             packages/js-utils/es \
+             packages/js-utils/lib \
+             packages/js-utils/node_modules \
+             packages/k5uploader/es \
+             packages/k5uploader/lib \
+             packages/k5uploader/node_modules \
+             packages/old-copy-of-react-14-that-is-just-here-so-if-analytics-is-checked-out-it-doesnt-change-yarn.lock/node_modules \
              pacts \
              public/dist \
              public/doc/api \
@@ -241,15 +195,25 @@ RUN yarn postinstall
 FROM dependencies AS webpack-final
 ARG JS_BUILD_NO_UGLIFY=0
 
+# Fix fonts.googleapis.com links to point to local fonts folder
+RUN cd ${APP_HOME} \
+   && find . -name "*.html" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \; \
+   && find . -name "*.css" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \; \
+   && find . -name "*.erb" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \;
+
+
+
 #RUN COMPILE_ASSETS_NPM_INSTALL=0 bundle exec rake canvas:compile_assets
 RUN COMPILE_ASSETS_NPM_INSTALL=0 JS_BUILD_NO_UGLIFY="$JS_BUILD_NO_UGLIFY" bundle exec rails canvas:compile_assets
 
 #RUN chown -R docker:docker /home/docker
+# Make sure docker is the owner for all files
+RUN find ${APP_HOME} -not -user docker -exec chown docker:docker {} \+
 
 USER docker
 
 
-LABEL rebuild=66
+LABEL rebuild=69
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml
@@ -269,7 +233,7 @@ COPY puma.rb /usr/src/app/config/puma.rb
 COPY rack.rb /usr/src/app/config/initializers/rack.rb
 COPY dynamic_settings.yml.tmpl /usr/src/app/config/dynamic_settings.yml.tmpl
 
-LABEL rebuild=24
+LABEL rebuild=34
 COPY dbinit.sh /usr/src/dbinit.sh
 COPY start.sh /usr/src/start.sh
 COPY ope.rake lib/tasks/ope.rake
@@ -294,9 +258,6 @@ RUN echo "Settings file permissions..." \
     && chmod 755 /usr/src/*.sh \
     && dos2unix /usr/src/*.sh
  
-# Make sure docker is the owner for all files
-RUN find ${APP_HOME} -not -user docker -exec chown docker:docker {} \+
-
 
 USER root
     

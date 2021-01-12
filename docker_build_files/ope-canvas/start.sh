@@ -11,7 +11,7 @@ BUNDLE=/usr/local/bin/bundle
 echo "=== RUNNING start.sh ==="
 
 # Make sure this is all owned by the correct user
-echo "setting permissions..."
+echo "== Setting Folder Permissions =="
 #chown -R docker:docker $APP_DIR
 #chown -R docker:docker $APP_DIR/tmp
 #chown -R docker:docker $APP_DIR/log
@@ -88,7 +88,7 @@ sed -i -- "s/<CANVAS_ENC_SECRET>/$CANVAS_ENC_SECRET/g" config/dynamic_settings.y
 sed -i -- "s/<CANVAS_SIGN_SECRET>/$CANVAS_SIGN_SECRET/g" config/dynamic_settings.yml
 sed -i -- "s/<CANVAS_RCE_DEFAULT_DOMAIN>/$CANVAS_RCE_DEFAULT_DOMAIN/g" config/dynamic_settings.yml
 sed -i -- "s/<CANVAS_MATHMAN_DEFAULT_DOMAIN>/$CANVAS_MATHMAN_DEFAULT_DOMAIN/g" config/dynamic_settings.yml
-
+sed -i -- "s/<CANVAS_DEFAULT_DOMAIN>/$CANVAS_DEFAULT_DOMAIN/g" config/dynamic_settings.yml
 
 # Fix ::int4[] instead of ::int8[] in app/models/assignment.rb (line 2477, issue #1238)
 echo "=== Applying patch for issue #1238 ==="

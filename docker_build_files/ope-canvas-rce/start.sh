@@ -7,6 +7,7 @@ re_quote() {
 
 echo "=== RUNNING start.sh ==="
 
+#APP_DIR=/usr/src/rce
 APP_DIR=/usr/src/rce
 
 cd $APP_DIR
@@ -14,8 +15,9 @@ cd $APP_DIR
 echo "=== Applying config settings ==="
 
 # NOTE: Added new env variable so default domain is provided
-DEFAULT_HOST="$CANVAS_RCE_DEFAULT_DOMAIN"
-
+#DEFAULT_HOST="$CANVAS_RCE_DEFAULT_DOMAIN"
+# Links should go through canvas domain, not through RCE domain
+DEFAULT_HOST="$CANVAS_DEFAULT_DOMAIN"
 
 #echo "=== Launching supervisord ==="
 #exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf

@@ -4,7 +4,7 @@ namespace :ope do
   # Make startup the default task
   task :default => ["startup"]
   
-  task :startup => ["startup_init_env", "startup_db_init", "startup_db_migrate", "db:reset_encryption_key_hash", 'ope:init_auditing', 'ope:set_sequence_range', 'ope:enable_auditing', "startup_apply_admin_settings"] do
+  task :startup => [:environment, "startup_init_env", "startup_db_init", "startup_db_migrate", "db:reset_encryption_key_hash", 'ope:init_auditing', 'ope:set_sequence_range', 'ope:enable_auditing', "startup_apply_admin_settings"] do
   
    
     # Startup itmes are set as pre-requisites so when we get here, it should be done
@@ -12,7 +12,7 @@ namespace :ope do
     
   end
 
-  task :startup_init_env do
+  task :startup_init_env => [:environment] do
     puts "====== OPE STARTUP_INIT BEGIN ======"
     # Make sure we have info in our environment
     if (ENV["CANVAS_LMS_ACCOUNT_NAME"] || "").empty?
@@ -51,7 +51,7 @@ namespace :ope do
   end
   
   
-  task :startup_db_init => ["startup_init_env"] do
+  task :startup_db_init => [:environment, "startup_init_env"] do
     puts "====== OPE STARTUP_DB_INIT BEGIN ======"
     # See if file .db_init_done exists - if it doesn't, run db:initial_setup
     db_init_done_file = "/usr/src/app/tmp/db_init_done"
@@ -74,7 +74,8 @@ namespace :ope do
     puts "====== OPE STARTUP_DB_INIT END ======"
   end
   
-  task :startup_db_migrate => ["startup_db_init", "db:migrate:predeploy"] do
+  #task :startup_db_migrate => ["startup_db_init", "db:migrate:predeploy"] do
+  task :startup_db_migrate => [:environment, "startup_db_init"] do
     puts "====== OPE STARTUP_DB_MIGRATE BEGIN ======"
     # ==== Init DB if not already done
     db_changed = 0
@@ -260,8 +261,10 @@ namespace :ope do
         site_admin_account.default_group_storage_quota_mb=1
         
         # Lock down permissions
-        student_role = Role.get_built_in_role("StudentEnrollment")
-        ta_role = Role.get_built_in_role("TaEnrollment")
+        puts "^^^ Getting role: root_id #{admin_account.id} ^^^"
+        student_role = Role.get_built_in_role("StudentEnrollment", root_account_id: admin_account.id)
+        ta_role = Role.get_built_in_role("TaEnrollment", root_account_id: admin_account.id)
+        puts "^ Got Roles: #{student_role} / #{ta_role} ^"
 
         # Calendar access
         admin_account.role_overrides.where(role: student_role, permission: :manage_calendar).destroy_all
