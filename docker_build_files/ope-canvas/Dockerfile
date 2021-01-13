@@ -37,7 +37,8 @@ WORKDIR $APP_HOME
 ENV RUBY_VERSION 2.6
 ENV YARN_VERSION 1.19.1-1
 
-ENV CANVAS_RELEASE release/2020-10-21.32
+ENV CANVAS_RELEASE release/2020-11-18.29
+#ENV CANVAS_RELEASE release/2020-10-21.32
 #ENV CANVAS_RELEASE release/2020-09-23.35
 #ENV CANVAS_RELEASE release/2019-10-23.21
 #ENV CANVAS_RELEASE release/2019-06-22.25
@@ -233,7 +234,7 @@ COPY puma.rb /usr/src/app/config/puma.rb
 COPY rack.rb /usr/src/app/config/initializers/rack.rb
 COPY dynamic_settings.yml.tmpl /usr/src/app/config/dynamic_settings.yml.tmpl
 
-LABEL rebuild=35
+LABEL rebuild=36
 COPY dbinit.sh /usr/src/dbinit.sh
 COPY start.sh /usr/src/start.sh
 COPY ope.rake lib/tasks/ope.rake

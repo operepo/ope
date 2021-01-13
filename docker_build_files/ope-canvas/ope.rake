@@ -74,8 +74,16 @@ namespace :ope do
     puts "====== OPE STARTUP_DB_INIT END ======"
   end
   
+  task :fix_null_root_account_ids => [:environment] do
+    # After some migrate/predeploy some root_account_id fields end up null, fix them
+    
+    # Fix roles table
+    Role.where(:root_account_id => nil).update_all(:root_account_id => 0)
+    #Role.where(:root_account_id => nil).delete_all
+  end
+  
   # task :startup_db_migrate => [:environment, "startup_db_init"] do
-  task :startup_db_migrate => [:environment, "startup_db_init", "db:migrate:predeploy"] do
+  task :startup_db_migrate => [:environment, "startup_db_init", "fix_null_root_account_ids", "db:migrate:predeploy",  ] do
     puts "====== OPE STARTUP_DB_MIGRATE BEGIN ======"
     # ==== Init DB if not already done
     db_changed = 0
