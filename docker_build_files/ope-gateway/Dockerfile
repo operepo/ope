@@ -11,7 +11,7 @@ LABEL version="0.6"
 
 ARG VERSION=dev
 
-LABEL rebuild=106
+LABEL rebuild=107
 # public_certs moved under /usr/share/nginx/html
 # Make public_certs folder so we can make it easy to grab crt file
 #RUN mkdir -p /public_certs \

@@ -78,19 +78,21 @@ namespace :ope do
     # After some migrate/predeploy some root_account_id fields end up null, fix them
     
     # Fix roles table
-    Role.where(:root_account_id => nil).update_all(:root_account_id => 0)
+    Role.where(:root_account_id => nil).update_all(:root_account_id => 1)
     #Role.where(:root_account_id => nil).delete_all
-    RoleOverride.where(:root_account_id => nil).delete_all
-    RoleOverride.where(:root_account_id => 0).delete_all
+    #RoleOverride.where(:root_account_id => nil).delete_all
+    RoleOverride.where(:root_account_id => nil).update_all(:root_account_id => 1)
+    #RoleOverride.where(:root_account_id => 0).delete_all
     #.update_all(:root_account_id => 1)
     
     # Clear redis cache
     GuardRail.activate!(:deploy)
     Canvas.redis.flushall
+    GuardRail.activate!(:primary)
   end
   
   # task :startup_db_migrate => [:environment, "startup_db_init"] do
-  task :startup_db_migrate => [:environment, "startup_db_init", "fix_null_root_account_ids", "db:migrate:predeploy",  ] do
+  task :startup_db_migrate => [:environment, "startup_db_init", "db:migrate:predeploy", "fix_null_root_account_ids"  ] do
     puts "====== OPE STARTUP_DB_MIGRATE BEGIN ======"
     # ==== Init DB if not already done
     db_changed = 0

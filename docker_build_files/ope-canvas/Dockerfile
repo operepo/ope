@@ -234,7 +234,7 @@ COPY puma.rb /usr/src/app/config/puma.rb
 COPY rack.rb /usr/src/app/config/initializers/rack.rb
 COPY dynamic_settings.yml.tmpl /usr/src/app/config/dynamic_settings.yml.tmpl
 
-LABEL rebuild=45
+LABEL rebuild=49
 COPY dbinit.sh /usr/src/dbinit.sh
 COPY start.sh /usr/src/start.sh
 COPY ope.rake lib/tasks/ope.rake
