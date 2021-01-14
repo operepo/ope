@@ -40,3 +40,6 @@
             - HSTS=off
             #- HSTS=max-age=31536000; includeSubDomains; preload
             - SSL_POLICY=Mozilla-Old
+        links:
+            # Send rce connections through the gateway
+            - ope-canvas-rce:ope-canvas-rce

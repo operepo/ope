@@ -9,7 +9,7 @@
         #volumes:
         #    # Normal mounts
         depends_on:
-            - ope-gateway
+            #- ope-gateway
             - ope-dns
         env_file: .env
         environment:
@@ -40,6 +40,6 @@
             - NODE_TLS_REJECT_UNAUTHORIZED=0
             - LETSENCRYPT_HOST=<CANVAS_RCE_DEFAULT_DOMAIN>
             - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
-        links:
+        #links:
             # Send rce connections through the gateway
-            - ope-gateway:${CANVAS_DEFAULT_DOMAIN}
+            #- ope-gateway:${CANVAS_DEFAULT_DOMAIN}
