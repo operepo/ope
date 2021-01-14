@@ -94,6 +94,12 @@ sed -i -- "s/<CANVAS_DEFAULT_DOMAIN>/$CANVAS_DEFAULT_DOMAIN/g" config/dynamic_se
 echo "=== Applying patch for issue #1238 ==="
 sed -i -- "s/\:\:int4\[\]/\:\:int8\[\]/g" app/models/assignment.rb
 
+
+# Fix issue #1783 - DB Migrate broken -  => needs to be a : in the file
+echo "=== Applying patch for issue #1783 ==="
+sed -i -- "s/n_strand => \[\"user_preference_migration\"/n_strand\: \[\"user_preference_migration\"/g" db/migrate/20200211143240_split_up_user_preferences.rb
+
+
 # Replace fonts.googleapis.com with local link
 find . -name "*.css" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \;
 

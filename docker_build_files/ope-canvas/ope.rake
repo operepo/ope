@@ -80,6 +80,13 @@ namespace :ope do
     # Fix roles table
     Role.where(:root_account_id => nil).update_all(:root_account_id => 0)
     #Role.where(:root_account_id => nil).delete_all
+    RoleOverride.where(:root_account_id => nil).delete_all
+    RoleOverride.where(:root_account_id => 0).delete_all
+    #.update_all(:root_account_id => 1)
+    
+    # Clear redis cache
+    GuardRail.activate!(:deploy)
+    Canvas.redis.flushall
   end
   
   # task :startup_db_migrate => [:environment, "startup_db_init"] do
