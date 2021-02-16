@@ -54,6 +54,7 @@ RUN apk update \
 #RUN pip install git+https://github.com/nficano/pytube.git@refs/pull/701/head
 # Install 9.7.0
 #RUN pip install git+https://github.com/nficano/pytube.git@refs/tags/v9.7.0
+LABEL pytube_version=10.4.1
 RUN pip install pytube
 
 # Set ENV Vars
