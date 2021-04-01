@@ -22,6 +22,7 @@ import util
 from color import p
 
 from mgmt_Encryption import Encryption
+from mgmt_RegistrySettings import RegistrySettings
 
 class RestClient:
 
@@ -231,6 +232,7 @@ class RestClient:
             return False
         
         server_time = util.get_dict_value(json_response, "server_time")
-        p("}}mnPING - Got SMC Server time: " + str(server_time) + "}}xx")        
+        RegistrySettings.set_reg_value(value_name="server_time", value=server_time)
+        p("}}mnPING - Got SMC Server time: " + str(server_time) + "}}xx")
 
         return True

@@ -6,7 +6,7 @@ import QtQuick.Controls.Styles 1.4
 import QtQuick.Controls.Imagine 2.15
 import QtQuick.Layouts 1.15
 
-import QtWebView 1.15
+import QtWebView 1.1
 
 import com.openprisoneducation.ope 1.0
 import "App.js" as App
@@ -94,15 +94,15 @@ Page {
                     var err = loadRequest.errorString
                     var status = loadRequest.status
                     var url = loadRequest.url
-                    if (status == WebView.LoadStartedStatus) {
+                    if (status === WebView.LoadStartedStatus) {
                         console.log("AppWikiPage - Load Started " + url);
                     }
-                    if (status == WebView.LoadFailedStatus) {
+                    if (status === WebView.LoadFailedStatus) {
                         console.log("AppWikiPage - Load Failed " + url);
                         console.log(err);
                         is_loading = false;
                     }
-                    if (status == WebView.LoadSucceededStatus) {
+                    if (status === WebView.LoadSucceededStatus) {
                         console.log("AppWikiPage - Load Succeeded " + url);
                         is_loading = true;
                     }

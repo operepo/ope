@@ -4,9 +4,12 @@ import time
 
 import wmi
 
+import util
 from mgmt_RegistrySettings import RegistrySettings
+from mgmt_ProcessManagement import ProcessManagement
 
 from color import p
+from p_state import p_state
 
 class SystemTime:
 
@@ -43,9 +46,18 @@ class SystemTime:
 
     @staticmethod
     def sync_time_w_ntp(force=False):
+        # Command that is run to start this function
+        only_for = "sync_time"
+        cmd_force = util.pop_force_flag(only_for=only_for)
+        #p("FORCE: " + str(cmd_force))
+        if cmd_force is True:
+            force = True
+
         if force is not True and not SystemTime.is_time_to_sync():
             p("}}gnNot time to sync w NTP servers yet, skipping.}}xx", log_level=4)
             return True
+        
+        p_state("Syncing with NTP servers...", title="NTP Update", kill_logon=False)
 
         RegistrySettings.set_reg_value(value_name="last_ntp_sync", value=time.time())
         
@@ -61,9 +73,23 @@ class SystemTime:
         # w32tm /stripchart /computer:smc.ed /dataonly /samples:5
         # w32tm /query /peers
 
+        try:
+            # Make sure the time service is running
+            returncode, output = ProcessManagement.run_cmd("sc config w32time start=auto")
+            returncode, output = ProcessManagement.run_cmd("sc start w32time")
+        except:
+            pass
+        
+        # Slight pause for time service to start
+        time.sleep(10)
+
         # Add our time servers to the list
-        os.system("w32tm /config /update /manualpeerlist:\"" + smc_host + " time.windows.com 202.5.222.1\"")
+        returncode, output = ProcessManagement.run_cmd(
+            "w32tm /config /update /manualpeerlist:\"" + smc_host + " time.windows.com 202.5.222.1\""
+            )
         # Force the update
-        os.system("w32tm /resync /nowait")  # /nowait
+        returncode, output = ProcessManagement.run_cmd(
+            "w32tm /resync /nowait"
+            )  # /nowait
 
         return True

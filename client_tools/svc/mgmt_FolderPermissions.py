@@ -9,12 +9,15 @@ import ctypes
 import sys
 import os
 import traceback
+import time
+import logging
 
 import util
 
 from color import p
 
 from mgmt_ProcessManagement import ProcessManagement
+from mgmt_RegistrySettings import RegistrySettings
 
 
 class FolderPermissions:
@@ -28,35 +31,40 @@ class FolderPermissions:
     @staticmethod
     def init_win_user_accounts():
         # Load account information for groups/users
+        domain = None
+        acct_type = None
         
         if FolderPermissions.GROUP_EVERYONE is None:
-            EVERYONE, domain, type = win32security.LookupAccountName("", "Everyone")
+            EVERYONE, domain, acct_type = win32security.LookupAccountName("", "Everyone")
             FolderPermissions.GROUP_EVERYONE = EVERYONE
             
         if FolderPermissions.GROUP_ADMINISTRATORS is None:
-            ADMINISTRATORS, domain, type = win32security.LookupAccountName("", "Administrators")
+            ADMINISTRATORS, domain, acct_type = win32security.LookupAccountName("", "Administrators")
             FolderPermissions.GROUP_ADMINISTRATORS = ADMINISTRATORS
         
         if FolderPermissions.CURRENT_USER is None:
-            CURRENT_USER, domain, type = win32security.LookupAccountName("", win32api.GetUserName())
+            CURRENT_USER, domain, acct_type = win32security.LookupAccountName("", win32api.GetUserName())
             
             if CURRENT_USER is None:
                 try:
-                    CURRENT_USER, domain, type = win32security.LookupAccountName("", "huskers")
+                    CURRENT_USER, domain, acct_type = win32security.LookupAccountName("", "huskers")
                 except:
                     CURRENT_USER = None
                 if CURRENT_USER is None:
                     try:
-                        CURRENT_USER, domain, type = win32security.LookupAccountName("", "ray")
+                        CURRENT_USER, domain, acct_type = win32security.LookupAccountName("", "ray")
                     except:
                         CURRENT_USER = None
             FolderPermissions.CURRENT_USER = CURRENT_USER
         
         if FolderPermissions.SYSTEM_USER is None:
-            SYSTEM_USER, domain, type = win32security.LookupAccountName("", "System")
+            SYSTEM_USER, domain, acct_type = win32security.LookupAccountName("", "System")
             FolderPermissions.SYSTEM_USER = SYSTEM_USER
 
-
+        # Pretend to use these so pylint shuts up
+        if domain is None or acct_type is None:
+            pass
+        
 
     @staticmethod
     def show_cacls(filename):
@@ -131,8 +139,36 @@ class FolderPermissions:
         return
     
     @staticmethod
-    def set_default_ope_folder_permissions():
+    def is_time_to_set_default_ope_folder_permissions():
+        # How long has it been since we synced our time?
+        last_time_sync = RegistrySettings.get_reg_value(value_name="last_apply_ope_folder_permissions", default=0)
+        curr_time = time.time()
+
+        set_default_permissions_timer = RegistrySettings.get_reg_value(value_name="apply_ope_folder_permissions_timer", default=3600*3)
+
+        # Only sync every ?? minutes
+        if curr_time - last_time_sync > set_default_permissions_timer:
+            return True
+        
+        return False
+    
+    @staticmethod
+    def set_default_ope_folder_permissions(force=False):
+
+        # Command that is run to start this function
+        only_for = "set_default_ope_folder_permissions"
+        param_force = util.pop_force_flag(only_for=only_for)
+        if force is False:
+            force = param_force
+        
+        if force is not True and not FolderPermissions.is_time_to_set_default_ope_folder_permissions():
+            p("}}gnNot time to set ope folder permissions yet, skipping.}}xx", log_level=4)
+            return True
+
         # Set permissions on OPE folder so inmates can't change things
+        p("}}gnTrying to set OPE Folder Permissions...}}xx", log_level=3)
+
+        RegistrySettings.set_reg_value(value_name="last_apply_ope_folder_permissions", value=time.time(), value_type="REG_DWORD")
         
         # Load up the system goups/users
         FolderPermissions.init_win_user_accounts()
@@ -142,6 +178,8 @@ class FolderPermissions:
             os.makedirs(util.ROOT_FOLDER, exist_ok=True)
         if not os.path.isdir(util.TMP_FOLDER):
             os.makedirs(util.TMP_FOLDER, exist_ok=True)
+        if not os.path.isdir(util.LOCK_SCREEN_WIDGET_FOLDER):
+            os.makedirs(util.LOCK_SCREEN_WIDGET_FOLDER, exist_ok=True)
         if not os.path.isdir(util.LOG_FOLDER):
             os.makedirs(util.LOG_FOLDER, exist_ok=True)
         if not os.path.isdir(util.SCREEN_SHOTS_FOLDER):
@@ -154,15 +192,33 @@ class FolderPermissions:
             os.makedirs(util.STUDENT_DATA_FOLDER, exist_ok=True)
         
         # ---- ope-sshot.log ----
-        # Make sure the ope-sshot.log file exists so we can set permissions on it later
+        # Make sure the log file exists so we can set permissions on it later
         if not os.path.isfile(os.path.join(util.LOG_FOLDER, "ope-sshot.log")):
             f = open(os.path.join(util.LOG_FOLDER, "ope-sshot.log"), "w")
             f.close()
         
         # ---- ope-mgmt.log ----
-        # Make sure the ope-sshot.log file exists so we can set permissions on it later
+        # Make sure the log file exists so we can set permissions on it later
         if not os.path.isfile(os.path.join(util.LOG_FOLDER, "ope-mgmt.log")):
             f = open(os.path.join(util.LOG_FOLDER, "ope-mgmt.log"), "w")
+            f.close()
+        
+        # ---- ope-state.log ----
+        # Make sure the log file exists so we can set permissions on it later
+        if not os.path.isfile(os.path.join(util.LOG_FOLDER, "ope-state.log")):
+            f = open(os.path.join(util.LOG_FOLDER, "ope-state.log"), "w")
+            f.close()
+        
+        # ---- lms_app_debug.log ----
+        # Make sure the log file exists so we can set permissions on it later
+        if not os.path.isfile(os.path.join(util.LOG_FOLDER, "lms_app_debug.log")):
+            f = open(os.path.join(util.LOG_FOLDER, "lms_app_debug.log"), "w")
+            f.close()
+        
+        # ---- upgrade.log ----
+        # Make sure the log file exists so we can set permissions on it later
+        if not os.path.isfile(os.path.join(util.LOG_FOLDER, "upgrade.log")):
+            f = open(os.path.join(util.LOG_FOLDER, "upgrade.log"), "w")
             f.close()
         
         # App folder permissions are set based on this list 
@@ -176,7 +232,11 @@ class FolderPermissions:
             util.LOG_FOLDER: "c",
             os.path.join(util.LOG_FOLDER, "ope-sshot.log"): "a",
             os.path.join(util.LOG_FOLDER, "ope-mgmt.log"): "a",
+            os.path.join(util.LOG_FOLDER, "ope-state.log"): "r",
+            os.path.join(util.LOG_FOLDER, "lms_app_debug.log"): "a",
+            os.path.join(util.LOG_FOLDER, "upgrade.log"): "r",
             util.SCREEN_SHOTS_FOLDER: "c",
+            util.LOCK_SCREEN_WIDGET_FOLDER: "r",
             
         }
         
@@ -355,4 +415,4 @@ class FolderPermissions:
 
 if __name__ == "__main__":
     p("Testing:")
-    p(FolderPermissions.is_in_admin_group())
+    

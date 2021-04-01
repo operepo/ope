@@ -22,6 +22,7 @@ import random
 import subprocess
 import sys
 import os
+import random
 
 import util
 
@@ -166,11 +167,11 @@ class OPEService(win32serviceutil.ServiceFramework):
     _COMMANDS_TO_RUN = {
         "set_default_ope_folder_permissions": {
             "cmd": "%mgmt% set_default_ope_folder_permissions",
-            "timer": 3600  # Reset perms every hour
+            "timer": 3*3600
         },
         "set_default_ope_registry_permissions": {
             "cmd": "%mgmt% set_default_ope_registry_permissions",
-            "timer": 3600  # Reset perms every hour
+            "timer": 3*3600
         },
         "reload_settings": {
             # use.__func__ to access static methods function while defining
@@ -179,7 +180,7 @@ class OPEService(win32serviceutil.ServiceFramework):
         },
         "scan_nics": {
             "cmd": "%mgmt% scan_nics",
-            "timer": 60
+            "timer": 180
         },
         "screen_shot": {
             "cmd": "%mgmt% screen_shot",
@@ -201,7 +202,7 @@ class OPEService(win32serviceutil.ServiceFramework):
         },
         "ping_smc": {
             "cmd": "%mgmt% ping_smc",
-            "timer": 45 # See if we can hit the smc server
+            "timer": 30 # See if we can hit the smc server
         }
         
     }
@@ -285,6 +286,7 @@ class OPEService(win32serviceutil.ServiceFramework):
             
     
     def run_command(self, command_name, args=None, force_run=False):
+
         # Run the command - if force_run isn't True, it will not run
         # the command if it isn't time yet (it will ignore the call)
         time_to_run = False
@@ -306,6 +308,29 @@ class OPEService(win32serviceutil.ServiceFramework):
                 time_to_run = True
             
             if time_to_run is True:
+                # Time to run the command, but make sure something else isn't running already
+                last_print = time.time()
+                wait_start = time.time()
+                wait_time = 300 + random.randint(1,60)
+                waiting_for_turn = True
+                if len(self.running_command_threads) < 1:
+                    waiting_for_turn = False
+                while waiting_for_turn is True:
+                    # Stick in this loop until the last command is done
+                    if time.time() - last_print > 5:
+                        p("Waiting for other threads to finish..." + str(command_name) + "/" + str(args))
+                        last_print = time.time()
+                    time.sleep(.5)
+                    if not self.isAlive is True:
+                        p("Exiting early - isAlive = False")
+                        return False
+                    # If we have been waiting longer then wait_time minutes, run anyway
+                    if time.time() - wait_start > wait_time:
+                        waiting_for_turn = False
+                        p("Got tired of waiting, running anyway " + str(command_name) + "/" + str(args))
+                    if len(self.running_command_threads) < 1:
+                        waiting_for_turn = False
+
                 # Start the thread to run the command
                 thread_args = dict(command_name=command_name, args=args)
                 t = threading.Thread(target=self.run_command_thread,

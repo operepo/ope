@@ -35,7 +35,7 @@ import util
 # Pull in logger first and set it up!
 from mgmt_EventLog import EventLog
 global LOGGER
-LOGGER = EventLog(os.path.join(util.LOG_FOLDER, 'ope-mgmt.log'), service_name="OPE")
+LOGGER = EventLog(os.path.join(util.LOG_FOLDER, 'ope-mgmt.log'), service_name="OPEMgmt")
 
 from color import p, set_log_level
 
@@ -50,6 +50,7 @@ from mgmt_GroupPolicy import GroupPolicy
 from mgmt_ProcessManagement import ProcessManagement
 from mgmt_Computer import Computer
 from mgmt_COMPorts import COMPorts
+from mgmt_LockScreen import LockScreen
 
 
 # Get the logging level
@@ -306,6 +307,10 @@ valid_commands = {
         "help": "Lock the screen. If no user specified, locks the current screen.",
         "require_admin": False
     },
+    "log_out_user": {
+        "function": UserAccounts.log_out_user,
+        "help": "Log out the specified user"
+    },
 
     "lock_boot_settings": {
         "function": FolderPermissions.lock_boot_settings,
@@ -324,6 +329,14 @@ valid_commands = {
         "function": CredentialProcess.lock_machine,
         "help": "Turn security features back on and re-enable student account."
     },
+    "show_lock_screen_widget": {
+        "function": LockScreen.show_lock_screen_widget,
+        "help": "Launch the lock screen widget which shoes current state of syncing/updates/etc..."
+    },
+    "refresh_lock_screen_widget": {
+        "function": LockScreen.refresh_lock_screen_widget,
+        "help": "Update the lockscreen widget with the latest files and re-launch"
+    },
 
 
     #### Do credential process ###
@@ -334,6 +347,14 @@ valid_commands = {
 
     ### UPDATE/SYNC COMMANDS ###
     # Force a git pull
+    "get_git_branch": {
+        "function": RegistrySettings.get_git_branch,
+        "help": "Get which branch to use when pulling updates from git repo"
+    },
+    "set_git_branch": {
+        "function": RegistrySettings.set_git_branch,
+        "help": "Set which branch to use when pulling updates from git repo"
+    },
     "git_pull": {
         "function": ProcessManagement.git_pull_branch,
         "help": "Pull updates down from online or local SMC server"
@@ -357,8 +378,8 @@ valid_commands = {
     },
 
     # Send screenshots/logs/reports to SMC (if online)
-    "push_logs_to_smc": {
-        "function": CredentialProcess.push_logs_to_smc,
+    "sync_logs_to_smc": {
+        "function": CredentialProcess.sync_logs_to_smc,
         "help": "Push log files and screen shots to SMC server",
         "require_admin": False
     },
@@ -391,6 +412,12 @@ valid_commands = {
         "require_admin": False
     },
 
+    "test_cmd": {
+        "function": util.test_params,
+        "help": "Debugging command",
+        "hide": True,
+    },
+
 }
 
 
@@ -407,7 +434,14 @@ if __name__ == "__main__":
 
         # Only show commands if UAC active
         if is_admin[1]:
-            commands = sorted(valid_commands.keys())
+            # Remove hidden commands
+            print_cmds = {}
+            for k in valid_commands.keys():
+                item = valid_commands[k]
+                if not 'hide' in item or not item['hide'] is True:
+                    print_cmds[k]=item
+
+            commands = sorted(print_cmds.keys())
             p("}}yn Valid Commands: " + str(commands) + "}}xx")
             p("}}ybFor help - type mgmt.exe help (command)}}xx")
         sys.exit(1)
@@ -444,6 +478,7 @@ if __name__ == "__main__":
 
     exit_code = 0
     try:
+        util.CMD_FUNCTION = cmd
         p("}}gnRunning " + cmd + "}}xx", log_level=4)
         ret = f()
         #p("}}ynReturn Code: " + str(ret) + "}}xx")

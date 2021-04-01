@@ -511,7 +511,7 @@ class OPEService(win32serviceutil.ServiceFramework):
         si = win32process.STARTUPINFO()
         si.dwFlags = win32process.STARTF_USESHOWWINDOW
         si.wShowWindow = win32con.SW_NORMAL
-        # si.lpDesktop = "WinSta0\Default"
+        # si.lpDesktop = "WinSta0\Default"  # WinSta0\Winlogon
         si.lpDesktop = ""
 
         # Setup envinroment for the user

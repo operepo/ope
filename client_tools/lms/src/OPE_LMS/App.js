@@ -89,7 +89,7 @@ function format_participants(json_str) {
 
     for (var i = 0; i < p.length; i++) {
         var curr_item = p[i];
-        if (ret != "") {
+        if (ret !== "") {
             ret += ", ";
         }
         ret += curr_item.full_name;

@@ -12,6 +12,10 @@ SCREEN_SHOTS_FOLDER = os.path.join(TMP_FOLDER, "screen_shots")
 GIT_FOLDER = os.path.join(ROOT_FOLDER, "ope_laptop_binaries")
 BINARIES_FOLDER = os.path.join(ROOT_FOLDER, "Services")
 STUDENT_DATA_FOLDER = os.path.join(ROOT_FOLDER, "student_data")
+LOCK_SCREEN_WIDGET_FOLDER = os.path.join(TMP_FOLDER, "lock_screen_widget")
+
+# The base function called
+CMD_FUNCTION = ""
 
 global APP_FOLDER
 APP_FOLDER = None
@@ -51,11 +55,52 @@ def get_dict_value(source_dict, key_name, default=""):
         ret = source_dict[key_name]
     return ret
 
-def get_param(param_index=1, default_value=""):
+def pop_force_flag(only_for=None):
+    # See if the -f is present in the params and remove it if it is.
+    ret = False
+
+    global CMD_FUNCTION
+
+    # only_for - just return param if it is the root call, otherwise False
+    if not only_for is None:
+        if CMD_FUNCTION != only_for:
+            return ret
+
+    for i in range(len(sys.argv)):
+        p = sys.argv[i]
+        if p.lower() == "-f":
+            #print("Found force flag!")
+            ret = True
+            sys.argv.remove(p)
+            break
+
+    return ret
+def get_param(param_index=1, default_value="", only_for=None):
     # Get the requested parameter or default value if non existent
     ret = default_value
+
+    global CMD_FUNCTION
+
+    # only_for - just return param if it is the root call
+    if not only_for is None:
+        if CMD_FUNCTION != only_for:
+            return ret
 
     if len(sys.argv) >=param_index + 1:
         ret = sys.argv[param_index]
     
     return ret
+
+def test_params():
+
+    force_on = pop_force_flag()
+    print("Force: " + str(force_on))
+    print("Params:")
+    for i in range(len(sys.argv)):
+        print("Param " + str(i) + "=>" + str(sys.argv[i]))
+    print(len(sys.argv))
+    return
+
+if __name__ == "__main__":
+    # Test the params
+    test_params()

@@ -71,7 +71,7 @@ class ScreenShot:
         si = win32process.STARTUPINFO()
         si.dwFlags = win32process.STARTF_USESHOWWINDOW
         si.wShowWindow = win32con.SW_NORMAL
-        # si.lpDesktop = "WinSta0\Default"
+        # si.lpDesktop = "WinSta0\Default"   ## For secure desktop, "WinSta0\\Winlogon"
         si.lpDesktop = "WinSta0\\Default"
 
         # Setup envinroment for the user

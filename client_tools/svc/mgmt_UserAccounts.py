@@ -80,6 +80,10 @@ class UserAccounts:
         #p("}}gnFound User Token: " + str(user_token) + "}}xx", debug_level=5)
         user_token.close()
 
+        if domainName is None or accountTypeInt is None or intVal is None:
+            # Make pylint shutup
+            pass
+
         return user_name
     
     @staticmethod
@@ -108,6 +112,10 @@ class UserAccounts:
         active_session = UserAccounts.WTS_INVALID_SESSION_ID
         station_name = ""
         sessions = win32ts.WTSEnumerateSessions(None, 1, 0)
+
+        if station_name is None:
+            # make pylint shut up
+            pass
         
         for session in sessions:
             if session['State'] == UserAccounts.WTSActive:
@@ -241,6 +249,31 @@ class UserAccounts:
         return ret
 
     @staticmethod
+    def elevate_process_privilege_to_debug():
+        #add_privilege=ntsecuritycon.SE_RESTORE_NAME | 
+        #ntsecuritycon.SE_BACKUP_NAME ):
+        try:
+            se_debug_value = win32security.LookupPrivilegeValue(None, ntsecuritycon.SE_DEBUG_NAME)
+            
+            flags = ntsecuritycon.TOKEN_ADJUST_PRIVILEGES \
+                | ntsecuritycon.TOKEN_QUERY
+            
+            proces_token = win32security.OpenProcessToken(win32api.GetCurrentProcess(), flags)
+
+            # Add backup/restore privileges
+            new_privs = [
+                    (se_debug_value, ntsecuritycon.SE_PRIVILEGE_ENABLED),
+                ]
+
+            win32security.AdjustTokenPrivileges(proces_token, 0, new_privs)
+        except Exception as ex:
+            p("}}rbException - trying to elevate debug privileges}}xx\n" +
+                str(ex))
+            return False
+
+        return True
+
+    @staticmethod
     def elevate_process_privilege_to_backup_restore():
         #add_privilege=ntsecuritycon.SE_RESTORE_NAME | 
         #ntsecuritycon.SE_BACKUP_NAME ):
@@ -259,7 +292,7 @@ class UserAccounts:
 
             win32security.AdjustTokenPrivileges(proces_token, 0, new_privs)
         except Exception as ex:
-            p("}}rbException - trying to elveate backup/restore privileges}}xx\n" +
+            p("}}rbException - trying to elevate backup/restore privileges}}xx\n" +
                 str(ex))
             return False
 
@@ -282,7 +315,30 @@ class UserAccounts:
 
             win32security.AdjustTokenPrivileges(proces_token, 0, new_privs)
         except Exception as ex:
-            p("}}rbException - trying to elveate tcb privileges}}xx\n" +
+            p("}}rbException - trying to elevate tcb privileges}}xx\n" +
+                str(ex))
+            return False
+
+        return True
+    
+    @staticmethod
+    def elevate_process_privilege_assign_primary_token():
+        try:
+            se_assignprimarytoken_value = win32security.LookupPrivilegeValue(None, ntsecuritycon.SE_ASSIGNPRIMARYTOKEN_NAME)
+
+            flags = ntsecuritycon.TOKEN_ADJUST_PRIVILEGES \
+                | ntsecuritycon.TOKEN_QUERY
+            
+            proces_token = win32security.OpenProcessToken(win32api.GetCurrentProcess(), flags)
+
+            # Add backup/restore privileges
+            new_privs = [
+                (se_assignprimarytoken_value, ntsecuritycon.SE_PRIVILEGE_ENABLED),
+            ]
+
+            win32security.AdjustTokenPrivileges(proces_token, 0, new_privs)
+        except Exception as ex:
+            p("}}rbException - trying to elevate assignprimarytoken privileges}}xx\n" +
                 str(ex))
             return False
 
@@ -304,6 +360,9 @@ class UserAccounts:
         # 7 randoms
         for i in range(1,7):
             ret += chr(random.randint(35,125))
+            if i is None:
+                # make pylint shutup
+                pass
 
         # Don't use \ or ' or " charcters
         ret = ret.replace("'", "").replace("\"", "").replace("\\", "")
@@ -311,14 +370,17 @@ class UserAccounts:
 
     @staticmethod
     def create_local_student_account(user_name=None, full_name=None, password=None):
+        # Command that is run to start this function
+        only_for = "create_student_account"
+
         ret = True
         # Make sure we have parameters
         if user_name is None:
-            user_name = util.get_param(2, None)
+            user_name = util.get_param(2, None, only_for=only_for)
         if full_name is None:
-            full_name = util.get_param(3, None)
+            full_name = util.get_param(3, None, only_for=only_for)
         if password is None:
-            password = util.get_param(4, None)
+            password = util.get_param(4, None, only_for=only_for)
         if user_name is None or full_name is None or password is None:
             p("}}rbError - Invalid parameters to create new student user!}}xx", debug_level=1)
             return False
@@ -359,6 +421,7 @@ class UserAccounts:
         if len(tmp_password) < 8:
             p("}}rbStudent Password Too Short! Padding with !s to 8 characters}}xx")
             pad_chars = (8-len(tmp_password)) * "!"
+            tmp_password += pad_chars
         # Set the password
         try:
             user_data['password'] = tmp_password
@@ -440,8 +503,11 @@ class UserAccounts:
 
     @staticmethod
     def disable_account(account_name=None):
+        # Command that is run to start this function
+        only_for = "disable_account"
+
         if account_name is None:
-            account_name = util.get_param(2, None)
+            account_name = util.get_param(2, None, only_for=only_for)
         if account_name is None:
             p("}}enInvalid User name - not disabling account!}}xx")
             return False
@@ -476,10 +542,13 @@ class UserAccounts:
 
     @staticmethod
     def set_default_groups_for_admin(account_name = None):
+        # Command that is run to start this function
+        only_for = "set_default_groups_for_admin"
+
         ret = True
         # Make sure the student is in the proper groups
         if account_name is None:
-            account_name = util.get_param(2, None)
+            account_name = util.get_param(2, None, only_for=only_for)
         if account_name is None:
             p("}}rnInvalid User name - not adding default admin groups to account!}}xx")
             return False
@@ -500,10 +569,13 @@ class UserAccounts:
 
     @staticmethod
     def set_default_groups_for_student(account_name = None):
+        # Command that is run to start this function
+        only_for = "set_default_groups_for_student"
+
         ret = True
         # Make sure the student is in the proper groups
         if account_name is None:
-            account_name = util.get_param(2, None)
+            account_name = util.get_param(2, None, only_for=only_for)
         if account_name is None:
             p("}}rnInvalid User name - not adding default groups to user account!}}xx")
             return False
@@ -524,8 +596,11 @@ class UserAccounts:
 
     @staticmethod
     def enable_account(account_name=None):
+        # Command that is run to start this function
+        only_for = "enable_account"
+
         if account_name is None:
-            account_name = util.get_param(2, None)
+            account_name = util.get_param(2, None, only_for=only_for)
         if account_name is None:
             p("}}rnInvalid User name - not enabling account!}}xx")
             return False
@@ -552,6 +627,9 @@ class UserAccounts:
             grp = accounts.local_group(UserAccounts.STUDENTS_GROUP)
         except winsys.exc.x_not_found as ex:
             # p("}}yn" + str(UserAccounts.STUDENTS_GROUP) + " group not found - skipping disable student accounts...}}xx")
+            if ex is None:
+                # shutup pylint
+                pass
             return True
         
         for user in grp:
@@ -564,9 +642,12 @@ class UserAccounts:
     
     @staticmethod
     def remove_account_profile(user_name=None):
+        # Command that is run to start this function
+        only_for = "remove_account_profile"
+
         # Remove the profile/files for the user
         if user_name is None:
-            user_name = util.get_param(2, None)
+            user_name = util.get_param(2, None, only_for=only_for)
         if user_name is None:
             p("}}enInvalid User name - not removing account profile!}}xx")
             return False
@@ -582,6 +663,8 @@ class UserAccounts:
         except Exception as ex:
             # Unable to find this user?
             p("}}rnError - Invalid User - can't remove profile!}}xx " + str(user_name))
+            # shutup python
+            if ex is None: pass
             return False
         
         if user_sid == "":
@@ -605,42 +688,48 @@ class UserAccounts:
             p("}}ynUnable to remove profile folder - likely it doesn't exist.}}xx", debug_level=4)
         return True
         
-        #See if a profile exists
-        w = wmi.WMI()
-        profiles = w.Win32_UserProfile(SID=user_sid)
-        if len(profiles) < 1:
-            p("}}ynNo profile found for this user, skipping remove!}}xx")
-            return True
+        # #See if a profile exists
+        # w = wmi.WMI()
+        # profiles = w.Win32_UserProfile(SID=user_sid)
+        # if len(profiles) < 1:
+        #     p("}}ynNo profile found for this user, skipping remove!}}xx")
+        #     return True
         
-        profile_path = ""
-        profile_loaded = False
-        for profile in profiles:
-            profile_path = profile.LocalPath
-            profile_loaded = profile.Loaded
-        profiles = None
+        # profile_path = ""
+        # profile_loaded = False
+        # for profile in profiles:
+        #     profile_path = profile.LocalPath
+        #     profile_loaded = profile.Loaded
+        # profiles = None
+        # if profile_loaded is None:
+        #     # shutup pylint
+        #     pass
                 
-        # We know it exists
+        # # We know it exists
         
 
-        # Remove it from the registry list
-        RegistrySettings.remove_key("HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\" + \
-            "ProfileList\\" + user_sid)
+        # # Remove it from the registry list
+        # RegistrySettings.remove_key("HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\" + \
+        #     "ProfileList\\" + user_sid)
 
-        # Delete the folder/files
-        try:
-            shutil.rmtree(profile_path)
-        except Exception as ex:
-            p("}}rnError - Unable to remove the profile folder at " + profile_path + "}}xx\n" + \
-                str(ex))
-            return False
+        # # Delete the folder/files
+        # try:
+        #     shutil.rmtree(profile_path)
+        # except Exception as ex:
+        #     p("}}rnError - Unable to remove the profile folder at " + profile_path + "}}xx\n" + \
+        #         str(ex))
+        #     return False
 
-        return True
+        # return True
 
     @staticmethod
     def lock_screen_for_user(user_name=None):
+        # Command that is run to start this function
+        only_for = "lock_screen"
+
         # Find the user in question and lock the workstation
         if user_name is None:
-            user_name = util.get_param(2, None)
+            user_name = util.get_param(2, None, only_for=only_for)
         if user_name is None:
             # Lock for the current user if no name
             return UserAccounts.lock_screen_for_current_user()
@@ -649,6 +738,20 @@ class UserAccounts:
         p("}}ybLocking screen for other users - Not Implemented Yet!}}xx")
         # TODO - lock_workstation
         # Lookup the user specified and run this under their account
+        # Have rundll run the lock workstation command
+        # WinApi.CreateProcessAsUser(
+        #   interactiveUserToken,
+        #   null,
+        #   "rundll32.exe user32.dll,LockWorkStation",
+        #   IntPtr.Zero,
+        #   IntPtr.Zero,
+        #   false,
+        #   (uint)WinApi.CreateProcessFlags.CREATE_NEW_CONSOLE |
+        #     (uint)WinApi.CreateProcessFlags.INHERIT_CALLER_PRIORITY,
+        #   IntPtr.Zero,
+        #   currentDirectory,
+        #   ref siInteractive,
+        #   out piInteractive);
 
         return False
         
@@ -672,8 +775,11 @@ class UserAccounts:
 
     @staticmethod
     def log_out_user(user_name=None):
+        # Command that is run to start this function
+        only_for = "log_out_user"
+
         if user_name is None:
-            user_name = util.get_param(2, None)
+            user_name = util.get_param(2, None, only_for=only_for)
         if user_name is None:
             p("}}rn No User name provided - not logging out!}}xx")
             return False
@@ -703,12 +809,18 @@ class UserAccounts:
         else:
             p("}}gnUser logged out! " + str(user_name) + "}}xx", debug_level=3)
 
+        # shutup pylint
+        if station_name is None: pass
+
         return True
 
     @staticmethod
     def delete_user(user_name=None):
+        # Command that is run to start this function
+        only_for = "remove_account"
+
         if user_name is None:
-            user_name = util.get_param(2, None)
+            user_name = util.get_param(2, None, only_for=only_for)
         if user_name is None:
             p("}}enInvalid User name - not removing account!}}xx")
             return False
@@ -721,6 +833,8 @@ class UserAccounts:
 
         # Remove the profile first
         ret = UserAccounts.remove_account_profile(user_name)
+        # shutup pylint
+        if ret is None: pass
 
         # Remove the local user
         try:

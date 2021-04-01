@@ -84,3 +84,15 @@ projekktor-1.8.2_build
 /client_tools/svc/mgmt_EventLogMessages.res
 /admin_app/.vscode
 exported_gpo
+/client_tools/svc/lock_screen_widget.build
+/client_tools/svc/lock_screen_widget.dist
+/client_tools/svc/lock_screen_widget.onefile-build
+/client_tools/svc/lock_screen_widget.spec
+/client_tools/svc/mgmt.build
+/client_tools/svc/python36.dll
+/media_files_tool/.vscode
+/media_files_tool/build/sync_media_files
+/media_files_tool/dist/sync_media_files
+/media_files_tool/media_files/documents
+/media_files_tool/media_files/media
+/media_files_tool/ssh.log

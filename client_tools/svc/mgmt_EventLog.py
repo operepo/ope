@@ -15,6 +15,7 @@ import util
 class EventLog:
     # The singleton instance of our logger class
     _LOG_INSTANCE = None
+    _OPE_STATE_LOG_INSTANCE = None
     
     @staticmethod
     def get_current_instance():
@@ -24,6 +25,30 @@ class EventLog:
             return None
 
         return EventLog._LOG_INSTANCE
+    
+    @staticmethod
+    def get_ope_state_instance():
+        if EventLog._OPE_STATE_LOG_INSTANCE is None:
+            # Make the state logger and set it up.
+            # NOTE - this is to log to the background of the OPE laptops
+            lf = os.path.join(util.LOG_FOLDER, 'ope-state.log')  #"%programdata%\ope\tmp\log\ope-state.log"
+            l = logging.getLogger("OPE_STATE")
+            l.setLevel(logging.DEBUG)
+
+            fmt = logging.Formatter('%(asctime)-15s %(message)s',
+                '%Y-%m-%d %I:%M:%S%p')
+
+            f_handler = logging.handlers.RotatingFileHandler(os.path.expandvars(lf),
+                mode='a', maxBytes=2*1024, backupCount=1, delay=0, encoding=None)
+            f_handler.setFormatter(fmt)
+            f_handler.setLevel(logging.DEBUG)
+            l.addHandler(f_handler)
+            # Make flush of logs available
+            l.flush = f_handler.flush
+
+            EventLog._OPE_STATE_LOG_INSTANCE = l
+            
+        return EventLog._OPE_STATE_LOG_INSTANCE
 
     def __init__(self, log_file=None, service_name="OPEService"):
         EventLog._LOG_INSTANCE = self
@@ -104,13 +129,13 @@ class EventLog:
         
         return True
 
-    def add_file_handler(self, log_file=None, fallback_log_file="%tmp%\mgmt.log"):
+    def add_file_handler(self, log_file=None, fallback_log_file="%tmp%/mgmt.log"):
         if self.logger is None:
             # No logger!
             print("No logger present, can't add file handler!")
             return False
         
-        fmt = logging.Formatter('[ope-svc] %(asctime)-15s %(levelname)-7.7s %(message)s',
+        fmt = logging.Formatter('[' + self.service_name + '] %(asctime)-15s %(levelname)-7.7s %(message)s',
             '%Y-%m-%d %H:%M:%S')
 
         # Get the current log file to try
@@ -128,7 +153,8 @@ class EventLog:
         
         # Try the current log file
         try:
-            f_handler = logging.FileHandler(os.path.expandvars(lf))
+            f_handler = logging.handlers.RotatingFileHandler(os.path.expandvars(lf),
+                mode='a', maxBytes=3*1024*1024, backupCount=1, delay=0, encoding=None)
             f_handler.setFormatter(fmt)
             f_handler.setLevel(logging.DEBUG)
             self.logger.addHandler(f_handler)
@@ -151,7 +177,8 @@ class EventLog:
             lf = fallback_log_file
         # Try the current log file
         try:
-            f_handler = logging.FileHandler(os.path.expandvars(lf))
+            f_handler = logging.handlers.RotatingFileHandler(os.path.expandvars(lf),
+                mode='a', maxBytes=3*1024*1024, backupCount=1, delay=0, encoding=None)
             f_handler.setFormatter(fmt)
             f_handler.setLevel(logging.DEBUG)
             self.logger.addHandler(f_handler)
@@ -171,7 +198,8 @@ class EventLog:
         lf = fallback_log_file
         # Try the current log file
         try:
-            f_handler = logging.FileHandler(os.path.expandvars(lf))
+            f_handler = logging.handlers.RotatingFileHandler(os.path.expandvars(lf),
+                mode='a', maxBytes=3*1024*1024, backupCount=1, delay=0, encoding=None)
             f_handler.setFormatter(fmt)
             f_handler.setLevel(logging.DEBUG)
             self.logger.addHandler(f_handler)

@@ -3,6 +3,7 @@ import os
 import sys
 import traceback
 import logging
+import time
 
 # try:
 #     import _winreg as winreg
@@ -38,16 +39,44 @@ class RegistrySettings:
         return False
 
     @staticmethod
-    def test_reg():
-        canvas_access_token = "2043582439852400"
-        canvas_url = "https://canvas.ed"
-        smc_url = "https://smc.ed"
-        student_user = "777777"
-        student_name = "Bob Smith"
-        admin_user = "huskers"
+    def reset_timer(timer_name="default_timer"):
+        RegistrySettings.set_reg_value(value_name=timer_name, value=time.time())
+        return True
+
+    @staticmethod
+    def is_timer_expired(timer_name="default_timer", time_span=60, auto_reset_timer=True):
+        # How long has it been since we talked to the SMC server?
+        last_smc_ping_time = RegistrySettings.get_reg_value(value_name=timer_name, default=0)
+        curr_time = time.time()
+
+        # Only need a successful ping every ? minutes
+        min_time = time_span
+        time_diff = curr_time - last_smc_ping_time
+        if time_diff > min_time:
+            # Timer ran out
+
+            if auto_reset_timer is True:
+                p("Auto Reset Timer: " + timer_name, log_level=5)
+                RegistrySettings.reset_timer(timer_name=timer_name)
+            return True
         
-        RegistrySettings.store_credential_info(canvas_access_token, canvas_url, smc_url,
-            student_user, student_name, admin_user)
+        #p("}}ynNot time to ping yet - " + str(int(min_time - time_diff)) + " seconds left.}}xx", log_level=4)
+        return False
+
+    @staticmethod
+    def test_reg():
+        # canvas_access_token = "2043582439852400"
+        # canvas_url = "https://canvas.ed"
+        # smc_url = "https://smc.ed"
+        # student_user = "777777"
+        # student_name = "Bob Smith"
+        # admin_user = "huskers"
+        
+        RegistrySettings.set_reg_value(app="OPELMS\\student", value_name="smc_url_test",
+            value="https://smc.ed", value_type="REG_SZ")
+
+        #RegistrySettings.store_credential_info(canvas_access_token, canvas_url, smc_url,
+        #    student_user, student_name, admin_user)
         p("Student: " + RegistrySettings.get_reg_value(value_name="student_user", default=""))
         p("Admin: " + RegistrySettings.get_reg_value(app="OPEService", value_name="admin_user", default="administrator"))
 
@@ -170,6 +199,9 @@ class RegistrySettings:
             #p("}}rbException! - Error pulling value from registry! Returning default value}}xx\n    (" +
             #    path + ":" + value_name + "=" + str(default_value)+")")
             #p(str(ex))
+            if ex is None:
+                # Make pylint shut up
+                pass
             pass
 
         return ret
@@ -217,27 +249,54 @@ class RegistrySettings:
         return ret
 
     @staticmethod
+    def get_git_branch():
+        # If branch is still empty, get it from the registry
+        curr_branch = RegistrySettings.get_reg_value(value_name="install_branch", default="master")
+        p("}}gnUsing Branch: " + curr_branch + "}}xx")
+        return curr_branch
+
+    @staticmethod
+    def set_git_branch(branch=None):
+        # Command that is run to start this function
+        only_for = "set_git_branch"
+
+        curr_branch = branch
+        if curr_branch is None:
+            # See if a parameter was provided
+            curr_branch = util.get_param(2, None, only_for=only_for)
+
+        if curr_branch is None:
+            curr_branch = "master"
+        ret = RegistrySettings.set_reg_value(value_name="install_branch", value=curr_branch, value_type="REG_SZ")
+        if ret is False:
+            p("}}ybUnable to set git branch to " + curr_branch + "}}xx")
+            return False
+        else:
+            p("}}gnGit branch set to: " + curr_branch + "}}xx")
+            return True
+
+    @staticmethod
     def store_credential_info(canvas_access_token, canvas_url, smc_url,
             student_user, student_name, admin_user):
         # Store credential info in the proper places
         RegistrySettings.set_reg_value(app="", value_name="canvas_access_token",
             value=canvas_access_token, value_type="REG_SZ")
-        RegistrySettings.set_reg_value(app="OPELMS\student", value_name="canvas_access_token",
+        RegistrySettings.set_reg_value(app="OPELMS\\student", value_name="canvas_access_token",
             value=canvas_access_token, value_type="REG_SZ")
 
         RegistrySettings.set_reg_value(app="", value_name="canvas_url", value=canvas_url,
             value_type="REG_SZ")
-        RegistrySettings.set_reg_value(app="OPELMS\student", value_name="canvas_url",
+        RegistrySettings.set_reg_value(app="OPELMS\\student", value_name="canvas_url",
             value=canvas_url, value_type="REG_SZ")
 
         RegistrySettings.set_reg_value(app="", value_name="smc_url", value=smc_url,
             value_type="REG_SZ")
-        RegistrySettings.set_reg_value(app="OPELMS\student", value_name="smc_url",
+        RegistrySettings.set_reg_value(app="OPELMS\\student", value_name="smc_url",
             value=smc_url, value_type="REG_SZ")
 
         RegistrySettings.set_reg_value(app="", value_name="student_user", value=student_user,
             value_type="REG_SZ")
-        RegistrySettings.set_reg_value(app="OPELMS\student", value_name="user_name",
+        RegistrySettings.set_reg_value(app="OPELMS\\student", value_name="user_name",
             value=student_user, value_type="REG_SZ")
 
         RegistrySettings.set_reg_value(app="", value_name="student_name", value=student_name,
@@ -249,8 +308,34 @@ class RegistrySettings:
         return True
 
     @staticmethod
-    def set_default_ope_registry_permissions(student_user = "", laptop_admin_user = ""):
+    def is_time_to_set_default_ope_registry_permissions():
+        # How long has it been since we synced our time?
+        last_time_sync = RegistrySettings.get_reg_value(value_name="last_apply_ope_registry_permissions", default=0)
+        curr_time = time.time()
+
+        set_default_permissions_timer = RegistrySettings.get_reg_value(value_name="apply_ope_registry_permissions_timer", default=3600*3)
+
+        # Only sync every ?? minutes
+        if curr_time - last_time_sync > set_default_permissions_timer:
+            return True
+        
+        return False
+
+    @staticmethod
+    def set_default_ope_registry_permissions(student_user = "", laptop_admin_user = "", force=False):
+        only_for="set_default_ope_registry_permissions"
+        param_force = util.pop_force_flag(only_for=only_for)
+        if force is False:
+            force = param_force
+        
+        if not force is True and not RegistrySettings.is_time_to_set_default_ope_registry_permissions():
+            p("}}gnNot time to set ope registry permissions yet, skipping.}}xx", log_level=4)
+            return True
+        
+        RegistrySettings.set_reg_value(value_name="last_apply_ope_registry_permissions", value=time.time(), value_type="REG_DWORD")
+
         try:
+            p("}}gnTrying to set OPE Registry Permissions...}}xx", log_level=3)
             if student_user == "":
                 student_user = RegistrySettings.get_reg_value(value_name="student_user", default="")
 
@@ -270,6 +355,9 @@ class RegistrySettings:
                 try:
                     # Will throw an exception if the user doesn't exist
                     student_p = accounts.principal(student_user)
+                    if student_p is None:
+                        # Get pylint to shutup
+                        pass
                 except Exception as ex:
                     # Invalid student account
                     p("}}rbInvalid Student Account - skipping permissions for this account: " + str(student_user) + "}}xx")
@@ -279,6 +367,9 @@ class RegistrySettings:
             if laptop_admin_user is not None:
                 try:
                     admin_p = accounts.principal(laptop_admin_user)
+                    if admin_p is None:
+                        # Get pylint to shutup
+                        pass
                 except Exception as ex:
                     # Invalid admin account!
                     p("}}rbInvalid Admin Account - skipping permissions for this account: " + str(laptop_admin_user) + "}}xx")
@@ -313,6 +404,7 @@ class RegistrySettings:
             with reg.security() as s:
                 # Break inheritance causes things to reapply properly
                 s.break_inheritance(copy_first=True)
+                s.owner = accounts.principal("Administrators")
                 #s.dacl = base_dacl
                 s.dacl.append(("Everyone",
                     registry.Registry.ACCESS["R"],
@@ -380,13 +472,17 @@ class RegistrySettings:
             p("}}gnRegistry Permissions Set}}xx", log_level=3)
         except Exception as ex:
             p("}}rbUnknown Exception! }}xx\n" + str(ex))
+            p(traceback.format_exc())
             return False
         return True
 
     @staticmethod
     def set_screen_shot_timer():
+        # Command that is run to start this function
+        only_for = "set_screen_shot_timer"
+
         # Set how often to reload scan nics
-        param = util.get_param(2)
+        param = util.get_param(2, "", only_for=only_for)
         if param == "":
             p("}}rnInvalid frequency Specified}}xx")
             return False
@@ -407,8 +503,11 @@ class RegistrySettings:
 
     @staticmethod
     def set_log_level():
+        # Command that is run to start this function
+        only_for = "set_log_level"
+
         # Set the log level parameter in the registry
-        param = util.get_param(2)
+        param = util.get_param(2, "", only_for=only_for)
         if param == "":
             p("}}rnInvalid Log Level Specified}}xx")
             return False
@@ -426,8 +525,11 @@ class RegistrySettings:
 
     @staticmethod
     def set_default_permissions_timer():
+        # Command that is run to start this function
+        only_for = "set_default_permissions_timer"
+
         # Set how often to reset permissions in the registry
-        param = util.get_param(2)
+        param = util.get_param(2, "", only_for=only_for)
         if param == "":
             p("}}rnInvalid frequency Specified}}xx")
             return False
@@ -445,8 +547,11 @@ class RegistrySettings:
 
     @staticmethod
     def set_reload_settings_timer():
+        # Command that is run to start this function
+        only_for = "set_reload_settings_timer"
+
         # Set how often to reload settings from the registry
-        param = util.get_param(2)
+        param = util.get_param(2, "", only_for=only_for)
         if param == "":
             p("}}rnInvalid frequency Specified}}xx")
             return False
@@ -464,8 +569,11 @@ class RegistrySettings:
 
     @staticmethod
     def set_scan_nics_timer():
+        # Command that is run to start this function
+        only_for = "set_scan_nics_timer"
+
         # Set how often to reload scan nics
-        param = util.get_param(2)
+        param = util.get_param(2, "", only_for=only_for)
         if param == "":
             p("}}rnInvalid frequency Specified}}xx")
             return False
@@ -484,4 +592,10 @@ class RegistrySettings:
 
 if __name__ == "__main__":
     p("Running Tests...")
-    RegistrySettings.test_reg()
+    #RegistrySettings.test_reg()
+
+    while True:
+        r = RegistrySettings.is_timer_expired(timer_name="test_timer", time_span=10)
+        print("Timer: " + str(r))
+        time.sleep(1)
+    

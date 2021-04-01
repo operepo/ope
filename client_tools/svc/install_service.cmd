@@ -13,7 +13,7 @@ SET ESC_YELLOW=%ESC%33m
 
 rem slight pause, let mgmt finish and exit
 rem use ping for slight pause
-set seconds=3
+set seconds=6
 PING -n !seconds! 127.0.0.1 >NUL 2>&1 || PING -n !seconds! ::1 >NUL 2>&1
 
 echo %ESC_GREEN%Stopping OPEService...%ESC_RESET%
@@ -21,6 +21,8 @@ net stop OPEService
 if %ERRORLEVEL% NEQ 0 (
     echo %ESC_YELLOW%STOP OPEService Failed - This isn't an issue if it is the first time you are credentialing this laptop. %ESC_RESET%
 )
+
+PING -n !seconds! 127.0.0.1 >NUL 2>&1 || PING -n !seconds! ::1 >NUL 2>&1
 
 echo %ESC_GREEN%Stoping any running LMS apps...%ESC_RESET%
 taskkill /f /im OPE_LMS.exe   1>NUL 2>NUL
@@ -43,7 +45,7 @@ rem need to copy the OPEService folder into the proper location
 
 echo %ESC_GREEN%Slight pause for things to shut down...%ESC_RESET%
 rem use ping for slight pause
-set seconds=10
+set seconds=15
 PING -n !seconds! 127.0.0.1 >NUL 2>&1 || PING -n !seconds! ::1 >NUL 2>&1
 
 

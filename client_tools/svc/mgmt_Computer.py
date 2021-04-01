@@ -1,18 +1,27 @@
-import sys
+import time
+from datetime import datetime
+#import sys
 import os
 import wmi
 import pythoncom
-from win32com.shell import shell, shellcon
+from win32com.shell import shell #, shellcon
 import win32gui
 import win32con
 import ctypes
 import win32api
-from datetime import datetime
-import time
+import textwrap
+import psutil
+
+
 
 from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
+
+# Getting junk in logs from PIL - do this to stop it
+import logging
+pil_logger = logging.getLogger('PIL')
+pil_logger.setLevel(logging.INFO)
 
 import util
 from color import p
@@ -40,7 +49,7 @@ class Computer:
 
     # STATE COLORS - Used for rendering state log (lock screen, background)
     # IDLE - Black - not working, not online
-    STATE_IDLE_BG_COLOR = "#000000"
+    STATE_IDLE_BG_COLOR = "#4d4c4c"
     STATE_IDLE_TEXT_COLOR = "#eeeeee"
     
     # WORKING - RED - Currently updating or syncing, don't unplug
@@ -51,7 +60,14 @@ class Computer:
     STATE_DONE_BG_COLOR = "#00913a"
     STATE_DONE_TEXT_COLOR = "#eeeeee"
 
-    STATE_RENDER_IMAGE_PATH = "%programdata%/ope/tmp/OPEState.png"  
+    LOG_BACKGROUND_COLOR = (200, 200, 200, int(255 * .20))
+    #LOG_BACKGROUND_OPACITY = int(255 * .25)  # How transparent to make it
+
+    # Where to save the image at
+    STATE_RENDER_IMAGE_PATH = "%programdata%/ope/tmp/OPEState.png"
+
+    # Where do we load the logo from?
+    LOG_IMAGE_PATH = "%programdata%/ope/tmp/logo.png"
 
     @staticmethod
     def create_win_shortcut(lnk_path, ico_path, target_path, description):
@@ -247,6 +263,9 @@ class Computer:
             image_path = Computer.STATE_RENDER_IMAGE_PATH # "%programdata%/ope/tmp/LockScreen.jpg"
         image_path = os.path.abspath(os.path.expandvars(image_path)).replace("\\", "/")
 
+        logo_path = os.path.abspath(os.path.expandvars(Computer.LOG_IMAGE_PATH)).replace("\\", "/")
+
+        # Default to IDLE
         background_color = Computer.STATE_IDLE_BG_COLOR
         text_color = Computer.STATE_IDLE_TEXT_COLOR
         state = state.upper()
@@ -258,27 +277,64 @@ class Computer:
             text_color = Computer.STATE_DONE_TEXT_COLOR
                        
         if log_text is None:
-            log_text = []
-        
+            # No log text - try to load ope-state log file
+            log_file_path = os.path.join(util.LOG_FOLDER, 'ope-state.log')
+            log_file_fp = open(log_file_path, mode='r')
+            log_text = log_file_fp.readlines() # read().split("\n")
+            log_file_fp.close()
+            # Grab the ope-state.log.1 file if it exists
+            if os.path.exists(log_file_path+".1"):
+                log_file_fp = open(log_file_path+".1", mode='r')
+                log_text2 = log_file_fp.readlines()
+                log_file_fp.close()
+                log_text = log_text2 + log_text
+                        
         if isinstance(log_text, str):
             # Split this string into a list
             log_text = log_text.split("\n")
         
-        # Make sure we account for different DPI
-        ctypes.windll.user32.SetProcessDPIAware()
-        # Get full virtual screen dimensions (primary monitor)
-        #l = win32api.GetSystemMetrics(win32con.SM_XVIRTUALSCREEN)
-        #t = win32api.GetSystemMetrics(win32con.SM_YVIRTUALSCREEN)
-        w = win32api.GetSystemMetrics(win32con.SM_CXFULLSCREEN) # SM_CXVIRTUALSCREEN)
-        h = win32api.GetSystemMetrics(win32con.SM_CYFULLSCREEN) # SM_CYVIRTUALSCREEN)
+        try:
+            # Make sure we account for different DPI
+            ctypes.windll.user32.SetProcessDPIAware()
+        except Exception as ex:
+            p("ERROR setting DPI aware process " + str(ex))
         
+        try:
+            # Get full virtual screen dimensions (primary monitor)
+            #l = win32api.GetSystemMetrics(win32con.SM_XVIRTUALSCREEN)
+            #t = win32api.GetSystemMetrics(win32con.SM_YVIRTUALSCREEN)
+            w = win32api.GetSystemMetrics(win32con.SM_CXFULLSCREEN) # SM_CXVIRTUALSCREEN)
+            h = win32api.GetSystemMetrics(win32con.SM_CYFULLSCREEN) # SM_CYVIRTUALSCREEN)
+        except Exception as ex:
+            p("ERROR getting screen width and height, using default 1024x768" + str(ex))
+            w = 1366  # 1366x768 is native for gen1 laptops 1024
+            h = 768
+        #p("Desktop Dimensions: " + str(w) + "/" + str(h), log_level=5)
+        # Calculate Text Margins
+        # 70% of height/width
+        log_height = int(h * .7)
+        log_width = int(w * .7)
+        log_top = int(h/2 - log_height/2)
+        log_bottom = log_top + log_height
+        log_left = int(w/2 - log_width/2)
+        log_right = log_left + log_width
+        log_margin = 10 # pixels to draw off the edge
+        log_line_spacing = 3
+        log_background_color = Computer.LOG_BACKGROUND_COLOR
 
         # Make a new image
         i = Image.new('RGBA', (w, h), background_color)
         #i.putalpha(1)
+        i_log = Image.new('RGBA', (log_width, log_height), log_background_color)
+        log_draw = ImageDraw.Draw(i_log)
 
-        font_large = ImageFont.truetype(os.path.join(util.APP_FOLDER, "rc/STENCIL.ttf"), 32)
-        font_small = ImageFont.truetype(os.path.join(util.APP_FOLDER, "rc/STENCIL.ttf"), 18)
+        font_file1 = "rc/STENCIL.ttf"
+        font_file2 = "rc/consola.ttf"
+        font_file3 = "rc/cour.ttf"
+        font_file4 = "rc/courbd.ttf"
+        font_large = ImageFont.truetype(os.path.join(util.APP_FOLDER, font_file1), 32)
+        font_small = ImageFont.truetype(os.path.join(util.APP_FOLDER, font_file4), 14)
+        font_xsmall = ImageFont.truetype(os.path.join(util.APP_FOLDER, font_file2), 12)
         draw = ImageDraw.Draw(i)
 
         # Load watermark
@@ -286,57 +342,83 @@ class Computer:
         watermark_image = Image.open(wmark_path)
         #watermark_image.putalpha(1)
 
-        # Write Header
-        txt = header
-        if txt == "":
-            txt = "OPE MAINTENANANCE LOG"
-        
-        txt = str(datetime.now()) +  " - " + txt
-
-        txt_w, txt_h = draw.textsize(txt, font_large)
-        draw_x = (w/2) - (txt_w / 2)
-        #draw_y = (h/2) - (txt_h / 2)
-        draw_y = 10
-        draw.text((draw_x, draw_y), txt, text_color, font=font_large)
-
-        # Where does our log start?
-        log_start_top = txt_h + 5 + draw_y
-
-        # Total log area hight
-        log_height = h - log_start_top - 5
-
-        # Draw a seperator
-        draw.line((0, log_start_top, w, log_start_top), fill="black", width=2)
-
         # Draw the watermark
-        wmark_x = int((w / 2) - (watermark_image.width / 2))
-        wmark_y = int((log_height / 2 + log_start_top) - (watermark_image.height / 2))
+        wmark_x = int((log_width / 2) - (watermark_image.width / 2)) + log_left
+        wmark_y = int((log_height / 2 + log_margin) - (watermark_image.height / 2)) + log_top
         #i.alpha_composite(watermark_image, (wmark_x, wmark_y))
         i.paste(watermark_image, (wmark_x, wmark_y), mask=watermark_image)
         #draw.image((wmark_x, wmark_y),  watermark_image)
+
+        # Load the logo if it exists
+        if os.path.exists(logo_path):
+            logo_image = Image.open(logo_path)
+            logo_image = logo_image.convert("RGBA")
+            #Paste on the bottom corner of the log area
+            i.alpha_composite(logo_image, 
+                # Lower Right
+                #(log_right - logo_image.width - log_margin, log_bottom + log_margin)
+                # Upper Left
+                (log_left + log_margin, log_top - logo_image.height - log_margin)
+                )
+
+        # Write Header
+        if header is None or header == "":
+            header = "OPE MAINTENANANCE LOG"
         
+        txt_w, txt_h = log_draw.textsize(header, font_large)
+        draw_x = (log_width/2) - (txt_w / 2)
+        #draw_y = (h/2) - (txt_h / 2)
+        draw_y = 10
+        log_draw.text((draw_x, draw_y), header, text_color, font=font_large)
+
+        # Draw the date/time
+        dt_string = "Refreshed: " + datetime.now().strftime("%b %d, %Y    %I:%M %p") # %-I:%-M %p")
+        import mgmt_CredentialProcess
+        dt_string += " -- version " + mgmt_CredentialProcess.CredentialProcess.get_mgmt_version()
+        dt_w, dt_h = draw.textsize(dt_string, font_xsmall)
+        dt_x = log_left + (log_width - dt_w - log_margin)
+        dt_y = log_top - dt_h - log_margin
+        draw.text((dt_x, dt_y), dt_string, text_color, font=font_xsmall)
+
+        # Where does our log start?
+        log_start_top = txt_h + log_margin + draw_y
+
+        # Draw a seperator
+        log_draw.line((0, log_start_top, w, log_start_top), fill="black", width=2)
+
         # Get the text height for log entries
-        log_text_width, log_text_height = draw.textsize("H", font_small)
-        log_text_margin = 3
+        log_text_width, log_text_height = draw.textsize("|", font_small)
 
         # Calculate number of log lines based on this height w a small margin
-        total_log_lines = int(log_height / (log_text_height + log_text_margin*2))
+        log_space_h = log_bottom - log_top - (log_margin*2)
+        log_space_w = log_right - log_left - (log_margin*2)
+        total_log_lines = int( log_space_h  / (log_text_height + (log_line_spacing) ) )
+        #total_chars = int( (log_width - log_margin * 2 ) / (log_text_width) )
+        total_chars = int( log_space_w / (log_text_width) )
+        #p("W/H//LinesToDraw " + str(log_text_width) + "/" + str(log_text_height) + "//" + str(total_log_lines))
+        # Flip log so newest is on top
+        log_text.reverse()
 
         lines_to_draw = []
         for l in log_text:
-            # TODO - for longer lines, wrap them...
-            lines_to_draw.append(l)
-        print(str(log_text_width) + "/" + str(log_text_height) + "/" + str(total_log_lines))
+            lines = textwrap.wrap(l, width=total_chars)
+            for line in lines:
+                lines_to_draw.append(line)
+        
+        #print("Dimensions: " + str(log_text_width) + "/" + str(log_text_height) + "/" + str(total_log_lines))
         # Shave off lines if there are too many (e.g. tail the log)
-        while len(lines_to_draw) >= total_log_lines:
+        while len(lines_to_draw) > total_log_lines - 1:
             # Remove first item (top entry)
             lines_to_draw.pop(0)
     
         # Render this line
-        curr_h = log_start_top + log_text_margin
+        curr_h = log_start_top + log_margin
         for l in lines_to_draw:
-            draw.text((log_text_margin, curr_h), l, text_color, font=font_small)
-            curr_h += log_text_height + log_text_margin
+            log_draw.text((log_margin, curr_h), l, text_color, font=font_small)
+            curr_h += log_text_height + log_line_spacing
+
+        # Render the log image on the main image
+        i.alpha_composite(i_log, (log_left, log_top))
 
         # Render the lines in the log
         #txt = str(render_time)
@@ -369,36 +451,48 @@ class Computer:
 
     @staticmethod
     def get_desktop_image():
-        r = win32gui.SystemParametersInfo(
-            win32con.SPI_GETDESKWALLPAPER,
-            None,
-            0
-        )
+        r = ""
+        try:
+            r = win32gui.SystemParametersInfo(
+                win32con.SPI_GETDESKWALLPAPER,
+                None,
+                0
+            )
+        except Exception as ex:
+            p("Error getting desktop image: " + str(ex))
         return r
     
     @staticmethod
     def set_desktop_image(image_path=None):
+        #SPI_SETDESKWALLPAPER = 20
+
         # Generate BMP file
         if image_path is None:
             image_path = Computer.STATE_RENDER_IMAGE_PATH # "%programdata%/ope/tmp/LockScreen.jpg"
         image_path = os.path.abspath(os.path.expandvars(image_path)).replace("\\", "/")
 
-        r = win32gui.SystemParametersInfo(
-            win32gui.SPI_SETDESKWALLPAPER,
-            image_path,
-            win32gui.SPIF_UPDATEINIFILE |
-            win32gui.SPIF_SENDWINDOWCHANGE
+        try:
+            #r = win32gui.SystemParametersInfo(
+            win32gui.SystemParametersInfo(
+                win32con.SPI_SETDESKWALLPAPER,
+                image_path,
+                1+2
+                #win32con.SPIF_UPDATEINIFILE |
+                #win32gui.SPIF_SENDWINDOWCHANGE
 
-        )
+            )
+        except Exception as ex:
+            p("Error setting desktop image: " + str(ex))
         return None
+
     @staticmethod
-    def set_lock_screen_image(image_path=None):
+    def set_lock_screen_image(image_path=None, kill_logon=True):
         if image_path is None:
             image_path = Computer.STATE_RENDER_IMAGE_PATH # "%programdata%/ope/tmp/LockScreen.jpg"
         image_path = os.path.abspath(os.path.expandvars(image_path)).replace("\\", "/")
         #print("Using image path: " + image_path)
         # Note - will return a new path/name w time in the filename
-        image_path = Computer.render_lock_screen(image_path)
+        #image_path = Computer.render_lock_screen(image_path)
         # Set reg key: Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\PersonalizationCSP
         # add values for:
         # - DesktopImagePath -
@@ -437,18 +531,46 @@ class Computer:
             value_type="REG_SZ"
         )
 
-        # Tell logonui process to exit - forces refresh of lockscreen
-        w = Computer.get_wmi_connection()
-        
-        # Get the processes
-        p_list = w.Win32_Process(Name="logonui.exe")
-        for p in p_list:
-            # Kill the process so it refreshes the lock screen
-            p_id = p.ProcessId
-            print("Refreshing logonui.exe (terminating process) " + str(p_id))
-            r = p.Terminate()
+        # Turn of lock screen blur
+        RegistrySettings.set_reg_value(
+            root="HKLM\\SOFTWARE",
+            app="Policies\\Microsoft",
+            subkey="Windows\\System",
+            value_name="DisableAcrylicBackgroundOnLogon",
+            value=1,
+            value_type="REG_DWORD"
+        )
 
+        # Tell logonui process to exit - forces refresh of lockscreen
+        # NOTE - WMI not working when screen is locked? try psutil
+        #w = Computer.get_wmi_connection()
+    
+        # # Get the processes
+        # p_list = w.Win32_Process(Name="logonui.exe")
+        # for p in p_list:
+        #     # Kill the process so it refreshes the lock screen
+        #     p_id = p.ProcessId
+        #     p("Refreshing logonui.exe (terminating process) " + str(p_id))
+        #     #r = p.Terminate()
+        #     p.Terminate()
+
+        if kill_logon is True:
+            Computer.kill_process(ps_name="logonui.exe")
+        
         return None
+
+    @staticmethod
+    def kill_process(ps_name=""):
+        ret = False
+        for ps in psutil.process_iter():
+            name = str(ps.name())
+            #print("PS Name: " + name)
+            if name.lower() == ps_name.lower():
+                p("Found " + ps_name + " - attempting to kill.")
+                ps.kill()
+                ret = True
+
+        return ret
 
     @staticmethod
     def test_code():
@@ -490,30 +612,31 @@ class Computer:
 
 
 if __name__ == "__main__":
-    # Do tests
-
-    
+    # Do tests    
     while True:
         #Computer.set_lock_screen_image()
         Computer.render_lock_screen(
             header="Updating App",
-            log_text=["line 1", "line 2", "line 3", "line 4"],
+            log_text=None, #["line 1", "line 2", "line 3", "line 4"],
             state="WORKING"
         )
-        #Computer.set_lock_screen_image()
+        Computer.set_lock_screen_image()
+        Computer.set_desktop_image()
         time.sleep(10)
         Computer.render_lock_screen(
             header="Update Done",
-            log_text=["line 1", "line 2", "line 3", "line 4", "line 1", "line 2", "line 3", "line 4"],
+            log_text=None, #["line 1", "line 2", "line 3", "line 4", "line 1", "line 2", "line 3", "line 4"],
             state="DONE"
         )
         Computer.set_lock_screen_image()
+        Computer.set_desktop_image()
         time.sleep(10)
         Computer.render_lock_screen(
             header="IDLE",
-            log_text=["line 1", "line 2", "line 3", "line 4", "line 1", "line 2", "line 3", "line 4"],
+            log_text=None, #["line 1", "line 2", "line 3", "line 4", "line 1", "line 2", "line 3", "line 4"],
             state="IDLE"
         )
         Computer.set_lock_screen_image()
+        Computer.set_desktop_image()
         time.sleep(10)
     

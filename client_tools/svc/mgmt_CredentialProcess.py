@@ -13,14 +13,15 @@ from mgmt_Computer import Computer
 from mgmt_GroupPolicy import GroupPolicy
 from mgmt_ProcessManagement import ProcessManagement
 from mgmt_SystemTime import SystemTime
-
+from mgmt_LockScreen import LockScreen
 
 from color import p
+from p_state import p_state
 import util
 
 
 class CredentialProcess:
-    COMPUTER_INFO = None
+    COMPUTER_INFO = {}
 
     @staticmethod
     def get_mgmt_version(version_file=None):
@@ -266,10 +267,10 @@ class CredentialProcess:
         # NOT OK - non win 10, win 10 home
         is_win10 = False
         is_win10_home = True
-        os_caption = CredentialProcess.COMPUTER_INFO["os_caption"]
-        if "Microsoft Windows 10" in os_caption:
+        os_caption = CredentialProcess.COMPUTER_INFO["os_caption"].lower()
+        if "microsoft windows 10" in os_caption:
             is_win10 = True
-        if "Enterprise" in os_caption or "Professional" in os_caption or "Education" in os_caption or "Workstation" in os_caption:
+        if "enterprise" in os_caption or "pro" in os_caption or "professional" in os_caption or "education" in os_caption or "workstation" in os_caption:
             is_win10_home = False
         
         if is_win10 is not True:
@@ -303,7 +304,7 @@ class CredentialProcess:
         # - Create local student account
         p("}}gnCreating local student windows account...}}xx")
         if not UserAccounts.create_local_student_account(student_user, student_name, student_password):
-            p("}}rbError setting up OPE Student Account}}xx\n " + str(ex))
+            p("}}rbError setting up OPE Student Account}}xx\n " + str(student_user))
             return False
 
         # - Setup admin user
@@ -465,12 +466,12 @@ class CredentialProcess:
             return False
 
         # Reset registry permissions
-        if not RegistrySettings.set_default_ope_registry_permissions():
+        if not RegistrySettings.set_default_ope_registry_permissions(force=True):
             p("}}rbError - Could not reset registry permissions!\nStudent Account NOT unlocked!}}xx")
             return False
 
         # Reset folder permissions
-        if not FolderPermissions.set_default_ope_folder_permissions():
+        if not FolderPermissions.set_default_ope_folder_permissions(force=True):
             p("}}rbError - Could not reset ope folder permissions!\nStudent Account NOT unlocked!}}xx")
             return False
         
@@ -488,6 +489,11 @@ class CredentialProcess:
         if not CredentialProcess.ensure_opeservice_running():
             p("}}rbError - Verify OPEService is running!\nStudent Account NOT unlocked!}}xx")
             return False
+        
+        # Ensure the lock screen widget is cycled
+        if not LockScreen.refresh_lock_screen_widget():
+            p("}}rbError - Unable to cycle lock_screen_widget properly!\nStudent Account NOT unlocked!}}xx")
+            return False
 
         # Enable student account
         if not UserAccounts.enable_account(student_user_name):
@@ -495,7 +501,6 @@ class CredentialProcess:
             return False
 
         return ret
-
 
     @staticmethod
     def is_time_to_upgrade():
@@ -568,30 +573,34 @@ class CredentialProcess:
 
     @staticmethod
     def start_upgrade_process(branch=None, force_upgrade=None):
-        ret = True
+        ret = None
 
-        if not CredentialProcess.is_time_to_upgrade():
+        # Command that is run to start this function
+        only_for = "start_upgrade"
+        
+        # Force upgrade - even if versions match
+        if force_upgrade is None:
+            force_upgrade = util.pop_force_flag(only_for=only_for)
+        
+        if not force_upgrade is True and not CredentialProcess.is_time_to_upgrade():
             p("}}gnNot time to check for upgrades yet, skipping...}}xx", log_level=3)
-            return True
-
-        RegistrySettings.set_reg_value(value_name="last_upgrade_time", value=time.time())
+            return None
 
         curr_branch = branch
         if curr_branch is None:
             # See if a parameter was provided
-            curr_branch = util.get_param(2, None)
+            curr_branch = util.get_param(2, None, only_for=only_for)
+            if curr_branch is not None:
+                # Save this branch for next time
+                RegistrySettings.set_git_branch(curr_branch)
         
-        # Force upgrade - even if versions match
-        if force_upgrade is None:
-            force_upgrade = util.get_param(3, "")
-            if force_upgrade.lower() != "-f":
-                force_upgrade = False
-            else:
-                force_upgrade = True
-        
+        p("Running Upgrade...")
+        p_state("Starting Software Update...", title="Checking For Software Updates")
+        RegistrySettings.set_reg_value(value_name="last_upgrade_time", value=time.time())
+       
         # If branch is still empty, get it from the registry
         if curr_branch is None:
-            curr_branch = RegistrySettings.get_reg_value(value_name="install_branch", default="master")
+            curr_branch = RegistrySettings.get_git_branch()
 
         # Start by grabbing any new stuff from the git server
         ret = ProcessManagement.git_pull_branch(curr_branch)
@@ -602,9 +611,6 @@ class CredentialProcess:
             p("}}ybWARNING - Unable to pull updates for git server!}}xx")
             pass
         
-        # Save the current branch for next time
-        RegistrySettings.set_reg_value(value_name="install_branch", value=curr_branch)
-
         # Check the mgmt.version files to see if we have a new version
         ope_laptop_binaries_path = os.path.expandvars("%programdata%\\ope\\tmp\\ope_laptop_binaries")
         # Get the path to the mgmt.version file
@@ -617,17 +623,19 @@ class CredentialProcess:
         if git_version == "NO VERSION":
             # No version file found
             p("}}ynNo version file found in git repo, skipping upgrade!}}xx")
-            return False
+            return None
         
-        if not CredentialProcess.is_version_newer(curr_version, git_version) and force_upgrade is not True:
+        if not force_upgrade is True and not CredentialProcess.is_version_newer(curr_version, git_version):
             # Same version - no upgrade needed
             p("}}gnOPE Software up to date: " + str(git_version) + " not newer than " + str(curr_version) + " - (not upgrading)}}xx")
-            return True
+            return None
 
         # Version is different, prep for update
         forced = ""
         if force_upgrade:
             forced = "}}yb(upgrade forced)}}gn"
+        
+        p_state("Software Update Found, Updating...", title="Applying Software Updates")
         p("}}gnFound new version " + forced + " - starting upgrade process: " + \
             curr_version + " --> " + git_version + "}}xx")
         
@@ -653,10 +661,18 @@ class CredentialProcess:
         # Make sure to exit this app??
         #sys.exit(0)
 
-        return ret
+        # Return True to indicate the upgrade process has started
+        return True
+
+    @staticmethod
+    def store_ope_version():
+        # Store new version
+        curr_version = CredentialProcess.get_mgmt_version()
+        RegistrySettings.set_reg_value(value_name="ope_version", value=curr_version)
 
     @staticmethod
     def finish_upgrade_process():
+        CredentialProcess.store_ope_version()
         # If everything was successful, then
         # - Re-apply security
         # - lock_machine also re-enables credentialed account if succesful
@@ -670,46 +686,37 @@ class CredentialProcess:
     @staticmethod
     def sync_student_password():
         # Bounce off SMC to sync student password (in case it has changed)
+
+        if not RegistrySettings.is_timer_expired(timer_name="sync_student_password_timer", time_span=2400):
+            # Not time to sync yet
+            return True
         # TODO 
         # Are we credentialed?
-
+        p_state("Syncing Password", title="Password Sync", kill_logon=False)
         # Send of info
 
         # Set password
 
-
+        p("}}ybsync_student_password - Coming Soon...}}xx")
         return True
 
     @staticmethod
-    def push_logs_to_smc():
-        # Gather log files/screenshots and send them off to the SMC server
+    def sync_lms_app_data(force=False):
+        # Command that is run to start this function
+        only_for = "sync_lms_app_data"
+        cmd_force = util.pop_force_flag(only_for=only_for)
+        if cmd_force is True:
+            force = True
 
-        p("}}ybComing Soon...}}xx")
-        return True
-
-    @staticmethod
-    def is_time_to_sync_lms_app_data():
-        # How long has it been since we tried to upgrade?
-        last_upgrade_time = RegistrySettings.get_reg_value(value_name="last_sync_lms_app_time", default=0)
-        curr_time = time.time()
-
-        # Only check for upgrades every 10 minutes
-        if curr_time - last_upgrade_time > 600:
-            return True
-        
-        return False
-
-    @staticmethod
-    def sync_lms_app_data():
         # Make the LMS app sync in headless mode (auto sync)
-        p("}}gnSkipping LMS Sync - Coming Soon!}}xx")
-        return True # DEBUG - TODO - Finish this
-        if not CredentialProcess.is_time_to_sync_lms_app_data():
+        if force is False and not RegistrySettings.is_timer_expired(timer_name="sync_lms_app_data_timer", time_span=2400):
             p("}}gnNot time to sync lms app data}}xx")
             return True
+        
+        p_state("LMS App Syncing, may take several minutes...", title="LMS Syncing")
 
         RegistrySettings.set_reg_value(value_name="last_sync_lms_app_time", value=time.time())
-
+        # Redirect stderr to null and write output to the log file
         cmd = "%programdata%\\ope\\Services\\lms\\ope_lms.exe quiet_sync"
         returncode, output = ProcessManagement.run_cmd(cmd,
             require_return_code=0, cmd_timeout=3600)
@@ -718,67 +725,78 @@ class CredentialProcess:
             p("}}rbError - Unable to sync lms app data!}}xx\n" + output)
             return False
         p("Ret: " + str(returncode) + " - " + output, log_level=3)
+        # Write the output to the state log
+        p_state(output, title="LMS Syncing")
 
         return True
     
     @staticmethod
     def sync_work_folder():
         # Start sync process to sync the home/work folder for the user
+        if not RegistrySettings.is_timer_expired(timer_name="sync_work_folder_timer", time_span=1200):
+            # Not time to sync yet
+            return True
         # TODO
-
-        p("}}ybComing Soon...}}xx")
+        p_state("Syncing Work Folder...", title="Work Folder", kill_logon=False)
+        p("}}ybsync_work_folder - Coming Soon...}}xx")
         return True
     
     @staticmethod
     def sync_logs_to_smc():
+        if not RegistrySettings.is_timer_expired(timer_name="sync_logs_to_smc_timer", time_span=2400):
+            # Not time to sync yet
+            return True
         # TODO
         # 
-        p("}}ybComing Soon...}}xx") 
+        p_state("Pushing SMC Logs...", title="Pushing Logs", kill_logon=False)
+        p("}}ybsync_logs_to_smc - Coming Soon...}}xx") 
         return True
 
     @staticmethod
-    def is_time_to_ping_smc():
-        # How long has it been since we talked to the SMC server?
-        last_smc_ping_time = RegistrySettings.get_reg_value(value_name="last_smc_ping_time", default=0)
-        curr_time = time.time()
-
-        # Only need a successful ping every ? minutes
-        min_time = 30  # TODO - Turn ping time back up 300
-        time_diff = curr_time - last_smc_ping_time
-        if time_diff > min_time:
-            return True
-        
-        p("}}ynNot time to ping yet - " + str(int(min_time - time_diff)) + " seconds left.}}xx", log_level=4)
-        return False
-
-    @staticmethod
     def ping_smc(smc_url=None):
+        # Make sure the lock screen widget is running
+        LockScreen.show_lock_screen_widget()
+
         # See if we can bounce off the SMC server and get a response
+        p_state("Starting ping_smc", state="none", title="Ping SMC", kill_logon=False)
+        # Command that is run to start this function
+        only_for = "ping_smc"
+
+        force = util.pop_force_flag(only_for=only_for)
+
         if smc_url is None:
             # Try and get from command line
-            smc_url = util.get_param(2, None)
+            smc_url = util.get_param(2, None, only_for=only_for)
         if smc_url is None:
             # Nothing on command line? Get from registry
             smc_url = RegistrySettings.get_reg_value(value_name="smc_url", default="https://smc.ed")
 
-        force = util.get_param(3, "")
-        if force == "-f":
-            force = True
-        else:
-            force = False
-
-        if not force and not CredentialProcess.is_time_to_ping_smc():
-            #p("}}gnNot time to ping smc, skipping...}}xx", log_level=4)
+        if not force is True and not RegistrySettings.is_timer_expired(timer_name="ping_smc_timer", time_span=15):
+            p("}}gnNot time to ping smc, skipping...}}xx", log_level=5)
             return True
         
-        RegistrySettings.set_reg_value(value_name="last_smc_ping_time", value=time.time())
+        #RegistrySettings.set_reg_value(value_name="last_smc_ping_time", value=time.time())
         
         if not RestClient.ping_smc(smc_url):
             p("}}mnNot able to ping SMC " + smc_url + "}}xx", log_level=4)
             # Ok to return true - we just don't do more maintenance
+            p_state("Offline mode.", title="Offline", state="DONE", kill_logon=False)
+            RegistrySettings.set_reg_value(value_name="is_online", value=0)
             return True
 
         # We are connected, do maintenance
+        p_state("SMC Detected, online mode...", state="none", title="SMC Detected", kill_logon=False)
+        # Save the state in the registry
+        RegistrySettings.set_reg_value(value_name="is_online", value=1)
+
+        # Check if time to auto upgrade
+        #p_state("Sync Processing...", title="Syncing")
+        # Don't force upgrade process - have to call that seperatly if you want to force it
+        if CredentialProcess.start_upgrade_process() is True:
+            # Upgrade starting - skip the rest of this for now - it will try again later
+            p("}}ynPing_SMC - Exiting early, software upgrade in progress (separate process running for upgrade)...}}xx")
+            return True
+        # NOTE - If there is an upgrade, this will exit and re-run ping_smc when done
 
         # Check if time to sync time
         SystemTime.sync_time_w_ntp()
@@ -795,9 +813,10 @@ class CredentialProcess:
         # Push logs and screenshots up to the SMC server
         CredentialProcess.sync_logs_to_smc()
 
-        # Check if time to auto upgrade
-        CredentialProcess.start_upgrade_process()
+        # Refresh version number in the registry
+        CredentialProcess.store_ope_version()
 
+        p_state("Sync Finished.", title="Sync Complete", state="DONE")
         return True
 
     @staticmethod

@@ -13,7 +13,11 @@ Short passwords no longer work! Please make sure you use proper password complex
 ## [color=33ff33]CURRENT VERSIONS[/color]
 - SyncApp 1.34
 - Laptop Credential 1.0.59
-- SMC 1.9.57
+- SMC 1.9.59
+
+## 1/4/2021
+- SMC 1.9.59
+  * Rebuild with updated pytube
 
 ## 9/23/2020
 - Laptop Credential 1.0.59

@@ -1,5 +1,8 @@
+import os
+import util
 #import logging
 from mgmt_EventLog import EventLog
+
 global LOGGER
 LOGGER = None  # Grab it later - give it a chance to get initialized
 
@@ -25,6 +28,9 @@ def init_logger():
     global LOGGER
     if LOGGER is None:
         LOGGER = EventLog.get_current_instance()
+        if LOGGER is None:
+            # Make default logger
+            LOGGER = EventLog(os.path.join(util.LOG_FOLDER, 'ope-mgmt.log'), service_name="OPE")
         # if LOGGER is None:
         #     print("Unable to get logger instance!")
         # else:
@@ -299,7 +305,6 @@ def translate_color_codes_to_markup(txt):
 
     return txt
 
-
 def p(txt="", end=True, out=None, debug_level=0, log_level=0,
     is_error=False, from_logger=False):
     global LOGGER, LOG_LEVEL
@@ -341,3 +346,4 @@ if __name__ == "__main__":
     # Print out test stuff
     for c in color_codes:
         p(c.replace("}}", "") + ": " + c + "Testing...}}xx")
+    

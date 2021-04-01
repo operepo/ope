@@ -164,9 +164,13 @@ class NetworkDevices:
 
     @staticmethod
     def approve_nic():
+
+        # Command that is run to start this function
+        only_for = "approve_nic"
+
         # Get the params for the nic
-        nic_name = util.get_param(2)
-        nic_network = util.get_param(3)
+        nic_name = util.get_param(2, "", only_for=only_for)
+        nic_network = util.get_param(3, "", only_for=only_for)
 
         if nic_name == "" or nic_network == "":
             p("}}rbError - Invalid paramaters! try mgmt.exe help approve_nic for more information}}xx")
@@ -231,9 +235,12 @@ class NetworkDevices:
 
     @staticmethod
     def remove_nic():
+        # Command that is run to start this function
+        only_for = "remove_nic"
+
         # Get the params for the nic
-        nic_name = util.get_param(2)
-        nic_network = util.get_param(3)
+        nic_name = util.get_param(2, "", only_for=only_for)
+        nic_network = util.get_param(3, "", only_for=only_for)
 
         if nic_name == "" or nic_network == "":
             p("}}rbError - Invalid paramaters!}}xx")
@@ -465,8 +472,11 @@ class NetworkDevices:
 
     @staticmethod
     def list_system_nics():
+        # Command that is run to start this function
+        only_for = "list_system_nics"
+
         NetworkDevices.init_device_list()
-        verbose = util.get_param(2, "").strip("-")
+        verbose = util.get_param(2, "", only_for=only_for).strip("-")
         if verbose == "verbose":
             verbose = "v"
 

@@ -30,6 +30,8 @@
 #include <QAndroidJniEnvironment>
 #endif
 
+#include "customlogger.h"
+
 #include "openetworkaccessmanagerfactory.h"
 #include "cm/cm_sequentialguid.h"
 #include "cm/cm_httpserver.h"
@@ -39,6 +41,7 @@
 #include "db.h"
 
 #include "external/ex_canvas.h"
+
 
 
 /**

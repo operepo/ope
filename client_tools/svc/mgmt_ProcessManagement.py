@@ -8,6 +8,7 @@ import util
 from color import p
 
 from mgmt_UserAccounts import UserAccounts
+from mgmt_RegistrySettings import RegistrySettings
 
 # NOTE - Need to disable 32bit/64bit file redirection when running on a 64 bit system!
 class disable_file_system_redirection:
@@ -95,8 +96,13 @@ class ProcessManagement:
 
     @staticmethod
     def git_clone_branch(branch=None):
+        # Command that is run to start this function
+        only_for = "git_clone"
+
         if branch is None:
-            branch = util.get_param(2, "master")
+            branch = util.get_param(2, None, only_for=only_for)
+        if branch is None:
+            branch = RegistrySettings.get_git_branch()
         
         app_path = util.get_app_folder()
 
@@ -176,9 +182,15 @@ class ProcessManagement:
 
     @staticmethod
     def git_pull_branch(branch=None):
+
+        # Command that is run to start this function
+        only_for = "git_pull"
+
         if branch is None:
-            branch = util.get_param(2, "master")
-        
+            branch = util.get_param(2, None, only_for=only_for)
+        if branch is None:
+            branch = RegistrySettings.get_git_branch()
+
         app_path = util.get_app_folder()
 
         # Make sure the folder exists
@@ -219,12 +231,20 @@ class ProcessManagement:
         p("}}gnTrying to fetch from online repo, may take several minutes...}}xx")
         returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
             attempts=1, require_return_code=0, cmd_timeout=None)
+        returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
+            attempts=1, require_return_code=0, cmd_timeout=None)
+        returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
+            attempts=1, require_return_code=0, cmd_timeout=None)
         if returncode == -2:
             # Error running command?
             p("}}ynUnable to fetch laptop binaries from online source (ope_origin)! Trying SMC server.}}xx\n" + output)
             
             # Try from ope_smc_origin
             cmd = git_path + " fetch -uf ope_smc_origin " + branch
+            returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
+                attempts=1, require_return_code=0, cmd_timeout=None)
+            returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
+                attempts=1, require_return_code=0, cmd_timeout=None)
             returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
                 attempts=1, require_return_code=0, cmd_timeout=None)
             if returncode == -2:

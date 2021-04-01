@@ -492,17 +492,17 @@ p->rootObjects().first()->dumpObjectTree();
 
 bool AppModule::syncLMSQuiet()
 {
-    qDebug() << "\n\n**** Running syncLMSQuiet...\n\n";
+    out << "\n\n**** Running syncLMSQuiet...\n\n";
 
     // Run this then quit the app0
     QCoreApplication *current_app = QCoreApplication::instance();
     if (current_app == nullptr) {
-        qDebug() << "FALTAL ERROR - Couldn't find QCoreApplication instance";
+        out << "FALTAL ERROR - Couldn't find QCoreApplication instance";
         return false;
     }
 
     if (_canvas == nullptr) {
-        qDebug() << "ERROR - No Canvas object available!";
+        out << "ERROR - No Canvas object available!";
         current_app->quit();
         return false;
     }
@@ -512,37 +512,37 @@ bool AppModule::syncLMSQuiet()
     ret = _canvas->pullStudentInfo();
     if (ret.contains("ERROR")) {
         // ERROR
-        qDebug() << "ERROR - Unable to get Student Info from Canvas! " << ret;
+        out << "ERROR - Unable to get Student Info from Canvas! " << ret;
         current_app->quit();
         return false;
     }
-    qDebug() << ret;
+    out << ret;
 
     ret = _canvas->autoAcceptCourses();
     if (ret.contains("ERROR")) {
         // ERROR
-        qDebug() << "ERROR - Unable to Accept Courses " << ret;
+        out << "ERROR - Unable to Accept Courses " << ret;
         current_app->quit();
         return false;
     }
-    qDebug() << ret;
+    out << ret;
 
     ret = _canvas->pushAssignments();
     if (ret.contains("ERROR")) {
         // ERROR
-        qDebug() << "ERROR - Unable to Push Assignments to Canvas " << ret;
+        out << "ERROR - Unable to Push Assignments to Canvas " << ret;
         current_app->quit();
         return false;
     }
-    qDebug() << ret;
+    out << ret;
 
     ret = _canvas->pullCourses();
     if (ret.contains("ERROR")) {
         // ERROR
-        qDebug() << "ERROR - Unable to Pull Courses from Canvas " << ret;
+        out << "ERROR - Unable to Pull Courses from Canvas " << ret;
         return false;
     }
-    qDebug() << ret;
+    out << ret;
 
     bret = _canvas->pullModules();
     bret = _canvas->pullModuleItems();
@@ -550,10 +550,10 @@ bool AppModule::syncLMSQuiet()
     ret = _canvas->pullDiscussionTopics();
     if (ret.contains("ERROR")) {
         // ERROR
-        qDebug() << "ERROR - Unable to Pull discussion topics from Canvas " << ret;
+        out << "ERROR - Unable to Pull discussion topics from Canvas " << ret;
         return false;
     }
-    qDebug() << ret;
+    out << ret;
 
 //    ret = _canvas->pullQuizzes();
 //    if (ret.contains("ERROR")) {
@@ -587,7 +587,7 @@ bool AppModule::syncLMSQuiet()
     // Mark that we have synced properly.
     markAsSyncedWithCanvas();
 
-    qDebug() << "\n\n**** syncLMSQuiet - Finished!\n\n";
+    out << "\n\n**** syncLMSQuiet - Finished!\n\n";
     current_app->quit();
     return true;
 }

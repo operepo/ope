@@ -2,7 +2,7 @@ cd ..
 
 rem Home - c:\Qt\5.12.0, school - C:\Qt\Qt5.12.0\5.12.0
 rem set QT_PATH=C:\Qt\Qt5.12.0\5.12.0
-set QT_PATH=C:\Qt\5.15.1
+set QT_PATH=C:\Qt\5.15.2
 
 rem Home - Professional, School - Enterprise
 rem set VC_EDITION=Professional
@@ -31,7 +31,7 @@ IF NOT EXIST "%VCINSTALLDIR%\" (
 
 set VCToolsRedistDir="%VCINSTALLDIR%\Redist\MSVC\%MSVC_VER%\"
 
-cd build-OPE_LMS-Desktop_Qt_5_15_1_MSVC2019_64bit-Release\release
+cd build-OPE_LMS-Desktop_Qt_5_15_2_MSVC2019_64bit-Release\release
 
 %QT_PATH%\msvc2019_64\bin\windeployqt.exe --compiler-runtime --qmldir ../../OPE_LMS --angle OPE_LMS.exe
 

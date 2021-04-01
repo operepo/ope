@@ -6,7 +6,7 @@ import QtQuick.Controls.Styles 1.4
 import QtQuick.Controls.Imagine 2.15
 import QtQuick.Layouts 1.15
 
-import QtWebView 1.15
+import QtWebView 1.1
 
 import com.openprisoneducation.ope 1.0
 import "App.js" as App
@@ -27,7 +27,7 @@ ColumnLayout {
 
     Connections {
         target: mainWidget.canvas;
-        onProgress: {
+        function onProgress(bytesRead, totalBytes, currentItem) {
             //console.log("dl progress called");
             progressCurrentItem.text = currentItem;
 
@@ -68,7 +68,7 @@ ColumnLayout {
         toggleRunning(true, "<span class='running'>Running Sync...</span>");
 
         // Reset with the style rules
-        progressLabel.text = progressLabel.text = progressLabel.initial_style;
+        progressLabel.text = progressLabel.initial_style;
 
         progressLabel.text += "<h1>Starting sync process</h1>";
         syncProgress.value = 0;
@@ -406,7 +406,7 @@ ColumnLayout {
 
                    onTextChanged: {
                        // Make the scroll view slide down
-                       console.log("text changed!!!!");
+                       //console.log("text changed!!!!");
                        //progressLabelScrollView.ScrollBar.vertical.position = 1.0;
                        progressLabelScrollView.ScrollBar.vertical.increase();
                    }
@@ -426,7 +426,7 @@ ColumnLayout {
 </style>
 
 ";
-                   text: initial_style;
+                   //text: initial_style;
                    Layout.alignment: Qt.AlignLeft | Qt.AlignTop
                    //width: parent.width;
                    wrapMode: Text.Wrap;

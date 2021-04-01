@@ -6,7 +6,7 @@ import QtQuick.Controls.Styles 1.4
 import QtQuick.Controls.Imagine 2.15
 import QtQuick.Layouts 1.15
 
-import QtWebView 1.15
+import QtWebView 1.1
 
 
 import com.openprisoneducation.ope 1.0

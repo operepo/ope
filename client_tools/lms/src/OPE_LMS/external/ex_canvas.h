@@ -15,7 +15,7 @@
 #include "cm/cm_httpserver.h"
 #include "cm/cm_webrequest.h"
 #include "cm/cm_users.h"
-
+#include "../customlogger.h"
 
 class EX_Canvas : public QObject
 {

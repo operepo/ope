@@ -23,7 +23,7 @@ import traceback
 import util
 from mgmt_EventLog import EventLog
 global LOGGER
-LOGGER = EventLog(os.path.join(util.LOG_FOLDER, 'ope-sshot.log'), service_name="OPE")
+LOGGER = EventLog(os.path.join(util.LOG_FOLDER, 'ope-sshot.log'), service_name="OPEScreenShot")
 from color import p
 
 PIC_TYPE = ".png"

@@ -1,8 +1,13 @@
-QT += qml quick sql network quickcontrols2 webview networkauth webchannel
+QT += qml quick sql network quickcontrols2 webview networkauth webchannel webengine webenginewidgets
 # networkauth
 # webengine webenginewidgets quick-private webview-private webview
 
 CONFIG += c++11
+# Hide -fms-compatibility-version warnings when using ms visual studio (D9002)
+#QMAKE_LFLAGS += /ignore:D9002
+
+# Enable console so we can print to stdout
+CONFIG += console
 
 SOURCES += main.cpp \
     cm/file/cm_fileinfo.cpp \
@@ -28,6 +33,7 @@ SOURCES += main.cpp \
     cm/cm_sequentialguid.cpp \
     cm/cm_users.cpp \
     cm/cm_webrequest.cpp \
+    customlogger.cpp \
     external/ex_canvas.cpp \
     external/ex_ldap.cpp \
     appmodule.cpp \
@@ -74,7 +80,7 @@ QML_IMPORT_PATH =
 QML_DESIGNER_IMPORT_PATH =
 
 # Hide duplicate include warnings - stupid ms c++...
-QMAKE_LFLAGS = /ignore:4042
+QMAKE_LFLAGS += /ignore:4042
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings

@@ -15,7 +15,10 @@ class GroupPolicy:
     def export_group_policy():
         ret = True
 
-        gpo_name = util.get_param(2, "exported_gpo")
+        # Command that is run to start this function
+        only_for = "export_group_policy"
+
+        gpo_name = util.get_param(2, "exported_gpo", only_for=only_for)
 
         # LGPO.exe is in the rc sub folder of the mgmt tool
         app_folder = util.get_app_folder()
@@ -68,7 +71,10 @@ class GroupPolicy:
             p("}}rbDEBUG MODE ON - Skipping apply group policy}}xx")
             return True
 
-        gpo_name = util.get_param(2, "gpo")
+        # Command that is run to start this function
+        only_for = "apply_group_policy"
+
+        gpo_name = util.get_param(2, "gpo", only_for=only_for)
 
         # LGPO.exe is in the rc sub folder of the mgmt tool
         app_folder = util.get_app_folder()
@@ -83,11 +89,14 @@ class GroupPolicy:
         if gpo_count > 1:
             p("}}rbTOO MANY GPO FOLDERS FOUND AT: " + gpo_folder + "\nRemove all but the newest GPO to continue!}}xx")
             return False
-         
+
+        # Make sure to reset to default before applying
+        GroupPolicy.reset_group_policy_to_default()
+        
         cmd = "lgpo.exe /g " + gpo_name
 
         returncode, output = ProcessManagement.run_cmd(cmd, cwd=lgpo_path, attempts=5,
-            require_return_code=0, cmd_timeout=30)
+            require_return_code=0, cmd_timeout=60)
         if returncode == -2:
             # Unable to restore gpo?
             p("}}rnERROR - Unable to set group policy!}}xx\n" + output)
@@ -97,7 +106,7 @@ class GroupPolicy:
         # Force gpupdate
         cmd = "%SystemRoot%\\system32\\gpupdate /force"
         returncode, output = ProcessManagement.run_cmd(cmd, attempts=5, 
-            require_return_code=0, cmd_timeout=10)
+            require_return_code=0, cmd_timeout=60)
         if returncode == -2:
             # Error running command?
             p("}}rnERROR - Unable to set force gpupdate!}}xx\n" + output)
@@ -153,7 +162,10 @@ class GroupPolicy:
             p("}}rbDEBUG MODE ON - Skipping apply firewall policy}}xx")
             return True
 
-        policy_file_name= util.get_param(2, "firewall_config.wfw")
+        # Command that is run to start this function
+        only_for = "apply_firewall_policy"
+
+        policy_file_name= util.get_param(2, "firewall_config.wfw", only_for=only_for)
 
         # Should be in RC sub folder under the app
         app_folder = util.get_app_folder()
