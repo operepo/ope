@@ -1,0 +1,151 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>SMC Video
+    </title>
+    <meta charset="UTF-8" />
+    <!-- site styles -->
+
+<link rel="stylesheet" href="projekktor-1.8.2/themes/maccaco/projekktor.style.css" type="text/css" media="screen">
+<script type="text/javascript" src="projekktor-1.8.2/jquery-min.js"></script>
+<script type="text/javascript" src="projekktor-1.8.2/projekktor-1.8.2.min.js"></script>
+<!--script type="text/javascript" src="/qwebchannel.js"></script-->
+
+<script type="text/javascript" src="/opeWebViewClient.js"></script>
+
+
+<script type="text/javascript">
+
+var log_txt = "";
+var retry_waiting = false;
+
+function log(msg) {
+    if (log_txt !== "") { log_txt += "\n"; }
+    log_txt += msg;
+    if (LMS) {
+        var l = log_txt;
+        log_txt = "";
+        LMS.log(l, function(ret){
+            // Will be called when log function is done
+
+            });
+
+    } else {
+        if (retry_waiting === true) { return; }
+        // LMS not ready - fire a timeout so that we call this again later...
+        retry_waiting = true;
+        setTimeout(function(){ retry_waiting = false; log('log retry...'); }, 750);
+    }
+}
+
+function getQueryParam(param) {
+    location.search.substr(1)
+        .split("&")
+        .some(function(item) { // returns first occurence and stops
+            return item.split("=")[0] == param && (param = item.split("=")[1])
+        })
+    return param
+}
+
+
+$(document).ready(function() {
+    // Cause "user interaction" on page so video play works later
+    //$("#dummybutton").click();
+    
+    // Get movie id from query string
+    movie_id = getQueryParam("movie_id");
+
+    // Fix link for external open
+    $("#open_movie_external").attr('href', '/smc_video_cache/' + movie_id + '.mp4');
+    //$("#open_movie_external").click(function() {
+    //        console.log('TEST!');
+    //    });
+    log("WC ONREADY", function(ret) {});
+
+    projekktor('#player', {
+            debug: false,
+            //debugLevel: ??,
+            poster: '/smc_video_cache/' + movie_id + '.poster.png',
+            title: 'SMC Video',
+            //playerFlashMP4: 'projekktor-1.8.2/swf/StrobeMediaPlayback/StrobeMediaPlayback.swf',
+            //playerFlashMP3: 'projekktor-1.8.2/swf/StrobeMediaPlayback/StrobeMediaPlayback.swf',
+            width: 640,
+            height: 385,
+            autoplay: false,
+            iframe: false,
+            platforms: ['browser', 'android', 'ios', 'mse', 'native', 'videojs'],
+                platformsConfig: {
+                    mse: {
+                        hlsjs: {
+                            src: 'platforms/mse/hls.js/hls.min.js',
+                            initVars: {
+                                debug: false,
+                                capLevelToPlayerSize: true,
+                                startFragPrefech: true
+                            }
+                        },
+                        dashjs: {
+                            src: 'platforms/mse/dash.js/dash.all.min.js',
+                            initVars: {
+                                debug: false,
+                                fastSwitchEnabled: true,
+                                limitBitrateByPortal: true,
+                                usePixelRatioInLimitBitrateByPortal: true
+                            }
+                        }
+                    },
+                    videojs: {
+                        src: 'platforms/videojs/videojs.min.js',
+                        css: 'platforms/videojs/videojs.min.css',
+                        initVars: {}
+                    }
+                },
+                plugin_contextmenu: {
+                    items: {
+                        superPiotrMenu: {
+                            getContextTitle: function (pp) {
+                                return "Copy video URL";
+                            },
+                            open: function(pp) {
+                                var loc = window.location.href;
+
+                                if($p.utils.copyToClipboard(loc)){
+                                    alert('Copied: ' + loc);
+                                }
+                                else {
+                                    alert('Copy unsuccessful');
+                                }
+                            }
+                        }
+                    }
+                },
+            playlist: [
+                    {
+                            0: {src: "/smc_video_cache/" + movie_id + ".mp4", type: "video/mp4"}
+                    }
+            ]
+    }, function(player) {} // on ready
+    );
+
+    // TODO - Webview pages not calling lms stuff like it should?
+    // Adjust the full screen button
+    $(".ppfsenter").attr('href', '/smc_video_cache/' + movie_id + '.mp4');
+});
+</script>
+
+</head>
+
+<body>
+    <!--div>
+        <button id="dummybutton" onclick="log('dummyclick!!!');">TEST</button>
+    </div-->
+    <a id="open_movie_external" href="#">OPEN VIDEO IN EXTERNAL PLAYER</a>
+    <div id="player" class="projekktor">
+        <noscript>
+            <p>No JavaScript support.</p>
+        </noscript>
+    </div>
+</body>
+
+</html>

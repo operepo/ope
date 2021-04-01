@@ -1,0 +1,30 @@
+<link rel="stylesheet" href="{{= URL('static', 'video-js') }}/video-js.css" type="text/css" media="screen">
+<script type="text/javascript" src="{{= URL('static', 'video-js') }}/video-js-ie8.min.js"></script>
+
+<!-- jQuery('.video-js').bind('contextmenu',function() { return false; });  -->
+<video
+    id="my-video"
+    class="video-js"
+    controls
+    preload="auto"
+    width="{{=width}}"
+    height="{{=height}}"
+    poster="{{=poster}}"
+	data-setup="{}"
+	autoplay="{{=autoplay}}"
+  oncontextmenu="return false;"
+  >
+    <source src="{{= source_mp4 }}" type="video/mp4" />
+	<!--source src="MY_VIDEO.webm" type="video/webm" / -->
+	{{=XML(subtitles_html)}}
+	<!--track kind="captions" src="source_en_subtitles"" srclang="en" label="English" default-->
+    <p class="vjs-no-js">
+      To view this video please enable JavaScript, and consider upgrading to a
+      web browser that
+      <a href="https://videojs.com/html5-video-support/" target="_blank"
+        >supports HTML5 video</a
+      >
+    </p>
+  </video>
+  
+<script type="text/javascript" src="{{= URL('static', 'video-js') }}/video.js"></script>

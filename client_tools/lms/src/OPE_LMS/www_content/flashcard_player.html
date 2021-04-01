@@ -1,0 +1,415 @@
+
+<!-- TODO TODO TODO - Narrow down width so it doesn't run off the page on quizes -->
+<!-- using flip library to change card https://nnattawat.github.io/flip/ -->
+<script type="text/javascript" src="jquery-min.js"></script>
+<script>
+
+// Original data file
+var json_data = {{=json_str}};
+
+// Parsed data - slides
+var slides = [];
+// The slide we are on now
+var current_slide = 0;
+
+// Initialize the slides and start us at the beginning
+function start() {
+    // Start at slide 0
+    current_slide = 0;
+
+    // Load the terms into the array
+    // Reset the array
+    slides = [];
+
+    // Roll through the slide data
+    var terms = json_data['terms'];
+    var quiz_id = json_data['id'];
+    if (terms === undefined) {
+        // Nothing to render?!
+        console.log("ERROR - Couldn't load list of terms!");
+
+        draw_current_slide();
+        return;
+    }
+
+    for (t in terms) {
+        var t_obj = terms[t];
+
+        console.log("term " + t_obj.word);
+        var id = t_obj.id;
+        var word = t_obj.word;
+        var def = t_obj.definition;
+        var photo = t_obj.local_photo;
+        var word_audio = t_obj.word_audio;
+        var def_audio = t_obj.def_audio;
+
+        if (word_audio == "None") { word_audio = ""; }
+        if (def_audio == "None") { def_audio = ""; }
+        if (photo == "None") { photo = ""; }
+
+        // Translate to local links
+        if (word_audio != "") {
+            word_audio = "{{=URL('static', 'media/flashcards')}}/" + quiz_id + "/" + id + ".word.mp3";
+        }
+        if (def_audio != "") {
+            def_audio = "{{=URL('static', 'media/flashcards')}}/" + quiz_id + "/" + id + ".def.mp3";
+        }
+        if (photo != "") {
+            photo = "{{=URL('static', 'media/flashcards')}}/" + quiz_id + "/" + photo;
+        }
+
+        var slide = {};
+        slide["word"] = word;
+        slide["def"] = def;
+        slide["photo"] = photo;
+        slide["word_audio"] = word_audio;
+        slide["def_audio"] = def_audio;
+
+        // Add the slide to the list
+        slides.push(slide);
+        console.log("Loaded slide: " + slide["word"] + slide["photo"]);
+    }
+
+    // Setup the card to flip
+    $("#flashcard_body").flip({axis: 'x', trigger: 'manual'});
+
+    // Render the current slide
+    draw_current_slide();
+}
+
+// Put data for current slide into the cards
+function draw_current_slide() {
+    console.log("Drawing Slide: " + current_slide);
+    // Turn off audio icons
+    $('#term_audio').hide();
+    $('#def_audio').hide();
+
+    var total_slides = Object.keys(slides).length;
+    var c_slide = current_slide + 1; // always +1 because of 0 based list
+    if (c_slide > total_slides) {
+        c_slide = total_slides;  // Avoid confusion if there are 0 slides
+    }
+    $("#footer_slide_count").text(c_slide + " of " + total_slides + " slides");
+
+    // If nothing loaded, show errors.
+    if (total_slides < 1) {
+        show_error("ERROR - Data not found for this flashcard!");
+        return;
+    }
+
+    var curr_item = slides[current_slide];
+    if (curr_item === undefined) {
+        show_error("ERROR - Data not found for this flashcard - slide not found!");
+        return;
+    }
+
+    // Put the attributes in for the current slide
+    var term_text = curr_item["word"];
+    if (term_text === undefined) { term_text = ""; }
+    var def_text = curr_item["def"];
+    if (def_text === undefined) { def_text = ""; }
+    $('#term_text').html(term_text.replace("\n", "<br />"));
+    $('#def_text').html(def_text.replace("\n", "<br />"));
+    if (curr_item["def_audio"] != "") {
+        // Set the click event to play the sound
+        $('#def_audio').off('click');  // Remove old events
+        $('#def_audio').click(function() {
+            // Start the audio clip
+            event.stopPropagation();
+            play_audio(curr_item["def_audio"]);
+        });
+        $('#def_audio').show();
+    }
+    if (curr_item["word_audio"] != "") {
+        // Set the click event to play the sound
+        $('#term_audio').off('click');  // Remove old events
+        $('#term_audio').click(function() {
+            // Start the audio clip
+            event.stopPropagation();
+            play_audio(curr_item["word_audio"]);
+        });
+        $('#term_audio').show();
+    }
+
+    if (curr_item['photo'] != '') {
+        $("#flashcard_picture").attr('src' ,curr_item["photo"]);
+        $("#flashcard_picture").show();
+    } else {
+        $("#flashcard_picture").hide();
+    }
+    console.log("Photo: " + curr_item["photo"]);
+    console.log("Def: " + curr_item["def"]);
+    if (curr_item['photo'] != '' && curr_item['def'] == '' ) {
+        // Photo but no definition - make photo bigger
+        // 424/550?
+        console.log("big photo");
+        $("#flashcard_picture").width(400);
+        $("#def_text").hide();
+    }
+    if (curr_item['photo'] != '' && curr_item['def'] != '') {
+        // Both photo and definition are on
+        console.log("Both def and photo");
+        $("#flashcard_picture").width(250);
+        $("#def_text").width(290);
+        $("#def_text").show();
+    }
+    if (curr_item['photo'] == '' && curr_item['def'] != '') {
+        // No photo - make it smaller
+        console.log("def + photo");
+        $("#flashcard_picture").width(0);
+        $("#def_text").width(480);
+    }
+    // Make sure the front card is showing
+    $('#flashcard_body').flip(false);
+}
+
+// Show error for this card
+function show_error(msg) {
+    $("#def_text").text(msg);
+    $("#term_text").text(msg);
+    $("#def_text").hide();
+}
+
+// Move to the next slide
+function next_slide() {
+    current_slide++;
+    if (current_slide > Object.keys(slides).length-1) {
+        // Too far - reset to 0
+        current_slide = 0;
+    }
+    draw_current_slide();
+}
+
+// Move to the previous slide
+function prev_slide() {
+    current_slide--;
+    if (current_slide < 0) {
+        // Too far - reset to end
+        current_slide = Object.keys(slides).length - 1;
+    }
+    if (current_slide < 0) {
+        // If slides length is 0, this will be -1, keep it at 0
+        current_slide = 0;
+    }
+
+    draw_current_slide();
+}
+
+// Flip the card over
+function flip_card() {
+    $("#flashcard_body").flip('toggle');
+}
+
+
+// Start an audio clip
+function play_audio(url) {
+    var player = new Audio(url);
+    player.play();
+}
+
+$(function() {
+    // Setup the flashcards and start the slides when this page loads
+    console.log("test2");
+    start();
+});
+</script>
+
+<style>
+
+div {
+    /* DEBUG */
+    /* border: 1px solid green; */
+}
+#flashcard_container {
+    width: 585px;
+    height: 425px;
+    /* border: 1px solid purple; */
+}
+#flashcard_header {
+    width: 100%;
+    height: 42px;
+}
+#term_audio, #def_audio {
+    background-image: url('images/audio.png');
+    width: 39px;
+    height: 39px;
+    float: right;
+}
+#header_right_spacer {
+    width: 42px;
+    height: 42px;
+    float: right;
+}
+
+#flashcard_footer {
+    width: 100%;
+    height: 82px;
+    /* border: 1px solid red; */
+    text-align: center;
+}
+
+#flashcard_flip {
+    width: 100%;
+    height: 30px;
+    background-color: #616161;
+    color: white;
+
+}
+#flashcard_flip:hover {
+    background-color: #797979;
+}
+
+#footer_controls {
+    width: 40%;
+    height: 42px;
+    /* border: 1px solid blue; */
+    display: inline-block;
+}
+
+#footer_prev_button {
+    background-image: url('images/prev.png');
+    width: 42px;
+    height: 42px;
+    float: left;
+    background-color: white;
+}
+#footer_prev_button:hover {
+    background-color: #ddd;
+
+}
+#footer_slide_count {
+    position: relative;
+    display: inline-block;
+    height: 42px;
+    width: 100px;
+    padding-top: 10px;
+
+}
+#footer_next_button {
+    background-image: url('images/next.png');
+    width: 42px;
+    height: 42px;
+    float: right;
+    background-color: white;
+}
+#footer_next_button:hover {
+    background-color: #ddd;
+}
+
+#flashcard_body {
+    width: auto;
+    height: 350px;
+    /* border: 1px solid green; */
+
+}
+.card {
+    width: auto;
+    height: auto;
+    /* border: 1px dashed black; */
+    text-align: center;
+    color: SteeleBlue;
+    font-size: 32px;
+}
+
+.card_face {
+    width: auto;
+    height: 380px;
+    /*margin: 10px;*/
+    overflow: auto;
+    /*display: inline-block;*/
+    /* border: 1px solid blue; */
+    background-color: white;
+    vertical-align: middle
+}
+
+.card_face:hover {
+    background-color: #bbb;
+}
+
+#flashcard_picture {
+    width: 340px;
+    height: auto;
+    float: left;
+    background-repeat: no-repeat;
+    background-position: 0 center;
+    background-size: contain;
+    padding-top: 15px;
+}
+#def_text {
+    float: left;
+    width: 300px;
+    height: 100%;
+    /* border: 1px solid green; */
+    display: inline-block;
+    padding-top: 25px;
+    line-height: 1.5;
+}
+#term_text {
+    display: inline-block;
+    padding-top: 25px;
+    line-height: 1.5;
+}
+
+#_flashcard_term1 {
+    width: 60%;
+    height: 100%;
+    overflow: auto;
+    float: right;
+}
+#_flashcard_def1 {
+    width: 60%;
+    height: 100%;
+    overflow: auto;
+    float: right;
+}
+</style>
+
+<div id="flashcard_container">
+    <!-- div id="flashcard_header">
+        <div id="header_controls">
+            <div id="header_right_spacer"></div>
+            <div id="header_audio" title="Listen"></div>
+        </div>
+    </div -->
+
+    <div id="flashcard_body" class="card">
+        <div id="flashcard_term" class='front card_face' onclick="flip_card();">
+            <div id="header_controls">
+                <div id="term_audio" title="Listen"></div>
+            </div>
+            <div id="term_text">
+                Flashcard Data Not Found!
+            </div>
+        </div>
+        <div id="flashcard_def" class='back card_face' onclick="flip_card();">
+            <div id="header_controls">
+                <div id="def_audio" title="Listen"></div>
+            </div>
+            <div style="display: table-cell; vertical-align: middle;">
+                <img id="flashcard_picture" src="" style="display: inline-block;" border=0 />
+                <div id="def_text" style="">
+                    Flashcard Data Not Found!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="flashcard_footer">
+        <div id="flashcard_flip" title="Click to flip card" onclick="$('#flashcard_body').flip('toggle');">
+            Click to flip card
+        </div>
+        <div id="footer_controls">
+            <div id="footer_prev_button" title="Previous Term" onclick="prev_slide();"></div>
+            <div id="footer_slide_count">0 of 0 slides</div>
+            <div id="footer_next_button" title="Next Term" onclick="next_slide();"></div>
+
+        </div>
+    </div>
+
+</div>
+
+<div style="color: red;">
+
+</div>
+
+<script src="js/flip.js" />

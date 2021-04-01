@@ -1,0 +1,25 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="connection">
+        <file alias="offline.png">rc/images/offline.png</file>
+        <file alias="online.png">rc/images/online.png</file>
+    </qresource>
+    <qresource prefix="state">
+        <file alias="idle0.png">rc/images/idle0.png</file>
+        <file alias="idle1.png">rc/images/idle1.png</file>
+        <file alias="idle2.png">rc/images/idle2.png</file>
+        <file alias="idle3.png">rc/images/idle3.png</file>
+        <file alias="idle4.png">rc/images/idle4.png</file>
+        <file alias="idle5.png">rc/images/idle5.png</file>
+        <file alias="idle6.png">rc/images/idle6.png</file>
+        <file alias="idle7.png">rc/images/idle7.png</file>
+        <file alias="idle8.png">rc/images/idle8.png</file>
+        <file alias="idle9.png">rc/images/idle9.png</file>
+        <file alias="working0.png">rc/images/working0.png</file>
+        <file alias="working1.png">rc/images/working1.png</file>
+        <file alias="complete.png">rc/images/complete.png</file>
+    </qresource>
+    <qresource prefix="/">
+        <file alias="logo_icon.png">rc/images/logo_icon.png</file>
+    </qresource>
+</RCC>
