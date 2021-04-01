@@ -18,7 +18,7 @@
             - CANVAS_MATHMAN_DEFAULT_DOMAIN=${CANVAS_MATHMAN_DEFAULT_DOMAIN}
             - VIRTUAL_PORT=80
             # Share the default cert on the gateway
-            - CERT_NAME=default
+            - CERT_NAME=<CERT_NAME>
             - VIRTUAL_PROTO=http
             #- HTTPS_METHOD=noredirect
             # Params for the start script
@@ -28,6 +28,8 @@
             - NODE_TLS_REJECT_UNAUTHORIZED=0
             - REDIS_HOST=redis
             - REDIS_PORT=6379
+            - LETSENCRYPT_HOST=<CANVAS_MATHMAN_DEFAULT_DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
         links:
             # Send rce connections through the gateway
             - ope-gateway:${CANVAS_DEFAULT_DOMAIN}

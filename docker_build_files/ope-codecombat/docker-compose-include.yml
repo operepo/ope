@@ -19,7 +19,7 @@
             - OFFICE_PW=${OFFICE_PW}
             - VIRTUAL_HOST=codecombat.<DOMAIN>
             # Share the default cert on the gateway
-            #- CERT_NAME=default
+            #- CERT_NAME=<CERT_NAME>
             - VIRTUAL_PROTO=http
             - VIRTUAL_PORT=3000
             #- HTTPS_METHOD=noredirect

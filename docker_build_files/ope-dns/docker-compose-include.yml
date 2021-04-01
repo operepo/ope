@@ -6,7 +6,10 @@
         network_mode: <NETWORK_MODE>
         cap_add:
             - NET_ADMIN
-        command: " -A /<DOMAIN>/<IP> --txt-record=_acme-challenge.<DOMAIN>,<ACME_AUTH_CODE> <DNS_EXTRAS> " 
+        # --local-service - only do response from local network?
+        #--local /thisdomain.com/192.168.1.1 - Forward these specific domains here  
+        command: " --filterwin2k --stop-dns-rebind --dns-forward-max=0 --dns-loop-detect --bogus-priv --domain-needed --no-hosts --no-resolv -A /<DOMAIN>/<IP> --txt-record=_acme-challenge.<DOMAIN>,<ACME_AUTH_CODE> <DNS_EXTRAS> " 
+        # --server=127.1.1.1 - shouldn't need if no-resolv is on
         # --auth-server=<DOMAIN>  - caused error on older container?
         #--log-queries 
         #--log-facility=-"

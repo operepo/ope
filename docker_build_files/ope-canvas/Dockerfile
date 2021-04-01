@@ -1,10 +1,14 @@
-FROM instructure/ruby-passenger:2.4-xenial
+ARG RUBY=2.6-p6.0.4
+
+FROM instructure/ruby-passenger:${RUBY} AS dependencies
+
+#FROM instructure/ruby-passenger:2.4-xenial
 ##FROM instructure/canvas-lms:stable
 
 LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
 LABEL description="Canvas LMS by Instructure - Image for Open Prison Education"
 LABEL vendor="openprisoneducation.com"
-LABEL version="1.0"
+LABEL version="1.1"
 
 # ope-canvas - Canvas LMS System
 # Build with docker build -t ope-canvas .
@@ -15,26 +19,39 @@ LABEL version="1.0"
 # Build the canvas container and run it with the docker-compose command
 # View the canvas website to set your admin password and configure.
 
-ENV APP_HOME /usr/src/app/
-ENV RAILS_ENV "production"
-ENV NGINX_MAX_UPLOAD_SIZE 50g
-#ENV YARN_VERSION 1.3.2-1
-#ENV YARN_VERSION 1.7.0-1
-#ENV YARN_VERSION 1.9.4-1 # for 2018-10-27.23
-#ENV YARN_VERSION 1.10.1-1
-#ENV YARN_VERSION 1.12.3-1
-ENV YARN_VERSION 1.16.0-1
-ENV CANVAS_RELEASE release/2019-10-23.21
-#ENV CANVAS_RELEASE release/2019-06-22.25
-#ENV CANVAS_RELEASE release/2019-05-11.43
-#ENV CANVAS_RELEASE release/2018-10-27.23
-#ENV CANVAS_RELEASE release/2018-11-17.24
+ARG POSTGRES_CLIENT=12
+ARG ALPINE_MIRROR=http://dl-cdn.alpinelinux.org/alpine
+ARG NODE=10.19.0-r0
 
-# Work around github.com/zertosh/v8-compile-cache/issues/2
-# This can be removed once yarn pushes a release including the fixed version
-# of v8-compile-cache.
-ENV DISABLE_V8_COMPILE_CACHE 1
+ENV APP_HOME /usr/src/app/
+ENV RAILS_ENV production
+ENV NGINX_MAX_UPLOAD_SIZE 50g
+
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US.UTF-8
+ENV LC_CTYPE en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
+
+WORKDIR $APP_HOME
+
+ENV RUBY_VERSION 2.6
+ENV YARN_VERSION 1.19.1-1
+
+ENV CANVAS_RELEASE release/2020-11-18.29
+#ENV CANVAS_RELEASE release/2020-10-21.32
+#ENV CANVAS_RELEASE release/2020-09-23.35
+#ENV CANVAS_RELEASE release/2019-10-23.21
+#ENV CANVAS_RELEASE release/2019-06-22.25
+
+ENV GEM_HOME /home/docker/.gem/$RUBY_VERSION
+ENV PATH $GEM_HOME/bin:$PATH
+ENV BUNDLE_APP_CONFIG /home/docker/.bundle
+
+
 USER root
+
+RUN mkdir ${APP_HOME}; chown -R docker:docker ${APP_HOME}
+
 
 RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
   && curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
@@ -49,56 +66,50 @@ RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - \
        libxmlsec1-dev \
        python-lxml \
        libicu-dev \
-       postgresql-client-9.5 \
+       parallel \
+       postgresql-client-$POSTGRES_CLIENT \
        unzip \
+       pbzip2 \
        fontforge \
-       dos2unix \
-       supervisor \
+       bash \
        nano \
-  && apt-get clean \
+       dos2unix \
+       supervisor \       
   && rm -rf /var/lib/apt/lists/* \
   && mkdir -p /home/docker/.gem/ruby/$RUBY_MAJOR.0
-
 RUN if [ -e /var/lib/gems/$RUBY_MAJOR.0/gems/bundler-* ]; then BUNDLER_INSTALL="-i /var/lib/gems/$RUBY_MAJOR.0"; fi \
   && gem uninstall --all --ignore-dependencies --force $BUNDLER_INSTALL bundler \
   && gem install bundler --no-document -v 1.17.3 \
   && find $GEM_HOME ! -user docker | xargs chown docker:docker
 
-# Make sure this runs during build, will also run at at startup later
-#ENV CANVAS_BUILD_CONCURRENCY=1
 
-WORKDIR $APP_HOME
-
-# Git checkout instead of docker build from source dir
-#COPY Gemfile      ${APP_HOME}
-#COPY Gemfile.d    ${APP_HOME}Gemfile.d
-#COPY config       ${APP_HOME}config
-#COPY gems         ${APP_HOME}gems
-#COPY packages     ${APP_HOME}packages
-#COPY script       ${APP_HOME}script
-#COPY package.json ${APP_HOME}
-#COPY yarn.lock    ${APP_HOME}
-
+USER docker
+# Checkout source for canvaslms
 LABEL rebuild=1
 RUN cd ${APP_HOME} \
     && git init \
     && git remote add origin https://github.com/instructure/canvas-lms \
-    && git fetch origin --no-tags --depth 1 refs/tags/${CANVAS_RELEASE}:refs/tags/${CANVAS_RELEASE}  \
+    && git fetch origin --no-tags --depth 1 refs/tags/${CANVAS_RELEASE}:refs/tags/${CANVAS_RELEASE} \
     && git checkout ${CANVAS_RELEASE}
 
-    #&& git clone https://github.com/instructure/canvas-lms.git:${CANVAS_RELEASE} .
-    #&& git clone https://github.com/instructure/canvas-lms.git . \
-    # && git checkout stable \
-    #&& git checkout ${CANVAS_RELEASE}
-    #&& git checkout release/2018-03-10.06
+USER docker
+RUN set -eux; \
+  \
+  cd ${APP_HOME} \
+  # set up bundle config options \
+  && bundle config --global build.nokogiri --use-system-libraries \
+  && bundle config --global build.ffi --enable-system-libffi \
+  && mkdir -p \
+    /home/docker/.gem/$RUBY_VERSION \
+    /home/docker/.bundle \
+  # TODO: --without development \
+  && bundle install --jobs $(nproc) \
+  && rm -rf $GEM_HOME/cache
 
-# Fix fonts.googleapis.com links to point to local fonts folder
-RUN cd ${APP_HOME} \
-   && find . -name "*.html" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \; \
-   && find . -name "*.css" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \; \
-   && find . -name "*.erb" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \;
 
+WORKDIR $APP_HOME
 
+USER root
 # We will need sfnt2woff in order to build fonts
 #COPY build/vendor/woff-code-latest.zip ./
 RUN cd build/vendor \
@@ -109,16 +120,17 @@ RUN cd build/vendor \
   && cd - \
   && rm -rf woff*
 
-RUN find gems packages -type d ! -user docker -print0 | xargs -0 chown -h docker:docker
+#RUN find gems packages -type d ! -user docker -print0 | xargs -0 chown -h docker:docker
 
-RUN chown -R docker:docker ${APP_HOME}
+#RUN chown -R docker:docker ${APP_HOME}
 
 USER docker
-RUN bundle install --jobs 12 \
-  && yarn install --pure-lockfile
+#RUN bundle install --jobs 12 \
+#  && yarn install --pure-lockfile
 USER root
 
-RUN mkdir -p .yardoc \
+RUN set -eux; \
+  mkdir -p .yardoc \
              app/stylesheets/brandable_css_brands \
              app/views/info \
              client_apps/canvas_quizzes/dist \
@@ -126,11 +138,24 @@ RUN mkdir -p .yardoc \
              client_apps/canvas_quizzes/tmp \
              config/locales/generated \
              gems/canvas_i18nliner/node_modules \
-             gems/selinimum/node_modules \
              log \
              node_modules \
+             packages/canvas-media/es \
+             packages/canvas-media/lib \
+             packages/canvas-media/node_modules \
              packages/canvas-planner/lib \
              packages/canvas-planner/node_modules \
+             packages/canvas-rce/canvas \
+             packages/canvas-rce/lib \
+             packages/canvas-rce/node_modules \
+             packages/jest-moxios-utils/node_modules \
+             packages/js-utils/es \
+             packages/js-utils/lib \
+             packages/js-utils/node_modules \
+             packages/k5uploader/es \
+             packages/k5uploader/lib \
+             packages/k5uploader/node_modules \
+             packages/old-copy-of-react-14-that-is-just-here-so-if-analytics-is-checked-out-it-doesnt-change-yarn.lock/node_modules \
              pacts \
              public/dist \
              public/doc/api \
@@ -142,8 +167,8 @@ RUN mkdir -p .yardoc \
              /home/docker/.bundler/ \
              /home/docker/.cache/yarn \
              /home/docker/.gem/ \
-  && find ${APP_HOME} /home/docker ! -user docker -print0 | xargs -0 chown -h docker:docker
-
+  && (DISABLE_POSTINSTALL=1 yarn install --pure-lockfile || DISABLE_POSTINSTALL=1 yarn install --pure-lockfile --network-concurrency 1) \
+  && yarn cache clean  
 
 # INSTALL QTIMigrationTool
 RUN mkdir ${APP_HOME}/vendor \
@@ -155,26 +180,41 @@ RUN mkdir ${APP_HOME}/vendor \
 #    && rm -rf gems/**/node_modules \
 #    && npm cache clean    
 
-USER docker
+USER root
+
+# Make sure docker is the owner for all files
+RUN find ${APP_HOME} -not -user docker -exec chown docker:docker {} \+
 
 # update Gemfile.lock in cases where a lock file was pulled in during the `COPY . $APP_HOME` step
-RUN bundle lock --update
+#RUN bundle lock --update
+
+
 # TODO: switch to canvas:compile_assets_dev once we stop using this Dockerfile in production/e2e
-RUN COMPILE_ASSETS_NPM_INSTALL=0 bundle exec rake canvas:compile_assets
+#RUN yarn upgrade
+RUN yarn postinstall
+
+FROM dependencies AS webpack-final
+ARG JS_BUILD_NO_UGLIFY=0
+
+# Fix fonts.googleapis.com links to point to local fonts folder
+RUN cd ${APP_HOME} \
+   && find . -name "*.html" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \; \
+   && find . -name "*.css" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \; \
+   && find . -name "*.erb" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \;
 
 
-#USER root
-#RUN rm -rf node_modules
-#RUN npm install
-#RUN $GEM_HOME/bin/bundle exec rake canvas:compile_assets --trace
-#RUN echo "Settings file permissions on node_modules..." \
-#    && chown -R docker:docker /usr/src/app/node_modules
 
+#RUN COMPILE_ASSETS_NPM_INSTALL=0 bundle exec rake canvas:compile_assets
+RUN COMPILE_ASSETS_NPM_INSTALL=0 JS_BUILD_NO_UGLIFY="$JS_BUILD_NO_UGLIFY" bundle exec rails canvas:compile_assets
+
+#RUN chown -R docker:docker /home/docker
+# Make sure docker is the owner for all files
+RUN find ${APP_HOME} -not -user docker -exec chown docker:docker {} \+
 
 USER docker
 
 
-LABEL rebuild=66
+LABEL rebuild=69
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml
@@ -194,7 +234,7 @@ COPY puma.rb /usr/src/app/config/puma.rb
 COPY rack.rb /usr/src/app/config/initializers/rack.rb
 COPY dynamic_settings.yml.tmpl /usr/src/app/config/dynamic_settings.yml.tmpl
 
-LABEL rebuild=17
+LABEL rebuild=49
 COPY dbinit.sh /usr/src/dbinit.sh
 COPY start.sh /usr/src/start.sh
 COPY ope.rake lib/tasks/ope.rake
@@ -217,8 +257,10 @@ RUN echo "Settings file permissions..." \
     && mkdir /tmp/attachment_fu \
     && chown -R docker:docker /tmp/attachment_fu /usr/src/app/log \
     && chmod 755 /usr/src/*.sh \
-    && dos2unix /usr/src/*.sh \
-    && chown -R docker:docker /usr/src/*.sh /usr/src/app/config /usr/src/app/vendor /usr/src/app/lib/tasks/ope.rake
+    && dos2unix /usr/src/*.sh
+ 
+
+USER root
     
 # Stay root at the end - supervisor will switch back to docker user
 VOLUME ["/usr/src/app/tmp", "/usr/src/app/log", "/tmp"]

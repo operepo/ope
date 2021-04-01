@@ -6,3 +6,5 @@ config.action_view.cache_template_loading = true
 config.public_file_server.enabled = true
 config.action_dispatch.x_sendfile_header = true
 config.log_level = :info
+config.i18n.fallbacks=[:en]
+

@@ -3,7 +3,7 @@ import os, sys
 import socket
 import shutil
 import uuid
-import commands
+import subprocess
 
 # Is this script called with the auto param? Suppress prompts
 auto = False
@@ -72,6 +72,9 @@ replacement_values = { '<DOMAIN>': 'ed', '<IP>': '', "<VOLUMES>": '',
     "<CANVAS_SIGN_SECRET>": '<NEW_UUID_32>',
     "<CANVAS_RCE_DEFAULT_DOMAIN>": "rce.<DOMAIN>",
     "<CANVAS_MATHMAN_DEFAULT_DOMAIN>": "mathman.<DOMAIN>",
+    "<NTP_SERVERS>": "time.windows.com",
+    "<ALERT_EMAIL>": "alert@correctionsed.com",
+    "<CERT_NAME>": "default",
     }
 
 # A list of volumes that need to be specified in the volumes section
@@ -94,7 +97,9 @@ def getIP():
     except:
         # IP = '127.0.0.1'
         # try using hostname -i
-        IP = commands.getoutput('hostname -i')
+        #IP = commands.getoutput('hostname -i')
+        IP = subprocess.check_output(['hostname', '-i'])
+        IP = IP.strip()
     finally:
         s.close()
     return IP
@@ -197,7 +202,6 @@ if replacement_values['<CANVAS_ENC_SECRET>'] == "":
 
 if replacement_values['<CANVAS_SIGN_SECRET>'] == "":
     replacement_values['<CANVAS_SIGN_SECRET>'] = "<NEW_UUID_32>"
-
 
 # Make sure IP is set to current IP if blank
 if replacement_values['<IP>'] == "":

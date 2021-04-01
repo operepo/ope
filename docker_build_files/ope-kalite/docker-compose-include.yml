@@ -14,4 +14,7 @@
         env_file: .env
         environment:
             - VIRTUAL_HOST=kalite.<DOMAIN>,khan.<DOMAIN>
+            - LETSENCRYPT_HOST=khan.<DOMAIN>,kalite.<DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
+
        
