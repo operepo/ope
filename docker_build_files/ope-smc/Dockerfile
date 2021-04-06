@@ -1,28 +1,28 @@
-FROM alpine:3.11
+FROM alpine:3.12
 MAINTAINER Ray Pulspher <ray@cmagic.biz>
 LABEL Description="Student Management Console - Image for Open Prison Education"
 LABEL Vendor="openprisoneducation.com"
-LABEL Version="1.1"
+LABEL Version="1.2"
 
 # install base
 RUN apk update \
     && apk add --update --no-cache \
-        bash musl linux-headers pcre-dev coreutils build-base nasm ca-certificates curl tar \
+        bash musl musl-dev linux-headers pcre-dev coreutils build-base nasm ca-certificates curl tar \
         openssl-dev zlib-dev yasm-dev lame-dev freetype-dev opus-dev \
         rtmpdump-dev x264-dev x265-dev xvidcore-dev libass-dev libwebp-dev \
         libvorbis-dev libogg-dev libtheora-dev libvpx-dev \
-        python3 python3-dev mysql-client libxml2-dev \
+        python3 python3-dev py3-pip mysql-client libxml2-dev \
         unzip wget net-tools git git-daemon unzip \
         openssl zip postgresql-dev openldap-dev \
-        supervisor libffi-dev pcre \
+        supervisor libffi-dev pcre  libxml2 libxslt-dev cargo \
 # py-pip
 # Make sure python3 runs under the python command
     && ln -s /usr/bin/python3 /usr/bin/python \
-    && pip3 install --upgrade pip \
-    && pip3 install --upgrade setuptools ldap3 pycryptodome requests \
+    && python -m pip install --upgrade pip \
+    && python -m pip install --upgrade setuptools ldap3 pycryptodome requests \
         paramiko ecdsa isodate pywinrm xlrd crypto PyMySQL \
         psycopg2-binary uwsgi uwsgitop psutil redis pycanvas lz4 \ 
-        webvtt-py langcodes \
+        webvtt-py langcodes bs4 pdfkit lxml \
 # pytube3 - use fix 701 for now
 #pip install git+https://github.com/nficano/pytube.git@refs/pull/701/head
 # matplotlib reportlab ldap pycrypto changed to pycryptodome  python-ldap changed to ldap3
@@ -43,7 +43,7 @@ RUN apk update \
         musl-dev linux-headers pcre-dev coreutils build-base nasm curl tar openssl-dev zlib-dev yasm-dev \
         lame-dev freetype-dev opus-dev xvidcore-dev libass-dev libwebp-dev \
         libvorbis-dev libogg-dev libtheora-dev libvpx-dev \
-        python-dev \
+        python3-dev \
     && apk add --no-cache \
         zlib lame freetype faac opus xvidcore libass libwebp libvorbis libogg \
         libtheora libvpx \
@@ -55,7 +55,7 @@ RUN apk update \
 # Install 9.7.0
 #RUN pip install git+https://github.com/nficano/pytube.git@refs/tags/v9.7.0
 LABEL pytube_version=10.4.1
-RUN pip install pytube
+RUN python -m pip install --upgrade pytube
 
 # Set ENV Vars
 ENV IT_PW changeme
@@ -103,7 +103,7 @@ LABEL rebuild_smc=10
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE v1.9.59
+ENV SMC_RELEASE v1.9.60
 
 RUN cd $W2P_DIR \
     && git init \
