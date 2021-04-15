@@ -20,9 +20,10 @@ RUN apk update \
     && ln -s /usr/bin/python3 /usr/bin/python \
     && python -m pip install --upgrade pip \
     && python -m pip install --upgrade setuptools ldap3 pycryptodome requests \
-        paramiko ecdsa isodate pywinrm xlrd crypto PyMySQL \
+        paramiko ecdsa isodate pywinrm crypto PyMySQL \
         psycopg2-binary uwsgi uwsgitop psutil redis pycanvas lz4 \ 
         webvtt-py langcodes bs4 pdfkit lxml \
+    && python -m pip install xlrd==1.2.0 \
 # pytube3 - use fix 701 for now
 #pip install git+https://github.com/nficano/pytube.git@refs/pull/701/head
 # matplotlib reportlab ldap pycrypto changed to pycryptodome  python-ldap changed to ldap3
@@ -103,7 +104,7 @@ LABEL rebuild_smc=10
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE v1.9.60
+ENV SMC_RELEASE v1.9.61
 
 RUN cd $W2P_DIR \
     && git init \
