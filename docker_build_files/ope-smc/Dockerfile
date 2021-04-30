@@ -1,20 +1,25 @@
-FROM alpine:3.12
+FROM alpine:3.13
 MAINTAINER Ray Pulspher <ray@cmagic.biz>
 LABEL Description="Student Management Console - Image for Open Prison Education"
 LABEL Vendor="openprisoneducation.com"
-LABEL Version="1.2"
+LABEL Version="1.3"
 
 # install base
 RUN apk update \
     && apk add --update --no-cache \
         bash musl musl-dev linux-headers pcre-dev coreutils build-base nasm ca-certificates curl tar \
-        openssl-dev zlib-dev yasm-dev lame-dev freetype-dev opus-dev \
+        libc-dev openssl-dev zlib-dev yasm-dev lame-dev freetype-dev opus-dev \
         rtmpdump-dev x264-dev x265-dev xvidcore-dev libass-dev libwebp-dev \
         libvorbis-dev libogg-dev libtheora-dev libvpx-dev \
         python3 python3-dev py3-pip mysql-client libxml2-dev \
+        py3-cairo py3-cairo-dev py3-cffi \
         unzip wget net-tools git git-daemon unzip \
         openssl zip postgresql-dev openldap-dev \
         supervisor libffi-dev pcre  libxml2 libxslt-dev cargo \
+        jpeg-dev zlib-dev libffi-dev cairo-dev pango-dev gdk-pixbuf-dev \
+        libressl-dev font-noto msttcorefonts-installer fontconfig \
+    && update-ms-fonts \
+    && fc-cache -f \
 # py-pip
 # Make sure python3 runs under the python command
     && ln -s /usr/bin/python3 /usr/bin/python \
@@ -22,8 +27,8 @@ RUN apk update \
     && python -m pip install --upgrade setuptools ldap3 pycryptodome requests \
         paramiko ecdsa isodate pywinrm crypto PyMySQL \
         psycopg2-binary uwsgi uwsgitop psutil redis pycanvas lz4 \ 
-        webvtt-py langcodes bs4 pdfkit lxml \
-    && python -m pip install xlrd==1.2.0 \
+        webvtt-py langcodes bs4 lxml openpyxl Pillow WeasyPrint \
+#    && python -m pip install xlrd==1.2.0 \
 # pytube3 - use fix 701 for now
 #pip install git+https://github.com/nficano/pytube.git@refs/pull/701/head
 # matplotlib reportlab ldap pycrypto changed to pycryptodome  python-ldap changed to ldap3
@@ -104,7 +109,7 @@ LABEL rebuild_smc=10
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE v1.9.61
+ENV SMC_RELEASE v1.9.63
 
 RUN cd $W2P_DIR \
     && git init \
