@@ -314,7 +314,7 @@ class EventLog:
             servicemanager.Initialize(self.service_name,
                 "%programdata%\\ope\\Services\\OPEService\\servicemanager.pyd")
         except Exception as ex:
-            print("Error setting source name for event logs!")
+            print("}}mnError setting source name for event logs!}}xx\n" + str(ex))
 
         try:
             # servicemanager.LogMsg(
@@ -324,7 +324,7 @@ class EventLog:
             # )
             servicemanager.LogInfoMsg(output)
         except Exception as ex:
-            print("Error writing to windows event log!\n" +
+            print("}}mnError writing to windows event log!}}xx\n" +
                 str(ex))
         
         return True

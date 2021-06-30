@@ -32,15 +32,9 @@ APP_DB::APP_DB(QQmlApplicationEngine *parent) : QObject(parent)
  * @brief DB::init_db - Connect to database and ensure that scheme is in place and/or migrated
  * @return true on success
  */
-bool APP_DB::init_db()
+bool APP_DB::init_db(QString db_file)
 {
     bool ret = false;
-
-    // Find DB path
-    QDir d;
-    d.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/");
-    d.mkpath(d.path());
-    QString db_file = d.path() + "/lms.db";
 
     _db.setHostName(db_file);
     _db.setDatabaseName(db_file);

@@ -3,6 +3,12 @@ import sys
 import subprocess
 import ctypes
 import shutil
+import datetime
+
+import win32security
+import win32process
+import win32con
+import win32profile
 
 import util
 from color import p
@@ -24,6 +30,65 @@ class disable_file_system_redirection:
 
 
 class ProcessManagement:
+
+    @staticmethod
+    def run_process_as_user(cmd, cwd=None, user_name=None):
+        # Execute process as the user in question.
+        ret = False
+        p("run_process_as_user -- NOT DONE YET!")
+        return False
+
+        # Get the user name
+        if user_name is None:
+            # Get the current user name
+            user_name = UserAccounts.get_active_user_name()
+        
+        # Get the user token for this user
+        user_token = UserAccounts.get_user_token(user_name)
+        if user_token is None:
+            p("Unable to get user token!", log_level=1)
+            return False
+        
+        user_token.impersonate()
+        
+        p("}}gnRunning Process as user: " + str(cmd) + "}}xx", log_level=5)
+
+        # Use win create process function
+        si = win32process.STARTUPINFO()
+        si.dwFlags = win32process.STARTF_USESHOWWINDOW
+        si.wShowWindow = win32con.SW_NORMAL
+        # si.lpDesktop = "WinSta0\Default"   ## For secure desktop, "WinSta0\\Winlogon"
+        si.lpDesktop = "WinSta0\\Default"
+
+        # Setup envinroment for the user
+        environment = win32profile.CreateEnvironmentBlock(user_token, False)
+
+        try:
+            (hProcess, hThread, dwProcessId, dwThreadId) = win32process.CreateProcess(
+                                            #user_token,    # Using impersonation for this
+                                            None,   # AppName (really command line, blank if cmd line supplied)
+                                            "\"" + cmd + "\"",  # Command Line (blank if app supplied)
+                                            None,  # Process Attributes
+                                            None,  # Thread Attributes
+                                            0,  # Inherits Handles
+                                            win32con.CREATE_NEW_CONSOLE | win32con.NORMAL_PRIORITY_CLASS,  # or win32con.CREATE_NEW_CONSOLE,
+                                            environment,  # Environment
+                                            os.path.dirname(cmd),  # Curr directory
+                                            si)  # Startup info
+
+            p("Process Started: " + str(dwProcessId), log_level=5)
+            p(hProcess, log_level=5)
+            ret = True
+        except Exception as e:
+            p("}}rnError launching process:}}xx\n" + str(e), log_level=1)
+            
+        # Cleanup
+        user_token.close()
+
+        if ret is True:
+            p("}}gnProcess executed. }}xx" + str(cmd), log_level=5)
+        return ret
+
     @staticmethod
     def run_detatched_cmd(cmd, attempts=1, cmd_timeout=20, require_return_code=None, cwd=None):
         # Constants needed until python 3.7
@@ -190,7 +255,7 @@ class ProcessManagement:
             branch = util.get_param(2, None, only_for=only_for)
         if branch is None:
             branch = RegistrySettings.get_git_branch()
-
+        
         app_path = util.get_app_folder()
 
         # Make sure the folder exists
@@ -209,6 +274,22 @@ class ProcessManagement:
             # Error running command?
             p("}}rbError - Unable to init git repo!}}xx\n" + output)
             return False
+
+        # Remove any lock files that are old
+        git_folder = os.path.join(ope_laptop_binaries_path, ".git")
+        if os.path.exists(git_folder):
+            # Get lock files.
+            import glob
+            file_list = glob.glob(git_folder + "/**/*.lock", recursive=True)
+            for f in file_list:
+                if os.path.isfile(f):
+                    # Get the modified date
+                    m_time = datetime.datetime.fromtimestamp(os.stat(f).st_mtime)
+                    td = datetime.timedelta(minutes=7)  # Find files older then this
+                    if m_time < datetime.datetime.now() - td:
+                        # Older file...
+                        p("}}ybRemoving old lock file:}}xx " + f)
+                        os.unlink(f)
                 
         # Add the origins to this git repo
         cmds = [
@@ -220,6 +301,7 @@ class ProcessManagement:
 
         for cmd in cmds:
             returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path)
+            p(str(output), log_level=4)
             if returncode == -2:
                 # Error running command?
                 p("}}rbError - Unable to update remote locations!}}xx\n" + output)
@@ -264,6 +346,7 @@ class ProcessManagement:
         for cmd in cmds:
             returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
                 attempts=3, cmd_timeout=120)
+            p(str(output), log_level=4)
             if returncode == -2:
                 # Error running command?
                 p("}}rbError - Unable to cleanup repo folder!}}xx\n" + output)
@@ -274,6 +357,7 @@ class ProcessManagement:
         cmd = git_path + " checkout -f " + branch
         returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
             require_return_code=0, cmd_timeout=150, attempts=2)
+        p(str(output), log_level=4)
         if returncode == -2:
             # Error running command?
             p("}}rbError - Unable to checkout git changes! \nTry removing the %programdata%/ope/tmp/ope_laptop_binaries folder and try again.}}xx\n" + output)
@@ -284,6 +368,7 @@ class ProcessManagement:
         cmd = git_path + " rev-parse HEAD"
         returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
             require_return_code=0)
+        p(str(output), log_level=4)
         if returncode == -2:
             # Error running command?
             p("}}rbError - Unable to get the git revision ID!}}xx\n" + output)
@@ -310,7 +395,8 @@ if __name__ == "__main__":
     # >> nul 2>&1
     long_running_cmd = os.path.expandvars("%programdata%\\ope\\tmp\\ope_laptop_binaries\\Services\\mgmt\\rc\\upgrade_ope.cmd >> %programdata%\\ope\\tmp\\log\\upgrade.log 2>&1")
     
-    ProcessManagement.run_detatched_cmd(long_running_cmd)
+    #ProcessManagement.run_detatched_cmd(long_running_cmd)
+    ProcessManagement.run_process_as_user("cmd.exe", user_name="ray")
 
     p("exiting test.")
 

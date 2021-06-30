@@ -19,7 +19,6 @@ from color import p
 from mgmt_ProcessManagement import ProcessManagement
 from mgmt_RegistrySettings import RegistrySettings
 
-
 class FolderPermissions:
     # Class to deal with folder permissions
     
@@ -139,6 +138,134 @@ class FolderPermissions:
         return
     
     @staticmethod
+    def get_acl_rights_for_user(folder_path, username):
+        # Look at the ACL, see if this user is allowed to access this folder
+        ret = []
+
+        # Make sure our global accounts are available
+        FolderPermissions.init_win_user_accounts()
+
+        OWNER = d = atime = None
+        try:
+            OWNER, d, atype = win32security.LookupAccountName("", username)
+        except:
+            p("is_user_in_acl - Unable to find user: " + str(username))
+            return None        
+
+        sd = win32security.GetFileSecurity(
+            folder_path,
+            win32security.DACL_SECURITY_INFORMATION |
+            win32security.OWNER_SECURITY_INFORMATION |
+            win32security.GROUP_SECURITY_INFORMATION |
+            win32security.SACL_SECURITY_INFORMATION
+            )
+        o, d, atime = win32security.LookupAccountSid(None, sd.GetSecurityDescriptorOwner())
+        if o == username:
+            ret.append("o")
+        
+        dacl = sd.GetSecurityDescriptorDacl()
+        mask = dacl.GetEffectiveRightsFromAcl(
+            {
+                'TrusteeForm': win32security.TRUSTEE_IS_NAME,
+                'TrusteeType': win32security.TRUSTEE_IS_USER,
+                'Identifier': username
+            }
+        )
+
+        if bool(mask & 0x00000001):
+            ret.append('r') # read
+        if bool(mask & 0x00000002):
+            ret.append('w') # write
+        if bool(mask & 0x00000004):
+            ret.append('a') # append
+        if bool(mask & 0x00000008):
+            ret.append('rea') # read ea
+        if bool(mask & 0x00000010):
+            ret.append('wea')  # write ea
+        if bool(mask & 0x00000020):
+            ret.append('x')   # execute
+        if bool(mask & 0x00000040):
+            ret.append('dc') # delete children
+        if bool(mask & 0x00000080):
+            ret.append("ra")  # read attributes
+        if bool(mask & 0x00000100):
+            ret.append("wa")  # write attributes
+        if bool(mask & 0x00010000):
+            ret.append('d')  # delete
+        if bool(mask & 0x00020000):
+            ret.append('rc')  # Read Control
+        if bool(mask & 0x00040000):
+            ret.append('wdac')  # write dac
+        if bool(mask & 0x00080000):
+            ret.append('wo')    # write owner
+        if bool(mask & 0x00100000):
+            ret.append('s') # syncronise
+        
+        return ret
+
+    @staticmethod
+    def set_home_folder_permissions(folder_path, owner_user, walk_files=True):
+        if owner_user is None or owner_user == "":
+            p("Invalid Owner, can't set home folder permissions: " + str(folder_path))
+            return False
+
+        # owner_rights: r - readonly, n - none, rw - readwrite, f - full, c - create/append
+        # a - append (for files?)
+
+        #owner_perms = ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE | ntsecuritycon.FILE_GENERIC_WRITE
+        owner_perms = ntsecuritycon.FILE_ALL_ACCESS
+    
+        # Make sure our global accounts are available
+        FolderPermissions.init_win_user_accounts()
+
+        OWNER = d = atime = None
+        try:
+            OWNER, d, atype = win32security.LookupAccountName("", owner_user)
+        except:
+            p("Unable to find user: " + str(owner_user))
+            return False
+                
+        # Setup new DACL for the folder
+        # Set inheritance flags
+        flags = win32security.OBJECT_INHERIT_ACE | win32security.CONTAINER_INHERIT_ACE
+        sd = win32security.GetFileSecurity(folder_path, win32security.DACL_SECURITY_INFORMATION)
+        # Create the blank DACL and add our ACE's
+        dacl = win32security.ACL()
+        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, FolderPermissions.GROUP_ADMINISTRATORS)
+        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, FolderPermissions.SYSTEM_USER)
+        # Make sure current user (admin running this) has rights too
+        if not FolderPermissions.CURRENT_USER is None:
+            dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, FolderPermissions.CURRENT_USER)
+        
+        if owner_perms != 0:
+            dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags,
+                                   owner_perms,
+                                   OWNER)
+        # Set our ACL
+        sd.SetSecurityDescriptorDacl(1, dacl, 0)
+        win32security.SetFileSecurity(folder_path, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
+        
+        # Possible to set whole tree? - Doesn't seem to work, use file walk instead
+        # win32security.TreeSetNamedSecurityInfo(folder, win32security.SE_FILE_OBJECT, win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, None, None, sd, None)
+        
+        # Walk sub folders 
+        if walk_files is True:
+            for root, dirs, files in os.walk(folder_path, topdown=False):
+                for f in files:
+                    try:
+                        win32security.SetFileSecurity(os.path.join(root, f), win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
+                    except:
+                        logging.info("Error setting file permissions " + os.path.join(root, f))
+                for d in dirs:
+                    try:
+                        win32security.SetFileSecurity(os.path.join(root, d), win32security.DACL_SECURITY_INFORMATION | win32security.UNPROTECTED_DACL_SECURITY_INFORMATION, sd)
+                    except:
+                        logging.info("Error setting folder permissions " + os.path.join(root, d))
+
+            
+        return True
+    
+    @staticmethod
     def is_time_to_set_default_ope_folder_permissions():
         # How long has it been since we synced our time?
         last_time_sync = RegistrySettings.get_reg_value(value_name="last_apply_ope_folder_permissions", default=0)
@@ -203,6 +330,12 @@ class FolderPermissions:
             f = open(os.path.join(util.LOG_FOLDER, "ope-mgmt.log"), "w")
             f.close()
         
+         # ---- ope-lockscreen.log ----
+        # Make sure the log file exists so we can set permissions on it later
+        if not os.path.isfile(os.path.join(util.LOG_FOLDER, "ope-lockscreen.log")):
+            f = open(os.path.join(util.LOG_FOLDER, "ope-lockscreen.log"), "w")
+            f.close()
+        
         # ---- ope-state.log ----
         # Make sure the log file exists so we can set permissions on it later
         if not os.path.isfile(os.path.join(util.LOG_FOLDER, "ope-state.log")):
@@ -232,6 +365,7 @@ class FolderPermissions:
             util.LOG_FOLDER: "c",
             os.path.join(util.LOG_FOLDER, "ope-sshot.log"): "a",
             os.path.join(util.LOG_FOLDER, "ope-mgmt.log"): "a",
+            os.path.join(util.LOG_FOLDER, "ope-lockscreen.log"): "a",
             os.path.join(util.LOG_FOLDER, "ope-state.log"): "r",
             os.path.join(util.LOG_FOLDER, "lms_app_debug.log"): "a",
             os.path.join(util.LOG_FOLDER, "upgrade.log"): "r",
@@ -252,6 +386,18 @@ class FolderPermissions:
     def lock_boot_settings():
         ret = True
 
+        # Make sure bootim.exe is disabled (the blue screen menu) This will block recovery options
+        #New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\bootim.exe"
+        #Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\bootim.exe" -Name "Debugger" -Type "String" -Value "taskill /F /IM bootim.exe" -Force
+        RegistrySettings.set_reg_value(
+            root="HKLM",
+            app="Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options",
+            subkey="bootim.exe",
+            value_name="Debugger",
+            value="taskill /F /IM bootim.exe",
+            value_type="REG_SZ")
+
+
         # Get the default from the boot manager
         cmd = "%SystemRoot%\\System32\\bcdedit.exe"
         cmd = os.path.expandvars(cmd)
@@ -265,8 +411,8 @@ class FolderPermissions:
         
         # Is the boot manager listed as {current} or {default}
         boot_identifier = "{current}"
-        if "{default}" in output:
-            boot_identifier = "{default}"
+        #if "{default}" in output:
+        #    boot_identifier = "{default}"
         
         p("}}gnBoot ID: " + boot_identifier + "}}xx", log_level=5)
 
@@ -275,27 +421,36 @@ class FolderPermissions:
         # Lock down boot settings
         # (cmd, required_return_code)
         cmds = [
-            ("%SystemRoot%\\System32\\bcdedit.exe /timeout 0", 0),
-            
-            ("%SystemRoot%\\system32\\bcdedit.exe /set {bootmgr} displaybootmenu no", 0),
-            # Use standard policy - no F8 key
-            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " bootmenupolicy Standard", 0),
-            # Try to boot normally every time - helps to not show recovery options
-            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " bootstatuspolicy ignoreallfailures", 0),
-            # Disable recovery
-            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " recoveryenabled off", 0),
-            ("%SystemRoot%\\system32\\bcdedit.exe /set {globalsettings} recoveryenabled off", 0),
-            # Disable Advanced Options
-            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " advancedoptions off", 0),
-            ("%SystemRoot%\\system32\\bcdedit.exe /set {globalsettings} advancedoptions off", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /deletevalue \"{current}\" recoverysequence ", None),
 
-            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " bootems off", 0),
-            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " optionsedit off", 0),
+            ("%SystemRoot%\\System32\\bcdedit.exe /timeout 0", 0),
+            ("%SystemRoot%\\System32\\bcdedit.exe /set \"{fwbootmgr}\" timeout 0", None),
+            
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"{bootmgr}\" displaybootmenu no", 0),
+            # Use standard policy - no F8 key
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"" + boot_identifier + "\" bootmenupolicy Standard", 0),
+            # Try to boot normally every time - helps to not show recovery options
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"" + boot_identifier + "\" bootstatuspolicy ignoreallfailures", 0),
+            # Disable recovery
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"" + boot_identifier + "\" recoveryenabled off", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"{globalsettings}\" recoveryenabled off", 0),
+            # Disable Advanced Options
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"" + boot_identifier + "\" advancedoptions off", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"{globalsettings}\" advancedoptions off", 0),
+
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"" + boot_identifier + "\" bootems off", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"" + boot_identifier + "\" optionsedit off", 0),
 
             # disable Win Recovery Environment (WinRE)
             ("%SystemRoot%\\system32\\reagentc /disable", None),
 
-            ("%SystemRoot%\\system32\\bcdedit.exe /deletevalue " + boot_identifier + " safeboot ", None),
+            ("%SystemRoot%\\system32\\bcdedit.exe /deletevalue \"" + boot_identifier + "\" safeboot ", None),
+
+            # Set boot UEFI boot order so hard disk is first
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"{fwbootmgr}\" displayorder \"{bootmgr}\"", None),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"{fwbootmgr}\" displayorder \"{bootmgr}\" /addfirst", None),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"{bootmgr}\" displayorder \"{current}\"", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"{bootmgr}\" displayorder \"{current}\" /addfirst", 0),
 
         ]
 
@@ -305,7 +460,10 @@ class FolderPermissions:
             cmd = os.path.expandvars(cmd)
             returncode, output = ProcessManagement.run_cmd(cmd,
                 attempts=3, require_return_code=require_return_code)
-            p(str(returncode) + " - " + output, log_level=5)
+            fail_ok = ""
+            if require_return_code is None:
+                fail_ok = " (ok if this fails) "
+            p(str(returncode) + " - " + fail_ok + output, log_level=4)
             if returncode == -2:
                 # Error running command?
                 p("}}rbError - set boot options!}}xx\n" + output)
@@ -352,6 +510,10 @@ class FolderPermissions:
     
     @staticmethod
     def unlock_boot_settings():
+        ret = True
+        # Unblock bootim (recovery screen stuff)
+        RegistrySettings.remove_key("HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\bootim.exe")
+        
         # Get the default from the boot manager
         cmd = "%SystemRoot%\\System32\\bcdedit.exe"
         cmd = os.path.expandvars(cmd)
@@ -365,28 +527,28 @@ class FolderPermissions:
         
         # Is the boot manager listed as {current} or {default}
         boot_identifier = "{current}"
-        if "{default}" in output:
-            boot_identifier = "{default}"
+        #if "{default}" in output:
+        #    boot_identifier = "{default}"
 
         p("}}gnBoot ID: " + boot_identifier + "}}xx", log_level=4)
 
         cmds = [
             ("%SystemRoot%\\System32\\bcdedit.exe /timeout 30", 0),
             
-            ("%SystemRoot%\\system32\\bcdedit.exe /set {bootmgr} displaybootmenu yes", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"{bootmgr}\" displaybootmenu yes", 0),
             # Use standard policy - no F8 key
-            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " bootmenupolicy Standard", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"" + boot_identifier + "\" bootmenupolicy Standard", 0),
             # Try to boot normally every time - helps to not show recovery options
-            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " bootstatuspolicy IgnoreShutdownFailures", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"" + boot_identifier + "\" bootstatuspolicy IgnoreShutdownFailures", 0),
             # Disable recovery
-            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " recoveryenabled on", 0),
-            ("%SystemRoot%\\system32\\bcdedit.exe /set {globalsettings} recoveryenabled on", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"" + boot_identifier + "\" recoveryenabled on", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"{globalsettings}\" recoveryenabled on", 0),
             # Disable Advanced Options
-            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " advancedoptions on", 0),
-            ("%SystemRoot%\\system32\\bcdedit.exe /set {globalsettings} advancedoptions on", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"" + boot_identifier + "\" advancedoptions on", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"{globalsettings}\" advancedoptions on", 0),
 
-            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " bootems on", 0),
-            ("%SystemRoot%\\system32\\bcdedit.exe /set " + boot_identifier + " optionsedit on", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"" + boot_identifier + "\" bootems on", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"" + boot_identifier + "\" optionsedit on", 0),
 
             # enable Win Recovery Environment (WinRE)
             ("%SystemRoot%\\system32\\reagentc /enable", None),
@@ -410,9 +572,11 @@ class FolderPermissions:
                 p("}}rbError - set boot options!}}xx\n" + output)
                 return False
         
-        return False
+        return ret
       
 
 if __name__ == "__main__":
     p("Testing:")
+    ret = FolderPermissions.lock_boot_settings()
+    p("Return: "  + str(ret))
     

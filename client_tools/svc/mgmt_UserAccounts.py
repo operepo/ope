@@ -12,6 +12,7 @@ import wmi
 import traceback
 import shutil
 import random
+import os
 
 # Need this for winsys exceptions
 import winsys
@@ -20,6 +21,8 @@ from color import p
 import util
 
 from mgmt_RegistrySettings import RegistrySettings
+from mgmt_Computer import Computer
+
 
 class UserAccounts:
 
@@ -86,6 +89,16 @@ class UserAccounts:
 
         return user_name
     
+    @staticmethod
+    def get_user_token(user_name):
+        ret = None
+        try:
+            ret = accounts.principal(user_name)
+        except Exception as ex:
+            p("Exception: " + str(ex) + " - " + traceback.format_exc())
+
+        return ret
+
     @staticmethod
     def get_active_user_token():
         # Figure out the active user token we need to use to run the app as
@@ -297,6 +310,30 @@ class UserAccounts:
             return False
 
         return True
+    
+    @staticmethod
+    def elevate_process_privilege_to_se_security_name():
+        #add_privilege=ntsecuritycon.SE_RESTORE_NAME | 
+        #ntsecuritycon.SE_BACKUP_NAME ):
+        try:
+            se_security_value = win32security.LookupPrivilegeValue(None, ntsecuritycon.SE_SECURITY_NAME)
+
+            flags = ntsecuritycon.TOKEN_ADJUST_PRIVILEGES \
+                | ntsecuritycon.TOKEN_QUERY
+            
+            proces_token = win32security.OpenProcessToken(win32api.GetCurrentProcess(), flags)
+
+            # Add backup/restore privileges
+            new_privs = [(se_security_value, ntsecuritycon.SE_PRIVILEGE_ENABLED),
+                    ]
+
+            win32security.AdjustTokenPrivileges(proces_token, 0, new_privs)
+        except Exception as ex:
+            p("}}rbException - trying to elevate backup/restore privileges}}xx\n" +
+                str(ex))
+            return False
+
+        return True
 
     @staticmethod
     def elevate_process_privilege_to_tcb():
@@ -431,10 +468,9 @@ class UserAccounts:
 
         # Add student to the students group
         p("}}yn\tAdding student to students group...}}xx")
-
         if not UserAccounts.set_default_groups_for_student(user_name):
             ret = False
-
+        
         return ret
 
     @staticmethod
@@ -674,20 +710,54 @@ class UserAccounts:
         
         # We need more privileges to do this next part
         UserAccounts.elevate_process_privilege_to_backup_restore()
-        
+                
         # Make sure the registry hive is unloaded
-        #p("Unloading " + user_sid)
+        p("Unloading " + user_sid)
         try:
-            win32api.RegUnLoadKey(win32con.HKEY_USERS, user_sid)
+            # Open/close the registry key - helps the system let go of it
+            t = RegistrySettings.get_reg_value("HKEY_Users", user_sid, value_name="default", default="")
+
+            # Unload the user hive
+            r = win32api.RegUnLoadKey(win32con.HKEY_USERS, user_sid)
+            p(str(r))
         except Exception as ex:
-            p("}}ynUnable to unload user registry - likely not currently loaded, moving on...}}xx", debug_level=4)
+            p("}}ynUnable to unload user registry - }}xx" + str(ex), debug_level=4)
 
         try:
-            win32profile.DeleteProfile(user_sid)
+            p("Deleting profile...")
+            r = win32profile.DeleteProfile(user_sid)
+            p(str(r))
         except Exception as ex:
-            p("}}ynUnable to remove profile folder - likely it doesn't exist.}}xx", debug_level=4)
+            p("}}ynUnable to remove profile folder - }}xx" + str(ex), debug_level=4)
         return True
         
+
+        # Use WMI to delete
+        # w = Computer.get_wmi_connection() # wmi.WMI()
+        # # for c in w.classes:
+        # #     if 'Profile' in c:
+        # #         print(c)
+        # profiles = w.Win32_UserProfile(SID=user_sid)
+        # if profiles is None:
+        #     p("Unable to find profile for user: " + str(user_sid))
+        #     return False
+        # for profile in profiles:
+        #     #p(str(profile))
+        #     if user_sid == profile.SID:
+        #         p("Removing profile for: " + str(profile.LocalPath))
+        #         #p(str(profile.methods.keys()))
+        #         #p(str(profile.properties.keys()))
+        #         p(str(profile.__dict__.keys()))
+        #         p(str(profile._associated_classes))
+        #         #p(str(profile.id))
+        #         #p(str(profile.ole_object))
+        #         wmi._wmi_method(profile.ole_object, "Delete")
+        #         #profile._wmidelete()
+        #         return True
+
+
+        # return False
+
         # #See if a profile exists
         # w = wmi.WMI()
         # profiles = w.Win32_UserProfile(SID=user_sid)
@@ -855,6 +925,38 @@ class UserAccounts:
         
         # Run this to disable the guest account?
         # NET USER Guest /ACTIVE:no
+        return True
+    
+    @staticmethod
+    def ensure_home_folder_for_user(curr_student):
+        # NOTE - This will blow up windows profiles - win will create a new profile folder, so don't use this
+        return True
+        if curr_student is None or curr_student == "":
+            p("}}rbMissing Username, not making profile folder}}xx")
+            return False
+
+        # Figure out path for this user
+        profile_path = "c:\\users\\" + curr_student
+        # Make sure this student owns and has rw access to profile folder
+        if not os.path.exists(profile_path):
+            p("Making profile folder for: " + str(curr_student))
+            os.makedirs(profile_path, exist_ok=True)
+        
+        # Bump up the privileges so taking control of the folder works
+        r = UserAccounts.elevate_process_privilege_to_se_security_name()
+
+        from mgmt_FolderPermissions import FolderPermissions
+        
+        rights = FolderPermissions.get_acl_rights_for_user(profile_path, curr_student)
+        p(str(rights))
+        if 'w' not in rights:
+            # Can't write to folders? reset permissions
+            p("Setting permissions on home folder: " + str(curr_student) + " -> " + str(profile_path))
+            r = FolderPermissions.set_home_folder_permissions(profile_path, curr_student, walk_files=False)
+            if not r is True:
+                p("Unable to setup profile folder, skipping lms app sync: " + str(curr_student))
+                return False
+        
         return True
   
 

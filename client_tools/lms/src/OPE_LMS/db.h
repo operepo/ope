@@ -112,7 +112,7 @@ signals:
 
 public slots:
 
-    bool init_db();
+    bool init_db(QString db_file);
 
     // == USER FUNCTIONS ==
     bool auth_student(QString user_name, QString password);

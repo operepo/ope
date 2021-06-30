@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import subprocess
+import datetime
 
 from mgmt_FolderPermissions import FolderPermissions
 from mgmt_RegistrySettings import RegistrySettings
@@ -69,7 +70,7 @@ class CredentialProcess:
         smc_url = RegistrySettings.get_reg_value(value_name="smc_url", default="https://smc.ed")
         canvas_url = ""
         canvas_access_token = ""
-        student_user = RegistrySettings.get_reg_value(value_name="student_user")
+        student_user = RegistrySettings.get_reg_value(value_name="student_user", default="")
         student_full_name = ""
         student_password = ""
         smc_admin_user = RegistrySettings.get_reg_value(app="OPEService", value_name="smc_admin_user", default="admin")
@@ -158,7 +159,7 @@ class CredentialProcess:
             
             # If not None - result will be a tuple of information
             laptop_admin_user, student_full_name, smc_version = result
-            
+                        
             # Verify that the info is correct
             txt = """
 }}mn======================================================================
@@ -181,9 +182,9 @@ class CredentialProcess:
             student_text = student_user + " (" + student_full_name + ")"
             txt = txt.replace("<student_user>", student_text.ljust(col_size))
             txt = txt.replace("<bios_serial_number>", 
-                CredentialProcess.COMPUTER_INFO['bios_serial_number'].ljust(col_size))
+                str(CredentialProcess.COMPUTER_INFO['bios_serial_number']).ljust(col_size))
             txt = txt.replace("<disk_serial_number>", 
-                CredentialProcess.COMPUTER_INFO['disk_boot_drive_serial_number'].ljust(col_size))
+                str(CredentialProcess.COMPUTER_INFO['disk_boot_drive_serial_number']).ljust(col_size))
 
             p(txt)
             p("}}ybPress Y to continue: }}xx", False)
@@ -330,10 +331,11 @@ class CredentialProcess:
             description = "Offline LMS app for Open Prison Education project"
         )
 
-        p("}}gnLocking machine - applying security settings...}}xx")
-        if not CredentialProcess.lock_machine():
-            p("}}rbERROR - Unable to lock machine after credentail!}}xx")
-            return False
+        # NOTE - Machine lock_machine run by credential bat file - student account won't be enabled until then.
+        # p("}}gnLocking machine - applying security settings...}}xx")
+        # if not CredentialProcess.lock_machine():
+        #     p("}}rbERROR - Unable to lock machine after credentail!}}xx")
+        #     return False
         
         return True
 
@@ -649,8 +651,8 @@ class CredentialProcess:
             p("}}rbERROR - Unable to log out student accounts prior to upgrade!}}xx")
             return False
         
-        
         p("}}ynLaunching OPE Software Update process...}}xx")
+        RegistrySettings.set_reg_value(value_name="upgrade_started", value=time.time())
         
         # run the upgrade_ope.cmd from the TMP rc folder!!!
         bat_path = os.path.join(ope_laptop_binaries_path, "Services\\mgmt\\rc\\upgrade_ope.cmd")
@@ -681,6 +683,7 @@ class CredentialProcess:
             return False
 
         p("}}gbSUCCESS! - Machine locked and user account enabled.}}xx")
+        RegistrySettings.set_reg_value(value_name="upgrade_started", value=-1)
         return True
 
     @staticmethod
@@ -716,14 +719,40 @@ class CredentialProcess:
         p_state("LMS App Syncing, may take several minutes...", title="LMS Syncing")
 
         RegistrySettings.set_reg_value(value_name="last_sync_lms_app_time", value=time.time())
+
+        # FIRST - Make sure the appdata folder is owned by the current student
+        # so we don't break their profile later (e.g. owned by system)
+        curr_student = CredentialProcess.get_credentialed_student()
+        if curr_student is None:
+            # No credentialed!
+            p("Not currently credentialed, not syncing LMS data.")
+            RegistrySettings.set_reg_value(value_name="last_sync_lms_app_message", value="<not synced yet>")
+            return True
+        
+        # Figure out path for this user
+        profile_path = "c:\\users\\" + curr_student
+        # Make sure profile path exists, or don't sync as syncing will end up creating 
+        # files owned by the system user and screw things up
+        if not os.path.exists(profile_path):
+            p("No profile folder for student, have them login before auto sync will work: " + str(curr_student))
+            return False
+        
         # Redirect stderr to null and write output to the log file
         cmd = "%programdata%\\ope\\Services\\lms\\ope_lms.exe quiet_sync"
         returncode, output = ProcessManagement.run_cmd(cmd,
             require_return_code=0, cmd_timeout=3600)
+        
+        sync_finished = datetime.datetime.strftime(datetime.datetime.now(), "%m/%d %I:%M%p")
         if returncode == -2:
             # Error running command?
-            p("}}rbError - Unable to sync lms app data!}}xx\n" + output)
+            msg = "}}rbError - Unable to sync lms app data!}}xx\n" + output
+            p_state(msg, title="LMS Sync Failed!")
+            RegistrySettings.set_reg_value(value_name="last_sync_lms_app_message", value="LMS Sync Failed: " + sync_finished)
+            # Make sure we try to run this again soon
+            RegistrySettings.reset_timer(timer_name="sync_lms_app_data_timer")
             return False
+        else:
+            RegistrySettings.set_reg_value(value_name="last_sync_lms_app_message", value="LMS Sync Finished: " + sync_finished)
         p("Ret: " + str(returncode) + " - " + output, log_level=3)
         # Write the output to the state log
         p_state(output, title="LMS Syncing")
@@ -780,7 +809,7 @@ class CredentialProcess:
         if not RestClient.ping_smc(smc_url):
             p("}}mnNot able to ping SMC " + smc_url + "}}xx", log_level=4)
             # Ok to return true - we just don't do more maintenance
-            p_state("Offline mode.", title="Offline", state="DONE", kill_logon=False)
+            p_state("Offline mode.", title="Offline", state="IDLE", kill_logon=False)
             RegistrySettings.set_reg_value(value_name="is_online", value=0)
             return True
 
@@ -827,6 +856,10 @@ class CredentialProcess:
         #UserAccounts.disable_student_accounts()
 
         p(CredentialProcess.get_mgmt_version())
+        #RegistrySettings.set_reg_value(value_name="upgrade_started", value=time.time()-9*60)
+        # p("Test")
+        # p(str(RegistrySettings.get_reg_value(value_name="student_user", default=None)))
+        # p(str(RegistrySettings.get_reg_value(app="OPE", value_name="student_user", default=None)))
         pass
 
 

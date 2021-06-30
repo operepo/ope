@@ -10,7 +10,7 @@ import win32ts
 import util
 from mgmt_EventLog import EventLog
 global LOGGER
-LOGGER = EventLog(os.path.join(util.LOG_FOLDER, 'ope-mgmt.log'), service_name="OPELockScreen")
+LOGGER = EventLog(os.path.join(util.LOG_FOLDER, 'ope-lockscreen.log'), service_name="OPELockScreen")
 
 from mgmt_RegistrySettings import RegistrySettings
 from mgmt_UserAccounts import UserAccounts
@@ -121,25 +121,28 @@ class AppWindow(QtWidgets.QWidget):
         self.current_state_title = QtWidgets.QLabel('')
         layout.addWidget(self.current_state_title, 1, 0, 1, 2, QtCore.Qt.AlignRight)
 
-        logs_pos = (2, 0, 1, 2)
-        if self.show_close_button:
-            self.close_button = QtWidgets.QPushButton('Close')
-            self.close_button.clicked.connect(self.on_close)
-            layout.addWidget(self.close_button, 2, 0)
-            # Mmake the logs_pos only take 1 column if close button visible
-            logs_pos = (2, 1, 1, 1)
-
-        self.view_log_button = QtWidgets.QPushButton('Logs')
-        self.view_log_button.clicked.connect(self.on_view_logs)
-        self.view_log_button.setVisible(False)
-        layout.addWidget(self.view_log_button, logs_pos[0], logs_pos[1], logs_pos[2], logs_pos[3])
+        self.last_sync_status = QtWidgets.QLabel('')
+        layout.addWidget(self.last_sync_status, 2, 0, 1, 2, QtCore.Qt.AlignRight)
 
         self.version_label = QtWidgets.QLabel()
         self.version_label.setText("version:")
         layout.addWidget(self.version_label, 3, 0, 1, 2, QtCore.Qt.AlignRight)
       
+        logs_pos = (4, 0, 1, 2)
+        if self.show_close_button:
+            self.close_button = QtWidgets.QPushButton('Close')
+            self.close_button.clicked.connect(self.on_close)
+            layout.addWidget(self.close_button, 4, 0)
+            # Mmake the logs_pos only take 1 column if close button visible
+            logs_pos = (4, 1, 1, 1)
+
+        self.view_log_button = QtWidgets.QPushButton('Logs')
+        self.view_log_button.clicked.connect(self.on_view_logs)
+        self.view_log_button.setVisible(False)
+        layout.addWidget(self.view_log_button, logs_pos[0], logs_pos[1], logs_pos[2], logs_pos[3])
+        
         self.setWindowTitle("OPE Status")
-        self.setFixedSize(200, 170)
+        self.setFixedSize(220, 200)
         self.position_widget()
 
         # Do initial refresh of settings
@@ -154,7 +157,7 @@ class AppWindow(QtWidgets.QWidget):
         # Load the state from the registry every few seconds
         self.refresh_state_from_registry_timer = QtCore.QTimer()
         self.refresh_state_from_registry_timer.timeout.connect(self.refresh_state_from_registry)
-        self.refresh_state_from_registry_timer.setInterval(1000)
+        self.refresh_state_from_registry_timer.setInterval(1500)
         self.refresh_state_from_registry_timer.start()
     
     def refresh_state_from_registry(self):
@@ -163,6 +166,7 @@ class AppWindow(QtWidgets.QWidget):
         ope_state = RegistrySettings.get_reg_value(value_name="ope_state", default="IDLE").lower()
         ope_version = RegistrySettings.get_reg_value(value_name="ope_version", default="<unknown>")
         ope_state_title = RegistrySettings.get_reg_value(value_name="ope_state_title", default="")
+        last_sync_lms_app_message = RegistrySettings.get_reg_value(value_name="last_sync_lms_app_message", default="<not synced yet>")
 
         # Set connection state
         if is_online is True:
@@ -182,6 +186,7 @@ class AppWindow(QtWidgets.QWidget):
         # Get the current mgmt verion
         self.version_label.setText("version: " + ope_version)
         self.current_state_title.setText(ope_state_title)
+        self.last_sync_status.setText(last_sync_lms_app_message)
         return
     
     def animate_current_state(self):

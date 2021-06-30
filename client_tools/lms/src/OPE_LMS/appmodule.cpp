@@ -45,10 +45,20 @@ AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
     // Add our websocket transport so we can communicate with web pages in a webview
     qmlRegisterType<CM_WebSocketTransport>("cm.WebSocketTransport", 1, 0, "WebSocketTransport");
 
+    // Figure out the database path
+    QDir d;
+    d.setPath(this->appDataFolder());
+    d.mkpath(d.path());
+    QString db_file = d.path() + "/lms.db";
+
     // Setup the database connection
     _database = new APP_DB(parent);
-    if (!_database->init_db()) {
-        qDebug() << "FATAL ERROR - Unable to setup database!";
+    qDebug() << "Using Database File: " << db_file;
+    if (!_database->init_db(db_file)) {
+        qDebug() << "FATAL ERROR - Unable to setup database! Not running in UAC mode? " << db_file;
+        qDebug() << "If development, open the students home folder to grant temporary access.";
+        QCoreApplication::quit();
+        return;
     }
 
     // Start localhost web server
@@ -149,6 +159,49 @@ bool AppModule::desktopLaunch(QString url)
     return ret;
 }
 
+QString AppModule::appDataFolder()
+{
+    // Find the appdata folder
+    // NOTE - if no user set in registry (not credentialed?), then grab dir for current user.
+    QString curr_student = this->get_current_student_user();
+    if (curr_student == "") {
+        // Return the standard path for the current logged in user.
+        QString p = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+        QDir d;
+        d.setPath(p);
+        d.mkpath(d.path());
+        return p + "/";
+    }
+
+    // Build the path and make sure it exists.
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    QString app_data_path = env.value("Public", "c:/users/Public"); // Should be c:\\users\\Public
+    if (app_data_path == "") {
+        // Empty, put in a default
+        app_data_path = "c:/users/Public";
+    }
+    app_data_path = app_data_path.replace("Public", ""); // strip off Public
+    app_data_path = app_data_path + curr_student + "/AppData/Local"; // Add in current student
+
+    // Add in the company name and app name folders
+    QString org_name = QCoreApplication::organizationName();
+    QString app_name = QCoreApplication::applicationName();
+
+    if (org_name != "") {
+        app_data_path += "/" + org_name;
+    }
+    if (app_name != "") {
+        app_data_path += "/" + app_name;
+    }
+
+    QDir d;
+    d.setPath(app_data_path + "/");
+    // Make sure folder exists
+    d.mkpath(d.path());
+
+    return app_data_path;
+}
+
 QString AppModule::dataFolder()
 {
     QDir d;
@@ -168,7 +221,8 @@ QString AppModule::dataFolder()
         }
         d.setPath(dataAbsPath);
     #else
-        d.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/content");
+        //d.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/content");
+        d.setPath(this->appDataFolder() + "/content");
     #endif
 
     d.mkpath(d.path());
@@ -179,7 +233,8 @@ QString AppModule::dataFolder()
 QString AppModule::fileCacheFolder()
 {
     QDir base_dir;
-    base_dir.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/content/www_root/canvas_file_cache/");
+    //base_dir.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/content/www_root/canvas_file_cache/");
+    base_dir.setPath(this->appDataFolder() + "/content/www_root/canvas_file_cache/");
     base_dir.mkpath(base_dir.path());
     return base_dir.path();
 }

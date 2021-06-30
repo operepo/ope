@@ -473,6 +473,11 @@ class LockScreen:
     @staticmethod
     def show_lock_screen_widget():
         ret = True
+
+        # If we are not "SYSTEM" user, return true
+        if UserAccounts.get_current_user() != "SYSTEM":
+            p("show_lock_screen_widget - NOT SYSTEM USER, not launching", log_level=5)
+            return True
         
         # Bump up the privileges
         r = UserAccounts.elevate_process_privilege_to_debug()

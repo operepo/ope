@@ -14,20 +14,24 @@ This project consists of building and staging of apps, easy deployment into faci
 3) Provide laptop images that can sync to a learning management system, credential for an individual student, and apply security settings to keep the system secure during use
 
 # Project Members
-- Project Lead:
-    - Brian Walsh <bwalsh@sbctc.edu>
-- Software Development:
+- Project Administration:
+    - Patricia R. Seibert-Love <pseibert-love@sbctc.edu>
+- Lead Developer, System Architect:
     - Ray Pulsipher <rpulsipher@pencol.edu>
-    - Kent James <kent@caspia.com>
-- Product Testing:
+- Testing/Development/Technical Support:
+    - Andy Duckworth <aduckworth@sbctc.edu>
     - Mike Huse <mdhuse@DOC1.WA.GOV>
     - Daniel Gonzales <dgonzales@DOC1.WA.GOV>
-    - Robert Deans <rpdeans@DOC1.WA.GOV>
-    - Ian Thomas <IThomas@clark.edu>
-- Docker App Development:
-    - Kris Gonyo <kristophergonyo@gmail.com>
-- Fabrication - Secure sync boxes
-    - Kristopher Margart <kwmargart@DOC1.WA.GOV>
+    - Tyler Goggins <tmgoggans@DOC1.WA.GOV>
+    - John Michel <jpmichel@DOC1.WA.GOV>
+- Fabrication
+    - Kristopher Margart <kwmargart@DOC1.WA.GOV> - Special thanks to the Education Department and CI at Walla Wall State Penitentiary for building secure sync boxes
+- Special Contributions:
+    - Brian Walsh <bwalsh@Vera.org> - Original vision and responsible getting this
+    project started. None of this exists without his support
+    - Allan Soper <aesoper@DOC1.WA.GOV> - DOC Side support and security consulting
+    - Kris Gonyo <kristophergonyo@gmail.com> - for past tech work/testing
+    - Kent James <kent@caspia.com> - for past tech work/testing
 
 
 # Deployment Steps

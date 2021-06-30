@@ -177,7 +177,7 @@ class RegistrySettings:
         path = os.path.join(root, app, subkey).replace("\\\\", "\\")
         # Make sure we don't have a tailing \\
         path = path.strip("\\")
-        # p("path: " + path)
+        #p("path: " + path)
 
         try:
             # Open the key
@@ -187,6 +187,7 @@ class RegistrySettings:
             key.create()
             
             val = key.get_value(value_name)
+            
             # p("Got Val: " + str(val))
 
             if value_type == "REG_SZ":
@@ -397,19 +398,25 @@ class RegistrySettings:
                 base_dacl.append((laptop_admin_user, registry.Registry.ACCESS["F"], "ALLOW"))
                 service_base_dacl.append((laptop_admin_user, registry.Registry.ACCESS["F"], "ALLOW"))
 
-            # Make sure the logging registry key has proper permissions
-            reg = registry.registry(r"HKLM\System\CurrentControlSet\Services\EventLog\Application\OPE",
-                access=REGISTRY_ACCESS.KEY_ALL_ACCESS|REGISTRY_ACCESS.KEY_WOW64_64KEY)
-            reg.create()
-            with reg.security() as s:
-                # Break inheritance causes things to reapply properly
-                s.break_inheritance(copy_first=True)
-                s.owner = accounts.principal("Administrators")
-                #s.dacl = base_dacl
-                s.dacl.append(("Everyone",
-                    registry.Registry.ACCESS["R"],
-                    "ALLOW"))
-                # s.dacl.dump()
+            try:
+                # Make sure the logging registry key has proper permissions
+                reg = registry.registry(r"HKLM\System\CurrentControlSet\Services\EventLog\Application\OPE",
+                    access=REGISTRY_ACCESS.KEY_ALL_ACCESS|REGISTRY_ACCESS.KEY_WOW64_64KEY)
+                reg.create()
+                with reg.security() as s:
+                    # Break inheritance causes things to reapply properly
+                    s.break_inheritance(copy_first=True)
+                    s.owner = accounts.principal("Administrators")
+                    #s.dacl = base_dacl
+                    s.dacl.append(("Everyone",
+                        registry.Registry.ACCESS["R"],
+                        "ALLOW"))
+                    # s.dacl.dump()
+            except Exception as ex:
+                p("}}ybUnkown Error trying to register OPE Event source:}}xx " + str(ex))
+                p(traceback.format_exc())
+                p("This isn't critical. To try again, try running:\n mgmt set_default_ope_registry_permissions -f ")
+
 
             reg = registry.registry(r"HKLM\Software\OPE",
                 access=REGISTRY_ACCESS.KEY_ALL_ACCESS|REGISTRY_ACCESS.KEY_WOW64_64KEY)

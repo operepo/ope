@@ -140,6 +140,9 @@ public slots:
     // Reset current item to this text
     bool setCurrentItem(QString item_text);
 
+    // Get the appdata folder where we should put stuff
+    QString appDataFolder();
+
 private:
     // ?? Still needed?? Only if using full OAUTH cycle
     QString canvas_client_id;

@@ -31,7 +31,7 @@ class RestClient:
     
     @staticmethod
     def send_rest_call(server, api_endpoint, method="GET", params=None, auth_user=None,
-        auth_password=None, json_params=None):
+        auth_password=None, json_params=None, timeout=30):
         # Get the complete URL for the call 
         rest_url = server
         if not rest_url.endswith("/"):
@@ -51,10 +51,10 @@ class RestClient:
         try:
             if method.upper() == "GET":
                 resp = requests.get(rest_url, params=params, headers=headers,
-                    auth=auth, verify=False, json=json_params)
+                    auth=auth, verify=False, json=json_params, timeout=timeout)
             elif method.upper() == "POST":
                 resp = requests.post(rest_url, params=params, headers=headers,
-                    auth=auth, verify=False, json=json_params)
+                    auth=auth, verify=False, json=json_params, timeout=timeout)
             else:
                 p("}}rb*** METHOD NOT IMPLEMENTED! ***}}xx")
                 return None
@@ -223,7 +223,7 @@ class RestClient:
     def ping_smc(smc_url):
 
         json_response = RestClient.send_rest_call(server=smc_url,
-            api_endpoint="lms/ping.json",
+            api_endpoint="lms/ping.json", timeout=3
             )
 
         if json_response is None:
@@ -236,3 +236,8 @@ class RestClient:
         p("}}mnPING - Got SMC Server time: " + str(server_time) + "}}xx")
 
         return True
+
+if __name__ == "__main__":
+    # Run Tests
+    r = RestClient.ping_smc("https://bad_url.com")
+    p("Response: " + str(r))

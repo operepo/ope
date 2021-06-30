@@ -17,6 +17,7 @@
 //#include <QWebEnginePage>
 #include <QSettings>
 #include <QtConcurrent/QtConcurrent>
+#include <QProcessEnvironment>
 
 #include <QNetworkAccessManager>
 #include <QQmlNetworkAccessManagerFactory>
@@ -109,6 +110,7 @@ public slots:
     bool desktopLaunch(QString url);
 
     // User folder where data can be stored
+    QString appDataFolder();
     QString dataFolder();
     QString fileCacheFolder();
 

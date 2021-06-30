@@ -566,9 +566,57 @@ class Computer:
             name = str(ps.name())
             #print("PS Name: " + name)
             if name.lower() == ps_name.lower():
-                p("Found " + ps_name + " - attempting to kill.")
+                p("Found " + ps_name + " - attempting to kill.", log_level=5)
                 ps.kill()
                 ret = True
+
+        return ret
+
+    @staticmethod
+    def read_mbr(drive="\\\\.\\PhysicalDrive0", mbr_file="rc/gen2_laptop.mbr"):
+        # Grab the MBR from the drive
+        ret = False
+
+        try:
+            mbr_f = open(drive, 'rb')
+            mbr_data = mbr_f.read(1)
+            mbr_f.close()
+        except Exception as ex:
+            print("Unable to read MBR: " + str(drive) + "\n" + str(ex))
+            return False
+        
+        try:
+            dat_file = open(mbr_file, 'wb')
+            dat_file.write(mbr_data)
+            dat_file.close()
+            ret = True
+        except Exception as ex:
+            print("Unable to write MBR data file: " + str(mbr_file) + "\n" + str(ex))
+            return False
+
+        return ret
+    
+    @staticmethod
+    def write_mbr(drive="\\\\.\\PhysicalDrive0", mbr_file="rc/gen2_laptop.mbr"):
+        # Save the MBR file to the drive
+        ret = False
+
+        try:
+            dat_file = open(mbr_file, 'rb')
+            mbr_data = dat_file.read(1)
+            dat_file.close()
+        except Exception as ex:
+            print("Unable to open MBR data file: " + str(mbr_file) + "\n" + str(ex))
+            return False
+
+        try:
+            mbr_f = open(drive, 'wb')
+            mbr_f.write(mbr_data)
+            mbr_f.close()
+            ret = True
+        except Exception as ex:
+            print("Unable to write MBR data file: " + str(mbr_file) + "\n" + str(ex))
+            return False
 
         return ret
 

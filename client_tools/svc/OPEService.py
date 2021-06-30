@@ -24,6 +24,8 @@ import sys
 import os
 import random
 
+from collections import OrderedDict
+
 import util
 
 # Pull in logger first and set it up!
@@ -62,8 +64,13 @@ class OPEService(win32serviceutil.ServiceFramework):
     # Track last time the command was run
     _COMMAND_NEXT_RUN_TIMES = {}
 
+    # Queue of commands
+    _COMMAND_QUEUE = OrderedDict()
+    # Thread that grabs and runs commands (created in __init__)
+    _COMMAND_QUEUE_THREAD = None
+
     # Threads that are currently running
-    _RUNNING_COMMAND_THREADS = {}
+    #_RUNNING_COMMAND_THREADS = {}
 
     @staticmethod
     def check_device_event_queue():
@@ -180,7 +187,7 @@ class OPEService(win32serviceutil.ServiceFramework):
         },
         "scan_nics": {
             "cmd": "%mgmt% scan_nics",
-            "timer": 180
+            "timer": 1200
         },
         "screen_shot": {
             "cmd": "%mgmt% screen_shot",
@@ -192,7 +199,7 @@ class OPEService(win32serviceutil.ServiceFramework):
         # mgmt command device_events (avoid event storm and double bounce)
         "check_device_event_queue": {
             "cmd": check_device_event_queue.__func__,
-            "timer": 10     # run often - we will filter out extras in the function
+            "timer": 30     # run often - we will filter out extras in the function
         },
 
         # Run the actual device event (e.g. mgmt.exe device_event)
@@ -202,7 +209,7 @@ class OPEService(win32serviceutil.ServiceFramework):
         },
         "ping_smc": {
             "cmd": "%mgmt% ping_smc",
-            "timer": 30 # See if we can hit the smc server
+            "timer": 15 # See if we can hit the smc server
         }
         
     }
@@ -283,7 +290,61 @@ class OPEService(win32serviceutil.ServiceFramework):
         else:
             # Shouldn't be scheduling a command that doesn't exist?
             p("Trying to schedule a bad command to run? " + command_name, log_level=1)
-            
+
+    def command_queue_thread(self):
+        # Pick commands off the queue and run them.
+        p("Command queue thread running...", log_level=3)
+        while self.isAlive is True:
+            try:
+                # See if we are paused during an update.
+                last_update_time = RegistrySettings.get_reg_value(
+                    value_name="upgrade_started",
+                    default=-1
+                )
+                curr_time = time.time()
+                max_upgrade_time = 10*60  # 10 mins
+                paused = False
+                if last_update_time == -1:
+                    # Not paused.
+                    paused = False
+                elif curr_time - last_update_time > max_upgrade_time:
+                    # Upgrade taking too long?
+                    p("CQT-Upgrade taking too long, resuming commands.", log_level=3)
+                    paused = False
+                    # Reset the registry key
+                    RegistrySettings.set_reg_value(value_name="upgrade_started", value=-1)
+                elif curr_time - last_update_time < max_upgrade_time:
+                    paused = True
+                    # Waiting for update to finish, skip commands
+                    if RegistrySettings.is_timer_expired(timer_name="service_paused_timer", time_span=120):
+                        p("CQT-Paused waiting for upgrade to finish...", log_level=3)
+
+                # Grab the next command
+                if not paused is True and len(OPEService._COMMAND_QUEUE) > 0:
+                    # Get the command from the queue and remove it
+                    key, cmd_obj = OPEService._COMMAND_QUEUE.popitem(last=False)
+                    command_name = cmd_obj['command_name']
+                    command_args = cmd_obj['args']
+                    p("Command queue thread popped command: " + str(command_name), log_level=5)
+
+                    # Reset timer so it doesn't run again for a bit
+                    self.reset_next_command_run_time(command_name)
+
+                    # Execute this command
+                    self.execute_command(
+                        command_name=command_name,
+                        args=command_args)
+                
+            except Exception as ex:
+                p("}}rbUnknown Exception! command_queue_thread " + \
+                    "}}xx\n" + str(ex) + "\n" + \
+                    traceback.format_exc(), log_level=1)
+                            
+            # Slight pause to slow the loop down
+            time.sleep(0.5)
+
+        p("Command queue thread exiting...", log_level=3)
+        return True
     
     def run_command(self, command_name, args=None, force_run=False):
 
@@ -291,7 +352,7 @@ class OPEService(win32serviceutil.ServiceFramework):
         # the command if it isn't time yet (it will ignore the call)
         time_to_run = False
         # p("Run command called: " + command_name)
-        
+
         try:
             # See if it is time to run
             next_run_time = self.get_next_command_run_time(command_name)
@@ -308,40 +369,17 @@ class OPEService(win32serviceutil.ServiceFramework):
                 time_to_run = True
             
             if time_to_run is True:
-                # Time to run the command, but make sure something else isn't running already
-                last_print = time.time()
-                wait_start = time.time()
-                wait_time = 300 + random.randint(1,60)
-                waiting_for_turn = True
-                if len(self.running_command_threads) < 1:
-                    waiting_for_turn = False
-                while waiting_for_turn is True:
-                    # Stick in this loop until the last command is done
-                    if time.time() - last_print > 5:
-                        p("Waiting for other threads to finish..." + str(command_name) + "/" + str(args))
-                        last_print = time.time()
-                    time.sleep(.5)
-                    if not self.isAlive is True:
-                        p("Exiting early - isAlive = False")
-                        return False
-                    # If we have been waiting longer then wait_time minutes, run anyway
-                    if time.time() - wait_start > wait_time:
-                        waiting_for_turn = False
-                        p("Got tired of waiting, running anyway " + str(command_name) + "/" + str(args))
-                    if len(self.running_command_threads) < 1:
-                        waiting_for_turn = False
-
-                # Start the thread to run the command
-                thread_args = dict(command_name=command_name, args=args)
-                t = threading.Thread(target=self.run_command_thread,
-                    daemon=True,    # Make sure threads die when service stops
-                    name="OPERunCommandThread (" + command_name + ")", kwargs=thread_args)
-                # , daemon=True)
-                self.running_command_threads.append(t)
-                t.start()
-                                
-                # Re-queue the command if needed
-                self.reset_next_command_run_time(command_name)
+                # Time to run the command - make sure it isn't queued already.        
+                if command_name in OPEService._COMMAND_QUEUE:
+                    p("Command already queued, skipping", log_level=6)
+                    # Re-queue the command if needed
+                    self.reset_next_command_run_time(command_name)
+                    return True
+                
+                # Add command to queue so it will run later.
+                cmd_obj = dict(command_name=command_name, args=args)
+                OPEService._COMMAND_QUEUE[command_name] = cmd_obj
+                
             else:
                 # Note - This will generate a LOT of entries - need to collapse/limit this?
                 p("Not time to run command, ignoring: " + command_name + \
@@ -352,11 +390,12 @@ class OPEService(win32serviceutil.ServiceFramework):
             p("}}rbUnknown Exception! Trying to run command " + \
                 command_name + "}}xx\n" + str(ex), log_level=1)
     
-    def run_command_thread(self, command_name, args=None):
+    def execute_command(self, command_name, args=None):
         # Run the actual command in a different thread so it doesn't
         # block the main app
         
         cmd = OPEService._COMMANDS_TO_RUN[command_name]["cmd"]
+        cmd_start = time.time()
 
          # Is this a function pointer or a command line string?
         if callable(cmd):
@@ -379,11 +418,17 @@ class OPEService(win32serviceutil.ServiceFramework):
                 log_level=3)
 
             # Run the command
-            timeout = 20*60 # 20 mins?
+            timeout = 10*60 # 10 mins?
             try:
                 # Log an error if the process doesn't return 0
                 # stdout=PIPE and stderr=STDOUT instead of capture_output=True
-                proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,timeout=timeout, check=False)
+                proc = subprocess.run(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    timeout=timeout,
+                    check=False
+                )
                 if (proc.returncode == 0):
                     p("}}mnCommand Results: " + command_name + " - Args: " +
                         str(args) + "}}xx\n" + proc.stdout.decode(), log_level=3)
@@ -396,12 +441,16 @@ class OPEService(win32serviceutil.ServiceFramework):
                     " - " + str(args) + " --- }}xx\n" + \
                     str(ex), log_level=1)
         
+        cmd_end = time.time()
+        p("Command execution time: " + command_name + " " + str(cmd_start) + "/" + str(cmd_end) + " took " + str(cmd_end - cmd_start) + " seconds", log_level=5)
+
         # Make sure to flush logs to the win event log system
         LOGGER.flush_win_logs()
 
         # Have thread remove itself from the list
-        self.running_command_threads.remove(threading.current_thread())
+        #self.running_command_threads.remove(threading.current_thread())
         # p("Command Finished: " + command_name + " - " + str(args))
+        return True
         
     
     def fix_path_variables(self, cmd):
@@ -425,9 +474,14 @@ class OPEService(win32serviceutil.ServiceFramework):
         if OPEService._svc_instance is not None:
             p("}}rbAnother instance of OPEService decteced?!?!? FIX}}xx")
         OPEService._svc_instance = self
-                
 
-        self.running_command_threads = []
+        # Make sure our command queue thread is running.
+        if OPEService._COMMAND_QUEUE_THREAD is None:
+            t = threading.Thread(target=self.command_queue_thread,
+                daemon=True,  # Make sure thread ends when service stops
+                name="OPECommandQueueThread"
+                )
+            t.start()
 
         try:
             # The signal that "stop" has been hit on the service
@@ -523,8 +577,11 @@ class OPEService(win32serviceutil.ServiceFramework):
             p("}}cb***** OPEService running *****}}xx", log_level=1)
 
             # Do we need a seprate event entry for this?
-            servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE, 
+            try:
+                servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE, 
                                 servicemanager.PYS_SERVICE_STARTED, (self._svc_name_, ''))
+            except Exception as ex:
+                p("}}ybUnable to log message:}}xx " + str(ex))
 
             self.main()
             # win32event.WaitForSingleObject(self.hWaitStop, win32event.INFINITE)
@@ -532,32 +589,46 @@ class OPEService(win32serviceutil.ServiceFramework):
             # Write a stop message.
             p("}}cb***** OPEService Stopping *****}}xx", log_level=1)
             # Do we need a seperate event entry for this?
-            servicemanager.LogMsg(
+            try:
+                servicemanager.LogMsg(
                     servicemanager.EVENTLOG_INFORMATION_TYPE,
                     servicemanager.PYS_SERVICE_STOPPED,
                     (self._svc_name_, '')
                     )
+            except Exception as ex:
+                p("}}ybUnable to log message:}}xx " + str(ex))
+            
         except Exception as ex:
             p("}}rbUnknown Exception: }}xx\n" + str(ex), log_level=1)
             pass
         
+        # try:
+        #     p("}}cn***** Cleaning up worker threads: " + \
+        #         str(len(self.running_command_threads)) + "}}xx", log_level=3)
+        #     for t in self.running_command_threads:
+        #         try:
+        #             t.join(3)
+        #             if t.is_alive():
+        #                 # Still alive? kill it
+        #                 p("}}rnThread hasn't exited yet (" + t.name + ")}}xx")
+        #                 t.stop()
+        #         except Exception as ex:
+        #             p("}}rnError trying to join thread!}}xx\n" + str(ex), log_level=1)
+        # except Exception as ex:
+        #     p("}}rb Unknown exception when shutting down threads }}xx\n" + \
+        #         str(ex), log_level=1)
+        # p("}}cn***** Threads cleaned up. *****}}xx", log_level=3)
         try:
-            p("}}cn***** Cleaning up worker threads: " + \
-                str(len(self.running_command_threads)) + "}}xx", log_level=3)
-            for t in self.running_command_threads:
-                try:
-                    t.join(3)
-                    if t.is_alive():
-                        # Still alive? kill it
-                        p("}}rnThread hasn't exited yet (" + t.name + ")}}xx")
-                        t.stop()
-                except Exception as ex:
-                    p("}}rnError trying to join thread!}}xx\n" + str(ex), log_level=1)
+            # Join the command queue thread
+            if not OPEService._COMMAND_QUEUE_THREAD is None:
+                OPEService._COMMAND_QUEUE_THREAD.join(3)
+                if OPEService._COMMAND_QUEUE_THREAD.is_alive():
+                    # Hard kill
+                    p("}}rnThread hasn't exited yet (" + OPEService._COMMAND_QUEUE_THREAD.name + ")}}xx")
+                    OPEService._COMMAND_QUEUE_THREAD.stop()
         except Exception as ex:
             p("}}rb Unknown exception when shutting down threads }}xx\n" + \
-                str(ex), log_level=1)
-        p("}}cn***** Threads cleaned up. *****}}xx", log_level=3)
-
+                 str(ex), log_level=1)
         p("}}cb***** OPEService Fully Stopped *****}}xx", log_level=1)
 
     def main(self):
@@ -566,18 +637,23 @@ class OPEService(win32serviceutil.ServiceFramework):
         
         # Loop until we get the "Stop" signal from the service
         while self.isAlive is True and rc != win32event.WAIT_OBJECT_0:
+            try:
+                # Decide if it is time to run each command yet.
+                for cmd in OPEService._COMMANDS_TO_RUN:
+                    # run_command will check if it is time to run the command yet
+                    self.run_command(cmd, force_run=False)
+                
+                # See if "stop" has been signaled, or wait for the timeout if it hasn't
+                timeout_wait = OPEService._WAIT_TIMEOUT_MSEC # in miliseconds
+                # This also pauses the app so we aren't eating up extra CPU
+                rc = win32event.WaitForSingleObject(self.hWaitStop, timeout_wait)
+                # Do we need a time sleep also?
+                # time.sleep(0.5)
+            except Exception as ex:
+                p("}}rbFATAL ERROR - main loop blew up, this shouldn't happen.}}xx")
+                p("}}yb" + str(ex) + "}}xx")
+                p("}}yn" + traceback.format_exc() + "}}xx")
 
-            # Decide if it is time to run each command yet.
-            for cmd in OPEService._COMMANDS_TO_RUN:
-                # run_command will check if it is time to run the command yet
-                self.run_command(cmd, force_run=False)
-            
-            # See if "stop" has been signaled, or wait for the timeout if it hasn't
-            timeout_wait = OPEService._WAIT_TIMEOUT_MSEC # in miliseconds
-            # This also pauses the app so we aren't eating up etra CPU
-            rc = win32event.WaitForSingleObject(self.hWaitStop, timeout_wait)
-            # Do we need a time sleep also?
-            # time.sleep(0.5)
         p("}}cnExiting main loop}}xx", log_level=3)
         
         

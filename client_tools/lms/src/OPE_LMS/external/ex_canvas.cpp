@@ -1,4 +1,5 @@
 #include "ex_canvas.h"
+#include "../appmodule.h"
 
 EX_Canvas::EX_Canvas(QObject *parent, APP_DB *db, QSettings *app_settings, QString localhost_url) :
     QObject(parent)
@@ -1962,7 +1963,7 @@ bool EX_Canvas::pullCourseFilesBinaries()
 
     // Get the local cache folder
     QDir base_dir;
-    base_dir.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) +
+    base_dir.setPath(this->appDataFolder() +
                      "/content/www_root/canvas_file_cache/");
     base_dir.mkpath(base_dir.path());
 
@@ -2076,7 +2077,7 @@ bool EX_Canvas::pullCourseFilesBinaries()
 
     // Clear old file cache folder
     QDir old_cache_path;
-    old_cache_path.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/file_cache");
+    old_cache_path.setPath(this->appDataFolder() + "/file_cache");
     foreach(QString f_name, old_cache_path.entryList()) {
         if (f_name == "." || f_name == ".." || f_name == "assignment_files") {
             // Skip these
@@ -3015,7 +3016,7 @@ bool EX_Canvas::queueAssignmentFile(QString course_id, QString assignment_id, QS
 
             // Get the temp path for saving assignments
             QDir cache_path;
-            cache_path.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/file_cache/assignment_files");
+            cache_path.setPath(this->appDataFolder() + "/file_cache/assignment_files");
             // Make sure the base folder exists
             cache_path.mkpath(cache_path.path());
 
@@ -3835,7 +3836,7 @@ bool EX_Canvas::pullSMCVideos()
     // Make sure our cache path exists
     // Get the local cache folder
     QDir base_dir;
-    base_dir.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/content/www_root/smc_video_cache/");
+    base_dir.setPath(this->appDataFolder() + "/content/www_root/smc_video_cache/");
     base_dir.mkpath(base_dir.path());
 
     // Get list of video IDs
@@ -3932,7 +3933,7 @@ bool EX_Canvas::pullSMCDocuments()
 
     // Make sure our cache path exists
     QDir base_dir;
-    base_dir.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/content/www_root/smc_document_cache/");
+    base_dir.setPath(this->appDataFolder() + "/content/www_root/smc_document_cache/");
     base_dir.mkpath(base_dir.path());
 
     // Get the list of document ids
@@ -4101,6 +4102,14 @@ bool EX_Canvas::setCurrentItem(QString item_text)
     progressCurrentItem = item_text;
 
     return true;
+}
+
+QString EX_Canvas::appDataFolder()
+{
+    // Cast appmodule back to its class
+    AppModule *app_module = qobject_cast<AppModule*>(this->parent());
+
+    return app_module->appDataFolder();
 }
 
 QSqlRecord EX_Canvas::pullSinglePage(QString course_id, QString page_url)
