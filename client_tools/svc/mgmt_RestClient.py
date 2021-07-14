@@ -31,7 +31,7 @@ class RestClient:
     
     @staticmethod
     def send_rest_call(server, api_endpoint, method="GET", params=None, auth_user=None,
-        auth_password=None, json_params=None, timeout=30):
+        auth_password=None, json_params=None, timeout=30, log_level=3):
         # Get the complete URL for the call 
         rest_url = server
         if not rest_url.endswith("/"):
@@ -59,16 +59,16 @@ class RestClient:
                 p("}}rb*** METHOD NOT IMPLEMENTED! ***}}xx")
                 return None
         except requests.exceptions.ConnectionError as ex:
-            p("}}rb*** Connection error trying to connect to server ***}}xx")
-            p("}}yn" + str(ex) + "}}xx")
+            p("}}rb*** Connection error trying to connect to server ***}}xx", log_level=log_level)
+            p("}}yn" + str(ex) + "}}xx", log_level=log_level)
             return None
         except requests.exceptions.MissingSchema as ex:
-            p("}}rb*** Connection error trying to connect to server ***}}xx")
-            p("}}yn" + str(ex) + "}}xx")
+            p("}}rb*** Connection error trying to connect to server ***}}xx", log_level=log_level)
+            p("}}yn" + str(ex) + "}}xx", log_level=log_level)
             return None
         except Exception as ex:
-            p("}}rb*** Connection error trying to connect to server ***}}xx")
-            p("}}yn" + str(ex) + "}}xx")
+            p("}}rb*** Connection error trying to connect to server ***}}xx", log_level=log_level)
+            p("}}yn" + str(ex) + "}}xx", log_level=log_level)
             return None
             
         if resp is None:
@@ -223,7 +223,7 @@ class RestClient:
     def ping_smc(smc_url):
 
         json_response = RestClient.send_rest_call(server=smc_url,
-            api_endpoint="lms/ping.json", timeout=3
+            api_endpoint="lms/ping.json", timeout=3, log_level=5
             )
 
         if json_response is None:

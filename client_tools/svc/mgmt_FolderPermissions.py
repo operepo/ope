@@ -386,6 +386,10 @@ class FolderPermissions:
     def lock_boot_settings():
         ret = True
 
+        if RegistrySettings.is_debug():
+            p("}}rbDEBUG MODE ON - Skipping lock_boot_settings policy}}xx")
+            return True
+
         # Make sure bootim.exe is disabled (the blue screen menu) This will block recovery options
         #New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\bootim.exe"
         #Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\bootim.exe" -Name "Debugger" -Type "String" -Value "taskill /F /IM bootim.exe" -Force
@@ -451,6 +455,7 @@ class FolderPermissions:
             ("%SystemRoot%\\system32\\bcdedit.exe /set \"{fwbootmgr}\" displayorder \"{bootmgr}\" /addfirst", None),
             ("%SystemRoot%\\system32\\bcdedit.exe /set \"{bootmgr}\" displayorder \"{current}\"", 0),
             ("%SystemRoot%\\system32\\bcdedit.exe /set \"{bootmgr}\" displayorder \"{current}\" /addfirst", 0),
+            ("%SystemRoot%\\system32\\bcdboot.exe %windir%", 0),
 
         ]
 
@@ -511,6 +516,11 @@ class FolderPermissions:
     @staticmethod
     def unlock_boot_settings():
         ret = True
+
+        if RegistrySettings.is_debug():
+            p("}}rbDEBUG MODE ON - Skipping unlock_boot_settings}}xx")
+            return True
+
         # Unblock bootim (recovery screen stuff)
         RegistrySettings.remove_key("HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\bootim.exe")
         

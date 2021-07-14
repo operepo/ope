@@ -75,7 +75,8 @@ class ProcessManagement:
                                             environment,  # Environment
                                             os.path.dirname(cmd),  # Curr directory
                                             si)  # Startup info
-
+            hThread = hThread  # Make pylint chill
+            dwThreadId = dwThreadId # make pylint chill
             p("Process Started: " + str(dwProcessId), log_level=5)
             p(hProcess, log_level=5)
             ret = True
@@ -100,6 +101,7 @@ class ProcessManagement:
             proc = subprocess.Popen(cmd, bufsize=0, close_fds=True,
                 #stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP)
+            proc = proc # make pylint chill
         except Exception as ex:
             p("}}rbError running detatched command! " + cmd + "}}xx\n" + str(ex))
             return False
@@ -140,6 +142,7 @@ class ProcessManagement:
                 ret = (returncode, out)
                 
             except subprocess.TimeoutExpired as ex:
+                ex = ex # make pylint ignore
                 # If timeout expires, just re-run
                 attempts = attempts - 1
                 if attempts < 1:
@@ -179,6 +182,7 @@ class ProcessManagement:
         try:
             shutil.rmtree(ope_laptop_binaries_path, ignore_errors=True)
         except Exception as ex:
+            ex = ex # make pylint chill
             p("}}rbFatal error - couldn't remove %programdata%\\ope\\tmp\\ope_laptop_binaries folder")
             return False
 
@@ -246,7 +250,7 @@ class ProcessManagement:
         return git_revision
 
     @staticmethod
-    def git_pull_branch(branch=None):
+    def git_pull_branch(branch=None, binaries_path=None):
 
         # Command that is run to start this function
         only_for = "git_pull"
@@ -256,18 +260,29 @@ class ProcessManagement:
         if branch is None:
             branch = RegistrySettings.get_git_branch()
         
+        if binaries_path is None:
+            binaries_path = util.get_param(3, None, only_for=only_for)
+        if binaries_path is None:
+            binaries_path = "%programdata%\\ope\\tmp\\ope_laptop_binaries"
+        
+        # Make sure we remove any extra "s that can be stuck on
+        binaries_path = binaries_path.strip('"')
+        binaries_path = binaries_path.strip("'")
+        
         app_path = util.get_app_folder()
 
         # Make sure the folder exists
-        ope_laptop_binaries_path = os.path.expandvars("%programdata%\\ope\\tmp\\ope_laptop_binaries")
+        ope_laptop_binaries_path = os.path.abspath(os.path.expandvars(binaries_path)).replace("\"", "")
         ope_services_path = os.path.expandvars("%programdata%\\ope\\Services")
+        p(ope_laptop_binaries_path, log_level=4)
+        
         os.makedirs(ope_laptop_binaries_path, exist_ok=True)
         os.makedirs(ope_services_path, exist_ok=True)
 
         git_path = os.path.join(app_path, "rc", "bin", "git.exe")
 
         # Make sure folder is a git repo
-        cmd = git_path + " init \"" + ope_laptop_binaries_path + "\""
+        cmd = git_path + " -C \"" + ope_laptop_binaries_path + "\" init "
         returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
             require_return_code=0)
         if returncode == -2:
@@ -285,7 +300,7 @@ class ProcessManagement:
                 if os.path.isfile(f):
                     # Get the modified date
                     m_time = datetime.datetime.fromtimestamp(os.stat(f).st_mtime)
-                    td = datetime.timedelta(minutes=7)  # Find files older then this
+                    td = datetime.timedelta(minutes=5)  # Find files older then this
                     if m_time < datetime.datetime.now() - td:
                         # Older file...
                         p("}}ybRemoving old lock file:}}xx " + f)
@@ -293,10 +308,10 @@ class ProcessManagement:
                 
         # Add the origins to this git repo
         cmds = [
-            git_path + " remote remove ope_origin",
-            git_path + " remote remove ope_smc_origin",
-            git_path + " remote add ope_origin https://github.com/operepo/ope_laptop_binaries.git",
-            git_path + " remote add ope_smc_origin git://smc.ed/ope_laptop_binaries.git"
+            git_path + " -C \"" + ope_laptop_binaries_path + "\" remote remove ope_origin",
+            git_path + " -C \"" + ope_laptop_binaries_path + "\" remote remove ope_smc_origin",
+            git_path + " -C \"" + ope_laptop_binaries_path + "\" remote add ope_origin https://github.com/operepo/ope_laptop_binaries.git",
+            git_path + " -C \"" + ope_laptop_binaries_path + "\" remote add ope_smc_origin git://smc.ed/ope_laptop_binaries.git"
         ]
 
         for cmd in cmds:
@@ -309,7 +324,8 @@ class ProcessManagement:
             
         # Do a fetch of the branch we want
         # - use -uf to update head and force fetch
-        cmd = git_path + " fetch -uf ope_origin " + branch + ":" + branch
+        git_origin = "ope_origin"
+        cmd = git_path +  " -C \"" + ope_laptop_binaries_path + "\" fetch --depth=1 -uf ope_origin " + branch + ":" + branch
         p("}}gnTrying to fetch from online repo, may take several minutes...}}xx")
         returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
             attempts=1, require_return_code=0, cmd_timeout=None)
@@ -322,7 +338,8 @@ class ProcessManagement:
             p("}}ynUnable to fetch laptop binaries from online source (ope_origin)! Trying SMC server.}}xx\n" + output)
             
             # Try from ope_smc_origin
-            cmd = git_path + " fetch -uf ope_smc_origin " + branch
+            git_origin = "ope_smc_origin"
+            cmd = git_path + " -C \"" + ope_laptop_binaries_path + "\" fetch --depth=1 -uf ope_smc_origin " + branch
             returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
                 attempts=1, require_return_code=0, cmd_timeout=None)
             returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
@@ -337,24 +354,55 @@ class ProcessManagement:
         # Cleanup the folder prior to checkout
         # Make sure we don't have any changes in the folder
         # -f force, -d , -x remove ignore files too
-        cmds = [
-            git_path + " checkout *",           # clear local changes since last commit
-            git_path + " reset --hard HEAD ",   # Reset to current head
-            git_path + " clean -fdx ",          # Delete local changed files
-            #git_path + " checkout -f " + branch 
-        ]
-        for cmd in cmds:
-            returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
-                attempts=3, cmd_timeout=120)
-            p(str(output), log_level=4)
-            if returncode == -2:
-                # Error running command?
-                p("}}rbError - Unable to cleanup repo folder!}}xx\n" + output)
-                return False
+        # cmds = [
+        #     git_path + " -C \"" + ope_laptop_binaries_path + "\" checkout *",           # clear local changes since last commit
+        #     git_path + " -C \"" + ope_laptop_binaries_path + "\" reset --hard HEAD ",   # Reset to current head
+        #     git_path + " -C \"" + ope_laptop_binaries_path + "\" clean -fdx ",          # Delete local changed files
+        #     #git_path + " checkout -f " + branch 
+        # ]
+        # for cmd in cmds:
+        #     returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
+        #         attempts=3, cmd_timeout=120)
+        #     p(str(output), log_level=4)
+        #     if returncode == -2:
+        #         # Error running command?
+        #         p("}}rbError - Unable to cleanup repo folder!}}xx\n" + output)
+        #         return False
+        # Clear old branch - had an ope_origin/master branch shouldn't be there
+        cmd = git_path + " -C \"" + ope_laptop_binaries_path + "\" branch -d " + git_origin + "/" + branch
+        returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
+                cmd_timeout=150)
+        p(str(output), log_level=4)
+        # if returncode == -2:
+        #     # Error running command?
+        #     p("}}rbError - e_laptop_binaries folder and try again.}}xx\n" + output)
+        #     return False
 
-         # Checkout our changes
+
+        # Checkout our changes
         # pull_options = " --autostash --depth=1 --force --no-rebase --allow-unrelated-histories"
-        cmd = git_path + " checkout -f " + branch
+        cmd = git_path + " -C \"" + ope_laptop_binaries_path + "\" checkout -f -B " + branch + " " + git_origin + "/" + branch
+        returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
+            require_return_code=0, cmd_timeout=150, attempts=2)
+        p(str(output), log_level=4)
+        if returncode == -2:
+            # Error running command?
+            p("}}rbError - Unable to checkout git changes! \nTry removing the %programdata%/ope/tmp/ope_laptop_binaries folder and try again.}}xx\n" + output)
+            return False
+        
+        # Reset to head
+        cmd = git_path + " -C \"" + ope_laptop_binaries_path + "\" reset --hard " + git_origin + "/" + branch
+        returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
+            require_return_code=0, cmd_timeout=150, attempts=2)
+        p(str(output), log_level=4)
+        if returncode == -2:
+            # Error running command?
+            p("}}rbError - Unable to checkout git changes! \nTry removing the %programdata%/ope/tmp/ope_laptop_binaries folder and try again.}}xx\n" + output)
+            return False
+        
+        # Checkout our changes - again - just in case
+        # pull_options = " --autostash --depth=1 --force --no-rebase --allow-unrelated-histories"
+        cmd = git_path + " -C \"" + ope_laptop_binaries_path + "\" checkout -f -B " + branch + " " + git_origin + "/" + branch
         returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
             require_return_code=0, cmd_timeout=150, attempts=2)
         p(str(output), log_level=4)
@@ -365,7 +413,7 @@ class ProcessManagement:
 
         # Get the revision id of this repo
         p("}}gnChecking versions...}}xx")
-        cmd = git_path + " rev-parse HEAD"
+        cmd = git_path + " -C \"" + ope_laptop_binaries_path + "\" rev-parse HEAD"
         returncode, output = ProcessManagement.run_cmd(cmd, cwd=ope_laptop_binaries_path,
             require_return_code=0)
         p(str(output), log_level=4)

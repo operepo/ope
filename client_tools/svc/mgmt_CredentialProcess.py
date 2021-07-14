@@ -493,9 +493,11 @@ class CredentialProcess:
             return False
         
         # Ensure the lock screen widget is cycled
-        if not LockScreen.refresh_lock_screen_widget():
-            p("}}rbError - Unable to cycle lock_screen_widget properly!\nStudent Account NOT unlocked!}}xx")
-            return False
+        # Note -t is ok if this fails, not worth killing "credential" process over
+        LockScreen.refresh_lock_screen_widget()
+        # if not LockScreen.refresh_lock_screen_widget():
+        #     p("}}rbError - Unable to cycle lock_screen_widget properly!\nStudent Account NOT unlocked!}}xx")
+        #     return False
 
         # Enable student account
         if not UserAccounts.enable_account(student_user_name):
@@ -674,6 +676,7 @@ class CredentialProcess:
 
     @staticmethod
     def finish_upgrade_process():
+        p("}}ynFinish Upgrade Process Called, continuing...}}xx")
         CredentialProcess.store_ope_version()
         # If everything was successful, then
         # - Re-apply security
@@ -736,6 +739,19 @@ class CredentialProcess:
         if not os.path.exists(profile_path):
             p("No profile folder for student, have them login before auto sync will work: " + str(curr_student))
             return False
+        
+        # See if we have permissions to write to the folder - make sure we do...
+        try:
+            # Elevate process rights
+            UserAccounts.elevate_process_privilege_to_se_security_name()
+            # Get permissions (list of things like 'r', 'w', 'a', etc...)
+            perms = FolderPermissions.get_acl_rights_for_user(profile_path, curr_student)
+            #p(str(perms))
+            if "w" not in perms:
+                p("Adding permissions for profile folder: " + str(profile_path))
+                FolderPermissions.set_home_folder_permissions(profile_path, curr_student, walk_files=False)
+        except Exception as ex:
+            p("ERROR - Unable to set folder permissions for profile folder: " + str(profile_path) + "\n" + str(ex))
         
         # Redirect stderr to null and write output to the log file
         cmd = "%programdata%\\ope\\Services\\lms\\ope_lms.exe quiet_sync"
