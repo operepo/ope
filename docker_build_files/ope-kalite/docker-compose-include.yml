@@ -16,5 +16,11 @@
             - VIRTUAL_HOST=kalite.<DOMAIN>,khan.<DOMAIN>
             - LETSENCRYPT_HOST=khan.<DOMAIN>,kalite.<DOMAIN>
             - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
-
+            - VIRTUAL_PORT=8008
+            # Share the default cert on the gateway
+            - CERT_NAME=<CERT_NAME>
+            - VIRTUAL_PROTO=http
+            #- VIRTUAL_PROTO=uwsgi
+            - HTTPS_METHOD=redirect
+            - IS_ONLINE=${IS_ONLINE}
        
