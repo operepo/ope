@@ -2,7 +2,7 @@ FROM alpine:3.13
 MAINTAINER Ray Pulspher <ray@cmagic.biz>
 LABEL Description="Student Management Console - Image for Open Prison Education"
 LABEL Vendor="openprisoneducation.com"
-LABEL Version="1.3"
+LABEL Version="1.4"
 
 # install base
 RUN apk update \
@@ -60,7 +60,7 @@ RUN apk update \
 #RUN pip install git+https://github.com/nficano/pytube.git@refs/pull/701/head
 # Install 9.7.0
 #RUN pip install git+https://github.com/nficano/pytube.git@refs/tags/v9.7.0
-LABEL pytube_version=10.8.5
+LABEL pytube_version=11.0.0a
 RUN python -m pip install --upgrade pytube
 
 # Set ENV Vars
@@ -109,7 +109,7 @@ LABEL rebuild_smc=11
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE v1.9.69
+ENV SMC_RELEASE v1.9.70
 
 RUN cd $W2P_DIR \
     && git init \

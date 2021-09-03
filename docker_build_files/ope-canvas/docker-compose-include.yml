@@ -59,4 +59,4 @@
             # ${CANVAS_RCE_DEFAULT_DOMAIN}
             # Send links to rce server through the gateway
             - ope-gateway:${CANVAS_MATHMAN_DEFAULT_DOMAIN}
-
+            - ope-gateway:gateway.<DOMAIN>
