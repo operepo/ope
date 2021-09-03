@@ -24,7 +24,7 @@ def get_app_digest(app_name):
         # Go through each line and find the digest for the latest tagged item
         parts = line.split()
         if parts[0] == repo_name + "/" + app_name and parts[1] == tag:
-            #print "\tFound digest: " + parts[2] + " for: " + repo_name + "/" + app_name + ":" + tag
+            #print("\tFound digest: " + parts[2] + " for: " + repo_name + "/" + app_name + ":" + tag)
             ret = parts[2]
     
     return ret
@@ -71,10 +71,10 @@ def load_app(app_name):
     tar_digest = get_tar_digest(app_name)
     # Load the current docker digest
     app_digest = get_app_digest(app_name)
-    print "Digests (tar/app): " + tar_digest + "/" + app_digest
+    print("Digests (tar/app): " + tar_digest + "/" + app_digest)
     if app_digest != tar_digest or app_digest == "..." or tar_digest == "..":
         # Save the binary
-        print "\tApp modified, importing with docker load from: " + img_path        
+        print("\tApp modified, importing with docker load from: " + img_path)
         os.system("docker load -i " + img_path)
         
         # Update the digest
@@ -82,25 +82,25 @@ def load_app(app_name):
         save_app_digest(app_name, app_digest)
     else:
         # App hasn't changed
-        print "\tApp hasn't changed, skipping."
+        print("\tApp hasn't changed, skipping.")
     
   
 def processFolder(cwd=""):
     global save_path, repo_name
     ret = ""
     if (os.path.isdir(cwd) != True):
-        #print "Not a folder, skipping..."
+        #print("Not a folder, skipping...")
         return ret
     
     enabled = os.path.join(cwd, ".enabled")
     if (os.path.isfile(enabled) != True):
-        #print "Not enabled, skipping " + cwd
+        #print("Not enabled, skipping " + cwd)
         return ret
     
     dname = os.path.basename(cwd)
-    print "============================================"
-    print " Processing Image " + dname
-    print "============================================"
+    print("============================================")
+    print(" Processing Image " + dname)
+    print("============================================")
     load_app(dname)
     
     return ret
@@ -110,15 +110,15 @@ def processFolder(cwd=""):
     # global save_path, repo_name
     # ret = ""
     # if (os.path.isfile(cwd) != True):
-        #print "Not a file, skipping..."
+        #print("Not a file, skipping...")
         # return ret
     
     
     # dname = os.path.basename(cwd)
     # if (dname.startswith("ope-")):
-        # print "\t============================================"
-        # print "\tProcessing Image " + dname
-        # print "\t============================================"
+        # print("\t============================================")
+        # print("\tProcessing Image " + dname)
+        # print("\t============================================")
         # img_path = os.path.join(save_path, dname)
         # os.system("docker load -i " + img_path)
 

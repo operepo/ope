@@ -25,7 +25,7 @@ def get_app_digest(app_name):
         # Go through each line and find the digest for the latest tagged item
         parts = line.split()
         if parts[0] == repo_name + "/" + app_name and parts[1] == tag:
-            #print "\tFound digest: " + parts[2] + " for: " + repo_name + "/" + app_name
+            #print("\tFound digest: " + parts[2] + " for: " + repo_name + "/" + app_name)
             ret = parts[2]
     
     return ret
@@ -75,7 +75,7 @@ def save_app(app_name):
     
     if app_digest != tar_digest:
         # Save the binary
-        print "\tApp modified, exporting with docker save to: " + img_path
+        print("\tApp modified, exporting with docker save to: " + img_path)
         #os.system("docker save -o " + img_path + " " + repo_name + "/" + app_name + ":" + tag)
         os.system("docker save " + repo_name + "/" + app_name + ":" + tag + " | gzip --best > " + img_path)
         
@@ -83,7 +83,7 @@ def save_app(app_name):
         save_app_digest(app_name, app_digest)
     else:
         # App hasn't changed
-        print "\tApp hasn't changed, skipping."
+        print("\tApp hasn't changed, skipping.")
     
     
     
@@ -92,18 +92,18 @@ def processFolder(cwd=""):
     global save_path, repo_name
     ret = ""
     if (os.path.isdir(cwd) != True):
-        #print "Not a folder, skipping..."
+        #print("Not a folder, skipping...")
         return ret
     
     enabled = os.path.join(cwd, ".enabled")
     if (os.path.isfile(enabled) != True):
-        #print "Not enabled, skipping " + cwd
+        #print("Not enabled, skipping " + cwd)
         return ret
     
     dname = os.path.basename(cwd)
-    print "============================================"
-    print " Processing Image " + dname
-    print "============================================"
+    print("============================================")
+    print(" Processing Image " + dname)
+    print("============================================")
     save_app(dname)
     
     return ret
