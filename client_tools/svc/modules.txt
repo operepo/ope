@@ -25,3 +25,4 @@ pyscreenshot
 ctypes
 wmi
 psutil
+firmware_variables

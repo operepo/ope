@@ -1,3 +1,25 @@
+"""
+References for BCD/EFI Boot Options
+REPAIR BCD https://www.boyans.net/RepairWindows/RepairWindowsBCD.html
+
+
+https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/bcd-system-store-settings-for-uefi
+https://serverfault.com/questions/714337/changing-uefi-boot-order-from-windows
+
+Get boot info via WMI
+https://social.technet.microsoft.com/Forums/en-US/18094085-781f-4649-8ff8-331388097911/how-to-get-boot-configuration-data-bcd-information-out-of-wmi-with-powershell?forum=ITCG
+
+Python - firmware_variables
+https://github.com/netaneld122/firmware-variables
+
+BCD Python Lib
+https://github.com/trolldbois/bcdedit
+
+Win32 example - bcd
+https://github.com/sysprogs/BazisLib/blob/master/bzshlp/Win32/BCD.h
+
+"""
+
 import pythoncom
 import win32serviceutil
 import win32service

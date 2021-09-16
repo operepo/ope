@@ -697,3 +697,437 @@ if __name__ == '__main__':
         servicemanager.StartServiceCtrlDispatcher()
     else:
         win32serviceutil.HandleCommandLine(OPEService)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+from firmware_variables import *
+from firmware_variables.load_option  import LoadOptionAttributes, LoadOption
+from firmware_variables.device_path import DevicePathList, DevicePath, DevicePathType, MediaDevicePathSubtype, EndOfHardwareDevicePathSubtype
+from firmware_variables.utils import verify_uefi_firmware, string_to_utf16_bytes, utf16_string_from_bytes
+import struct
+import collections
+import uuid
+import sys
+import io
+import traceback
+import win32file
+import win32con
+import winioctlcon
+import pythoncom
+import wmi
+import ctypes
+from ctypes import wintypes
+import winerror
+
+kernel32 = ctypes.WinDLL('kernel32')
+
+# Register wapi functions
+kernel32.FindFirstVolumeW.restype = wintypes.HANDLE
+kernel32.FindNextVolumeW.argtypes = (wintypes.HANDLE,
+    wintypes.LPWSTR,
+    wintypes.DWORD)
+kernel32.FindVolumeClose.argtypes = (wintypes.HANDLE,)
+
+
+def FindFirstVolume():
+    v_name = ctypes.create_unicode_buffer(" " *  255)
+    h = kernel32.FindFirstVolumeW(v_name, 255)
+    if h == win32file.INVALID_HANDLE_VALUE:
+        raise Exception("Invalid Handle for FindFirstVolume")
+    
+    return h, v_name.value
+
+def FindNextVolume(h):
+    v_name = ctypes.create_unicode_buffer(" " *  255)
+    if kernel32.FindNextVolumeW(h, v_name, 255) != 0:
+        return v_name.value
+    
+    # Error if we get here
+    e = ctypes.GetLastError()
+    if e == winerror.ERROR_NO_MORE_FILES:
+        FindVolumeClose(h)
+        return None
+    raise Exception("Error calling FindNextVolumeW (%s)" % e)
+    
+def FindVolumeClose(h):
+    if kernel32.FindVolumeClose(h) == 0:
+        # Failed?
+        raise Exception("FindVolumeClose failed on handle (%s)" % h)
+    
+
+
+
+# Boot Variables
+# Boot#### - #### Hex value, no 0x or h, for the item
+# BootCurrent - Option selected for the current boot
+# BootNext - Boot option for next boot only
+# BootOrder - List of boot options in order
+# BootOrderSupport - Types of boot options supported by the boot manager (read only)
+
+# Driver#### - Driver load option
+# DriverOrder - Ordered list of drivers to load
+ 
+"""
+efi boot item:
+struct {
+  UINT32 // Attributes - bit mask
+  UINT16 // File Path List Length  - len in bytes of whole file path list Optional Data starts at sizeof(UINT32) + sizeof(UINT16) + strsize(Description) + FilePathListLengh
+  CHAR16  // Description - Null term string
+  EFI_DEVICE_PATH_PROTOCOL  // FilePathList[]
+  UINT8     //Optional Data - calculate size from starting offset to size of whole load_option structure
+}
+  
+
+"""
+
+#pythoncom.CoInitialize()
+#pythoncom.CoUnInitialize()
+
+DISKDRIVES_QUERY = "SELECT * FROM Win32_DiskDrive"
+VOLUME_QUERY = "SELECT * FROM Win32_Volume"
+VOLUME_CLUSTER_SIZE_QUERY = "SELECT Name, Blocksize FROM Win32_Volume WHERE FileSystem='NTFS'"
+DISKDRIVE_TO_DISKPARTITIONS_QUERY = r'SELECT * FROM Win32_DiskDriveToDiskPartition WHERE Antecedent="{}"'
+DISKPARTITION_QUERY = r'SELECT * FROM Win32_DiskPartition WHERE DeviceID={}'
+
+
+class PhysicalDrive():
+    DRIVES = dict()
+    
+    def __init__(self, drive_id=0, wmi_obj=None):
+        self.drive_id = drive_id
+        self.win_path = r"\\.\PHYSICALDRIVE" + str(self.drive_id)
+        self.wmi_obj = wmi_obj
+    
+    def get_partitions(self):
+        
+        partitions = list()
+        
+        # Get the mapping from disk to partition
+        res = self.wmi_obj.associators("MSFT_DiskToPartition")
+        #self.wmi_obj.associators("Win32_DiskDriveToDiskPartition")
+        
+        for r in res:
+            #print(r)
+            partitions.append(r)
+        
+        return partitions
+    
+    def IsBoot(self):
+        if self.wmi_obj is None:
+            print("WMI OBJ is NULL!")
+            return False
+        
+        return self.wmi_obj.IsBoot
+        
+    def __repr__(self):
+        DeviceID = None
+        guid = None
+        if self.wmi_obj is not None:
+            DeviceID = self.wmi_obj # self.wmi_obj.DeviceID
+            #guid = self.wmi_obj.Guid
+        return "Drive <" + str(self.win_path) + ", " + str(DeviceID) + ">"
+    
+    @staticmethod
+    def get_drives():
+        # https://stackoverflow.com/questions/56784915/python-wmi-can-we-really-say-that-c-is-always-the-boot-drive
+        w = wmi.WMI(namespace='root/Microsoft/Windows/Storage')
+        res = w.MSFT_Disk() #w.Win32_DiskDrive()
+        PhysicalDrive.DRIVES = dict()
+        for r in res:
+            #print(r)
+            disk_number = r.Number # r.Index
+            physical_path = r'\\.\PHYSICALDRIVE' + str(disk_number)  # r.DeviceID
+            d = PhysicalDrive(disk_number, r)
+            PhysicalDrive.DRIVES[physical_path] = d
+        
+        return PhysicalDrive.DRIVES
+        
+        
+        
+
+def findVolumeGuids_broken():
+    DiskExtent = collections.namedtuple(
+        'DiskExtent', ['DiskNumber', 'StartingOffset', 'ExtentLength'])
+    Volume = collections.namedtuple(
+        'Volume', ['Guid', 'MediaType', 'DosDevice', 'Extents'])
+    found = []
+    h, guid = FindFirstVolume()
+    while h and guid:
+        #print (guid)
+        #print (guid, win32file.GetDriveType(guid),
+        #       win32file.QueryDosDevice(guid[4:-1]))
+        hVolume = win32file.CreateFile(
+            guid[:-1], win32con.GENERIC_READ,
+            win32con.FILE_SHARE_READ | win32con.FILE_SHARE_WRITE,
+            None, win32con.OPEN_EXISTING, win32con.FILE_ATTRIBUTE_NORMAL,  None)
+        extents = []
+        driveType = win32file.GetDriveType(guid)
+        if driveType in [win32con.DRIVE_REMOVABLE, win32con.DRIVE_FIXED]:
+            x = win32file.DeviceIoControl(
+                hVolume, winioctlcon.IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS,
+                None, 512, None)
+            instream = io.BytesIO(x)
+            numRecords = struct.unpack('<q', instream.read(8))[0]
+            fmt = '<qqq'
+            sz = struct.calcsize(fmt)
+            while 1:
+                b = instream.read(sz)
+                if len(b) < sz:
+                    break
+                rec = struct.unpack(fmt, b)
+                extents.append( DiskExtent(*rec) )
+        vinfo = Volume(guid, driveType, win32file.QueryDosDevice(guid[4:-1]),
+                       extents)
+        found.append(vinfo)
+        guid = FindNextVolume(h)
+    return found
+
+def find_efi_partition():
+        
+    drives = PhysicalDrive.get_drives()
+    for drive_path in drives:
+        drive = drives[drive_path]
+        #print(drive)
+        if drive.IsBoot() == True:
+            # Found the boot drive, look for the EFI partition
+            partitions = drive.get_partitions()
+            #print(partitions)
+            for part in partitions:
+                if part.GptType == "{c12a7328-f81f-11d2-ba4b-00a0c93ec93b}":
+                    print("Found EFI Part: " + part.Guid)
+                    print(part)
+                    sector_size = int(drive.wmi_obj.PhysicalSectorSize)
+                    part_starting_sector = int(int(part.Offset) / sector_size)
+                    part_size = int(int(part.Size) / sector_size)
+                    part_guid = part.Guid
+                    part_number = part.PartitionNumber
+                    return (part, part_guid, part_number, part_starting_sector, part_size)
+                                    
+    
+    print("ERROR - Unable to find EFI partition!")
+    
+    return None
+
+def parse_uefi_data(data):
+    data_len = len(data)
+    import locale   
+    ret = str(data, "utf-16-le" )  # utf8, utf16, cp437
+    #ret = str(struct.unpack(str(data_len)+"B", data), "UTF-8") #.decode("UTF-8")
+    #ret = struct.unpack("B", data)  #.decode("UTF-16-LE")
+    #print(ret)
+    return ret
+
+# Get all entries
+with privileges():
+    try:
+        verify_uefi_firmware()
+    except:
+        print("Not UEFI Bios!")
+        sys.exit(0)
+
+    found_entries = dict()
+    
+    # Always BCDOBJECT={9dea862c-5cdd-4e70-acc1-f32b344d4795} w some other data??? - is boot manager id
+    WIN_OPTIONAL_DATA = b'WINDOWS\x00\x01\x00\x00\x00\x88\x00\x00\x00x\x00\x00\x00B\x00C\x00D\x00O\x00B\x00J\x00E\x00C\x00T\x00=\x00{\x009\x00d\x00e\x00a\x008\x006\x002\x00c\x00-\x005\x00c\x00d\x00d\x00-\x004\x00e\x007\x000\x00-\x00a\x00c\x00c\x001\x00-\x00f\x003\x002\x00b\x003\x004\x004\x00d\x004\x007\x009\x005\x00}\x00\x00\x00.\x00\x01\x00\x00\x00\x10\x00\x00\x00\x04\x00\x00\x00\x7f\xff\x04\x00'
+    #b'WINDOWS\x00\x01\x00\x00\x00\x88\x00\x00\x00x\x00\x00\x00B\x00C\x00D\x00O\x00B\x00J\x00E\x00C\x00T\x00=\x00{\x009\x00d\x00e\x00a\x008\x006\x002\x00c\x00-\x005\x00c\x00d\x00d\x00-\x004\x00e\x007\x000\x00-\x00a\x00c\x00c\x001\x00-\x00f\x003\x002\x00b\x003\x004\x004\x00d\x004\x007\x009\x005\x00}\x00\x00\x00.\x00\x01\x00\x00\x00\x10\x00\x00\x00\x04\x00\x00\x00\x7f\xff\x04\x00'
+    #b'WINDOWS\x00\x01\x00\x00\x00\x88\x00\x00\x00x\x00\x00\x00B\x00C\x00D\x00O\x00B\x00J\x00E\x00C\x00T\x00=\x00{\x009\x00d\x00e\x00a\x008\x006\x002\x00c\x00-\x005\x00c\x00d\x00d\x00-\x004\x00e\x007\x000\x00-\x00a\x00c\x00c\x001\x00-\x00f\x003\x002\x00b\x003\x004\x004\x00d\x004\x007\x009\x005\x00}\x00\x00\x00\x00\x00\x01\x00\x00\x00\x10\x00\x00\x00\x04\x00\x00\x00\x7f\xff\x04\x00'
+    WIN_DEVICE_PATH_DATA = string_to_utf16_bytes("\\EFI\\Microsoft\\Boot\\bootmgfw.efi")
+    #b'\x02\x00\x00\x00\x00\x18\x0e\x00\x00\x00\x00\x00\x00 \x03\x00\x00\x00\x00\x00\xfc?\x1bs{\xb5rL\x91\xf7\xbar\xb8\xbe\x11h\x02\x02'
+    """
+        type -              1 byte - Type 4 - MEDIA_DEVICE_PATH (added during tobytes)
+        sub-type -          1 byte - Type 1 - HARD_DRIVE (added during tobytes)
+        length -            2 bytes - len of this structure (42 bytes? added during tobytes)
+        partition number -  4 bytes - 0 means whole disk, 1 = first part, 1-4 valid for MBR, 1-count valid for GPT
+        partition start  -  8 bytes - Starting LBA of partition
+        partition size -    8 bytes - Size of part in logical blocks
+        Part Signature -    16 bytes - 0 if part type is 0, type 1 = mbr sig in first 4 bytes, type 2= 16 byte signature (guid?)
+        part format -       1 byte   - 0x01 - mbr, 0x02 - guid parition
+        Sig Type -          1 byte   - 0x00 - no signature, 0x01 - 32 bit signature from address 0x1b8 of type 0x01 mbr, 0x02 - GUID signature
+        
+        
+    """
+    boot_part = find_efi_partition()
+    if boot_part is None:
+        print("Error - Unable to find efi boot part!")
+        sys.exit(-1)
+    (part, part_guid, part_number, part_starting_sector, part_size) = boot_part
+    # bytes_le - little endian for first half bytes
+    packed_guid = uuid.UUID(part_guid).bytes_le
+
+    # Pack data into this structure
+    # part num - 8 bytes, part_start 8 bytes, part_size 8 bytes, part guid - 16 bytes, part format - 1 byte, sig type - 1 byte
+    WIN_HARD_DRIVE_MEDIA_PATH = b''
+    WIN_HARD_DRIVE_MEDIA_PATH = struct.Struct("<LQQ16sBB").pack(
+        part_number,           # Long - 4  bytes
+        part_starting_sector,  # long long - 8 bytes
+        part_size,             # long long - 8 bytes
+        packed_guid,           # 16 bytes, 
+        0x02,                  # 1 byte - 0x01 for mbr, 0x02 for gpt
+        0x02,                  # 1 byte - 0x00 none, 0x01 mbr, 0x02 gpt
+    )
+    
+    # Make our default boot option
+    ope_entry = LoadOption()
+    ope_entry.attributes = LoadOptionAttributes.LOAD_OPTION_ACTIVE
+    ope_entry.description="OPE Boot"
+    # Add the disk GUID entry
+    ope_entry.file_path_list.paths.append(DevicePath(
+        DevicePathType.MEDIA_DEVICE_PATH, MediaDevicePathSubtype.HARD_DRIVE, WIN_HARD_DRIVE_MEDIA_PATH
+        )
+    )
+    # Add the file path
+    ope_entry.file_path_list.paths.append(DevicePath(
+        DevicePathType.MEDIA_DEVICE_PATH, MediaDevicePathSubtype.FILE_PATH, WIN_DEVICE_PATH_DATA
+        )
+    )
+    ope_entry.file_path_list.paths.append(DevicePath(
+        DevicePathType.END_OF_HARDWARE_DEVICE_PATH, EndOfHardwareDevicePathSubtype.END_ENTIRE_DEVICE_PATH
+    ))
+    #ret = ope_entry.file_path_list.set_file_path('\\EFI\\Microsoft\\Boot\\bootmgfw.efi')
+    #print(ret)
+    #ope_entry.file_path_list.data = WIN_DEVICE_PATH_DATA
+    #ope_entry.file_path_list.paths[0].data = WIN_DEVICE_PATH_DATA
+    #ope_entry.file_path_list.paths[0].subtype = MediaDevicePathSubtype.HARD_DRIVE
+    #ope_entry.optional_data = WIN_OPTIONAL_DATA
+    
+    #set_parsed_boot_entry(0, ope_entry)
+    
+    
+    # Find all boot entries
+    for i in range(0, 24):
+        # Get entry
+        try:
+            parsed_option = get_parsed_boot_entry(i)
+            print(str(i) + " - " + parsed_option.description)
+            print(parsed_option.file_path_list.paths[0].data)
+            print(parsed_option)
+            
+            #print(parsed_option.attributes)
+            print("Device Paths")
+            for p in parsed_option.file_path_list.paths:
+                print("------")
+                print(f"\t{p.path_type}")
+                print(f"\t{p.subtype}")
+                print(f"\t{p.data}")
+            #print(len(parsed_option.file_path_list.paths))
+            #if len(parsed_option.file_path_list.paths) > 0:
+            #    print(parsed_option.file_path_list.get_file_path())
+            #    print(parsed_option.file_path_list.paths[0].path_type)
+            #    print(parsed_option.file_path_list.paths[0].subtype)
+            
+            print(parse_uefi_data(parsed_option.optional_data))
+            print(parsed_option.optional_data)
+            print("")
+            
+            if parsed_option.description != "OPE Boot":
+                found_entries[parsed_option.description] = parsed_option
+        except Exception as ex:
+            # Will get errors if we run out of entries. That is OK.
+            if "environment option" not in str(ex):
+                print(ex)
+                traceback.print_exc()
+            pass
+        
+        
+    
+    # Set our custom entry as first entry
+    boot_order = list()
+    boot_order.append(0)
+    set_parsed_boot_entry(0, ope_entry)
+    
+    i = 1
+    for entry_desc in found_entries:
+        entry = found_entries[entry_desc]
+        # Add each entry back to the boot entries.
+        if entry.description == "UEFI: Realtek USB FE Family Controller":
+            entry.attributes = LoadOptionAttributes.LOAD_OPTION_HIDDEN | LoadOptionAttributes.LOAD_OPTION_ACTIVE
+        elif entry.description == "UEFI: IP4 Realtek USB FE Family Controller":
+            entry.attributes = LoadOptionAttributes.LOAD_OPTION_HIDDEN | LoadOptionAttributes.LOAD_OPTION_ACTIVE
+        else:
+            entry.attributes = LoadOptionAttributes.LOAD_OPTION_HIDDEN | LoadOptionAttributes.LOAD_OPTION_ACTIVE
+        set_parsed_boot_entry(i, entry)
+        boot_order.append(i)
+        i+=1
+    
+    # Write the new boot order
+    set_boot_order(boot_order)
+    
+    
+    # Get the current list of boot items.
+    #for entry_id in get_boot_order():
+    #    load_option = get_parsed_boot_entry(entry_id)
+    #    print(f"{entry_id} {load_option} {load_option.description}\n\t\t{load_option.optional_data}\n")
+
+    
+
+exit()
+with privileges():
+    data, attr = get_variable("BootCurrent")
+    print(data)
+    print(attr)
+    
+with privileges():
+    for entry_id in get_boot_order():
+        load_option = get_parsed_boot_entry(entry_id)
+        print(f"{entry_id} {load_option}")
+        
+
+with privileges():
+    # Set our custom order
+    boot_order = get_boot_order()
+    set_boot_order(boot_order)
+    
+    boot_entry = get_parsed_boot_entry(boot_order[0])
+    print(boot_entry.__dict__)
+    
+    boot_entry.description="OPE Boot"
+    boot_entry.file_path_list.set_file_path(r"\EFI\MICROSOFT\BOOT\BOOTMGWFW.EFI")
+    
+    set_parsed_boot_entry(0, boot_entry)
+
+
+with privileges():
+    data, attr = get_variable("BootCurrent")
+    print(data)
+    print(attr)
+    
+with privileges():
+    for entry_id in get_boot_order():
+        load_option = get_parsed_boot_entry(entry_id)
+        print(f"{entry_id} {load_option}")
+        raw_entry = get_boot_entry(entry_id)
+        loaded_option = LoadOption.from_bytes(raw_entry)
+        loaded_option.attributes = LoadOptionAttributes.LOAD_OPTION_HIDDEN
+        print("0x{:04X} {}".format(entry_id, loaded_option))
+        
+
+exit()
+with privileges():
+    ope_id, attr = get_variable("OPE_ID")
+    
+    if ope_id is None:
+        namespace = "{f29e2c32-8cca-44ff-93d7-87195ace38b9}" 
+        ope_id = uuid.uuid4()
+        set_variable("OPE_ID", ope_id,
+            namespace=namespace,
+            attributes= Attributes.NON_VOLATILE |
+                        Attributes.BOOT_SERVICE_ACCESS |
+                        Attributes.RUNTIME_ACCESS
+            )
+        # delete_variable("OPE_ID", namespace=namespace)
+    

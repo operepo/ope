@@ -622,69 +622,72 @@ class Computer:
 
     @staticmethod
     def test_code():
-        #p_id = p.ProcessId
-        #p_domain, p_ret, p_user = p.GetOwner()
-        #print("P Owner: " + str(p_id) + " " + str(p_user))
-        # Might need SeDebugPrivilege
+        # p_id = p.ProcessId
+        # p_domain, p_ret, p_user = p.GetOwner()
+        # print("P Owner: " + str(p_id) + " " + str(p_user))
+        #Might need SeDebugPrivilege
         
-        # 0 is success
+        #0 is success
+        # print("Ret Code: " + str(r))
+        #Try sending ctrl + alt + del?
+        #Doesn't work? Need run as service?
+        #r = ctypes.windll.sas.SendSAS(0)
         #print("Ret Code: " + str(r))
-        # Try sending ctrl + alt + del?
-        # Doesn't work? Need run as service?
-        # r = ctypes.windll.sas.SendSAS(0)
-        # print("Ret Code: " + str(r))
 
-        # Doesn't work.
-        # # Try turning on the screen saver?
-        # try:
-        #     ss_timeout = win32gui.SystemParametersInfo(
-        #         win32con.SPI_GETSCREENSAVETIMEOUT,
-        #         0,
-        #         0
-        #     )
-        #     if ss_timeout < 300:
-        #         ss_timeout = 300
+        #Doesn't work.
+        # Try turning on the screen saver?
+        try:
+            ss_timeout = win32gui.SystemParametersInfo(
+                win32con.SPI_GETSCREENSAVETIMEOUT,
+                0,
+                0
+            )
+            if ss_timeout < 300:
+                ss_timeout = 300
+            ss_timeout = 1800
             
-        #     r = win32gui.SystemParametersInfo(
-        #         win32con.SPI_SETSCREENSAVETIMEOUT,
-        #         ss_timeout,
-        #         win32con.SPIF_UPDATEINIFILE |
-        #         win32con.SPIF_SENDWININICHANGE
+            r = win32gui.SystemParametersInfo(
+                win32con.SPI_SETSCREENSAVETIMEOUT,
+                ss_timeout,
+                win32con.SPIF_UPDATEINIFILE |
+                win32con.SPIF_SENDWININICHANGE
 
-        #     )
-        # except Exception as ex:
-        #     pass
+            )
+        except Exception as ex:
+            pass
 
-        # print("Ret Code: " + str(r))
+        #print("Ret Code: " + str(r))
         pass
 
 
 if __name__ == "__main__":
-    # Do tests    
-    while True:
-        #Computer.set_lock_screen_image()
-        Computer.render_lock_screen(
-            header="Updating App",
-            log_text=None, #["line 1", "line 2", "line 3", "line 4"],
-            state="WORKING"
-        )
-        Computer.set_lock_screen_image()
-        Computer.set_desktop_image()
-        time.sleep(10)
-        Computer.render_lock_screen(
-            header="Update Done",
-            log_text=None, #["line 1", "line 2", "line 3", "line 4", "line 1", "line 2", "line 3", "line 4"],
-            state="DONE"
-        )
-        Computer.set_lock_screen_image()
-        Computer.set_desktop_image()
-        time.sleep(10)
-        Computer.render_lock_screen(
-            header="IDLE",
-            log_text=None, #["line 1", "line 2", "line 3", "line 4", "line 1", "line 2", "line 3", "line 4"],
-            state="IDLE"
-        )
-        Computer.set_lock_screen_image()
-        Computer.set_desktop_image()
-        time.sleep(10)
+    # Do tests
+    #Computer.test_code()
+
+    # while True:
+    #     #Computer.set_lock_screen_image()
+    #     Computer.render_lock_screen(
+    #         header="Updating App",
+    #         log_text=None, #["line 1", "line 2", "line 3", "line 4"],
+    #         state="WORKING"
+    #     )
+    #     Computer.set_lock_screen_image()
+    #     Computer.set_desktop_image()
+    #     time.sleep(10)
+    #     Computer.render_lock_screen(
+    #         header="Update Done",
+    #         log_text=None, #["line 1", "line 2", "line 3", "line 4", "line 1", "line 2", "line 3", "line 4"],
+    #         state="DONE"
+    #     )
+    #     Computer.set_lock_screen_image()
+    #     Computer.set_desktop_image()
+    #     time.sleep(10)
+    #     Computer.render_lock_screen(
+    #         header="IDLE",
+    #         log_text=None, #["line 1", "line 2", "line 3", "line 4", "line 1", "line 2", "line 3", "line 4"],
+    #         state="IDLE"
+    #     )
+    #     Computer.set_lock_screen_image()
+    #     Computer.set_desktop_image()
+    #     time.sleep(10)
     

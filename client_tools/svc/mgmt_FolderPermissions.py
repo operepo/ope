@@ -5,6 +5,15 @@ import win32api
 import ntsecuritycon
 import win32net
 import ctypes
+import uuid
+
+from firmware_variables import *
+from firmware_variables.load_option  import LoadOptionAttributes, LoadOption
+from firmware_variables.device_path import DevicePathList, DevicePath, DevicePathType, MediaDevicePathSubtype, EndOfHardwareDevicePathSubtype
+from firmware_variables.utils import verify_uefi_firmware, string_to_utf16_bytes, utf16_string_from_bytes
+import struct
+
+
 
 import sys
 import os
@@ -383,6 +392,88 @@ class FolderPermissions:
         return True
     
     @staticmethod
+    def rebuild_bcd_data_wmi():
+        GUID_WINDOWS_BOOTMGR = "{9dea862c-5cdd-4e70-acc1-f32b344d4795}"
+        GUID_WINDOWS_FWBOOTMGR = "{a5a30fa2-3d06-4e9f-b5f4-a01df9d1fcba}"
+        GUID_DEBUGGER_SETTINGS_GROUP = "{4636856e-540f-4170-a130-a84776f4c654}"
+        GUID_CURRENT_BOOT_ENTRY = "{fa926493-6f1c-4193-a414-58f0b2456d1e}"      # {current} or 
+        GUID_DEFAULT_BOOT_ENTRY = ""                                            # {default}??
+        GUID_WINDOWS_LEGACY_NTLDR = "{466f5a88-0af2-4f76-9038-095b170dc21c}"
+        GUID_WINDOWS_MEMORY_DIAG = "{b2721d73-1db4-4c62-bf78-c548a880142d}"     # {memdiag}
+        GUID_WINDOWS_RESUME = "{147aa509-0358-4473-b83b-d950dda00615}"
+        
+        
+        GUID_WINDOWS_BADMEMORY = "{5189b25c-5558-4bf2-bca4-289b11bd29e2}"       # {badmemory}
+        GUID_BOOT_LOADER_SETTINGS = "{6efb52bf-1766-41db-a6b3-0ee5eff72bd7}"    # {bootloadersettings}
+        GUID_EMS_SETTINGS = "{0ce4991b-e6b3-4b16-b23c-5e0d9250e5d9}"            # {emssettings}
+        GUID_GLOBAL_SETTINGS = "{7ea2e1ac-2e61-4728-aaa3-896d9d0a9f0e}"         # {globalsettings}
+        GUID_RESUME_LOADER_SETTINGS = "{1afa9c49-16ab-4a5c-901b-212802da9460}"  # {resumeloadersettings}
+
+        BCDE_DEVICE_TYPE_BOOT_DEVICE    =0x00000001
+        BCDE_DEVICE_TYPE_PARTITION      =0x00000002
+        BCDE_DEVICE_TYPE_FILE           =0x00000003
+        BCDE_DEVICE_TYPE_RAMDISK        =0x00000004
+        BCDE_DEVICE_TYPE_UNKNOWN        =0x00000005
+
+        BCD_COPY_CREATE_NEW_OBJECT_IDENTIFIER = 0x00000001
+
+        BCDE_VISTA_OS_ENTRY = 0x10200003
+        BCDE_LEGACY_OS_ENTRY = 0x10300006
+
+        BCDE_LIBRARY_TYPE_APPLICATIONPATH = \
+            MAKE_BCDE_DATA_TYPE(BCDE_CLASS.LIBRARY, BCDE_FORMAT.STRING, 0x000002)
+        # Get the current boot loader GUID
+        w = wmi.WMI(computer=".", impersonation_level="Impersonate", privileges=("Backup", "Restore"), namespace="WMI", suffix="BcdStore")
+        success, store = w.OpenStore("")
+        if success is True:
+            # Have to convert to wmi object
+            store = wmi._wmi_object(store)
+
+        # Get the bootmgr (yes - obj first)
+        b_mgr, success = store.OpenObject("{9dea862c-5cdd-4e70-acc1-f32b344d4795}")
+        if success is True:
+            # Have to convert to wmi object
+            b_mgr = wmi._wmi_object(b_mgr)
+        
+        # Get all boot loader objects
+        obj_list, success = store.EnumerateObjects(0)
+        if success is True:
+            obj_list = wmi._wmi_object(obj_list)
+
+        w.close()
+
+
+        # Rebuild BCD Database
+        cmd = "%SystemRoot%\\System32\\bcdboot c:\\windows /m " + boot_loader_guid + " /f ALL" #UEFI"
+        cmd = os.path.expandvars(cmd)
+        returncode, output = ProcessManagement.run_cmd(cmd,
+            attempts=3, require_return_code=0)
+        #p(str(returncode) + " - " + output)
+        if returncode == -2:
+            # Error running command?
+            p("}}rbError - get boot options!}}xx\n" + output)
+            return False
+        
+
+        return True
+    
+    @staticmethod
+    def rebuild_bcd_data_cmd_line():
+
+        # Rebuild BCD Database
+        cmd = "%SystemRoot%\\System32\\bcdboot c:\\windows"
+        cmd = os.path.expandvars(cmd)
+        returncode, output = ProcessManagement.run_cmd(cmd,
+            attempts=3, require_return_code=0)
+        #p(str(returncode) + " - " + output)
+        if returncode == -2:
+            # Error running command?
+            p("}}rbError - bcdboot failed!}}xx\n" + output)
+            return False
+
+        return True
+
+    @staticmethod
     def lock_boot_settings():
         ret = True
 
@@ -401,6 +492,10 @@ class FolderPermissions:
             value="taskill /F /IM bootim.exe",
             value_type="REG_SZ")
 
+        # Rewrite UEFI values
+        FolderPermissions.update_uefi_boot_order()
+
+        FolderPermissions.rebuild_bcd_data_cmd_line()
 
         # Get the default from the boot manager
         cmd = "%SystemRoot%\\System32\\bcdedit.exe"
@@ -415,8 +510,8 @@ class FolderPermissions:
         
         # Is the boot manager listed as {current} or {default}
         boot_identifier = "{current}"
-        #if "{default}" in output:
-        #    boot_identifier = "{default}"
+        if "{default}" in output:
+            boot_identifier = "{default}"
         
         p("}}gnBoot ID: " + boot_identifier + "}}xx", log_level=5)
 
@@ -428,7 +523,8 @@ class FolderPermissions:
             ("%SystemRoot%\\system32\\bcdedit.exe /deletevalue \"{current}\" recoverysequence ", None),
 
             ("%SystemRoot%\\System32\\bcdedit.exe /timeout 0", 0),
-            ("%SystemRoot%\\System32\\bcdedit.exe /set \"{fwbootmgr}\" timeout 0", None),
+            # Set in uefi area
+            #("%SystemRoot%\\System32\\bcdedit.exe /set \"{fwbootmgr}\" timeout 0", None),
             
             ("%SystemRoot%\\system32\\bcdedit.exe /set \"{bootmgr}\" displaybootmenu no", 0),
             # Use standard policy - no F8 key
@@ -451,12 +547,21 @@ class FolderPermissions:
             ("%SystemRoot%\\system32\\bcdedit.exe /deletevalue \"" + boot_identifier + "\" safeboot ", None),
 
             # Set boot UEFI boot order so hard disk is first
-            ("%SystemRoot%\\system32\\bcdedit.exe /set \"{fwbootmgr}\" displayorder \"{bootmgr}\"", None),
-            ("%SystemRoot%\\system32\\bcdedit.exe /set \"{fwbootmgr}\" displayorder \"{bootmgr}\" /addfirst", None),
-            ("%SystemRoot%\\system32\\bcdedit.exe /set \"{bootmgr}\" displayorder \"{current}\"", 0),
-            ("%SystemRoot%\\system32\\bcdedit.exe /set \"{bootmgr}\" displayorder \"{current}\" /addfirst", 0),
-            ("%SystemRoot%\\system32\\bcdboot.exe %windir%", 0),
-
+            #("%SystemRoot%\\system32\\bcdedit.exe /set \"{bootmgr}\" displayorder \"" + boot_identifier + "\"", 0),
+            ("%SystemRoot%\\system32\\bcdedit.exe /set \"{bootmgr}\" displayorder \"" + boot_identifier + "\" /addfirst", 0),
+            
+            #("%SystemRoot%\\system32\\bcdedit.exe /set \"{fwbootmgr}\" displayorder \"{bootmgr}\"", None),
+            #("%SystemRoot%\\system32\\bcdedit.exe /set \"{fwbootmgr}\" displayorder \"{bootmgr}\" /addfirst", None),
+            #("%SystemRoot%\\system32\\bcdedit.exe /set \"{fwbootmgr}\" displayorder \"{bootmgr}\"", None),
+            #("%SystemRoot%\\system32\\bcdedit.exe /set \"{fwbootmgr}\" displayorder \"{bootmgr}\"", None),
+            # TODO - boot setting still not taking in nvram?
+            #("%SystemRoot%\\system32\\bcdboot.exe %windir%", 0),
+            #("%SystemRoot%\\system32\\mountvol.exe  s: /s", None),
+            #("%SystemRoot%\\system32\\bcdboot.exe %SystemRoot% /s s: /F UEFI", None),
+            #("%SystemRoot%\\system32\\mountvol.exe  s: /D", None),
+            #mountvol s: /S
+            #bcdboot c:\windows /s s: /F UEFI
+            #mountvol s: /D
         ]
 
         for tcmd in cmds:
@@ -493,6 +598,10 @@ class FolderPermissions:
         else:
             p("}}gnWinRE Disabled!}}xx", log_level=3)
 
+        
+        
+
+
         # ALT INFO - shouldn't need these w current commands
         # rem Option to kill safemode w bluescreen/error
         # rem HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\SafeBoot
@@ -512,7 +621,244 @@ class FolderPermissions:
 
         return ret
 
-    
+    @staticmethod
+    def enable_uefi_pxe_boot():
+        # Enable PXE boot option to image the server
+
+        return True
+
+    @staticmethod
+    def disable_uefi_alt_boot():
+        # Set boot options to disabled if they aren't our windows boot option
+        return True
+
+    @staticmethod
+    def update_uefi_boot_partition():
+        from mgmt_Computer import Computer
+        # Find the current windows boot entry and make sure the GPT partition is correct
+        with privileges():
+            try:
+                verify_uefi_firmware()
+            except:
+                p("}}gnNOT UEFI BIOS!}}xx", log_level=3)
+                return True
+            
+            # Get the list of disks
+            # https://stackoverflow.com/questions/56784915/python-wmi-can-we-really-say-that-c-is-always-the-boot-drive
+            w = Computer.get_wmi_connection(namespace='root/Microsoft/Windows/Storage')
+            drives = w.MSFT_Disk() #w.Win32_DiskDrive()
+            
+            part_info = None
+            for drive in drives:
+                # print(r)
+                disk_number = drive.Number # r.Index
+                # physical_path = r'\\.\PHYSICALDRIVE' + str(disk_number)  # r.DeviceID
+                
+                # Get partitions for this drive if it is the boot drive
+                if drive.IsBoot == True:
+                    partitions = drive.associators("MSFT_DiskToPartition")
+                    for part in partitions:
+                        if part.GptType == "{c12a7328-f81f-11d2-ba4b-00a0c93ec93b}":
+                            # Found EFI partition
+                            sector_size = int(drive.PhysicalSectorSize)
+                            part_starting_sector = int(int(part.Offset) / sector_size)
+                            part_size = int(int(part.Size) / sector_size)
+                            part_guid = part.Guid
+                            part_number = part.PartitionNumber
+                            part_info = (part, part_guid, part_number, part_starting_sector, part_size)
+                            break
+
+            if part_info is None:
+                # Couldn't find EFI partition!
+                p("}}gnUEFI - Couldn't find system EFI partition!}}xx", log_level=3)
+                return False
+            
+            # Create the device path list for windows boot manager
+            bootmgr_path_list = DevicePathList()
+            bootmgr_path_list.paths = []  # Make sure we clear out any default stuff
+            # Calculate path data we need
+            #part_info = (part, part_guid, part_number, part_starting_sector, part_size)
+            # Get in RFC4122 binary encoded format (first half in different endian mode?)
+            packed_guid = uuid.UUID(part_info[1]).bytes_le
+            WIN_HARD_DRIVE_MEDIA_PATH = struct.Struct("<LQQ16sBB").pack(
+                part_info[2],             # Long - 4  bytes
+                part_info[3],             # long long - 8 bytes
+                part_info[4],             # long long - 8 bytes
+                packed_guid,              # 16 bytes, 
+                0x02,                     # 1 byte - 0x01 for mbr, 0x02 for gpt
+                0x02,                     # 1 byte - 0x00 none, 0x01 mbr, 0x02 gpt
+            )
+
+            WIN_DEVICE_PATH_DATA = string_to_utf16_bytes("\\EFI\\Microsoft\\Boot\\bootmgfw.efi")
+
+            # Add the disk GUID entry
+            bootmgr_path_list.paths.append(DevicePath(
+                DevicePathType.MEDIA_DEVICE_PATH, MediaDevicePathSubtype.HARD_DRIVE, WIN_HARD_DRIVE_MEDIA_PATH
+                )
+            )
+            # Add the file path
+            bootmgr_path_list.paths.append(DevicePath(
+                DevicePathType.MEDIA_DEVICE_PATH, MediaDevicePathSubtype.FILE_PATH, WIN_DEVICE_PATH_DATA
+                )
+            )
+            bootmgr_path_list.paths.append(DevicePath(
+                DevicePathType.END_OF_HARDWARE_DEVICE_PATH, EndOfHardwareDevicePathSubtype.END_ENTIRE_DEVICE_PATH
+            ))
+
+            # Get the current boot item
+            curr_boot_index, attr = get_variable("BootCurrent")
+            # Convert from bytes to a integer value
+            curr_boot_index = struct.unpack("<h", curr_boot_index)[0]
+
+            # Adjust the current boot item to point to the proper partition
+            try:
+                boot_entry = get_parsed_boot_entry(curr_boot_index)
+
+                #boot_entry.attributes = LoadOptionAttributes.LOAD_OPTION_ACTIVE
+                boot_entry.device_path_list = bootmgr_path_list
+                set_parsed_boot_entry(curr_boot_index, boot_entry)
+            except Exception as ex:
+                # Will get errors if we run out of entries. That is OK.
+                if "environment option" not in str(ex):
+                    p("}}rbError: }}xx" + str(ex))
+                    #traceback.print_exc()
+                pass
+
+        return True
+
+    @staticmethod
+    def update_uefi_boot_order():
+        from mgmt_Computer import Computer
+
+        # NOTE - Likely need to rebuild BCD after this!
+
+        # Elevate privileges for reading/writing uefi values
+        with privileges():
+            try:
+                verify_uefi_firmware()
+            except:
+                p("}}gnNOT UEFI BIOS!}}xx", log_level=3)
+                return True
+
+            # Get the list of disks
+            # https://stackoverflow.com/questions/56784915/python-wmi-can-we-really-say-that-c-is-always-the-boot-drive
+            w = Computer.get_wmi_connection(namespace='root/Microsoft/Windows/Storage')
+            drives = w.MSFT_Disk() #w.Win32_DiskDrive()
+            
+            part_info = None
+            for drive in drives:
+                # print(r)
+                disk_number = drive.Number # r.Index
+                # physical_path = r'\\.\PHYSICALDRIVE' + str(disk_number)  # r.DeviceID
+                
+                # Get partitions for this drive if it is the boot drive
+                if drive.IsBoot == True:
+                    partitions = drive.associators("MSFT_DiskToPartition")
+                    for part in partitions:
+                        if part.GptType == "{c12a7328-f81f-11d2-ba4b-00a0c93ec93b}":
+                            # Found EFI partition
+                            sector_size = int(drive.PhysicalSectorSize)
+                            part_starting_sector = int(int(part.Offset) / sector_size)
+                            part_size = int(int(part.Size) / sector_size)
+                            part_guid = part.Guid
+                            part_number = part.PartitionNumber
+                            part_info = (part, part_guid, part_number, part_starting_sector, part_size)
+                            break
+
+            if part_info is None:
+                # Couldn't find EFI partition!
+                p("}}gnUEFI - Couldn't find system EFI partition!}}xx", log_level=3)
+                return False
+            
+            # Create the device path list for windows boot manager
+            bootmgr_path_list = DevicePathList()
+            bootmgr_path_list.paths = []  # Make sure we clear out any default stuff
+            # Calculate path data we need
+            #part_info = (part, part_guid, part_number, part_starting_sector, part_size)
+            # Get in RFC4122 binary encoded format (first half in different endian mode?)
+            packed_guid = uuid.UUID(part_info[1]).bytes_le
+            WIN_HARD_DRIVE_MEDIA_PATH = struct.Struct("<LQQ16sBB").pack(
+                part_info[2],             # Long - 4  bytes
+                part_info[3],             # long long - 8 bytes
+                part_info[4],             # long long - 8 bytes
+                packed_guid,              # 16 bytes, 
+                0x02,                     # 1 byte - 0x01 for mbr, 0x02 for gpt
+                0x02,                     # 1 byte - 0x00 none, 0x01 mbr, 0x02 gpt
+            )
+
+            WIN_DEVICE_PATH_DATA = string_to_utf16_bytes("\\EFI\\Microsoft\\Boot\\bootmgfw.efi")
+
+            # Add the disk GUID entry
+            bootmgr_path_list.paths.append(DevicePath(
+                DevicePathType.MEDIA_DEVICE_PATH, MediaDevicePathSubtype.HARD_DRIVE, WIN_HARD_DRIVE_MEDIA_PATH
+                )
+            )
+            # Add the file path
+            bootmgr_path_list.paths.append(DevicePath(
+                DevicePathType.MEDIA_DEVICE_PATH, MediaDevicePathSubtype.FILE_PATH, WIN_DEVICE_PATH_DATA
+                )
+            )
+            bootmgr_path_list.paths.append(DevicePath(
+                DevicePathType.END_OF_HARDWARE_DEVICE_PATH, EndOfHardwareDevicePathSubtype.END_ENTIRE_DEVICE_PATH
+            ))
+
+            # Get the current boot item
+            curr_boot_index, attr = get_variable("BootCurrent")
+            # Convert from bytes to a integer value
+            curr_boot_index = struct.unpack("<h", curr_boot_index)[0]
+
+            # Adjust the current boot item to point to the proper partition
+            try:
+                boot_entry = get_parsed_boot_entry(curr_boot_index)
+
+                #boot_entry.attributes = LoadOptionAttributes.LOAD_OPTION_ACTIVE
+                boot_entry.device_path_list = bootmgr_path_list
+                set_parsed_boot_entry(curr_boot_index, boot_entry)
+            except Exception as ex:
+                # Will get errors if we run out of entries. That is OK.
+                if "environment option" not in str(ex):
+                    p("}}rbError: }}xx" + str(ex))
+                    #traceback.print_exc()
+                pass
+            
+            # Make sure we push this item to the top of the boot order
+            # Get current boot order
+            curr_boot_order = get_boot_order()
+            new_boot_order = []
+            new_boot_order.append(curr_boot_index)
+            for item in curr_boot_order:
+                if item != curr_boot_index:
+                    new_boot_order.append(item)
+            set_boot_order(new_boot_order)
+
+            # Disable all other boot options by hiding them?
+            for i in range(0, 24):
+                try:
+                    if i == curr_boot_index:
+                        # Skip the current boot entry
+                        pass
+                    else:
+                        boot_entry = get_parsed_boot_entry(i)
+                        boot_entry.attributes = LoadOptionAttributes.LOAD_OPTION_HIDDEN | LoadOptionAttributes.LOAD_OPTION_ACTIVE
+                        set_boot_entry(i, boot_entry)
+                except Exception as ex:
+                    # Will get errors if we run out of entries. That is OK.
+                    if "environment option" not in str(ex):
+                        p("}}rbError: }}xx" + str(ex))
+                        #traceback.print_exc()
+                    pass
+            
+            # Set timeout to 0
+            set_variable("Timeout", 0)
+            # Make sure we don't boot to something else later
+            delete_variable("BootNext")
+            
+        return True
+
+    @staticmethod
+    def enable_pxe_boot():
+        return False
+
     @staticmethod
     def unlock_boot_settings():
         ret = True
@@ -583,6 +929,27 @@ class FolderPermissions:
                 return False
         
         return ret
+    
+    @staticmethod
+    def disable_volume_shadow_copies():
+        if RegistrySettings.is_debug():
+            p("}}rbDEBUG MODE ON - Skipping disable volume shadow copies}}xx")
+            return True
+        
+        # Make sure SAM isn't readable: https://msrc.microsoft.com/update-guide/vulnerability/CVE-2021-36934
+        cmd = "icacls %windir%\\system32\\config\\*.* /inheritance:e"
+
+        cmd = os.path.expandvars(cmd)
+        returncode, output = ProcessManagement.run_cmd(cmd,
+            attempts=1, require_return_code=None, cmd_timeout=300)
+        
+        cmd = "vssadmin delete shadows /for=c: /all /Quiet"
+
+        cmd = os.path.expandvars(cmd)
+        returncode, output = ProcessManagement.run_cmd(cmd,
+            attempts=1, require_return_code=None, cmd_timeout=300)
+        
+        return True
       
 
 if __name__ == "__main__":
