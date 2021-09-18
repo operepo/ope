@@ -27,7 +27,7 @@ RUN apk update \
     && python -m pip install --upgrade setuptools ldap3 pycryptodome requests \
         paramiko ecdsa isodate pywinrm crypto PyMySQL \
         psycopg2-binary uwsgi uwsgitop psutil redis pycanvas lz4 \ 
-        webvtt-py langcodes bs4 lxml openpyxl Pillow WeasyPrint \
+        webvtt-py langcodes language_data bs4 lxml openpyxl Pillow WeasyPrint \
 #    && python -m pip install xlrd==1.2.0 \
 # pytube3 - use fix 701 for now
 #pip install git+https://github.com/nficano/pytube.git@refs/pull/701/head
@@ -60,7 +60,7 @@ RUN apk update \
 #RUN pip install git+https://github.com/nficano/pytube.git@refs/pull/701/head
 # Install 9.7.0
 #RUN pip install git+https://github.com/nficano/pytube.git@refs/tags/v9.7.0
-LABEL pytube_version=11.0.0a
+LABEL pytube_version=11.0.1c
 RUN python -m pip install --upgrade pytube
 
 # Set ENV Vars
@@ -109,7 +109,7 @@ LABEL rebuild_smc=11
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE v1.9.70
+ENV SMC_RELEASE v1.9.71
 
 RUN cd $W2P_DIR \
     && git init \
