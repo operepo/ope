@@ -320,6 +320,10 @@ valid_commands = {
         "function": FolderPermissions.unlock_boot_settings,
         "help": "UnLock boot settings so that you can use restore features"
     },
+    "update_uefi_boot_order": {
+        "function": FolderPermissions.update_uefi_boot_order,
+        "help": "Update boot order for UEFI boot settings"
+    },
 
     "unlock_machine": {
         "function": CredentialProcess.unlock_machine,

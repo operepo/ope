@@ -541,7 +541,7 @@ class NetworkDevices:
             if verbose == "v":
                 p("}}cn-- " + str(attribs) + "}}xx")
 
-        p("\n}}gb+ }}xxApproved/Connecte, }}yb? }}xxApproved/Not Connected, }}rbX }}xxNot Approved}}xx, }}rb! }}xxApproved/Invalid IP}}xx")
+        p("\n}}gb+ }}xxApproved/Connected, }}yb? }}xxApproved/Not Connected, }}rbX }}xxNot Approved}}xx, }}rb! }}xxApproved/Invalid IP}}xx")
         p("}}rbNOTE}}xx - Approved Nics w/out IPs (or with 169.254/fe80::) will be enabled so they can use DHCP}}xx")
 
         return True

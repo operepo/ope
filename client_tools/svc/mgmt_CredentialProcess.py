@@ -466,6 +466,11 @@ class CredentialProcess:
         if not FolderPermissions.lock_boot_settings():
             p("}}rbError - Could not lock boot settings!\nStudent Account NOT unlocked!}}xx")
             return False
+        
+        # Turn off volume shadow copies
+        if not FolderPermissions.disable_volume_shadow_copies():
+            p("}}rbError - Could not disable VSS settings!\nStudent Account NOT unlocked!}}xx")
+            return False
 
         # Reset registry permissions
         if not RegistrySettings.set_default_ope_registry_permissions(force=True):

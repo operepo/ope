@@ -1516,6 +1516,10 @@ class SyncOPEApp(App, EventDispatcher):
 
             # Ensure the folder exists, is a repo, and has a sub folder (volumes/smc/???.git) that is a bare repo
             remote_repo_folder = os.path.join(ssh_folder, "volumes/smc/git/" + repo + ".git").replace("\\", "/")
+            remote_repo_folder_path = remote_repo_folder
+            if remote_repo_folder_path.startswith("~"):
+                # Make sure we use a / in the beginning so it doesn't mess stuff up
+                remote_repo_folder_path = "/" + remote_repo_folder_path
             ret += "\n\n[b]Ensuring git repo " + repo + " setup properly...[/b]\n"
             print("-- Init")
             stdin, stdout, stderr = ssh.exec_command("mkdir -p " + remote_repo_folder + "; cd " + remote_repo_folder + "; git init --bare; ", get_pty=True)
@@ -1538,7 +1542,7 @@ class SyncOPEApp(App, EventDispatcher):
 
             # Add current remote address
             print("-- Add Remote")
-            proc = subprocess.Popen(git_path + " remote add " + repo + "_" + remote_name + " ssh://" + ssh_user + "@" + ssh_server + ":" + remote_repo_folder, cwd=f_path, stdout=subprocess.PIPE)
+            proc = subprocess.Popen(git_path + " remote add " + repo + "_" + remote_name + " ssh://" + ssh_user + "@" + ssh_server + ":" + remote_repo_folder_path, cwd=f_path, stdout=subprocess.PIPE)
             proc.wait()
             # for line in proc.stdout:
             #    status_label.text += line
@@ -1821,6 +1825,7 @@ class SyncOPEApp(App, EventDispatcher):
             current_digest_file = os.path.join(os.path.dirname(get_app_folder()), "volumes", "app_images", app + ".digest")
             remote_image = os.path.join(ssh_folder, "volumes", "app_images", app + ".tar.gz").replace("\\", "/")
             local_image = os.path.join(os.path.dirname(get_app_folder()), "volumes", "app_images", app + ".tar.gz")
+            # print("Getting File: " + str(remote_digest_file) + "->" + str(local_digest_file))
             sftp.get(remote_digest_file, local_digest_file)
 
             # Read the online digest info
@@ -1842,7 +1847,7 @@ class SyncOPEApp(App, EventDispatcher):
                 pass
 
             # If digest files don't match, copy the file to the local folder
-            if online_digest != current_digest:
+            if online_digest != current_digest or not os.path.exists(local_image):
                 self.log_text_to_label(status_label, "\nCopying App: " + app)
                 sftp.get(remote_image, local_image, callback=self.copy_docker_images_to_usb_drive_progress_callback)
                 # Logger.info("Moving on...")
@@ -2659,6 +2664,12 @@ class SyncOPEApp(App, EventDispatcher):
             # Connect to server
             ssh, err_str = ssh_utils.get_ssh_connection(ssh_server, ssh_user, ssh_pass)
             ret = ssh
+            # Translate ~ characters in ssh_folder
+            if "~" in ssh_folder:
+                sftp = ssh.open_sftp()
+                h = sftp.normalize("")
+                ssh_folder = ssh_folder.replace("~", h)
+                sftp.close()
 
         if ret is None and show_error_popup is True:
             self.show_error_popup("SSH Connection Error", "Error connecting to SSH server " + str(err_str))
