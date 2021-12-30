@@ -3288,13 +3288,13 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
         // TODO - Need to keep following link until we run out of pages!!!
         //qDebug() << "Link header: " << link_header;
         QString next_url = "";
-        QStringList parts = link_header.split(",", QString::SkipEmptyParts);
+        QStringList parts = link_header.split(",", Qt::SkipEmptyParts);
         foreach (QString item, parts)
         {
             if(item.contains("rel=\"next\""))
             {
                 // Get the link
-                QStringList parts2 = item.split(";", QString::SkipEmptyParts);
+                QStringList parts2 = item.split(";", Qt::SkipEmptyParts);
                 next_url = parts2[0]; // Should be the first item.
                 next_url = next_url.replace("<", "").replace(">", ""); // strip off the <> tags
             }

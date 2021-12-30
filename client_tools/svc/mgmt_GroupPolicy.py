@@ -115,8 +115,23 @@ class GroupPolicy:
         return ret
 
     @staticmethod
-    def reset_group_policy_to_default():
+    def reset_group_policy_to_default(force=False):
         ret = True
+
+        # Use WMI to check if gpo is applied, if not, skip
+        if force != True:
+            try:
+                from mgmt_Computer import Computer
+                w = Computer.get_wmi_connection(namespace="root\\rsop\\computer")
+                registry_policies = w.RSOP_RegistryPolicySetting()
+                policies = w.RSOP_PolicySetting()
+                w.close()
+                if len(registry_policies) == 0 and len(policies) == 0:
+                    p("}}gn - No Group Policy Objects Dected, skipping gpo reset...}}xx")
+                    return True
+            except Exception as ex:
+                p("}}rb - Failed to check group policy objects! Falling to hard reset.}}xx")
+                p(f"{ex}")
 
         # Need to reset secpol.msc settings
         cmd = "%SystemRoot%\\system32\\secedit /configure /cfg %SystemRoot%\\inf\\defltbase.inf /db %SystemRoot%\\system32\\defltbase.sdb /verbose " # 2>NUL 1<NUL"

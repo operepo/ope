@@ -9,7 +9,8 @@ rem set VC_DIR=c:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\
 set VC_DIR=C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC
 
 rem MSVC_VER=14.16.27023
-set MSVC_VER=14.27.29110
+rem ** set MSVC_VER=14.27.29110
+set MSVC_VER=14.29.30133
 rem set MSVC_VER=14.28.29333
 
 rem Setup VCVars Build

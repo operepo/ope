@@ -26,6 +26,8 @@
         <file>StyledButton.qml</file>
         <file>ReplyPopup.qml</file>
         <file>NewMessagePopup.qml</file>
+        <file>QQ_TrueFalseAnswer.qml</file>
+        <file>QuizQuestion.qml</file>
     </qresource>
     <qresource prefix="/images">
         <file>blue-folder.png</file>
