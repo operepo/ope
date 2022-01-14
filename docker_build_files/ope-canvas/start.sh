@@ -101,7 +101,10 @@ sed -i -- "s/n_strand => \[\"user_preference_migration\"/n_strand\: \[\"user_pre
 
 
 # Replace fonts.googleapis.com with local link
-find . -name "*.css" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \;
+find . -name "*.css" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/g' {} \;
+# May need to re-compile assets and restart the canvas server if css2 links are being asked for
+#find . -name "*.css" -type f -exec sed -i 's/\/fonts\/css.css2/\/fonts\/css.css/g' {} \;
+#find . -name "*.html.erb" -type f -exec sed -i 's/\/fonts\/css.css2/\/fonts\/css.css/g' {} \;
 
 # Replace mathjax links to pull from the local server
 find /usr/src/app/public/javascripts/ -name "*.js" -type f -exec sed -i 's/\/\/cdnjs.cloudflare.com//' {} \;
