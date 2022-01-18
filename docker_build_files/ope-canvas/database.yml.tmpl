@@ -7,7 +7,7 @@ test:
   username: postgres
   password: "<IT_PW>"
   timeout: 50000
-  pool: 15
+  pool: 100
 
 login: &login
   adapter: postgresql
@@ -15,14 +15,14 @@ login: &login
   timeout: 50000
   username: "postgres"
   password: "<IT_PW>"
-  pool: 15
+  pool: 100
 
 development:
   <<: *login
   database: canvas_production
   host: postgresql
   port: 5432
-  pool: 15
+  pool: 100
   queue:
     <<: *login
     database: canvas_queue
@@ -32,8 +32,8 @@ production:
   database: canvas_production
   host: postgresql
   port: 5432
-  pool: 15
+  pool: 100
   queue:
     <<: *login
     database: canvas_queue
-    pool: 15
+    pool: 100
