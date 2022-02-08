@@ -170,7 +170,7 @@ fi
 
 # CUSTOM CODE - OPE Project
 # Change max connections
-sed -i "s/max_connections = 100/max_connections = 300/" /var/lib/postgresql/data/pgdata/postgresql.conf
+sed -i "s/max_connections = 100/max_connections = 500/" /var/lib/postgresql/data/pgdata/postgresql.conf
 pg_ctl -D "$PGDATA" \
     -o "-c listen_addresses=''" \
     -w start

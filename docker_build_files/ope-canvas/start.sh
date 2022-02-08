@@ -104,7 +104,7 @@ sed -i -- "s/n_strand => \[\"user_preference_migration\"/n_strand\: \[\"user_pre
 find . -name "*.css" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/g' {} \;
 # May need to re-compile assets and restart the canvas server if css2 links are being asked for
 #find . -name "*.css" -type f -exec sed -i 's/\/fonts\/css.css2/\/fonts\/css.css/g' {} \;
-#find . -name "*.html.erb" -type f -exec sed -i 's/\/fonts\/css.css2/\/fonts\/css.css/g' {} \;
+find . -name "*.html.erb" -type f -exec sed -i 's/\/fonts\/css.css2/\/fonts\/css.css/g' {} \;
 
 # Replace mathjax links to pull from the local server
 find /usr/src/app/public/javascripts/ -name "*.js" -type f -exec sed -i 's/\/\/cdnjs.cloudflare.com//' {} \;
@@ -156,6 +156,8 @@ fi
 echo "=== Running ope:startup ==="
 $BUNDLE exec rake ope:startup --trace
 
+# Make sure brand configs are in place
+$BUNDLE exec rake brand_configs:generate_and_upload_all
 
 rm -f /usr/src/app/log/app_init
 touch /usr/src/app/log/app_starting

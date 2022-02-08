@@ -52,6 +52,8 @@
             - CANVAS_MATHMAN_DEFAULT_DOMAIN=${CANVAS_MATHMAN_DEFAULT_DOMAIN}
             - LETSENCRYPT_HOST=<CANVAS_DEFAULT_DOMAIN>
             - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
+            # Tell rails to serve static files to remove mime download errors
+            - RAILS_SERVE_STATIC_FILES=1
         links:
             - ope-postgresql:postgresql
             - ope-redis:redis

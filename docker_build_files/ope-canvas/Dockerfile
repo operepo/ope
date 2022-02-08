@@ -1,5 +1,4 @@
 ARG RUBY=2.6-p6.0.4
-
 FROM instructure/ruby-passenger:${RUBY} AS dependencies
 
 #FROM instructure/ruby-passenger:2.4-xenial
@@ -8,7 +7,7 @@ FROM instructure/ruby-passenger:${RUBY} AS dependencies
 LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
 LABEL description="Canvas LMS by Instructure - Image for Open Prison Education"
 LABEL vendor="openprisoneducation.com"
-LABEL version="1.1"
+LABEL version="1.2"
 
 # ope-canvas - Canvas LMS System
 # Build with docker build -t ope-canvas .
@@ -234,7 +233,7 @@ COPY puma.rb /usr/src/app/config/puma.rb
 COPY rack.rb /usr/src/app/config/initializers/rack.rb
 COPY dynamic_settings.yml.tmpl /usr/src/app/config/dynamic_settings.yml.tmpl
 
-LABEL rebuild=49
+LABEL rebuild=51
 COPY dbinit.sh /usr/src/dbinit.sh
 COPY start.sh /usr/src/start.sh
 COPY ope.rake lib/tasks/ope.rake

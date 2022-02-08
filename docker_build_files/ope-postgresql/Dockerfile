@@ -7,7 +7,7 @@ FROM postgres:9.6-alpine
 LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
 LABEL description="Postgresql container used by canvas - Image for Open Prison Education"
 LABEL vendor="openprisoneducation.com"
-LABEL version="0.4"
+LABEL version="0.5"
 
 
 LABEL rebuild=15
