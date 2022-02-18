@@ -7,7 +7,6 @@
         ports:
             - "5432:5432"
         volumes:
-            #- pg_data:/var/lib/postgresql/data:rw
             - ../volumes/postgresql/data:/var/lib/postgresql/data:rw
         depends_on:
             - ope-gateway
@@ -15,5 +14,4 @@
         env_file: .env
         environment:
             - POSTGRES_PASSWORD=${IT_PW}
-            - PGDATA=/var/lib/postgresql/data/pgdata
-        # NOTE: This relies on a docker volume, don't delete pg_data or you will loose information
+            - PGDATA=/var/lib/postgresql/data/pgdata-12.9
