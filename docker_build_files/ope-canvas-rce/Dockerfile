@@ -1,10 +1,10 @@
-FROM instructure/node-passenger:10
+FROM instructure/node-passenger:12
 
 
 LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
 LABEL description="Canvas LMS by Instructure - Image for Open Prison Education"
 LABEL vendor="openprisoneducation.com"
-LABEL version="1.0"
+LABEL version="1.2"
 
 USER root
 
