@@ -1,6 +1,8 @@
 FROM instructure/node-passenger:12
 MAINTAINER Instructure
 
+LABEL rebuild=1
+
 USER root
 
 RUN apt-get update && apt-get install -y --no-install-recommends zip \

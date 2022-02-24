@@ -20,6 +20,7 @@
             - CANVAS_RCE_DEFAULT_DOMAIN=${CANVAS_RCE_DEFAULT_DOMAIN}
             - CANVAS_DEFAULT_DOMAIN=${CANVAS_DEFAULT_DOMAIN}
             - VIRTUAL_PORT=3010
+            - RCE_API_HOST=${CANVAS_DEFAULT_DOMAIN}/rce
             # Share the default cert on the gateway
             - CERT_NAME=<CERT_NAME>
             - VIRTUAL_PROTO=http

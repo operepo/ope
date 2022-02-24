@@ -7,11 +7,11 @@ FROM jwilder/nginx-proxy:alpine
 LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
 LABEL description="Web Gateway for Open Prison Education - source files at https://github.com/operepo"
 LABEL vendor="openprisoneducation.com"
-LABEL version="0.6"
+LABEL version="0.7"
 
 ARG VERSION=dev
 
-LABEL rebuild=109
+LABEL rebuild=119
 # public_certs moved under /usr/share/nginx/html
 # Make public_certs folder so we can make it easy to grab crt file
 #RUN mkdir -p /public_certs \
@@ -30,6 +30,7 @@ COPY gateway.conf /app/
 # conf.d is mounted, so need to copy over files on startup
 # /etc/nginx/conf.d/uploads.conf
 COPY index.html /app/
+COPY 502.html /app/
 WORKDIR /app/
 RUN chmod +x /app/*.sh
 

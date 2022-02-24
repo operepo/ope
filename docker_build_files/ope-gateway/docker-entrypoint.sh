@@ -32,6 +32,10 @@ if [ "x$RESOLVERS" = "x" ]; then
     unset RESOLVERS
 fi
 
+# Add css2 to the mime types list
+# Undo - didn't help, remove later.
+#sed -i '/ css;$/a \ \ \ \ text/css                                         css2;' /etc/nginx/mime.types
+
 # If the user has run the default command and the socket doesn't exist, fail
 if [ "$socketMissing" = 1 -a "$1" = forego -a "$2" = start -a "$3" = '-r' ]; then
 	exit 1

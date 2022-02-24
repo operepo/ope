@@ -1,0 +1,24 @@
+<head>
+<meta http-equiv="refresh" content="60" /> 
+</head>
+<body>
+<script language="JavaScript" type="text/javascript">
+/*<![CDATA[*/
+var TimerVal = 60;
+var TimerSPan = document.getElementById("CDTimer");
+function CountDown(){
+   setTimeout( "CountDown()", 1000 );
+   TimerSPan.innerHTML=TimerVal;
+   TimerVal=TimerVal-1;
+   if (TimerVal<0) { TimerVal=0;
+   location.reload(true); 
+//   window.location.href = "http://canvas.ed";
+   } 
+}
+CountDown();
+/*]]>*/ </script> 
+<h1>ERROR - Unable to reach OPE App</h1>
+<p>
+When starting up, it is normal for Canvas to not respond for 3-10 minutes. Please be patient...
+</p>
+</body>

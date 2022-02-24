@@ -275,13 +275,28 @@ server {
     {{ if eq $host $canvas_host }}
     location /rce/ {
         rewrite ^/rce/(.*)$ /$1 break;
+        proxy_set_header X-Forwarded-Host $host:$server_port;
+        proxy_set_header X-Forwarded-Server $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_pass {{ trim $proto }}://{{ trim $upstream_rce }};
+        proxy_redirect {{ trim $proto }}://{{ trim $upstream_rce }} /rce/;
         # proxy_redirect default;
+        # Convert RCE links to /rce/api instead of letting /api through
+        sub_filter_once off;
+        sub_filter_last_modified on;
+        sub_filter_types application/json;
+        sub_filter "/api/" "/rce/api/";
+        sub_filter "{{ trim $upstream_rce }}" "{{ trim $canvas_host }}";
     }
     {{ end }}
     
     location / {
         return 301 https://$host$request_uri;
+    }
+
+    error_page 502 /502.html;
+    location = /502.html {
+        root /usr/share/nginx/html;
     }
 }
 {{ end }}
@@ -331,10 +346,21 @@ server {
     {{ if eq $host $canvas_host }}
     location /rce/ {
         rewrite ^/rce/(.*)$ /$1 break;
+        proxy_set_header X-Forwarded-Host $host:$server_port;
+        proxy_set_header X-Forwarded-Server $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_pass {{ trim $proto }}://{{ trim $upstream_rce }};
+        proxy_redirect {{ trim $proto }}://{{ trim $upstream_rce }} /rce/;
         # proxy_redirect default;
+        # Convert RCE links to /rce/api instead of letting /api through
+        sub_filter_once off;
+        sub_filter_last_modified on;
+        sub_filter_types application/json;
+        sub_filter "/api/" "/rce/api/";
+        sub_filter "{{ trim $upstream_rce }}" "{{ trim $canvas_host }}";
     }
     {{ end }}
+    
 
     location / {
         #add_header 'Access-Control-Allow-Origin' '{{ trim $base_domain }}' always;
@@ -363,8 +389,12 @@ server {
         include /etc/nginx/vhost.d/default_location;
         {{ end }}
     }
-}
 
+    error_page 502 /502.html;
+    location = /502.html {
+        root /usr/share/nginx/html;
+    }
+}
 {{ end }}
 
 {{ if or (not $is_https) (eq $https_method "noredirect") }}
@@ -391,8 +421,18 @@ server {
     {{ if eq $host $canvas_host }}
     location /rce/ {
         rewrite ^/rce/(.*)$ /$1 break;
+        proxy_set_header X-Forwarded-Host $host:$server_port;
+        proxy_set_header X-Forwarded-Server $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_pass {{ trim $proto }}://{{ trim $upstream_rce }};
+        proxy_redirect {{ trim $proto }}://{{ trim $upstream_rce }} /rce/;
         # proxy_redirect default;
+        # Convert RCE links to /rce/api instead of letting /api through
+        sub_filter_once off;
+        sub_filter_last_modified on;
+        sub_filter_types application/json;
+        sub_filter "/api/" "/rce/api/";
+        sub_filter "{{ trim $upstream_rce }}" "{{ trim $canvas_host }}";
     }
     {{ end }}
 
@@ -422,6 +462,12 @@ server {
         include /etc/nginx/vhost.d/default_location;
         {{ end }}
     }
+
+    error_page 502 /502.html;
+    location = /502.html {
+        root /usr/share/nginx/html;
+    }
+
 }
 
 {{ if (and (not $is_https) (exists "/etc/nginx/certs/default.crt") (exists "/etc/nginx/certs/default.key")) }}

@@ -5,8 +5,8 @@ re_quote() {
         sed 's/[\/&]/\\&/g' <<< "$*"
 }
 
-#BUNDLE=$GEM_HOME/bin/bundle
-BUNDLE=/usr/local/bin/bundle
+BUNDLE=$GEM_HOME/bin/bundle
+#BUNDLE=/usr/local/bin/bundle
 
 echo "=== RUNNING start.sh ==="
 
@@ -100,17 +100,6 @@ echo "=== Applying patch for issue #1783 ==="
 sed -i -- "s/n_strand => \[\"user_preference_migration\"/n_strand\: \[\"user_preference_migration\"/g" db/migrate/20200211143240_split_up_user_preferences.rb
 
 
-# Replace fonts.googleapis.com with local link
-find . -name "*.css" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/g' {} \;
-# May need to re-compile assets and restart the canvas server if css2 links are being asked for
-#find . -name "*.css" -type f -exec sed -i 's/\/fonts\/css.css2/\/fonts\/css.css/g' {} \;
-find . -name "*.html.erb" -type f -exec sed -i 's/\/fonts\/css.css2/\/fonts\/css.css/g' {} \;
-
-# Replace mathjax links to pull from the local server
-find /usr/src/app/public/javascripts/ -name "*.js" -type f -exec sed -i 's/\/\/cdnjs.cloudflare.com//' {} \;
-find /usr/src/app/public/dist/ -name "*.js" -type f -exec sed -i 's/\/\/cdnjs.cloudflare.com//' {} \;
-
-
 # Javascript - uses float to store ints, so max is 53 bits instead of 64?
 # 9_223_372_036_854_775_807 - Normal Max 64 bit int - for every language but JScript
 # 0_009_007_199_254_740_991 - Max safe int for jscript (jscript, you suck in so many ways)
@@ -158,6 +147,19 @@ $BUNDLE exec rake ope:startup --trace
 
 # Make sure brand configs are in place
 $BUNDLE exec rake brand_configs:generate_and_upload_all
+
+# Replace fonts.googleapis.com with local link
+find . -name "*.css" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/g' {} \;
+# May need to re-compile assets and restart the canvas server if css2 links are being asked for
+find . -name "*.css" -type f -exec sed -i 's/\/fonts\/css.css2/\/fonts\/css.css/g' {} \;
+find . -name "*.html.erb" -type f -exec sed -i 's/\/fonts\/css.css2/\/fonts\/css.css/g' {} \;
+find . -name "*.html" -type f -exec sed -i 's/\/fonts\/css.css2/\/fonts\/css.css/g' {} \;
+
+# Replace mathjax links to pull from the local server
+find /usr/src/app/public/javascripts/ -name "*.js" -type f -exec sed -i 's/\/\/cdnjs.cloudflare.com//' {} \;
+find /usr/src/app/public/dist/ -name "*.js" -type f -exec sed -i 's/\/\/cdnjs.cloudflare.com//' {} \;
+
+
 
 rm -f /usr/src/app/log/app_init
 touch /usr/src/app/log/app_starting

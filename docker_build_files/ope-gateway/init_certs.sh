@@ -83,6 +83,7 @@ fi
 cp $CERT_PATH/ca.crt $VOLUME_PATH
 cp $CERT_PATH/default.crt $VOLUME_PATH
 cp /app/index.html $VOLUME_PATH
+cp /app/502.html $VOLUME_PATH
 
 # Copy CA cert to system
 cp $CERT_PATH/ca.crt /usr/local/share/ca-certificates/

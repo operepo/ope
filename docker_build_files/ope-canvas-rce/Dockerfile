@@ -30,7 +30,7 @@ RUN mkdir -p ${RCE_APP_HOME} \
 
 LABEL rebuild=13
 COPY start.sh /usr/src/start.sh
-
+COPY packageBookmark.js /usr/src/rce/app/api/packageBookmark.js
 
 RUN echo "Settings file permissions..." \
     && chmod 755 /usr/src/*.sh \

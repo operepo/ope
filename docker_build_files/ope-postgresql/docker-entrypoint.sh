@@ -353,6 +353,10 @@ _main() {
 
 # CUSTOM CODE - OPE Project
 _ope_setup() {
+    # Increase memory
+    sed -i "s/shared_buffers = 128MB/shared_buffers = 512MB/" $PGDATA/postgresql.conf
+    sed -i "s/#work_mem = 4MB/work_mem = 8MB/" $PGDATA/postgresql.conf
+
     # Change max connections
     echo Changing max_connections...
     sed -i "s/max_connections = 100/max_connections = 500/" $PGDATA/postgresql.conf
