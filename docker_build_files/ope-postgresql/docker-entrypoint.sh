@@ -380,9 +380,10 @@ _ope_setup() {
         if [ $OLD_PG_VERSION == "9.6" ]; then
             # Make sure old database has been shutdown properly, start, then stop it...
             echo Making sure PG9.6 data is clean...
-            /pg9.6/pg_ctl -w -D "$OLD_PGDATA" -p /pg9.6/ start
+            /pg9.6/pg_ctl -w -D "$OLD_PGDATA" -p /pg9.6/postgres \
+                -o "-c listen_addresses=''" start
             sleep 10
-            /pg9.6/pg_ctl -w -D "$OLD_PGDATA" -m fast -p /pg9.6/ stop
+            /pg9.6/pg_ctl -w -D "$OLD_PGDATA" -m fast -p /pg9.6/postgres stop
 
 
             # Move us to a folder we can write to

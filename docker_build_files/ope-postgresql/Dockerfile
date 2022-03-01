@@ -11,7 +11,7 @@ LABEL vendor="openprisoneducation.com"
 LABEL version="1.1"
 
 
-LABEL rebuild=29
+LABEL rebuild=30
 COPY docker-entrypoint.sh /
 RUN chmod +x /docker-entrypoint.sh
 COPY update_pw.sh /update_pw.sh
