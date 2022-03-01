@@ -378,6 +378,13 @@ _ope_setup() {
         # Get the version of the previous data
         OLD_PG_VERSION=`cat $OLD_PGDATA/PG_VERSION`
         if [ $OLD_PG_VERSION == "9.6" ]; then
+            # Make sure old database has been shutdown properly, start, then stop it...
+            echo Making sure PG9.6 data is clean...
+            /pg9.6/pg_ctl -w -D "$OLD_PGDATA" -p /pg9.6/ start
+            sleep 10
+            /pg9.6/pg_ctl -w -D "$OLD_PGDATA" -m fast -p /pg9.6/ stop
+
+
             # Move us to a folder we can write to
             OLD_PWD=`pwd`
             cd $PGDATA
