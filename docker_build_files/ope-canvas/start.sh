@@ -123,6 +123,16 @@ sed -i -- "s/5_000_000/1_000_000_000_000_000/g" $APP_DIR/config/initializers/sim
 #sed -i -- "s/5_000_000/1_000_000_000_000_000_000/g" $APP_DIR/config/initializers/simply_versioned.rb
 # DB Constraint gets altered during ope:startup
 
+# FIX - database migration - has item duplicated  https://github.com/instructure/canvas-lms/issues/1806
+#sed -i -- "s/    DataFixup::AddRoleOverridesForNewPermission.run(:manage_admin_users, :add_teacher_to_course)/    #DataFixup::AddRoleOverridesForNewPermission.run(:manage_admin_users, :add_teacher_to_course)/g" $APP_DIR/db/migrate/20201216214616_more_granular_admin_users_permissions.rb
+#sed -i -- "s/    DataFixup::AddRoleOverridesForNewPermission.run(:manage_admin_users, :remove_teacher_from_course)/    #DataFixup::AddRoleOverridesForNewPermission.run(:manage_admin_users, :remove_teacher_from_course)/g" $APP_DIR/db/migrate/20201216214616_more_granular_admin_users_permissions.rb
+#sed -i -- "s/    DataFixup::AddRoleOverridesForNewPermission.run(:manage_students, :add_student_to_course)/    #DataFixup::AddRoleOverridesForNewPermission.run(:manage_students, :add_student_to_course)/g"  $APP_DIR/db/migrate/20210207214616_granular_student_permissions.rb
+#sed -i -- "s/    DataFixup::AddRoleOverridesForNewPermission.run(:manage_students, :remove_student_from_course)/    #DataFixup::AddRoleOverridesForNewPermission.run(:manage_students, :remove_student_from_course)/g"  $APP_DIR/db/migrate/20210207214616_granular_student_permissions.rb
+
+#sed -i -- "s/    DataFixup::AddRoleOverridesForNewPermission.run(:manage_groups, :manage_groups_add)/    #DataFixup::AddRoleOverridesForNewPermission.run(:manage_groups, :manage_groups_add)/g" $APP_DIR/db/migrate/20210308200204_granular_manage_groups_permissions.rb
+#sed -i -- "s/    DataFixup::AddRoleOverridesForNewPermission.run(:manage_groups, :manage_groups_manage)/    #DataFixup::AddRoleOverridesForNewPermission.run(:manage_groups, :manage_groups_manage)/g" $APP_DIR/db/migrate/20210308200204_granular_manage_groups_permissions.rb
+#sed -i -- "s/    DataFixup::AddRoleOverridesForNewPermission.run(:manage_groups, :manage_groups_delete)/    #DataFixup::AddRoleOverridesForNewPermission.run(:manage_groups, :manage_groups_delete)/g" $APP_DIR/db/migrate/20210308200204_granular_manage_groups_permissions.rb
+
 
 # Generate the initial db if a table called versions doesn't already exist
 # NOTE: moved to ope.rake -> startup

@@ -241,7 +241,7 @@ RUN find ${APP_HOME} -not -user docker -exec chown docker:docker {} \+
 USER docker
 
 
-LABEL rebuild=79
+LABEL rebuild=80
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml
@@ -262,7 +262,7 @@ COPY rack.rb /usr/src/app/config/initializers/rack.rb
 COPY dynamic_settings.yml.tmpl /usr/src/app/config/dynamic_settings.yml.tmpl
 COPY mime_types.rb /usr/src/app/config/initializers/mime_types.rb
 
-LABEL rebuild=52
+LABEL rebuild=55
 COPY dbinit.sh /usr/src/dbinit.sh
 COPY start.sh /usr/src/start.sh
 COPY ope.rake lib/tasks/ope.rake
