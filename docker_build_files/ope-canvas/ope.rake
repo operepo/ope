@@ -200,6 +200,16 @@ namespace :ope do
     if (admin_account && site_admin_account)
         puts "==== Setting Canvas Config Settings ===="
 
+        # Tell canvas not to send reports home
+        Setting.set("usage_statistics_collection", "opt_out")
+        # Change request throttle so LMS doesn't get blocked during high traffic
+        Setting.set("request_throttle.hwm", '100000')
+        #Setting.set("request_throttle.enabled", true)
+        Setting.set("request_throttle.maximum", '100000')
+        Setting.set("request_throttle.outflow", '50')
+        Setting.set("login_attempts_per_ip", '100')
+        Setting.set("api_max_per_page", '100')
+
         admin_account.default_time_zone = ENV["TIME_ZONE"]  # "Pacific Time (US & Canada)"
         site_admin_account.default_time_zone = ENV["TIME_ZONE"]  # "Pacific Time (US & Canada)"
         admin_account.allow_sis_import = true

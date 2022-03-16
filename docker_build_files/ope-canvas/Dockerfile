@@ -241,7 +241,7 @@ RUN find ${APP_HOME} -not -user docker -exec chown docker:docker {} \+
 USER docker
 
 
-LABEL rebuild=80
+LABEL rebuild=81
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml
