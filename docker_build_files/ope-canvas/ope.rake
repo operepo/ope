@@ -204,7 +204,7 @@ namespace :ope do
         Setting.set("usage_statistics_collection", "opt_out")
         # Change request throttle so LMS doesn't get blocked during high traffic
         Setting.set("request_throttle.hwm", '100000')
-        #Setting.set("request_throttle.enabled", true)
+        #Setting.set("request_throttle.enabled", false)
         Setting.set("request_throttle.maximum", '100000')
         Setting.set("request_throttle.outflow", '50')
         Setting.set("login_attempts_per_ip", '100')

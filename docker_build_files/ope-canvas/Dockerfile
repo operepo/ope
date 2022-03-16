@@ -262,7 +262,7 @@ COPY rack.rb /usr/src/app/config/initializers/rack.rb
 COPY dynamic_settings.yml.tmpl /usr/src/app/config/dynamic_settings.yml.tmpl
 COPY mime_types.rb /usr/src/app/config/initializers/mime_types.rb
 
-LABEL rebuild=55
+LABEL rebuild=56
 COPY dbinit.sh /usr/src/dbinit.sh
 COPY start.sh /usr/src/start.sh
 COPY ope.rake lib/tasks/ope.rake
