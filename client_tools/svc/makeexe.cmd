@@ -16,6 +16,13 @@ rem link -dll -noentry -out:mgmt_EventLogMessages.dll mgmt_EventLogMessages.res
 
 rem goto endofscript
 
+rem For AV false positive, try clear __pycache__, build, dist and recompile
+rem https://python.plainenglish.io/pyinstaller-exe-false-positive-trojan-virus-resolved-b33842bd3184
+
+echo Removing build folders...
+rd /S /Q %~dp0__pycache__
+rd /S /Q %~dp0dist
+rd /S /Q %~dp0build
 
 
 echo Building OPE Service
@@ -27,6 +34,8 @@ python build_sshot.py
 echo Building OPE Mgmt Utility
 python build_mgmt.py
 
+echo Building Lock Screen Widget
+python build_lock_screen_widget.py
 
 echo "Build complete"
 pause

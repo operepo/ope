@@ -109,9 +109,9 @@ class ProcessManagement:
         return True
 
     @staticmethod
-    def run_cmd(cmd, attempts=1, cmd_timeout=20, require_return_code=None, cwd=None):
+    def run_cmd(cmd, attempts=1, cmd_timeout=120, require_return_code=None, cwd=None, shell=True):
         ret = (-2, "")
-
+        # NOTE - if shell=True then timeout doesn't work properly!
         # Make sure we replace %programdata% style values
         cmd = os.path.expandvars(cmd)
 
@@ -120,7 +120,7 @@ class ProcessManagement:
             try:
                 p("Running cmd (attempt " + str(attempts) + "): " + cmd)
                 with disable_file_system_redirection():
-                    proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE,
+                    proc = subprocess.run(cmd, shell=shell, stdout=subprocess.PIPE,
                         stderr=subprocess.STDOUT, timeout=cmd_timeout, cwd=cwd)
                     
                 out = proc.stdout.decode()
