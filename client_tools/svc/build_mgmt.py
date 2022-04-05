@@ -7,6 +7,7 @@ main_file = "mgmt.py"
 
 # If you get corrupted errors, use this
 clean = " "  # " --clean "
+debug = " --debug all " # --debug all
 remove_spec_file = False
 
 spec_file = project_name + ".spec"
@@ -20,8 +21,8 @@ if remove_spec_file and os.path.exists(spec_file):
 #--noconsole
 data_files = " --add-data logo_icon.ico;. --add-data rc;rc --add-data mgmt.version;. " + \
     " --add-data install_service.cmd;. "
-hidden_imports = "--hidden-import sip --hidden-import win32timezone"
-build_params = "python -m PyInstaller " + clean + \
+hidden_imports = "--hidden-import sip --hidden-import win32timezone --hidden-import simplejson "
+build_params = "python -m PyInstaller " + clean + debug + \
     hidden_imports + \
     " --noupx " + \
     data_files + " --noconfirm --icon logo_icon.ico "

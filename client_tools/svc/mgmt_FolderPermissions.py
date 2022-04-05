@@ -493,9 +493,10 @@ class FolderPermissions:
             value_type="REG_SZ")
 
         # Rewrite UEFI values
-        FolderPermissions.update_uefi_boot_order()
-
-        FolderPermissions.rebuild_bcd_data_cmd_line()
+        # TODO - Need more debugging before using in production
+        #FolderPermissions.update_uefi_boot_order()
+        # TODO - Need more debugging before using in production
+        #FolderPermissions.rebuild_bcd_data_cmd_line()
 
         # Get the default from the boot manager
         cmd = "%SystemRoot%\\System32\\bcdedit.exe"
