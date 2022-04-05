@@ -29,7 +29,7 @@ void CM_MimeTypes::LoadMimeTypes()
             continue;
         }
         //Split the CSV line into parts
-        QStringList parts = line.split(",", QString::KeepEmptyParts);
+        QStringList parts = line.split(",", Qt::KeepEmptyParts);
         if (parts.length() != 4) {
             qDebug() << "Bad line - skipping " << line;
             continue;

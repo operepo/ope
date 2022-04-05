@@ -61,7 +61,7 @@ void CM_PersistentObjectModel::generateRoleNames()
     {
         //qDebug() << "Adding key (" << i << ") " << keys[i];
         QByteArray ar;
-        ar.append(keys[i]);
+        ar.append(keys[i].toStdString());
         // We have to offset i with the UserRole value for
         // Qt to pick it up properly
         role_list[Qt::UserRole + i] = ar;

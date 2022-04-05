@@ -66,7 +66,10 @@ AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
 
     // Copy the www resources over in a different thread
     //copyWebResourcesToWebFolder();
-    QFuture<void> future = QtConcurrent::run(this, &AppModule::copyWebResourcesToWebFolder);
+    // Changes for qt6
+    //QFuture<void> future = QtConcurrent::run(this, &AppModule::copyWebResourcesToWebFolder);
+    // Send object as the first arg
+    QFuture<void> future = QtConcurrent::run(&AppModule::copyWebResourcesToWebFolder, this);
 
     // Setup canvas object
     _canvas = new EX_Canvas(this, _database, _app_settings, getLocalServerURL());
@@ -136,8 +139,11 @@ bool AppModule::desktopLaunch(QString url)
     }
 
     // Make a new local file url
-    QUrl local_url = QUrl::fromUserInput("file:///" + content_folder + old_url.path(),
-                                         content_folder, QUrl::AssumeLocalFile);
+    //QUrl local_url = QUrl::fromUserInput("file:///" + content_folder + old_url.path(),
+    //                                     content_folder, QUrl::AssumeLocalFile);
+    // Fix - PDF's with # symbol #75 (https://github.com/operepo/ope/issues/75)
+    // QUrl::fromLocalFile shouuld encode # as %23 - urlencoded path
+    QUrl local_url = QUrl::fromLocalFile(content_folder + old_url.path());
 
     qDebug() << " >>>>> " << local_url << " - " << local_url.toLocalFile();
 
@@ -166,7 +172,7 @@ QString AppModule::appDataFolder()
     QString curr_student = this->get_current_student_user();
     if (curr_student == "") {
         // Return the standard path for the current logged in user.
-        QString p = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+        QString p = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
         QDir d;
         d.setPath(p);
         d.mkpath(d.path());
@@ -477,10 +483,11 @@ bool AppModule::canvasAuthenticateUser(QString /*user_name*/, QString /*password
         }
     });
 
-    canvas_auth.setModifyParametersFunction([&](QAbstractOAuth::Stage stage, QVariantMap *parameters) {
-        if (stage == QAbstractOAuth::Stage::RequestingAuthorization && isPermanent())
-            parameters->insert("duration", "permanent");
-    });
+    //TODO - Broken from upgrade to qt6
+//    canvas_auth.setModifyParametersFunction([&](QAbstractOAuth::Stage stage, QVariantMap *parameters) {
+//        if (stage == QAbstractOAuth::Stage::RequestingAuthorization && isPermanent())
+//            parameters->insert("duration", "permanent");
+//    });
 
     //connect(&canvas_auth, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser,
     //        &QDesktopServices::openUrl);

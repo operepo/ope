@@ -3,10 +3,14 @@ rem
 rem To allow MP4 videos in app, need to rebuild webengine
 rem
 
-rem Open QT command prompt for VS2019 x64
+set QT_PATH=C:\Qt\6.2.4
+
+set VC_EDITION=Community
+set MSVC_VER=14.29.30133
+set MSVC_MAJOR_VER=2019
 
 rem set VC_DIR=c:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\VC
-set VC_DIR=C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC
+set VC_DIR=C:\Program Files (x86)\Microsoft Visual Studio\%MSVC_MAJOR_VER%\%VC_EDITION%\VC
 
 rem MSVC_VER=14.16.27023
 rem ** set MSVC_VER=14.27.29110
@@ -14,7 +18,10 @@ set MSVC_VER=14.29.30133
 rem set MSVC_VER=14.28.29333
 
 rem Setup VCVars Build
-"%VC_DIR%\Auxiliary\Build\vcvars64.bat" -vcvars_ver=%MSVC_VER%
+call "%QT_PATH%/msvc%MSVC_MAJOR_VER%_64/bin/qtenv2.bat"
+rem call "%VC_DIR%\Auxiliary\Build\vcvars64.bat" -vcvars_ver=%MSVC_VER%
+call "%VC_DIR%\Auxiliary\Build\vcvarsall.bat" amd64
+
 
 rem Make sure python2 and build tools is in the path
 rem Make sure python2.exe is visible in the path
@@ -25,7 +32,7 @@ set path=c:\python27;%path%
 rem set PATH=%PATH:C:\CSE_PORTABLE_CODE\VSCode\WPy32-3680\python-3.6.8;=%
 
 rem Move to webengine folder
-cd \Qt\5.15.2\Src\qtwebengine
+cd \Qt\6.2.4\Src\qtwebengine
 
 rem Configure options
 rem NOTE - need to remove OLD cache or it won't rescan stuff

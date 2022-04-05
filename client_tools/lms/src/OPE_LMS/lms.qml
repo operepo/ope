@@ -1,10 +1,10 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Controls.Material 2.15
-import QtQuick.Controls.Universal 2.15
-import QtQuick.Controls.Styles 1.4
-import QtQuick.Controls.Imagine 2.15
-import QtQuick.Layouts 1.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Controls.Material
+import QtQuick.Controls.Universal
+////import QtQuick.Controls.Styles
+import QtQuick.Controls.Imagine
+import QtQuick.Layouts
 
 import QtWebView 1.1
 
@@ -32,6 +32,8 @@ ApplicationWindow {
     property string current_page_url: "";
     property string current_assignment_id: "";
     property string current_module_item_id: "";
+    property string current_quiz_id: "";
+    property string current_discussion_id: "";
 
 
     // === SETUP WEB CHANNEL - allow webview pages to interact w LMS ===
@@ -164,8 +166,8 @@ ApplicationWindow {
 
                     contentItem: Image {
                         source: "qrc:/images/sync.png"
-                        width: 32
-                        height: 32
+                        width: tbSyncWithCanvas.width;
+                        height: tbSyncWithCanvas.height;
                     }
 
                     onClicked: {
@@ -254,7 +256,7 @@ ApplicationWindow {
                             id: appSideBar
                             anchors.fill: parent
 
-                            onClicked: {
+                            onClicked: function(tab_name){
                                 console.log("Sidebar Clicked: " + tab_name);
 
                                 switch(tab_name) {
@@ -276,6 +278,12 @@ ApplicationWindow {
                                     break;
                                 case "Inbox":
                                     appStack.replace(appInboxView);
+                                    break;
+                                case "Quizzes":
+                                    appStack.replace(appQuizzesView);
+                                    break;
+                                case "Discussions":
+                                    appStack.replace(appDiscussionsView);
                                     break;
                                 default:
                                     appStack.replace(appHomePageView);
@@ -427,7 +435,31 @@ ApplicationWindow {
     }
 
 
+    Component {
+        id: appQuizzesView
+        AppQuizzes {
+            global: main_window;
+            current_course_id: main_window.current_course_id;
+            current_quiz_id: main_window.current_quiz_id;
+            onQuizClicked: {
+                console.log("Quiz Clicked: " + quiz_id);
+                appStack.replace(appQuizzesView);
+            }
+        }
+    }
 
+    Component {
+        id: appDiscussionsView
+        AppDiscussions {
+            global: main_window;
+            current_course_id: main_window.current_course_id;
+            current_discussion_id: main_window.current_discussion_id;
+            onDiscussionClicked: {
+                console.log("Discussion Clicked: " + discussion_id);
+                appStack.replace(appDiscussionsView);
+            }
+        }
+    }
 
 
 
@@ -441,8 +473,7 @@ ApplicationWindow {
         interactive: false;
         position: 0.0;
 
-        AppSyncPage {
-            //anchors.fill: parent;
+        Rectangle {
             width: syncDrawer.width;
             height: syncDrawer.height;
             //implicitWidth: parent.width;
@@ -451,8 +482,23 @@ ApplicationWindow {
             Layout.preferredWidth: syncDrawer.width;
             Layout.fillWidth: true;
             Layout.fillHeight: true;
+            color: App.page_bg_color;
 
+            AppSyncPage {
+                //anchors.fill: parent;
+                width: syncDrawer.width;
+                height: syncDrawer.height;
+                //implicitWidth: parent.width;
+                //implicitHeight: parent.height;
+                Layout.preferredHeight: syncDrawer.height;
+                Layout.preferredWidth: syncDrawer.width;
+                Layout.fillWidth: true;
+                Layout.fillHeight: true;
+
+            }
         }
+
+
 
     }
 

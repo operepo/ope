@@ -753,7 +753,7 @@ QString EX_Canvas::pullDiscussionTopics()
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
 
-    ret = true;
+    ret = "";
     int rowCount = courses_model->rowCount();
     for (int i=0; i<rowCount; i++) {
         // Get modules for this course
@@ -972,7 +972,7 @@ QString EX_Canvas::pullQuizzes()
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
 
-    ret = true;
+    ret = "";
     int rowCount = courses_model->rowCount();
     for (int i=0; i<rowCount; i++) {
         // Get quizzes for this course
@@ -1229,7 +1229,7 @@ QString EX_Canvas::pullQuizQuestions()
     QString smc_url = _app_settings->value("student/smc_url", "https://smc.ed").toString();
     if (!smc_url.endsWith("/")){ smc_url += "/"; }
 
-    ret = true;
+    ret = "";
     int rowCount = quizzes_model->rowCount();
     for (int i=0; i<rowCount; i++) {
         // Get quiz questions for this quiz
@@ -2868,7 +2868,7 @@ QString EX_Canvas::pushAssignments()
             int order = 65; // Start at ascii a - need this to sort the keys later
             // or canvas will have a problem
             foreach(QString key, params.keys()) {
-                p["___" + QString(order) + "_" + key] = params[key].toString();
+                p["___" + QString::number(order) + "_" + key] = params[key].toString();
                 order++;
             }
             // Do the actual file upload - NOTE - this will send back a redirect?

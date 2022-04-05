@@ -4,19 +4,22 @@
 // #include <QMessageBox>
 #include <QTextCodec>
 #include <QtWebView/QtWebView>
-#include <QtWebEngine/qtwebengineglobal.h>
+//#include <QtWebEngine/qtwebengineglobal.h>
+#include <QtWebEngineCore>
+#include <QWebEngineProfile>
 #include <QWebEngineSettings>
+
 #include <QIcon>
 
 #include <QtGlobal>
 #include <QtDebug>
 #include <QTextStream>
-#include <QTextCodec>
 #include <QLocale>
 #include <QTime>
 #include <QFile>
 #include <QLockFile>
 #include <QOperatingSystemVersion>
+#include <QtNetwork>
 
 #include <windows.h>
 
@@ -27,9 +30,13 @@
 // Needed to pull in windows functions
 #pragma comment(lib,"user32.lib")
 
+QT_REQUIRE_CONFIG(ssl);
 
 int main(int argc, char *argv[])
 {
+    // Dummy variable to force rebuild
+#define rebuilding 5;
+
     // Hide the console window
 #if defined( Q_OS_WIN )
         ShowWindow( GetConsoleWindow(), SW_HIDE ); //hide console window
@@ -48,9 +55,11 @@ int main(int argc, char *argv[])
     QCoreApplication::setApplicationName("OPELMS");
 
     //QTextCodec::setCodecForLocale(QTextCodec::codecForName("UTF-8"));
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    // Not needed in qt6
+    //QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     // Possible help for high contrast refresh?
-    QGuiApplication::setAttribute(Qt::AA_UseOpenGLES);
+    // Not available in qt6
+    //QGuiApplication::setAttribute(Qt::AA_UseOpenGLES);
     QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
     //QApplication::setAttribute(Qt::AA_DisableWindowContextHelpButton);
 
@@ -58,7 +67,7 @@ int main(int argc, char *argv[])
     //QtWebEngine::initialize();
     //QtWebView::initialize();
 
-    log_file_path = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/lms_app_debug.log";
+    log_file_path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/lms_app_debug.log";
     // In windows - put it in programdata/ope/tmp/logs/debug.log
     if (QOperatingSystemVersion::currentType() == QOperatingSystemVersion::Windows) {
         // returns ("c:/users/<USER>/AppData/Local/<APPNAME>", "c:/programdata/<APPNAME>")
@@ -102,7 +111,7 @@ int main(int argc, char *argv[])
 
 
     // Show SSL info
-    //qDebug() << "SSL Library Info: " << QSslSocket::supportsSsl() << QSslSocket::sslLibraryBuildVersionString() << QSslSocket::sslLibraryVersionString();
+    qDebug() << "SSL Library Info: " << QSslSocket::supportsSsl() << QSslSocket::sslLibraryBuildVersionString() << QSslSocket::sslLibraryVersionString();
 
     // Relax ssl config as we will be running through test certs
     QSslConfiguration sslconf = QSslConfiguration::defaultConfiguration();
@@ -164,10 +173,17 @@ int main(int argc, char *argv[])
     QLoggingCategory::setFilterRules(QStringLiteral("qt.qml.binding.removal.info=true"));
 
     // Init webview settings
-    QWebEngineSettings::defaultSettings()->setAttribute(QWebEngineSettings::PluginsEnabled, true);
-    QWebEngineSettings::defaultSettings()->setAttribute(QWebEngineSettings::FullScreenSupportEnabled, true);
-    QWebEngineSettings::defaultSettings()->setAttribute(QWebEngineSettings::AllowWindowActivationFromJavaScript, true);
-    QWebEngineSettings::defaultSettings()->setAttribute(QWebEngineSettings::PdfViewerEnabled, true);
+    // Changed in qt6
+//    QWebEngineSettings::defaultSettings()->setAttribute(QWebEngineSettings::PluginsEnabled, true);
+//    QWebEngineSettings::defaultSettings()->setAttribute(QWebEngineSettings::FullScreenSupportEnabled, true);
+//    QWebEngineSettings::defaultSettings()->setAttribute(QWebEngineSettings::AllowWindowActivationFromJavaScript, true);
+//    QWebEngineSettings::defaultSettings()->setAttribute(QWebEngineSettings::PdfViewerEnabled, true);
+
+    QWebEngineProfile::defaultProfile()->settings()->setAttribute(QWebEngineSettings::PluginsEnabled, true);
+    QWebEngineProfile::defaultProfile()->settings()->setAttribute(QWebEngineSettings::FullScreenSupportEnabled, true);
+    QWebEngineProfile::defaultProfile()->settings()->setAttribute(QWebEngineSettings::AllowWindowActivationFromJavaScript, true);
+    QWebEngineProfile::defaultProfile()->settings()->setAttribute(QWebEngineSettings::PdfViewerEnabled, true);
+    QWebEngineProfile::defaultProfile()->settings()->setAttribute(QWebEngineSettings::DnsPrefetchEnabled, true);
 
 
     QQmlApplicationEngine engine;

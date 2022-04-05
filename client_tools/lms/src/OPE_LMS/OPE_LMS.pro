@@ -1,4 +1,6 @@
-QT += qml quick sql network quickcontrols2 webview networkauth webchannel webengine webenginewidgets
+QT += qml quick sql network quickcontrols2 webview networkauth webchannel webenginequick webenginecore webenginewidgets core5compat
+#
+#webengine webenginewidgets
 # networkauth
 # webengine webenginewidgets quick-private webview-private webview
 
@@ -86,7 +88,8 @@ QMAKE_LFLAGS += /ignore:4042
 # any feature of Qt which as been marked deprecated (the exact warnings
 # depend on your compiler). Please consult the documentation of the
 # deprecated API in order to know how to port your code away from it.
-DEFINES += QT_DEPRECATED_WARNINGS
+DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x050F00
+#QT_DEPRECATED_WARNINGS
 
 # You can also make your code fail to compile if you use deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -159,18 +162,6 @@ HEADERS += \
     cm/cm_websockettransport.h \
     customlogger.h
 
-#LIBS += -LC:/OpenSSL-Win64/lib # -lcrypto -lssl
-#INCLUDEPATH += C:/OpenSSL-Win64/include
-#OPEN_SSL_PATH = "C:/Program Files/OpenSSL-Win64"
-
-#OPEN_SSL_PATH = "C:/OpenSSL-Win64"
-
-OPENSSL_PREFIX = "C:/Qt/Tools/OpenSSL/Win_x64"
-OPEN_SSL_PATH = "C:/Qt/Tools/OpenSSL/Win_x64"
-OPEN_SSL_DLL_PATH = $${OPEN_SSL_PATH}/bin
-LIBS += -L"$${OPEN_SSL_PATH}/lib" # -lcrypto -lssl
-INCLUDEPATH += "$${OPEN_SSL_PATH}/include"
-
 
 RC_ICONS = logo_icon.ico
 
@@ -179,6 +170,7 @@ DISTFILES += \
     blue-folder.png \
     Scratch.txt \
     blue_sync.png \
+    qtquickcontrols2.conf \
     upload_file.png \
     sync.png \
     logo_icon.png \
@@ -216,6 +208,19 @@ CONFIG (debug, debug|release) {
 } else {
     VARIANT = release
 }
+
+#LIBS += -LC:/OpenSSL-Win64/lib # -lcrypto -lssl
+#INCLUDEPATH += C:/OpenSSL-Win64/include
+#OPEN_SSL_PATH = "C:/Program Files/OpenSSL-Win64"
+
+#OPEN_SSL_PATH = "C:/OpenSSL-Win64"
+
+#OPENSSL_PREFIX = "C:/"
+OPEN_SSL_PATH = "C:/Qt/Tools/OpenSSL/Win_x64"
+OPEN_SSL_DLL_PATH = $${OPEN_SSL_PATH}/bin
+LIBS += -L"$${OPEN_SSL_PATH}/lib" #-llibcrypto -llibssl # -lcrypto -lssl
+INCLUDEPATH += "$${OPEN_SSL_PATH}/include"
+
 
 # Make sure we have files copied to the build folder
 copy_files.commands = $(COPY_DIR) \"$$shell_path($$PWD\\www_content)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\web_content)\" && \

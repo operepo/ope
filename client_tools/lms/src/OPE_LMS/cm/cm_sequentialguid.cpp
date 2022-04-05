@@ -11,9 +11,10 @@ CM_SequentialGUID::CM_SequentialGUID(QObject *parent) :
 
 void CM_SequentialGUID::InitRand() {
     if (!rand_init) {
-        QTime t = QTime::currentTime();
+        //QTime t = QTime::currentTime();
         //qsrand((uint) t.msec());
-        qsrand(static_cast<uint>(t.msec()));
+        //qsrand(static_cast<uint>(t.msec()));
+        // NOTE: Use QRandomGenerator - system() is crypto seeded already
 
         rand_init = true;
     }
@@ -21,7 +22,8 @@ void CM_SequentialGUID::InitRand() {
 
 int CM_SequentialGUID::randInt(int low, int high) {
     InitRand();
-    return qrand() % ((high+1) - low) + low;
+    //return qrand() % ((high+1) - low) + low;
+    return QRandomGenerator::global()->bounded(low, high);
 }
 
 QUuid CM_SequentialGUID::GetSequentialGUID(SequentialGUIDType guid_type)

@@ -28,6 +28,9 @@
         <file>NewMessagePopup.qml</file>
         <file>QQ_TrueFalseAnswer.qml</file>
         <file>QuizQuestion.qml</file>
+        <file>QQ_MultipleChoiceAnswer.qml</file>
+        <file>AppQuizzes.qml</file>
+        <file>AppDiscussions.qml</file>
     </qresource>
     <qresource prefix="/images">
         <file>blue-folder.png</file>

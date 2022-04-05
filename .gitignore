@@ -42,6 +42,7 @@ client_tools/svc/build
 client_tools/svc/dist
 client_tools/sshot/build
 client_tools/sshot/dist
+client_tools/lms/src/OPE_LMS/.qtc_clangd
 
 
 .enabled

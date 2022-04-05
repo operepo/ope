@@ -2,14 +2,15 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Controls.Material 2.15
 import QtQuick.Controls.Universal 2.15
-import QtQuick.Controls.Styles 1.4
+//import QtQuick.Controls.Styles 1.4
 import QtQuick.Controls.Imagine 2.15
 import QtQuick.Layouts 1.15
 
 import QtWebView 1.1
 
-
-import QtQuick.Dialogs 1.2
+//import QtQuick.Dialogs 1.3
+// Dialog under here in qt6
+import Qt.labs.platform 1.1
 
 import com.openprisoneducation.ope 1.0
 import "App.js" as App

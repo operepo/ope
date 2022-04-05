@@ -22,11 +22,12 @@ CM_WebRequest::CM_WebRequest(QObject *parent) :
 QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString, QString> *parameters, QHash<QString, QString> *headers, QString content_type, QString post_file)
 {
     // Make sure the networkmanager is set to accessible
-    QNetworkAccessManager::NetworkAccessibility n = http_manager.networkAccessible();
-    if (n != QNetworkAccessManager::Accessible) {
-        qDebug() << "NetworkCall - Network not Accessible - switching manually... " << n;
-        http_manager.setNetworkAccessible(QNetworkAccessManager::Accessible);
-    }
+    // NOTE - Depricated from QT6
+//    QNetworkAccessManager::NetworkAccessibility n = http_manager.networkAccessible();
+//    if (n != QNetworkAccessManager::Accessible) {
+//        qDebug() << "NetworkCall - Network not Accessible - switching manually... " << n;
+//        http_manager.setNetworkAccessible(QNetworkAccessManager::Accessible);
+//    }
 
 
     // NOTE - For ordered parameters, you can use ___A_rest_of_key to preserve the parameter order.
@@ -230,11 +231,12 @@ bool CM_WebRequest::DownloadFile(QString url, QString local_path)
     bool ret = false;
 
     // Make sure the networkmanager is set to accessible
-    QNetworkAccessManager::NetworkAccessibility n = download_manager.networkAccessible();
-    if (n != QNetworkAccessManager::Accessible) {
-        qDebug() << "DownloadFile - Network not Accessible - switching manually... " << n;
-        download_manager.setNetworkAccessible(QNetworkAccessManager::Accessible);
-    }
+    // Deprecated in QT6
+//    QNetworkAccessManager::NetworkAccessibility n = download_manager.networkAccessible();
+//    if (n != QNetworkAccessManager::Accessible) {
+//        qDebug() << "DownloadFile - Network not Accessible - switching manually... " << n;
+//        download_manager.setNetworkAccessible(QNetworkAccessManager::Accessible);
+//    }
 
     download_active = true;
 

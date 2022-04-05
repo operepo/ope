@@ -14,13 +14,15 @@ OPENetworkAccessManager::OPENetworkAccessManager(QObject* /*parent*/)
     //                 this, SLOT(ignoreSSLErrors(QNetworkReply*,QList<QSslError>)));
 
     // Bump timeout up so we don't loose connection during uploads
-    configuration().setConnectTimeout(30);
+    //configuration().setConnectTimeout(30);
+    setTransferTimeout(this->transferTimeout());
     //TODO - Set keepalive properties? uploads are timing out
 
-    qDebug() << "====> Network Accessible " << networkAccessible();
+    // Deprecated in qt6
+    //qDebug() << "====> Network Accessible " << networkAccessible();
     // Set access to enabled - force it as it detects incorrectly at times
     // on an offline network
-    setNetworkAccessible(QNetworkAccessManager::Accessible);
+    //setNetworkAccessible(QNetworkAccessManager::Accessible);
 
 }
 

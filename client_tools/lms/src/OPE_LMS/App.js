@@ -4,7 +4,7 @@
 //var current_course_name = "";
 //var current_page_url = "";
 
-
+var page_bg_color = "#ffffff";
 var section_text_color = "#032569";
 var section_bg_color = "#dbdbdb";
 var text_color = "#032569";
