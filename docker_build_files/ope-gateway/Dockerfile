@@ -11,25 +11,25 @@ LABEL version="0.7"
 
 ARG VERSION=dev
 
-LABEL rebuild=122
+LABEL rebuild=132
 # public_certs moved under /usr/share/nginx/html
 # Make public_certs folder so we can make it easy to grab crt file
 #RUN mkdir -p /public_certs \
 #    && chmod 755 /public_certs \
 #    && mkdir -p /app
 	
-#COPY fogserver.conf /etc/nginx/conf.d/
 COPY docker-entrypoint.sh /app/
 COPY init_certs.sh /app/
 COPY openssl.cnf.tmpl /app/
 COPY nginx.tmpl /app/
 #COPY forego /app/
 #COPY Procfile /app/
+# *** NOTE -  conf.d is mounted, so need to copy over files on startup in the init_certs script
 COPY uploads.conf /app/
 COPY gateway.conf /app/
-COPY nginx.conf /etc/nginx/nginx.conf
-COPY proxy.conf /etc/nginx/nginx/conf.d/
-# conf.d is mounted, so need to copy over files on startup
+COPY nginx.conf /app/nginx.conf
+COPY proxy.conf /app/
+#COPY fogserver.conf /etc/nginx/conf.d/
 # /etc/nginx/conf.d/uploads.conf
 COPY index.html /app/
 COPY 502.html /app/

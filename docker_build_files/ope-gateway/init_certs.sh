@@ -91,9 +91,16 @@ cp $CERT_PATH/ca.crt /usr/local/share/ca-certificates/
 
 # Copy the uploads.conf to the proper location
 cp /app/uploads.conf /etc/nginx/conf.d/
-
-# Copy the gateway conf file
+cp /app/nginx.conf   /etc/nginx/nginx.conf
 cp /app/gateway.conf /etc/nginx/conf.d/
+
+# Proxy.conf goes in /etc/nginx 
+cp /app/proxy.conf   /etc/nginx/
+# Remove old file if exists
+rm -f /etc/nginx/conf.d/proxy.conf
+
+# Clear old conf file in case it has errors
+rm -f /etc/nginx/conf.d/default.conf
 sed -i "s/<DOMAIN>/${DOMAIN}/" /etc/nginx/conf.d/gateway.conf
 
 echo "====== init_certs.sh completed ======"

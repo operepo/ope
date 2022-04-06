@@ -12,18 +12,18 @@
         {{/* If we got the containers from swarm and this container's port is published to host, use host IP:PORT */}}
         {{ if and .Container.Node.ID .Address.HostPort }}
             # {{ .Container.Node.Name }}/{{ .Container.Name }}
-            server {{ .Container.Node.Address.IP }}:{{ .Address.HostPort }};
+            server {{ .Container.Node.Address.IP }}:{{ .Address.HostPort }} max_fails=0;
         {{/* If there is no swarm node or the port is not published on host, use container's IP:PORT */}}
         {{ else if .Network }}
             # {{ .Container.Name }}
-            server {{ .Network.IP }}:{{ .Address.Port }};
+            server {{ .Network.IP }}:{{ .Address.Port }} max_fails=0;
         {{ end }}
     {{ else if .Network }}
         # {{ .Container.Name }}
         {{ if .Network.IP }}
-            server {{ .Network.IP }} down;
+            server {{ .Network.IP }} max_fails=0 down;
         {{ else }}
-            server 127.0.0.1 down;
+            server 127.0.0.1 max_fails=0 down;
         {{ end }}
     {{ end }}
 {{ end }}
@@ -127,7 +127,7 @@ include /etc/nginx/proxy.conf;
 {{ else }}
 # HTTP 1.1 support
 proxy_http_version 1.1;
-proxy_buffering on;
+proxy_buffering off;
 proxy_set_header Host $http_host;
 proxy_set_header Upgrade $http_upgrade;
 proxy_set_header Connection $proxy_connection;
