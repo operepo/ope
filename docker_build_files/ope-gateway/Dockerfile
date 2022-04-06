@@ -11,7 +11,7 @@ LABEL version="0.7"
 
 ARG VERSION=dev
 
-LABEL rebuild=119
+LABEL rebuild=120
 # public_certs moved under /usr/share/nginx/html
 # Make public_certs folder so we can make it easy to grab crt file
 #RUN mkdir -p /public_certs \
@@ -27,6 +27,8 @@ COPY nginx.tmpl /app/
 #COPY Procfile /app/
 COPY uploads.conf /app/
 COPY gateway.conf /app/
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY proxy.conf /etc/nginx/nginx/conf.d/
 # conf.d is mounted, so need to copy over files on startup
 # /etc/nginx/conf.d/uploads.conf
 COPY index.html /app/

@@ -1,22 +1,19 @@
-ARG RUBY=2.7
-FROM instructure/ruby-passenger:${RUBY} as dependencies
+FROM instructure/core:focal
+#FROM instructure/ruby-passenger:${RUBY} as dependencies
 
 LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
 LABEL description="Canvas LMS by Instructure - Image for Open Prison Education"
 LABEL vendor="openprisoneducation.com"
-LABEL version="1.3"
+LABEL version="1.4"
 
 # ope-canvas - Canvas LMS System
 # Build with docker build -t ope-canvas .
-
-#TODO - Auto disable student collaboration features
 
 #INSTRUCTIONS
 # Build the canvas container and run it with the docker-compose command
 # View the canvas website to set your admin password and configure.
 
 ARG POSTGRES_CLIENT=12
-#ARG ALPINE_MIRROR=http://dl-cdn.alpinelinux.org/alpine
 
 ENV APP_HOME /usr/src/app/
 ENV RAILS_ENV production
@@ -27,35 +24,46 @@ ENV LANGUAGE en_US.UTF-8
 ENV LC_CTYPE en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
 
-ARG CANVAS_RAILS6_0=1
-ENV CANVAS_RAILS6_0=${CANVAS_RAILS6_0}
+ARG CANVAS_RAILS=6.0
+ENV CANVAS_RAILS=${CANVAS_RAILS}
 
-
-ENV RUBY_VERSION 2.7
+ENV RUBY_MAJOR 2.7
+ENV RUBYGEMS_VERSION 3.1.3
+#ENV RUBYGEMS_VERSION 3.1.5
+ENV RUBY_VERSION $RUBY_MAJOR
 ENV YARN_VERSION 1.19.1-1
-ENV BUNDLER_VERSION 2.2.17
+ENV BUNDLER_VERSION 2.2.19
+#ENV BUNDLER_VERSION 2.2.17
 
-ENV CANVAS_RELEASE release/2021-12-15.42
+
+#ENV CANVAS_RELEASE prod
+#ENV CANVAS_RELEASE release/2022-03-30.206
+ENV CANVAS_RELEASE release/2022-01-19.127
+#ENV CANVAS_RELEASE release/2021-12-15.42
 #ENV CANVAS_RELEASE release/2020-10-21.32
 
-ENV GEM_HOME /home/docker/.gem/$RUBY_VERSION
+ENV GEM_HOME /home/docker/.gem/$RUBY_MAJOR.0
 ENV PATH $GEM_HOME/bin:$PATH
 ENV BUNDLE_APP_CONFIG /home/docker/.bundle
 
 WORKDIR $APP_HOME
-
 
 USER root
 
 ARG USER_ID
 # This step allows docker to write files to a host-mounted volume with the correct user permissions.
 # Without it, some linux distributions are unable to write at all to the host mounted volume.
-RUN if [ -n "$USER_ID" ]; then usermod -u "${USER_ID}" docker \
-        && chown --from=9999 docker /usr/src/nginx /usr/src/app -R; fi
+#RUN if [ -n "$USER_ID" ]; then usermod -u "${USER_ID}" docker \
+#        && chown --from=9999 docker /usr/src/nginx /usr/src/app -R; fi
 
-RUN mkdir ${APP_HOME}; chown -R docker:docker ${APP_HOME}
+RUN mkdir -p ${APP_HOME}; chown -R docker:docker ${APP_HOME}
 
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        software-properties-common \
+ && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/
+
+#RUN apt-add-repository -y ppa:brightbox/ruby-ng \
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - \
   && curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
   && echo "deb https://dl.yarnpkg.com/debian/ stable main" > /etc/apt/sources.list.d/yarn.list \
@@ -64,6 +72,32 @@ RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - \
   && curl -sS https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
   && apt-get update -qq \
   && apt-get install -qqy --no-install-recommends \
+       ruby$RUBY_MAJOR \
+       ruby$RUBY_MAJOR-dev \
+       curl \
+       make \
+       imagemagick \
+       libbz2-dev \
+       libcurl4-openssl-dev \
+       libevent-dev \
+       libffi-dev \
+       libglib2.0-dev \
+       libjpeg-dev \
+       libgdbm6 \
+       libgdbm-dev \
+       libdb-dev \
+       libmagickcore-dev \
+       libmagickwand-dev \
+       libmysqlclient-dev \
+       libncurses-dev \
+       libpq-dev \
+       libreadline-dev \
+       libsqlite3-dev \
+       libssl-dev \
+       libxml2-dev \
+       libxslt-dev \
+       libyaml-dev \
+       zlib1g-dev \
        nodejs \
        yarn="$YARN_VERSION" \
        libxmlsec1-dev \
@@ -79,14 +113,38 @@ RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - \
        automake \
        git \
        build-essential \
+       g++ \
+       gcc \
+       bison \
        python2 \
        python-is-python2 \
        bash \
        nano \
        dos2unix \
-       supervisor \       
-  && rm -rf /var/lib/apt/lists/* \
+       supervisor \
+       sudo \
+       file \
+  && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/ \
   && mkdir -p /home/docker/.gem/ruby/$RUBY_MAJOR.0
+
+ENV BUNDLE_APP_CONFIG /home/docker/.bundle
+
+RUN echo 'gem: --no-document' >> /home/docker/.gemrc \
+ &&  echo 'gem: --no-document' >> /root/.gemrc \
+ && mkdir -p /home/docker/.gem/ruby/$RUBY_MAJOR.0/build_info \
+             /home/docker/.gem/ruby/$RUBY_MAJOR.0/cache \
+             /home/docker/.gem/ruby/$RUBY_MAJOR.0/doc \
+             /home/docker/.gem/ruby/$RUBY_MAJOR.0/extensions \
+             /home/docker/.gem/ruby/$RUBY_MAJOR.0/gems \
+             /home/docker/.gem/ruby/$RUBY_MAJOR.0/specifications
+
+#RUN gem install --no-document -i /var/lib/gems/$RUBY_MAJOR.0 bundler -v $BUNDLER_VERSION \
+#gem update --no-document --system $RUBYGEMS_VERSION \
+# Move bundler off default, then unistall it, then reinstall our version
+RUN mv /usr/lib/ruby/gems/2.7.0/specifications/default/bundler*.gemspec /usr/lib/ruby/gems/2.7.0/specifications/ \ 
+  && gem uninstall --all --ignore-dependencies --force -i /var/lib/gems/$RUBY_MAJOR.0 bundler || true \
+  && gem install --no-document --default bundler -v $BUNDLER_VERSION \
+  && gem install --no-document bundler -v $BUNDLER_VERSION
 
 # install pulsar stuff
 ARG WITH_PULSAR=1
@@ -109,22 +167,33 @@ RUN if [ "x$WITH_PULSAR" = "x1" ]; then \
     rm /usr/lib/libpulsarwithdeps.a ; \
   fi
 
-RUN if [ -e /var/lib/gems/$RUBY_MAJOR.0/gems/bundler-* ]; then BUNDLER_INSTALL="-i /var/lib/gems/$RUBY_MAJOR.0"; fi \
-  && gem uninstall --all --ignore-dependencies --force $BUNDLER_INSTALL bundler \
-  && gem install bundler --no-document -v $BUNDLER_VERSION \
-  && find $GEM_HOME ! -user docker | xargs chown docker:docker
-RUN npm install -g npm@latest && npm cache clean --force
 
-USER docker
 # Checkout source for canvaslms
 LABEL rebuild=1
 RUN cd ${APP_HOME} \
     && git init \
     && git remote add origin https://github.com/instructure/canvas-lms \
     && git fetch origin --no-tags --depth 1 refs/tags/${CANVAS_RELEASE}:refs/tags/${CANVAS_RELEASE} \
+    #&& git fetch --no-tags --depth 1 origin ${CANVAS_RELEASE} \
     && git checkout ${CANVAS_RELEASE}
 
-USER docker
+
+# We will need sfnt2woff in order to build fonts
+#COPY build/vendor/woff-code-latest.zip ./
+RUN cd build/vendor \
+  && unzip woff-code-latest.zip -d woff \
+  && cd woff \
+  && make \
+  && cp sfnt2woff /usr/local/bin \
+  && cd - \
+  && rm -rf woff*
+
+
+# INSTALL QTIMigrationTool
+RUN mkdir ${APP_HOME}/vendor \
+	&& cd ${APP_HOME}/vendor \
+	&& git clone https://github.com/instructure/QTIMigrationTool.git QTIMigrationTool \
+	&& chmod +x QTIMigrationTool/migrate.py
 
 RUN set -eux; \
   mkdir -p \
@@ -157,91 +226,97 @@ RUN set -eux; \
     public/javascripts/translations \
     reports \
     tmp \
-    /home/docker/.bundler/ \
+    /home/docker/.bundle/ \
     /home/docker/.cache/yarn \
-    /home/docker/.gem/
+    /home/docker/.gem/ \
+  && touch app/stylesheets/_brandable_variables_defaults_autogenerated.scss Gemfile.lock
 
 
+# Make sure docker is the owner for all files
+RUN find ${APP_HOME} -not -user docker -exec chown docker:docker {} \+ || true
+RUN chown -R docker:docker /home/docker/.bundle /home/docker/.gem /home/docker/.cache /usr/lib/ruby/gems || true
+
+RUN npm install -g npm@latest && npm cache clean --force
+
+USER docker
 
 RUN set -eux; \
   \
   cd ${APP_HOME} \
-  # set up bundle config options \
+  && gem uninstall --ignore-dependencies --force -i /usr/lib/ruby/gems/2.7.0 bundler -v 2.1.2 || true \
+  && gem install --no-document bundler -v $BUNDLER_VERSION \
   && bundle config --global build.nokogiri --use-system-libraries \
   && bundle config --global build.ffi --enable-system-libffi \
-  && mkdir -p \
-    /home/docker/.gem/$RUBY_VERSION \
-    /home/docker/.bundle \
-  # TODO: --without development \
-  && bundle install --jobs $(nproc) \
+  && bundler install --jobs $(nproc) \
   && rm -rf $GEM_HOME/cache
 
 
-WORKDIR $APP_HOME
-
-USER root
-# We will need sfnt2woff in order to build fonts
-#COPY build/vendor/woff-code-latest.zip ./
-RUN cd build/vendor \
-  && unzip woff-code-latest.zip -d woff \
-  && cd woff \
-  && make \
-  && cp sfnt2woff /usr/local/bin \
-  && cd - \
-  && rm -rf woff*
-
-#RUN find gems packages -type d ! -user docker -print0 | xargs -0 chown -h docker:docker
-
-#RUN chown -R docker:docker ${APP_HOME}
-
-#USER docker
-#USER root
-
-
-# INSTALL QTIMigrationTool
-RUN mkdir ${APP_HOME}/vendor \
-	&& cd ${APP_HOME}/vendor \
-	&& git clone https://github.com/instructure/QTIMigrationTool.git QTIMigrationTool \
-	&& chmod +x QTIMigrationTool/migrate.py
     
 #RUN rm -rf node_modules \
 #    && rm -rf gems/**/node_modules \
 #    && npm cache clean    
 
-USER root
-
-# Make sure docker is the owner for all files
-RUN find ${APP_HOME} -not -user docker -exec chown docker:docker {} \+
-
 # update Gemfile.lock in cases where a lock file was pulled in during the `COPY . $APP_HOME` step
-RUN bundle lock --update
+#RUN bundle lock --update
 
 
 # TODO: switch to canvas:compile_assets_dev once we stop using this Dockerfile in production/e2e
-RUN yarn global add gulp --no-bin-links \
-  && yarn global add yarn-deduplicate --no-bin-links \
-  #&& npx browserslist@latest --update-db \
-  #&& npm --depth 20 update --save caniuse-lite browserslist \
-  && yarn install
+#RUN yarn global add gulp --no-bin-links \
+#  && yarn global add yarn-deduplicate --no-bin-links \
+#  #&& npx browserslist@latest --update-db \
+#  #&& npm --depth 20 update --save caniuse-lite browserslist \
+#  && yarn install
 
+# Clean up node_modules/cached stuff....
+RUN git clean packages public spec/javascripts node_modules coverage-js gems/*/node_modules packages/*node_modules ui -Xfd \
+  && rm -rfv gems/plugins/*/node_modules
+
+# Runs as part of compile_assets  yarn:install
 #RUN yarn upgrade
 #RUN yarn postinstall
+#RUN yarn install
 
-FROM dependencies AS webpack-final
+USER docker
 ARG JS_BUILD_NO_UGLIFY=0
-
-
+#CANVAS_BUILD_CONCURRENCY=1
+#DISABLE_HAPPYPACK=1
 #RUN COMPILE_ASSETS_NPM_INSTALL=0 bundle exec rake canvas:compile_assets
-RUN COMPILE_ASSETS_NPM_INSTALL=0 JS_BUILD_NO_UGLIFY="$JS_BUILD_NO_UGLIFY" bundle exec rails canvas:compile_assets
+#RUN COMPILE_ASSETS_NPM_INSTALL=0 JS_BUILD_NO_UGLIFY="$JS_BUILD_NO_UGLIFY" bundle exec rails canvas:compile_assets
+#RUN CANVAS_BUILD_CONCURRENCY=1 DISABLE_HAPPYPACK=1 COMPILE_ASSETS_NPM_INSTALL=0 JS_BUILD_NO_UGLIFY="$JS_BUILD_NO_UGLIFY" \
+# Individual commands that compile_assets runs
+#RUN bundle exec rake js:yarn_install \
+#  && bundle exec rake css:compile \
+#  && bundle exec rake css:styleguide \
+#  && bundle exec rake i18n:generate_js \
+#  && bundle exec rake js:webpack_development \
+#  && bundle exec rake doc:api
+# Don't need or non existent
+#  && bundle exec rake js:build_client_apps \
+# yarn run gulp rev
+#RUN bundle exec rake js:webpack_production --trace
 
+
+RUN bundle exec rake canvas:compile_assets --trace
+
+
+USER docker
 #RUN chown -R docker:docker /home/docker
 # Make sure docker is the owner for all files
-RUN find ${APP_HOME} -not -user docker -exec chown docker:docker {} \+
+#RUN find ${APP_HOME} -not -user docker -exec chown docker:docker {} \+
+
+# Fix fonts.googleapis.com links to point to local fonts folder
+RUN cd ${APP_HOME} \
+   && find . -name "*.html" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \; \
+   && find . -name "*.css" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \; \
+   && find . -name "*.erb" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \; \
+   && find . -name "*.html" -type f -exec sed -i 's/\/fonts\/css.css2/\/fonts\/css.css/' {} \; \
+   && find . -name "*.css" -type f -exec sed -i 's/\/fonts\/css.css2/\/fonts\/css.css/' {} \; \
+   && find . -name "*.erb" -type f -exec sed -i 's/\/fonts\/css.css2/\/fonts\/css.css/' {} \;
+
 
 USER docker
 
-
-LABEL rebuild=81
+LABEL rebuild=84
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml
@@ -277,25 +352,15 @@ COPY ajax /usr/src/app/public/ajax/
 # Extensions need to be a the root
 COPY ajax/libs/mathjax/2.7.5/extensions /usr/src/app/public/extensions/
 
-
 USER root
-
 
 RUN echo "Settings file permissions..." \
     && mkdir /tmp/attachment_fu \
+    && mkdir -p /usr/src/app/log \
     && chown -R docker:docker /tmp/attachment_fu /usr/src/app/log \
     && chmod 755 /usr/src/*.sh \
     && dos2unix /usr/src/*.sh
- 
 
-# Fix fonts.googleapis.com links to point to local fonts folder
-RUN cd ${APP_HOME} \
-   && find . -name "*.html" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \; \
-   && find . -name "*.css" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \; \
-   && find . -name "*.erb" -type f -exec sed -i 's/https:\/\/fonts.googleapis.com\/css/\/fonts\/css.css/' {} \; \
-   && find . -name "*.html" -type f -exec sed -i 's/\/fonts\/css.css2/\/fonts\/css.css/' {} \; \
-   && find . -name "*.css" -type f -exec sed -i 's/\/fonts\/css.css2/\/fonts\/css.css/' {} \; \
-   && find . -name "*.erb" -type f -exec sed -i 's/\/fonts\/css.css2/\/fonts\/css.css/' {} \;
 
 
 USER root

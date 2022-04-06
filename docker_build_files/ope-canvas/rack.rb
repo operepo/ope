@@ -1,4 +1,6 @@
-#encoding:ASCII-8BIT
+# frozen_string_literal: true
+
+# encoding:ASCII-8BIT
 #
 # Copyright (C) 2012 - present Instructure, Inc.
 #
@@ -17,5 +19,15 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
 Rack::Utils.key_space_limit = 128.kilobytes # default is 64KB
-Rack::Multipart::Parser.const_set('BUFSIZE', 30_000_000)
 Rack::Utils.multipart_part_limit = 256 # default is 128
+Rack::Multipart::Parser.const_set('BUFSIZE', 30_000_000)
+
+module EnableRackChunking
+  def chunkable_version?(*)
+    return false if defined?(PactConfig)
+    return super if ::Rails.env.test? || ::DynamicSettings.find(tree: :private)["enable_rack_chunking", failsafe: true]
+
+    false
+  end
+end
+Rack::Chunked.prepend(EnableRackChunking)
