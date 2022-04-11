@@ -8,17 +8,17 @@ TOTAL_MEM=`awk '/MemTotal/ {printf "%.0f \n", $2/1024/1024 }' /proc/meminfo`
 
 # Decide how much memory to allocate to Redis
 # TOTAL_MEM should be in gigs
-REDIS_MEM="256m"
-if [ $TOTAL_MEM -gt 2 ]; then REDIS_MEM="512m"; fi
-if [ $TOTAL_MEM -gt 4 ]; then REDIS_MEM="1g"; fi
-if [ $TOTAL_MEM -gt 6 ]; then REDIS_MEM="1.5g"; fi
-if [ $TOTAL_MEM -gt 8 ]; then REDIS_MEM="3g"; fi
-if [ $TOTAL_MEM -gt 10 ]; then REDIS_MEM="4g"; fi
-if [ $TOTAL_MEM -gt 12 ]; then REDIS_MEM="6g"; fi
-if [ $TOTAL_MEM -gt 16 ]; then REDIS_MEM="8g"; fi
-if [ $TOTAL_MEM -gt 20 ]; then REDIS_MEM="10g"; fi
-if [ $TOTAL_MEM -gt 24 ]; then REDIS_MEM="12g"; fi
-if [ $TOTAL_MEM -gt 32 ]; then REDIS_MEM="16g"; fi
+REDIS_MEM="128m"
+if [ $TOTAL_MEM -gt 1 ]; then REDIS_MEM="256m"; fi
+if [ $TOTAL_MEM -gt 3 ]; then REDIS_MEM="512g"; fi
+if [ $TOTAL_MEM -gt 5 ]; then REDIS_MEM="768g"; fi
+if [ $TOTAL_MEM -gt 7 ]; then REDIS_MEM="1g"; fi
+if [ $TOTAL_MEM -gt 8 ]; then REDIS_MEM="2g"; fi
+if [ $TOTAL_MEM -gt 10 ]; then REDIS_MEM="3g"; fi
+if [ $TOTAL_MEM -gt 14 ]; then REDIS_MEM="4g"; fi
+if [ $TOTAL_MEM -gt 18 ]; then REDIS_MEM="5g"; fi
+if [ $TOTAL_MEM -gt 22 ]; then REDIS_MEM="6g"; fi
+if [ $TOTAL_MEM -gt 30 ]; then REDIS_MEM="8g"; fi
 
 # Copy the redis conf and set the memory value
 echo "=== Applying config settings ==="

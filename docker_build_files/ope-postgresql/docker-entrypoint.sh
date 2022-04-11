@@ -353,9 +353,21 @@ _main() {
 
 # CUSTOM CODE - OPE Project
 _ope_setup() {
+    # Get the current total memory
+    TOTAL_MEM=`awk '/MemTotal/ {printf "%.0f \n", $2/1024/1024 }' /proc/meminfo`
+    SHARED_BUFFERS="64MB"
+    WORK_MEM="8MB"
+    if [ $TOTAL_MEM -gt 3 ]; then SHARED_BUFFERS="128MB"; fi
+    if [ $TOTAL_MEM -gt 6 ]; then SHARED_BUFFERS="256MB"; fi
+    if [ $TOTAL_MEM -gt 10 ]; then SHARED_BUFFERS="512MB"; fi
+    if [ $TOTAL_MEM -gt 14 ]; then SHARED_BUFFERS="728MB"; fi
+    if [ $TOTAL_MEM -gt 22 ]; then SHARED_BUFFERS="1024MB"; fi
+    if [ $TOTAL_MEM -gt 30 ]; then SHARED_BUFFERS="2048MB"; fi
+
     # Increase memory
-    sed -i "s/shared_buffers = 128MB/shared_buffers = 512MB/" $PGDATA/postgresql.conf
-    sed -i "s/#work_mem = 4MB/work_mem = 8MB/" $PGDATA/postgresql.conf
+    #sed -i "s/shared_buffers = 128MB/shared_buffers = $SHARED_BUFFERS/" $PGDATA/postgresql.conf
+    sed -i "s/^shared_buffers = .*/shared_buffers = $SHARED_BUFFERS/g" $PGDATA/postgresql.conf
+    sed -i "s/#work_mem = 4MB/work_mem = $WORK_MEM/" $PGDATA/postgresql.conf
 
     # Change max connections
     echo Changing max_connections...
