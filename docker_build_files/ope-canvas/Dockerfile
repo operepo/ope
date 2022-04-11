@@ -316,7 +316,7 @@ RUN cd ${APP_HOME} \
 
 USER docker
 
-LABEL rebuild=84
+LABEL rebuild=85
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml

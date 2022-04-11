@@ -1,7 +1,7 @@
 #threads 12,64
 threads 6,6
 #workers 1
-workers 8
+workers 3
 preload_app!
 
 

@@ -1,7 +1,8 @@
 production:
   workers:
   - queue: canvas_queue
-    workers: 2
+    workers: 1
+  # Keep workers down - uses less memory
   #  max_priority: 10
   #- queue: canvas_queue
   #  workers: 4
