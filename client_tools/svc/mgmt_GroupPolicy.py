@@ -72,6 +72,26 @@ class GroupPolicy:
         if RegistrySettings.is_debug():
             p("}}rbDEBUG MODE ON - Skipping apply group policy}}xx")
             return True
+        
+        # Lock out browser games
+        # https://github.com/operepo/ope/issues/111
+        #HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge" /v "AllowSurfGame" /t REG_DWORD /d 0"
+        RegistrySettings.set_reg_value(
+            root="HKLM",
+            app="Software\\Policies\\Microsoft",
+            subkey="Edge",
+            value_name="AllowSurfGame",
+            value=0,
+            value_type="REG_DWORD")
+
+        #HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Google\Chrome" /v "AllowDinosaurEasterEgg" /t REG_DWORD /d 0"
+        RegistrySettings.set_reg_value(
+            root="HKLM",
+            app="Software\\Policies\Google",
+            subkey="Chrome",
+            value_name="AllowDinosaurEasterEgg",
+            value=0,
+            value_type="REG_DWORD")
 
         # Command that is run to start this function
         only_for = "apply_group_policy"
