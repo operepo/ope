@@ -32,13 +32,13 @@ ENV RUBYGEMS_VERSION 3.1.3
 #ENV RUBYGEMS_VERSION 3.1.5
 ENV RUBY_VERSION $RUBY_MAJOR
 ENV YARN_VERSION 1.19.1-1
-ENV BUNDLER_VERSION 2.2.19
+ENV BUNDLER_VERSION 2.2.33
 #ENV BUNDLER_VERSION 2.2.17
 
 
-#ENV CANVAS_RELEASE prod
-#ENV CANVAS_RELEASE release/2022-03-30.206
-ENV CANVAS_RELEASE release/2022-01-19.127
+ENV CANVAS_RELEASE prod
+#ENV CANVAS_RELEASE release/2022-05-25.135
+#ENV CANVAS_RELEASE release/2022-01-19.127
 #ENV CANVAS_RELEASE release/2021-12-15.42
 #ENV CANVAS_RELEASE release/2020-10-21.32
 
@@ -53,8 +53,8 @@ USER root
 ARG USER_ID
 # This step allows docker to write files to a host-mounted volume with the correct user permissions.
 # Without it, some linux distributions are unable to write at all to the host mounted volume.
-#RUN if [ -n "$USER_ID" ]; then usermod -u "${USER_ID}" docker \
-#        && chown --from=9999 docker /usr/src/nginx /usr/src/app -R; fi
+RUN if [ -n "$USER_ID" ]; then usermod -u "${USER_ID}" docker \
+        && chown --from=9999 docker /usr/src/nginx /usr/src/app -R; fi
 
 RUN mkdir -p ${APP_HOME}; chown -R docker:docker ${APP_HOME}
 
@@ -146,37 +146,35 @@ RUN mv /usr/lib/ruby/gems/2.7.0/specifications/default/bundler*.gemspec /usr/lib
   && gem install --no-document --default bundler -v $BUNDLER_VERSION \
   && gem install --no-document bundler -v $BUNDLER_VERSION
 
-# install pulsar stuff
-ARG WITH_PULSAR=1
-ENV PULSAR_VERSION=2.8.0
-ENV PULSAR_CLIENT_SHA512=56570e10d6935ecf319501ebe80d2ff7c9f344cba6e1c2cfd9ea6883730d3abd14c1a3037e800ca5296830ead8c6d8df066cb4f403de2362aec9c1662fa011df
-ENV PULSAR_CLIENT_DEV_SHA512=fc3b5ecb0a69c0fbebd177fbb9c8c22273a81df48430f9175f79bc5b8e379744b83de394e1e8752b93cd96896721a8b4ddb4b4ed50c5019e000dd5c7901b8578
-# pulsar installs 4 versions of this library, but we only need
-# one, so at the end we remove the others to minimize the image size
-# NOTE - switched to dl from archive.apache.org - mirror didn't keep old versions!
-RUN if [ "x$WITH_PULSAR" = "x1" ]; then \
-    cd "$(mktemp -d)" && \
-    curl -SLO 'https://archive.apache.org/dist/pulsar/pulsar-'$PULSAR_VERSION'/DEB/apache-pulsar-client.deb' && \
-    curl -SLO 'https://archive.apache.org/dist/pulsar/pulsar-'$PULSAR_VERSION'/DEB/apache-pulsar-client-dev.deb' && \
-    echo $PULSAR_CLIENT_SHA512 '*apache-pulsar-client.deb' | shasum -a 512 -c -s - && \
-    echo $PULSAR_CLIENT_DEV_SHA512 '*apache-pulsar-client-dev.deb' | shasum -a 512 -c -s - && \
-    apt install ./apache-pulsar-client*.deb && \
-    rm ./apache-pulsar-client*.deb && \
-    rm /usr/lib/libpulsarnossl.so* && \
-    rm /usr/lib/libpulsar.a && \
-    rm /usr/lib/libpulsarwithdeps.a ; \
-  fi
-
 
 # Checkout source for canvaslms
 LABEL rebuild=1
+USER docker
 RUN cd ${APP_HOME} \
+    && git config --global --add safe.directory ${APP_HOME} \
     && git init \
     && git remote add origin https://github.com/instructure/canvas-lms \
-    && git fetch origin --no-tags --depth 1 refs/tags/${CANVAS_RELEASE}:refs/tags/${CANVAS_RELEASE} \
-    #&& git fetch --no-tags --depth 1 origin ${CANVAS_RELEASE} \
+    #&& git fetch origin --no-tags --depth 1 refs/tags/${CANVAS_RELEASE}:refs/tags/${CANVAS_RELEASE} \
+    && git fetch --no-tags --depth 1 origin ${CANVAS_RELEASE} \
     && git checkout ${CANVAS_RELEASE}
 
+
+# NOTE - Need some dummy config files in place - these should get overwritten later
+RUN cd ${APP_HOME}/config \
+  && cp amazon_s3.yml.example amazon_s3.yml \
+  && cp database.yml.example database.yml \
+  && cp delayed_jobs.yml.example delayed_jobs.yml \
+  && cp domain.yml.example domain.yml \
+  && cp file_store.yml.example file_store.yml \
+  && cp outgoing_mail.yml.example outgoing_mail.yml \
+  && cp security.yml.example security.yml \
+  && cp external_migration.yml.example external_migration.yml \
+  && cp dynamic_settings.yml.example dynamic_settings.yml
+ 
+
+
+
+USER root
 
 # We will need sfnt2woff in order to build fonts
 #COPY build/vendor/woff-code-latest.zip ./
@@ -236,7 +234,7 @@ RUN set -eux; \
 RUN find ${APP_HOME} -not -user docker -exec chown docker:docker {} \+ || true
 RUN chown -R docker:docker /home/docker/.bundle /home/docker/.gem /home/docker/.cache /usr/lib/ruby/gems || true
 
-RUN npm install -g npm@latest && npm cache clean --force
+#RUN npm install -g npm@latest && npm cache clean --force
 
 USER docker
 
@@ -245,6 +243,9 @@ RUN set -eux; \
   cd ${APP_HOME} \
   && gem uninstall --ignore-dependencies --force -i /usr/lib/ruby/gems/2.7.0 bundler -v 2.1.2 || true \
   && gem install --no-document bundler -v $BUNDLER_VERSION \
+  #&& gem install rubygems-update \
+  #&& update_rubygems \
+  ##&& gem update --system \
   && bundle config --global build.nokogiri --use-system-libraries \
   && bundle config --global build.ffi --enable-system-libffi \
   && bundler install --jobs $(nproc) \
@@ -268,13 +269,14 @@ RUN set -eux; \
 #  && yarn install
 
 # Clean up node_modules/cached stuff....
-RUN git clean packages public spec/javascripts node_modules coverage-js gems/*/node_modules packages/*node_modules ui -Xfd \
-  && rm -rfv gems/plugins/*/node_modules
+#RUN git clean packages public spec/javascripts node_modules coverage-js gems/*/node_modules packages/*node_modules ui -Xfd \
+#  && rm -rfv gems/plugins/*/node_modules
 
 # Runs as part of compile_assets  yarn:install
 #RUN yarn upgrade
 #RUN yarn postinstall
-#RUN yarn install
+RUN touch Gemfile.lock \
+  && yarn install --pure-lockfile
 
 USER docker
 ARG JS_BUILD_NO_UGLIFY=0
@@ -294,9 +296,13 @@ ARG JS_BUILD_NO_UGLIFY=0
 #  && bundle exec rake js:build_client_apps \
 # yarn run gulp rev
 #RUN bundle exec rake js:webpack_production --trace
+# COMPILE_ASSETS_NPM_INSTALL  COMPILE_ASSETS_API_DOCS
+# COMPILE_ASSETS_CSS  COMPILE_ASSETS_STYLEGUIDE
+# RAILS_LOAD_ALL_LOCALES  COMPILE_ASSETS_BUILD_JS
+# COMPILE_ASSETS_BRAND_CONFIGS  USE_OPTIMIZED_JSJS_BUILD_NO_FALLBACK
+# JS_BUILD_NO_FALLBACK   JS_BUILD_NO_UGLIFY
 
-
-RUN bundle exec rake canvas:compile_assets --trace
+RUN COMPILE_ASSETS_BRAND_CONFIGS=0 bundle exec rake canvas:compile_assets --trace
 
 
 USER docker
@@ -327,7 +333,7 @@ COPY external_migration.yml config/external_migration.yml
 COPY database.yml.tmpl config/database.yml.tmpl
 COPY redis.yml config/redis.yml
 COPY cache_store.yml config/cache_store.yml
-COPY production-local.rb config/environments/production-local.rb
+COPY production-local.rb config/environments/production.rb
 COPY outgoing_mail.yml.tmpl config/outgoing_mail.yml.tmpl
 
 COPY supervisord.conf /etc/supervisor/supervisord.conf
@@ -355,7 +361,7 @@ COPY ajax/libs/mathjax/2.7.5/extensions /usr/src/app/public/extensions/
 USER root
 
 RUN echo "Settings file permissions..." \
-    && mkdir /tmp/attachment_fu \
+    && mkdir -p /tmp/attachment_fu \
     && mkdir -p /usr/src/app/log \
     && chown -R docker:docker /tmp/attachment_fu /usr/src/app/log \
     && chmod 755 /usr/src/*.sh \
