@@ -100,12 +100,13 @@ We utilize Docker containers for micro services. You will need a machine that ca
    - Assign a static IP address to each server and write it down
    - Login with root (password: changeme) and use the passwd utility to change to a secure password
 
-2. From online computer, download the OPE Git project at: https://github.com/operepo/ope
+2. From online computer, download the OPE Git project at: https://github.com/operepo/ope_server_sync_binaries
    - From the GREEN button, click and choose "Download Zip".
    - Unzip this onto your USB drive into a folder called ope (e.g. e:\ope )
    
 3. Run the SyncApp.exe app
    - In the ope folder, you should see a folder called SyncApp. Run the SyncApp.exe file from there
+   - You can also run the RunSyncApp.cmd file from the ope folder. This will check for updates on the SyncApp before running the SyncApp.exe.
 
 4. Configure your settings
    - Make sure you put in the correct IP for each server as well as the password you set
