@@ -90,6 +90,10 @@ sed -i -- "s/<CANVAS_RCE_DEFAULT_DOMAIN>/$CANVAS_RCE_DEFAULT_DOMAIN/g" config/dy
 sed -i -- "s/<CANVAS_MATHMAN_DEFAULT_DOMAIN>/$CANVAS_MATHMAN_DEFAULT_DOMAIN/g" config/dynamic_settings.yml
 sed -i -- "s/<CANVAS_DEFAULT_DOMAIN>/$CANVAS_DEFAULT_DOMAIN/g" config/dynamic_settings.yml
 
+# This sets secure option on cookies
+cp config/session_store.yml.tmpl config/session_store.yml
+
+
 # Fix ::int4[] instead of ::int8[] in app/models/assignment.rb (line 2477, issue #1238)
 echo "=== Applying patch for issue #1238 ==="
 sed -i -- "s/\:\:int4\[\]/\:\:int8\[\]/g" app/models/assignment.rb

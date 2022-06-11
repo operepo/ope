@@ -322,7 +322,7 @@ RUN cd ${APP_HOME} \
 
 USER docker
 
-LABEL rebuild=85
+LABEL rebuild=86
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml
@@ -342,6 +342,8 @@ COPY puma.rb /usr/src/app/config/puma.rb
 COPY rack.rb /usr/src/app/config/initializers/rack.rb
 COPY dynamic_settings.yml.tmpl /usr/src/app/config/dynamic_settings.yml.tmpl
 COPY mime_types.rb /usr/src/app/config/initializers/mime_types.rb
+COPY session_store.yml.tmpl /usr/src/app/config/session_store.yml.tmpl
+
 
 LABEL rebuild=56
 COPY dbinit.sh /usr/src/dbinit.sh
