@@ -61,7 +61,7 @@ RUN apk update \
 #RUN pip install git+https://github.com/nficano/pytube.git@refs/pull/701/head
 # Install 9.7.0
 #RUN pip install git+https://github.com/nficano/pytube.git@refs/tags/v9.7.0
-LABEL pytube_version=11.0.2
+LABEL pytube_version=12.1.0
 RUN python -m pip install --upgrade pytube
 
 # Set ENV Vars
@@ -106,11 +106,11 @@ WORKDIR $W2P_DIR
 
 
 # New clone smc which includes web2py already
-LABEL rebuild_smc=11
+LABEL rebuild_smc=12
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE v1.9.74
+ENV SMC_RELEASE v1.9.75
 
 RUN cd $W2P_DIR \
     && git init \
