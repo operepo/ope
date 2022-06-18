@@ -28,7 +28,7 @@ RUN apk update \
     && python -m pip install --upgrade setuptools ldap3 pycryptodome requests \
         paramiko ecdsa isodate pywinrm crypto PyMySQL \
         psycopg2-binary uwsgi uwsgitop psutil redis pycanvas lz4 \ 
-        webvtt-py langcodes language_data bs4 lxml openpyxl Pillow WeasyPrint \
+        webvtt-py langcodes language_data bs4 lxml openpyxl Pillow WeasyPrint uwsgitop \
 #    && python -m pip install xlrd==1.2.0 \
 # pytube3 - use fix 701 for now
 #pip install git+https://github.com/nficano/pytube.git@refs/pull/701/head
@@ -110,7 +110,7 @@ LABEL rebuild_smc=12
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE v1.9.76
+ENV SMC_RELEASE v1.9.77
 
 RUN cd $W2P_DIR \
     && git init \
@@ -124,7 +124,7 @@ RUN cd $W2P_DIR \
 
 
 # Copy our files in
-LABEL rebuild=23
+LABEL rebuild=24
 COPY set_admin_password /bin/set_admin_password
 COPY start.sh /start.sh
 COPY supervisord.conf /etc/supervisor/supervisord.conf
