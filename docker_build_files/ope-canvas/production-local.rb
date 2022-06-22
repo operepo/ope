@@ -27,6 +27,7 @@
 
 environment_configuration(defined?(config) && config) do |config|
     # Settings specified here will take precedence over those in config/application.rb
+    config.force_ssl = true
   
     # The production environment is meant for finished, "live" apps.
     # Code is not reloaded between requests
@@ -45,7 +46,7 @@ environment_configuration(defined?(config) && config) do |config|
     # If you have mod_xsendfile enabled in apache:
     # config.action_dispatch.x_sendfile_header = 'X-Sendfile'
     # For nginx:
-    # config.action_dispatch.x_sendfile_header = 'X-Accel-Redirect'
+    config.action_dispatch.x_sendfile_header = 'X-Accel-Redirect'
   
     # If you have no front-end server that supports something like X-Sendfile,
     # just comment this out and Rails will serve the files
@@ -58,7 +59,7 @@ environment_configuration(defined?(config) && config) do |config|
     # config.action_controller.asset_host = "http://assets.example.com"
   
     # Disable delivery errors, bad email addresses will be ignored
-    # config.action_mailer.raise_delivery_errors = false
+    config.action_mailer.raise_delivery_errors = false
   
     # Enable threaded mode
     # config.threadsafe!
@@ -79,7 +80,8 @@ environment_configuration(defined?(config) && config) do |config|
   
     config.eager_load = true
 
-    config.hosts << HostUrl
+    #config.hosts << HostUrl
+    config.hosts << ENV["CANVAS_DEFAULT_DOMAIN"] if ENV["CANVAS_DEFAULT_DOMAIN"]
 
     # allow docker dev setup to use http proxy
     config.hosts << ENV["VIRTUAL_HOST"] if ENV["VIRTUAL_HOST"]

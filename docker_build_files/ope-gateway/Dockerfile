@@ -11,7 +11,10 @@ LABEL version="0.7"
 
 ARG VERSION=dev
 
-LABEL rebuild=133
+RUN apk add nano
+
+
+LABEL rebuild=137
 # public_certs moved under /usr/share/nginx/html
 # Make public_certs folder so we can make it easy to grab crt file
 #RUN mkdir -p /public_certs \

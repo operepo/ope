@@ -21,6 +21,9 @@
             # Expose html folder so letsencrypt can do its thing
             - ../volumes/gateway/html:/usr/share/nginx/html:rw
             - ../volumes/gateway/dhparam:/etc/nginx/dhparam:rw
+            # Canvas volume so we can use sendfile
+            - ../volumes/canvas/tmp:/canvas_files_tmp:rw
+            - ../volumes/canvas/sendfile:/canvas_files_sendfile:rw
         env_file: .env
         #depends_on:
         #    - ope-router

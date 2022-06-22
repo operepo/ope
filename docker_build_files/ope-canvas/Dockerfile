@@ -24,7 +24,7 @@ ENV LANGUAGE en_US.UTF-8
 ENV LC_CTYPE en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
 
-ARG CANVAS_RAILS=6.0
+ARG CANVAS_RAILS=6.1
 ENV CANVAS_RAILS=${CANVAS_RAILS}
 
 ENV RUBY_MAJOR 2.7
@@ -124,6 +124,7 @@ RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - \
        supervisor \
        sudo \
        file \
+       rsync \
   && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/ \
   && mkdir -p /home/docker/.gem/ruby/$RUBY_MAJOR.0
 
@@ -322,7 +323,7 @@ RUN cd ${APP_HOME} \
 
 USER docker
 
-LABEL rebuild=86
+LABEL rebuild=91
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml
@@ -345,7 +346,7 @@ COPY mime_types.rb /usr/src/app/config/initializers/mime_types.rb
 COPY session_store.yml.tmpl /usr/src/app/config/session_store.yml.tmpl
 
 
-LABEL rebuild=56
+LABEL rebuild=57
 COPY dbinit.sh /usr/src/dbinit.sh
 COPY start.sh /usr/src/start.sh
 COPY ope.rake lib/tasks/ope.rake
@@ -374,7 +375,7 @@ RUN echo "Settings file permissions..." \
 USER root
     
 # Stay root at the end - supervisor will switch back to docker user
-VOLUME ["/usr/src/app/tmp", "/usr/src/app/log", "/tmp"]
+VOLUME ["/usr/src/app/tmp", "/usr/src/app/log", "/tmp", "/usr/src/app/sendfile"]
 EXPOSE 3000
 
 CMD ["/usr/src/start.sh"]

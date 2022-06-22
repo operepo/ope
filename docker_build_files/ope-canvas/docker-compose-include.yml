@@ -11,6 +11,7 @@
             - ../volumes/canvas/tmp:/usr/src/app/tmp:rw
             - ../volumes/canvas/log:/usr/src/app/log:rw
             - ../volumes/canvas/tmpfiles:/tmp:rw
+            - ../volumes/canvas/sendfile:/usr/src/app/sendfile:rw
         depends_on:
             - ope-gateway
             - ope-dns

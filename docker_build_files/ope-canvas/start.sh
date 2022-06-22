@@ -117,7 +117,9 @@ sed -i -- "s/n_strand => \[\"user_preference_migration\"/n_strand\: \[\"user_pre
 # Change the shard ID so that we can use that space to sync servers - essentially turn shards off
 echo "=== Patching id range in shard_internal.rb (shard.rb) ==="
 # NOTE - changed to shard.rb
-sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000/g" $GEM_HOME/gems/switchman-*/app/models/switchman/shard.rb
+# NOTE - path changed with rails 6.1 - switchmand 3.0? instad of 2.2.3
+sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000/g" $GEM_HOME/gems/switchman-*/lib/switchman/shard.rb
+#sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000/g" $GEM_HOME/gems/switchman-*/app/models/switchman/shard.rb
 #sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000/g" $GEM_HOME/gems/switchman-*/app/models/switchman/shard_internal.rb
 #sed -i -- "s/10_000_000_000_000/1_000_000_000_000_000_000/g" $GEM_HOME/gems/switchman-*/app/models/switchman/shard_internal.rb
 
@@ -173,6 +175,9 @@ find . -name "*.html" -type f -exec sed -i 's/\/fonts\/css.css2/\/fonts\/css.css
 find /usr/src/app/public/javascripts/ -name "*.js" -type f -exec sed -i 's/\/\/cdnjs.cloudflare.com//' {} \;
 find /usr/src/app/public/dist/ -name "*.js" -type f -exec sed -i 's/\/\/cdnjs.cloudflare.com//' {} \;
 
+# Copy over public folder to volume so it can be used for accelerated sendfile
+# NOTE - this is destructive to the volume folder sendfile
+rsync -av --delete /usr/src/app/public /usr/src/app/sendfile/
 
 
 rm -f /usr/src/app/log/app_init

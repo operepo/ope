@@ -359,12 +359,36 @@ server {
         sub_filter "/api/" "/rce/api/";
         sub_filter "{{ trim $upstream_rce }}" "{{ trim $canvas_host }}";
     }
+    # Location for canvas static files
+    #location (/files/|/media_objects_iframe/) {
+    #    proxy_set_header x-sendfile-type x-accel-redirect;
+    #    proxy_set_header x-accel-mapping /usr/src/app/tmp/files/=/internal_files/;
+    #}
+    location /_internal_files/ {
+        internal;
+        alias /canvas_files_tmp/files/;
+        #root /canvas_files_tmp/files/;
+    }
+    location /_internal_public/ {
+        internal;
+        alias /canvas_files_sendfile/public/;
+        #root /canvas_files_sendfile/;
+    }
     {{ end }}
     
 
     location / {
-        #add_header 'Access-Control-Allow-Origin' '{{ trim $base_domain }}' always;
-        #add_header 'Access-Control-Allow-Origin' 'https://canvas.corrections.homeip.net' always;
+
+        {{ if eq $host $canvas_host }}
+          #add_header 'Access-Control-Allow-Origin' '{{ trim $base_domain }}' always;
+          #add_header 'Access-Control-Allow-Origin' 'https://canvas.corrections.homeip.net' always;
+
+          # Add x-sendfile stuff
+          proxy_set_header        X-Sendfile-Type   X-Accel-Redirect;
+          proxy_set_header        X-Forwarded-Proto https;
+          proxy_set_header        X-Accel-Mapping   /usr/src/app/public/=/_internal_public/;
+          proxy_set_header        X-Accel-Mapping   /usr/src/app/tmp/files/=/_internal_files/;
+        {{ end }}
 
         {{ if eq $proto "uwsgi" }}
         include uwsgi_params;
