@@ -177,7 +177,8 @@ find /usr/src/app/public/dist/ -name "*.js" -type f -exec sed -i 's/\/\/cdnjs.cl
 
 # Copy over public folder to volume so it can be used for accelerated sendfile
 # NOTE - this is destructive to the volume folder sendfile
-rsync -av --delete /usr/src/app/public /usr/src/app/sendfile/
+# NOTE - changed over to sync_static_files.py run by supervisor when changes detected
+#rsync -av --delete /usr/src/app/public /usr/src/app/sendfile/
 
 
 rm -f /usr/src/app/log/app_init

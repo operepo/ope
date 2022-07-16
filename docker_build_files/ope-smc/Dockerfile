@@ -18,7 +18,7 @@ RUN apk update \
         openssl zip postgresql-dev openldap-dev \
         supervisor libffi-dev pcre  libxml2 libxslt-dev cargo \
         jpeg-dev zlib-dev libffi-dev cairo-dev pango-dev gdk-pixbuf-dev \
-        libressl-dev font-noto msttcorefonts-installer fontconfig \
+        libressl-dev font-noto msttcorefonts-installer fontconfig nano \
     && update-ms-fonts \
     && fc-cache -f \
 # py-pip

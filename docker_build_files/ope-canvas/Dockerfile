@@ -125,8 +125,11 @@ RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - \
        sudo \
        file \
        rsync \
+       python3-pip \
   && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/ \
   && mkdir -p /home/docker/.gem/ruby/$RUBY_MAJOR.0
+
+RUN python3 -m pip install watchfiles
 
 ENV BUNDLE_APP_CONFIG /home/docker/.bundle
 
@@ -323,7 +326,7 @@ RUN cd ${APP_HOME} \
 
 USER docker
 
-LABEL rebuild=91
+LABEL rebuild=92
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml
@@ -347,6 +350,7 @@ COPY session_store.yml.tmpl /usr/src/app/config/session_store.yml.tmpl
 
 
 LABEL rebuild=57
+COPY sync_static_files.py /usr/src/sync_static_files.py
 COPY dbinit.sh /usr/src/dbinit.sh
 COPY start.sh /usr/src/start.sh
 COPY ope.rake lib/tasks/ope.rake
