@@ -349,7 +349,7 @@ COPY mime_types.rb /usr/src/app/config/initializers/mime_types.rb
 COPY session_store.yml.tmpl /usr/src/app/config/session_store.yml.tmpl
 
 
-LABEL rebuild=57
+LABEL rebuild=58
 COPY sync_static_files.py /usr/src/sync_static_files.py
 COPY dbinit.sh /usr/src/dbinit.sh
 COPY start.sh /usr/src/start.sh
