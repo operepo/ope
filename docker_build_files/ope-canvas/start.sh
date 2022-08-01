@@ -139,6 +139,9 @@ sed -i -- "s/5_000_000/1_000_000_000_000_000/g" $APP_DIR/config/initializers/sim
 #sed -i -- "s/    DataFixup::AddRoleOverridesForNewPermission.run(:manage_groups, :manage_groups_manage)/    #DataFixup::AddRoleOverridesForNewPermission.run(:manage_groups, :manage_groups_manage)/g" $APP_DIR/db/migrate/20210308200204_granular_manage_groups_permissions.rb
 #sed -i -- "s/    DataFixup::AddRoleOverridesForNewPermission.run(:manage_groups, :manage_groups_delete)/    #DataFixup::AddRoleOverridesForNewPermission.run(:manage_groups, :manage_groups_delete)/g" $APP_DIR/db/migrate/20210308200204_granular_manage_groups_permissions.rb
 
+# FIX - messing with accounts during db:migrate causing new installs to fail:
+# https://github.com/instructure/canvas-lms/issues/2035
+sed -i -- "s/Account.root_accounts.active.where.not(id: Account.site_admin.id)/# Account.root_accounts.active.where.not(id: Account.site_admin.id)/g" $APP_DIR/db/migrate/20210823222355_change_immersive_reader_allowed_on_to_on.rb
 
 # Generate the initial db if a table called versions doesn't already exist
 # NOTE: moved to ope.rake -> startup
