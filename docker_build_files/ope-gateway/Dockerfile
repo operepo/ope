@@ -1,7 +1,7 @@
 #FROM nginx:1.11.3
 #
 FROM jwilder/nginx-proxy:alpine
-LABEL rebuild=2
+LABEL rebuild=7
 
 # ope-gateway  - Open Prison Education gateway device
 # Build: Follow instructions at https://github.com/operepo/ope
