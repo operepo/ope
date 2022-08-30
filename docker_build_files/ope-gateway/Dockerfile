@@ -1,13 +1,15 @@
 #FROM nginx:1.11.3
+#
 FROM jwilder/nginx-proxy:alpine
+LABEL rebuild=2
 
 # ope-gateway  - Open Prison Education gateway device
-# Build: Follow instructions at https://github.com/frankyrumple/ope
+# Build: Follow instructions at https://github.com/operepo/ope
 
 LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
 LABEL description="Web Gateway for Open Prison Education - source files at https://github.com/operepo"
 LABEL vendor="openprisoneducation.com"
-LABEL version="0.7"
+LABEL version="0.8"
 
 ARG VERSION=dev
 
