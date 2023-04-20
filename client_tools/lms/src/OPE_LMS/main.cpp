@@ -21,6 +21,8 @@
 #include <QOperatingSystemVersion>
 #include <QtNetwork>
 
+#include <QTranslator>
+
 #include <windows.h>
 
 #include "openetworkaccessmanagerfactory.h"
@@ -31,6 +33,8 @@
 #pragma comment(lib,"user32.lib")
 
 QT_REQUIRE_CONFIG(ssl);
+
+QString pgdata_path = "";
 
 int main(int argc, char *argv[])
 {
@@ -54,6 +58,19 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationDomain("openprisoneducation.com");
     QCoreApplication::setApplicationName("OPELMS");
 
+    // Change cache/local data paths to point to programdata folder instead of user account - allows syncing/usage before user has logged in
+#if defined( Q_OS_WIN )
+    // Set environment so that it uses the new path
+    pgdata_path = QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1); // grab 2nd item
+    // Remove app name (c:/programdata/ope/opelms -> c:/programdata/ope)
+    pgdata_path = pgdata_path.replace("/OPELMS", "");
+    //qDebug() << "PG Data Path: " << pgdata_path;
+    QString cache_path = qEnvironmentVariable("QML_DISK_CACHE_PATH", pgdata_path + "/tmp/qmlcache/");
+    //qDebug() << "Cache Path: " << cache_path;
+    qputenv("QML_DISK_CACHE_PATH", cache_path.toStdString());
+
+#endif
+
     //QTextCodec::setCodecForLocale(QTextCodec::codecForName("UTF-8"));
     // Not needed in qt6
     //QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
@@ -72,10 +89,11 @@ int main(int argc, char *argv[])
     if (QOperatingSystemVersion::currentType() == QOperatingSystemVersion::Windows) {
         // returns ("c:/users/<USER>/AppData/Local/<APPNAME>", "c:/programdata/<APPNAME>")
         // NOTE - Will need to adjust this if
-        QDir d = QDir(QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1));
+        //QDir d = QDir(QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1));
         //qDebug() << "AppConfigLocation: " << d.path();
-        d.cdUp(); // Move back to c:/programdata
-        log_file_path = d.path() + "/tmp/log/lms_app_debug.log";
+        //d.cdUp(); // Move back to c:/programdata
+        //log_file_path = d.path() + "/tmp/log/lms_app_debug.log";
+        log_file_path = pgdata_path + "/tmp/log/lms_app_debug.log";
     }
     qDebug() << "Logging to: " << log_file_path;
 
@@ -144,7 +162,7 @@ int main(int argc, char *argv[])
         QQmlApplicationEngine cmd_engine;
 
         // -- Setup our app module which deals with QML/C++ integration
-        AppModule *cmd_appModule = new AppModule(&cmd_engine);
+        AppModule *cmd_appModule = new AppModule(&cmd_engine, pgdata_path);
 
         // Sync from command line, then exit.
         if (cmd_appModule->isAppCredentialed() != true) {
@@ -160,8 +178,12 @@ int main(int argc, char *argv[])
     }
 
     QGuiApplication app(argc, argv);
+    QTranslator translator;
+    bool translator_ret = translator.load(":/translations_en.qm");
+    app.installTranslator(&translator);
 
-    // Put our local folder as first path to look at for dlls
+    // Put our local folders as first path to look at for dlls
+    QCoreApplication::addLibraryPath(QCoreApplication::applicationDirPath() + "/lib");
     QCoreApplication::addLibraryPath(QCoreApplication::applicationDirPath());
     qDebug() << "Library Paths: " << QCoreApplication::libraryPaths();
 
@@ -189,7 +211,7 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
 
     // -- Setup our app module which deals with QML/C++ integration
-    AppModule *appModule = new AppModule(&engine);
+    AppModule *appModule = new AppModule(&engine, pgdata_path);
 
     QString loadPage = "qrc:/lms.qml";
     //loadPage = "qrc:/websockettest.qml";

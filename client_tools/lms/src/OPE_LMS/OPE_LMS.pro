@@ -8,6 +8,8 @@ CONFIG += c++11
 # Hide -fms-compatibility-version warnings when using ms visual studio (D9002)
 #QMAKE_LFLAGS += /ignore:D9002
 
+TRANSLATIONS = translations_en.ts
+
 # Enable console so we can print to stdout
 CONFIG += console
 
@@ -130,34 +132,34 @@ HEADERS += \
     appmodule.h \
     db.h \
     openetworkaccessmanagerfactory.h \
-    cm/file/cm_fileinfo.h \
-    cm/file/cm_syncfile.h \
-    cm/file/cm_syncfilechunk.h \
-    cm/file/cm_syncfileversion.h \
-    cm/school/sc_classes.h \
-    cm/school/sc_classmodel.h \
-    cm/school/sc_lessonitem.h \
-    cm/school/sc_lessonitemmodel.h \
-    cm/school/sc_modulemodel.h \
-    cm/school/sc_modules.h \
-    cm/school/sc_programmodel.h \
-    cm/school/sc_programs.h \
-    cm/cm_classroom.h \
-    cm/cm_database.h \
-    cm/cm_httpserver.h \
-    cm/cm_machine.h \
-    cm/cm_mimetypes.h \
-    cm/cm_persistentobject.h \
-    cm/cm_persistentobjectmodel.h \
-    cm/cm_screengrab.h \
-    cm/cm_sequentialguid.h \
-    cm/cm_users.h \
-    cm/cm_webrequest.h \
-    external/ex_canvas.h \
-    external/ex_ldap.h \
-    appmodule.h \
-    db.h \
-    openetworkaccessmanagerfactory.h \
+#    cm/file/cm_fileinfo.h \
+#    cm/file/cm_syncfile.h \
+#    cm/file/cm_syncfilechunk.h \
+#    cm/file/cm_syncfileversion.h \
+#    cm/school/sc_classes.h \
+#    cm/school/sc_classmodel.h \
+#    cm/school/sc_lessonitem.h \
+#    cm/school/sc_lessonitemmodel.h \
+#    cm/school/sc_modulemodel.h \
+#    cm/school/sc_modules.h \
+#    cm/school/sc_programmodel.h \
+#    cm/school/sc_programs.h \
+#    cm/cm_classroom.h \
+#    cm/cm_database.h \
+#    cm/cm_httpserver.h \
+#    cm/cm_machine.h \
+#    cm/cm_mimetypes.h \
+#    cm/cm_persistentobject.h \
+#    cm/cm_persistentobjectmodel.h \
+#    cm/cm_screengrab.h \
+#    cm/cm_sequentialguid.h \
+#    cm/cm_users.h \
+#    cm/cm_webrequest.h \
+#    external/ex_canvas.h \
+#    external/ex_ldap.h \
+#    appmodule.h \
+#    db.h \
+#    openetworkaccessmanagerfactory.h \
     cm/cm_javascripthandler.h \
     cm/cm_websockettransport.h \
     customlogger.h
@@ -231,7 +233,7 @@ copy_files.commands = $(COPY_DIR) \"$$shell_path($$PWD\\www_content)\" \"$$shell
     $(COPY_DIR) \"$$shell_path($$PWD\\mime_types.csv)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
     $(COPY_DIR) \"$$shell_path($$PWD\\qt.conf)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
     $(COPY_DIR) \"$$shell_path($$PWD\\qtquickcontrols2.conf)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
-    $(COPY_DIR) \"$$shell_path($${OPEN_SSL_DLL_PATH}\\*.dll)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\"
+    $(COPY_DIR) \"$$shell_path($${OPEN_SSL_DLL_PATH}\\*.dll)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\lib\\)\"
 
 first.depends = $(first) copy_files
 export(first.depends)
