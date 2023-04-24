@@ -1,63 +1,96 @@
-
+@echo off
 rem
 rem To allow MP4 videos in app, need to rebuild webengine
 rem
 
-set QT_PATH=C:\Qt\6.2.4
+echo NOTE - This needs to run from a clean command prompt - NOT the QT command prompt
+echo Also this needs to run with an unconfigured source tree - it will configure the qtwebengine module only
+pause
 
+REM Updated for QT 6.5
+
+rem NOTE - Set appropriate paths here
+set QT_PATH=C:\Qt\6.5.0
+set PYTHONPATH=C:\Program Files\Python39
 set VC_EDITION=Community
 set MSVC_VER=14.29.30133
 set MSVC_MAJOR_VER=2019
 
-rem set VC_DIR=c:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\VC
 set VC_DIR=C:\Program Files (x86)\Microsoft Visual Studio\%MSVC_MAJOR_VER%\%VC_EDITION%\VC
 
-rem MSVC_VER=14.16.27023
-rem ** set MSVC_VER=14.27.29110
-set MSVC_VER=14.29.30133
-rem set MSVC_VER=14.28.29333
-
+REM Set up Microsoft Visual Studio 2019, where <arch> is amd64, x86, etc.
 rem Setup VCVars Build
+SET PATH=%PYTHONPATH%;%QT_PATH%\Src\qtbase\bin;C:\Qt\Tools\Ninja;%PATH%;
+
 call "%QT_PATH%/msvc%MSVC_MAJOR_VER%_64/bin/qtenv2.bat"
-rem call "%VC_DIR%\Auxiliary\Build\vcvars64.bat" -vcvars_ver=%MSVC_VER%
-call "%VC_DIR%\Auxiliary\Build\vcvarsall.bat" amd64
+
+CALL "%VC_DIR%\Auxiliary\Build\vcvarsall.bat" amd64
 
 
-rem Make sure python2 and build tools is in the path
-rem Make sure python2.exe is visible in the path
-rem path=c:\python27\;%path%
-rem c:\qt\bin;
-rem pull python3 from the path - needs python2
-set path=c:\python27;%path%
-rem set PATH=%PATH:C:\CSE_PORTABLE_CODE\VSCode\WPy32-3680\python-3.6.8;=%
 
-rem Move to webengine folder
-cd \Qt\6.2.4\Src\qtwebengine
+
+echo Ready to build, press any key when ready...
+rem change back to original directory
+cd %~dp0
+pause
+
 
 rem Configure options
 rem NOTE - need to remove OLD cache or it won't rescan stuff
-"%VC_DIR%\Tools\MSVC\%MSVC_VER%\bin\Hostx64\x64\nmake.exe" clean
-"%VC_DIR%\Tools\MSVC\%MSVC_VER%\bin\Hostx64\x64\nmake.exe" distclean
+rem "%VC_DIR%\Tools\MSVC\%MSVC_VER%\bin\Hostx64\x64\nmake.exe" clean
+rem "%VC_DIR%\Tools\MSVC\%MSVC_VER%\bin\Hostx64\x64\nmake.exe" distclean
 rem WHAT FILES TO PROPERLY CLEAN?
-del config.cache /a /s
-del .qmake.cache /a /s
-del .qmake.stash /a /s
-del .qmake.conf  /a /s
+rem del config.cache /a /s
+rem del .qmake.cache /a /s
+rem del .qmake.stash /a /s
+rem del .qmake.conf  /a /s
 rem   .super, .summary?
 rem - too much? del Makefile /a /s
-qmake -- -webengine-proprietary-codecs
+rem qmake -- -webengine-proprietary-codecs
 
 rem Tell nmake to use all cores
 set CL=/MP
 
+rem Start with a fresh copy of source - don't run configure.bat in root folder
+rem echo Configuring QT Src folder...
+rem cd %QT_PATH%\Src
+rem -no-feature-vulkan ??
+rem call configure.bat -no-feature-vulkan
+
+echo Configuring qtwebengine with proprietary codecs
+rem Move to webengine folder
+cd %QT_PATH%\Src\qtwebengine
+CALL qt-configure-module . -webengine-proprietary-codecs -webengine-pepper-plugins -webengine-printing-and-pdf -webengine-spellchecker
+rem doesn't work to disable vulkan? -no-feature-vulkan
+rem change back to original directory
+cd %~dp0
+
+echo Building qtwebengine...
+pause
+rem Move to webengine folder
+cd %QT_PATH%\Src\qtwebengine
+cmake --build . --parallel --fresh
+rem change back to original directory
+cd %~dp0
+
+echo If no errors above, ready to install...
+pause
+rem Move to webengine folder
+cd %QT_PATH%\Src\qtwebengine
+cmake --install .
+rem install the debug versions of the files too
+cmake --install . --config Debug
+rem change back to original directory
+cd %~dp0
+
 rem From webengine folder, start Build
-"%VC_DIR%\Tools\MSVC\%MSVC_VER%\bin\Hostx64\x64\nmake.exe"
+rem "%VC_DIR%\Tools\MSVC\%MSVC_VER%\bin\Hostx64\x64\nmake.exe"
 
 echo Build done!!!!! - hit any key to install.
 pause
 
 rem Install - copy DLLs in place
-"%VC_DIR%\Tools\MSVC\%MSVC_VER%\bin\Hostx64\x64\nmake.exe" install
+rem "%VC_DIR%\Tools\MSVC\%MSVC_VER%\bin\Hostx64\x64\nmake.exe" install
 
 rem change back to original directory
 cd %~dp0
