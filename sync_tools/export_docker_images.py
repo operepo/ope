@@ -23,9 +23,13 @@ def get_app_digest(app_name):
     ret = "..."
     for line in lines:
         # Go through each line and find the digest for the latest tagged item
-        parts = line.split()
+        parts = line.decode().split()
+        #print("  Parts: " + str(parts))
+        #print("   " + repo_name + "/" + app_name + ":" + tag)
+        #r = (tag == parts[1])
+        #print(parts[1])
         if parts[0] == repo_name + "/" + app_name and parts[1] == tag:
-            #print("\tFound digest: " + parts[2] + " for: " + repo_name + "/" + app_name)
+            print("\tFound digest: " + parts[2] + " for: " + repo_name + "/" + app_name + ":" + tag)
             ret = parts[2]
     
     return ret
@@ -73,7 +77,7 @@ def save_app(app_name):
     # Load the current docker digest
     app_digest = get_app_digest(app_name)
     
-    if app_digest != tar_digest:
+    if app_digest != tar_digest or app_digest == "...":
         # Save the binary
         print("\tApp modified, exporting with docker save to: " + img_path)
         #os.system("docker save -o " + img_path + " " + repo_name + "/" + app_name + ":" + tag)

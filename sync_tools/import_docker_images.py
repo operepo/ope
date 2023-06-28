@@ -22,9 +22,9 @@ def get_app_digest(app_name):
     ret = "..."
     for line in lines:
         # Go through each line and find the digest for the latest tagged item
-        parts = line.split()
+        parts = line.decode().split()
         if parts[0] == repo_name + "/" + app_name and parts[1] == tag:
-            #print("\tFound digest: " + parts[2] + " for: " + repo_name + "/" + app_name + ":" + tag)
+            print("\tFound digest: " + parts[2] + " for: " + repo_name + "/" + app_name + ":" + tag)
             ret = parts[2]
     
     return ret
