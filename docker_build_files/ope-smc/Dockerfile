@@ -124,7 +124,7 @@ RUN cd $W2P_DIR \
 
 
 # Copy our files in
-LABEL rebuild=24
+LABEL rebuild=25
 COPY set_admin_password /bin/set_admin_password
 COPY start.sh /start.sh
 COPY supervisord.conf /etc/supervisor/supervisord.conf
