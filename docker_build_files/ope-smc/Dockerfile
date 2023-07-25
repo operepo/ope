@@ -131,10 +131,8 @@ COPY supervisord.conf /etc/supervisor/supervisord.conf
 # In smc now
 #COPY ViewerJS $W2P_DIR/web2py/applications/smc/static/
 
-# TEMP - Need this 4/30/19 - fix pytube error in current version
-# shouldn't need now
-# patched pytube in smc modules now
-# COPY extract.py /usr/lib/python2.7/site-packages/pytube/extract.py
+# TEMP - Need this 7/24/23 - fix pytube error in current version
+COPY cipher.py /usr/lib/python3.8/site-packages/pytube/cipher.py
 
 
 RUN chmod +x /start.sh \
