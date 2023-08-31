@@ -8,7 +8,7 @@ import QtQuick.Layouts 1.15
 
 import QtWebView 1.1
 
-import com.openprisoneducation.ope 1.0
+//import com.openprisoneducation.ope 1.0
 import "App.js" as App
 
 ApplicationWindow {

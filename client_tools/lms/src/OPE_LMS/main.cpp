@@ -1,4 +1,5 @@
 #include <QGuiApplication>
+#include <QApplication>
 #include <QCoreApplication>
 #include <QQmlApplicationEngine>
 // #include <QMessageBox>
@@ -17,15 +18,13 @@
 #include <QLocale>
 #include <QTime>
 #include <QFile>
-#include <QLockFile>
 #include <QOperatingSystemVersion>
-#include <QtNetwork>
 
-#include <QTranslator>
+//#include <QTranslator>
 
 #include <windows.h>
 
-#include "openetworkaccessmanagerfactory.h"
+//#include "openetworkaccessmanagerfactory.h"
 #include "appmodule.h"
 #include "customlogger.h"
 
@@ -39,7 +38,7 @@ QString pgdata_path = "";
 int main(int argc, char *argv[])
 {
     // Dummy variable to force rebuild
-#define rebuilding 5;
+#define rebuilding 19;
 
     // Hide the console window
 #if defined( Q_OS_WIN )
@@ -112,35 +111,6 @@ int main(int argc, char *argv[])
         log_to_file = false;
     }
 
-    // Prevent app from running twice
-    QString tmp_dir = QDir::tempPath();
-    QLockFile lf(tmp_dir + "/ope_lms.lock");
-
-    if (!lf.tryLock(100))
-    {
-        qDebug() << "=====================================================\n" <<
-                    "WARNING - App already running, exiting...\n" <<
-                    "only one instance allowed to run. If this is an " <<
-                    " error, remove the temp/ope_lms.lock file and try again" <<
-                    "=====================================================\n";
-        out << "App already running..." << Qt::endl;
-        return 1;
-    }
-
-
-    // Show SSL info
-    qDebug() << "SSL Library Info: " << QSslSocket::supportsSsl() << QSslSocket::sslLibraryBuildVersionString() << QSslSocket::sslLibraryVersionString();
-
-    // Relax ssl config as we will be running through test certs
-    QSslConfiguration sslconf = QSslConfiguration::defaultConfiguration();
-    QList<QSslCertificate> cert_list = sslconf.caCertificates();
-    QList<QSslCertificate> cert_new = QSslCertificate::fromData("CaCertificates");
-    cert_list += cert_new;
-    sslconf.setCaCertificates(cert_list);
-    sslconf.setProtocol(QSsl::AnyProtocol);
-    sslconf.setPeerVerifyMode(QSslSocket::VerifyNone);
-    sslconf.setSslOption(QSsl::SslOptionDisableServerNameIndication,true);
-    QSslConfiguration::setDefaultConfiguration(sslconf);
 
     QString last_arg = ""; //QCoreApplication::arguments().last();
     last_arg = argv[argc-1];
@@ -177,10 +147,11 @@ int main(int argc, char *argv[])
         return cmd_app.exec();
     }
 
-    QGuiApplication app(argc, argv);
-    QTranslator translator;
-    bool translator_ret = translator.load(":/translations_en.qm");
-    app.installTranslator(&translator);
+    //QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
+//    QTranslator translator;
+//    bool translator_ret = translator.load(":/translations_en.qm");
+//    app.installTranslator(&translator);
 
     // Put our local folders as first path to look at for dlls
     QCoreApplication::addLibraryPath(QCoreApplication::applicationDirPath() + "/lib");
@@ -206,6 +177,14 @@ int main(int argc, char *argv[])
     QWebEngineProfile::defaultProfile()->settings()->setAttribute(QWebEngineSettings::AllowWindowActivationFromJavaScript, true);
     QWebEngineProfile::defaultProfile()->settings()->setAttribute(QWebEngineSettings::PdfViewerEnabled, true);
     QWebEngineProfile::defaultProfile()->settings()->setAttribute(QWebEngineSettings::DnsPrefetchEnabled, true);
+    // Disable accessibility in debug mode to prevent crash
+/*#if defined( QT_DEBUG )
+    qDebug() << "Disabling accessibility in debug mode...";
+    QWebEngineProfile::defaultProfile()->setHttpUserAgent(
+        QWebEngineProfile::defaultProfile()->httpUserAgent() + " QTWEBENGINE_DISABLE_ACCESSIBILITY/1.0"
+    );
+    QWebEngineProfile::defaultProfile()->setSpellCheckEnabled(false);
+#endif*/
 
 
     QQmlApplicationEngine engine;
@@ -222,7 +201,6 @@ int main(int argc, char *argv[])
         // Load the error page for non credentialed apps
         loadPage = "qrc:/not_credentialed.qml";
     }
-
 
     bool need_sync = false;
     if (last_arg == "sync" || appModule->hasAppSycnedWithCanvas() != true)
