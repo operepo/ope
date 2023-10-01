@@ -259,9 +259,11 @@ class CredentialProcess:
 
         # Are we in a domain?
         if CredentialProcess.COMPUTER_INFO["cs_part_of_domain"] is True:
-            p("}}rbSystem is doing to an Active Directory Domain - NOT SUPPORTED!\n" +
-                "Please remove this from the domain as it might interfere with security settings.}}xx")
-            return False
+            #p("}}rbSystem is joined to an Active Directory Domain - NOT SUPPORTED!\n" +
+            #    "Please remove this from the domain as it might interfere with security settings.}}xx")
+            #return False
+            p("}}rbSystem is joined to an Active Directory Domain - BETA!!\n" +
+              "Only continue if testing.}}xx")
         
         # Are we using a proper edition win 10? (Home not supported, ed, pro, enterprise ok?)
         # OK - win 10 - pro, ed, enterprise

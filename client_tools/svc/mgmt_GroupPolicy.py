@@ -72,6 +72,26 @@ class GroupPolicy:
         if RegistrySettings.is_debug():
             p("}}rbDEBUG MODE ON - Skipping apply group policy}}xx")
             return True
+
+        # Disable Secure Time seeding which causes random jumps in time when offline
+        #HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\w32time\Config /v UtilizeSslTimeData /t REG_DWORD /d 0 /f
+        RegistrySettings.set_reg_value(
+            root="HKLM",
+            app="SYSTEM\\CurrentControlSet\\Services\\w32time",
+            subkey="Config",
+            value_name="UtilizeSslTimeData",
+            value=0,
+            value_type="REG_DWORD"
+        )
+        # Tell w32tm to update
+        # w32tm.exe /config /update
+        cmd = "w32tm.exe /config /update"
+        returncode, output = ProcessManagement.run_cmd(cmd, attempts=1,
+                require_return_code=0, cmd_timeout=15)
+        if returncode == -2:
+            # Unable to restore gpo?
+            p("}}rnERROR - Unable to update w32tm config!}}xx")
+            #errors = True
         
         # Lock out browser games
         # https://github.com/operepo/ope/issues/111

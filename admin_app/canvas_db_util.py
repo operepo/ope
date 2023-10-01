@@ -49,7 +49,7 @@ def export_canvas_db(db_name="canvas_production", host="canvas.ed", user="postgr
     cur = con.cursor(cursor_factory=psycopg2.extras.DictCursor)
     cur.execute("select version()")
     ver = cur.fetchone()
-    print ver
+    print(ver)
 
 def import_canvas_db():
     pass

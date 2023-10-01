@@ -46,7 +46,9 @@ class NetworkDevices:
         ("Realtek USB GbE Family Controller", "202.5.222"),  # Sync Box - Del usb adater
         ("Thinkpad USB 3.0 Ethernet Adapter", "202.5.222"),  # Sync Box - Alt IBM adapter
         ("Lenovo USB Ethernet", "202.5.222"),                # Sync Box - Alt IBM adapter
-        ("Realtek USB FE Family Controller", "202.5.222"),   # Justice Tec Laptop NIC
+        ("Realtek USB FE Family Controller", "202.5.222"),   # Justice Tech Laptop NIC
+        ("ASIX AX88179A USB 3.2 Gen1 to Gigabit Ethernet Adapter", "202.5.222"), # Justice Tech Laptop 6.0 NIC
+        ("ASIX AX88179 USB 3.0 to Gigabit Ethernet Adapter", "202.5.222"), # Also justice tech laptop 6.0 (gen3)
     ]
     default_approved_nics_json = json.dumps(default_approved_nics)
 
