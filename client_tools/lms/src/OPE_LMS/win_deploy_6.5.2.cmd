@@ -1,7 +1,7 @@
 @echo off
 
-set QT_VER=6.5.1
-set QT_VER_FOLDER=6_5_1
+set QT_VER=6.5.2
+set QT_VER_FOLDER=6_5_2
 
 set QT_PATH=C:\Qt\%QT_VER%
 
@@ -32,7 +32,7 @@ rem set VCToolsRedistDir="%VCINSTALLDIR%\Redist\MSVC\%MSVC_VER%\"
 rem echo QT ENV - %QT_ENV_SETUP%
 if "%QT_ENV_SETUP%" NEQ "1" (
     call "%QT_PATH%/msvc%MSVC_MAJOR_VER%_64/bin/qtenv2.bat"
-    call "C:\Program Files (x86)\Microsoft Visual Studio\%MSVC_MAJOR_VER%\%VC_EDITION%\VC\Auxiliary\Build\vcvarsall.bat" amd64
+    call "C:\Program Files (x86)\Microsoft Visual Studio\%MSVC_MAJOR_VER%\%VC_EDITION%\VC\Auxiliary\Build\vcvarsall.bat" x64
     set QT_ENV_SETUP=1
     rem echo "SET ENV"
 )

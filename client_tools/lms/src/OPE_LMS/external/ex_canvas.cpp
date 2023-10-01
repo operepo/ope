@@ -3282,6 +3282,8 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
     //QByteArray bin_ret = web_request->NetworkCall(url, method, p, headers);
     //ret = QString::fromUtf8(bin_ret);
 
+    // TODO - Detect 500 or other errors and try again?
+
     // If this is a file push - canvas needs us to follow the 301. 201 response is just done
     // that should be set in the location header
     QString location_header = web_request->GetHeader("Location");

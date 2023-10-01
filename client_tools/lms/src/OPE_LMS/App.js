@@ -4,6 +4,39 @@
 //var current_course_name = "";
 //var current_page_url = "";
 
+var global_sidebar_bg_color = "#394b58";
+var course_sidebar_bg_color = "#ffffff";
+
+var global_primary_brand_color = "#0374b5";
+var global_main_text_color = "#2d3b45";
+var global_link_color = "#0374b5";
+var global_primary_button = "#0374b5";
+var global_primary_button_text = "#ffffff";
+var global_secondary_button = "#2d3b45";
+var global_secondary_button_text = "#ffffff";
+
+var global_nav_background = "#394b58";
+var global_nav_background_active = "#ffffff";
+var global_nav_background_hover = "#2d3b45";
+var global_nav_icon = "#ffffff";
+var global_nav_icon_active = "#0374b5";
+var global_nav_text = "#ffffff";
+var global_nav_text_active = "#0374b5";
+var global_nav_avatar_border = "#ffffff";
+var global_nav_badge = "#ffffff";
+var global_nav_badge_active = "#0374b5";
+var global_nav_badge_text = "#000000";
+var global_nav_badge_text_active = "#ffffff";
+var global_nav_logo_background = "#394b58";
+
+var module_bg_color = "#f5f5f5";
+var module_text_color = "#3d454c";
+var module_item_bg_color = "#ffffff";
+var module_item_text = "#2d3b45";
+
+var global_font_family = "Lato Extended, Lato, Helvetica Nueue";
+var global_font_size = "14";
+
 var page_bg_color = "#ffffff";
 var section_text_color = "#032569";
 var section_bg_color = "#dbdbdb";
