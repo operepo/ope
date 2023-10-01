@@ -3,15 +3,18 @@ rem
 rem To allow MP4 videos in app, need to rebuild webengine
 rem
 
-echo NOTE - This needs to run from a clean command prompt - NOT the QT command prompt
+echo NOTE - This needs to run from a clean command prompt
+echo - OPEN NEW QT MSVC COMMAND PROMPT (for the right version)
+echo - COPY/PASTE these commands - doesn't seem to work from the bat file
 echo Also this needs to run with an unconfigured source tree - it will configure the qtwebengine module only
 pause
+exit
 
 REM Updated for QT 6.5
 
 rem NOTE - Set appropriate paths here
-set QT_PATH=C:\Qt\6.5.0
-set PYTHONPATH=C:\Program Files\Python39
+set QT_PATH=C:\Qt\6.5.2
+set PYTHONPATH=C:\Program Files\Python311
 set VC_EDITION=Community
 set MSVC_VER=14.29.30133
 set MSVC_MAJOR_VER=2019
@@ -22,9 +25,11 @@ REM Set up Microsoft Visual Studio 2019, where <arch> is amd64, x86, etc.
 rem Setup VCVars Build
 SET PATH=%PYTHONPATH%;%QT_PATH%\Src\qtbase\bin;C:\Qt\Tools\Ninja;%PATH%;
 
-call "%QT_PATH%/msvc%MSVC_MAJOR_VER%_64/bin/qtenv2.bat"
+rem call "%QT_PATH%/msvc%MSVC_MAJOR_VER%_64/bin/qtenv2.bat"
+"%QT_PATH%/msvc%MSVC_MAJOR_VER%_64/bin/qtenv2.bat"
 
-CALL "%VC_DIR%\Auxiliary\Build\vcvarsall.bat" amd64
+rem CALL "%VC_DIR%\Auxiliary\Build\vcvarsall.bat" amd64   x64? Less issues with mixing platform?
+"%VC_DIR%\Auxiliary\Build\vcvarsall.bat" x64
 
 
 
@@ -59,8 +64,12 @@ rem call configure.bat -no-feature-vulkan
 
 echo Configuring qtwebengine with proprietary codecs
 rem Move to webengine folder
-cd %QT_PATH%\Src\qtwebengine
-CALL qt-configure-module . -webengine-proprietary-codecs -webengine-pepper-plugins -webengine-printing-and-pdf -webengine-spellchecker
+rem cd %QT_PATH%\Src\qtwebengine
+cd %QT_PATH%\Src\
+configure.bat
+rem (don't run cmake!)
+rem CALL qt-configure-module . -webengine-proprietary-codecs -webengine-pepper-plugins -webengine-printing-and-pdf -webengine-spellchecker
+rem CALL qt-configure-module qtwebengine -webengine-proprietary-codecs -webengine-pepper-plugins -webengine-printing-and-pdf -webengine-spellchecker
 rem doesn't work to disable vulkan? -no-feature-vulkan
 rem change back to original directory
 cd %~dp0
@@ -69,6 +78,7 @@ echo Building qtwebengine...
 pause
 rem Move to webengine folder
 cd %QT_PATH%\Src\qtwebengine
+qt-configure-module . -webengine-proprietary-codecs -webengine-pepper-plugins -webengine-printing-and-pdf -webengine-spellchecker
 cmake --build . --parallel --fresh
 rem change back to original directory
 cd %~dp0

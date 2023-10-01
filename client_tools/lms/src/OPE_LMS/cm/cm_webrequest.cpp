@@ -187,14 +187,14 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
 
     if (is_upload) {
         // -- DEAL WITH ERRORS
-        connect(http_reply, SIGNAL(error(QNetworkReply::NetworkError)),
+        connect(http_reply, SIGNAL(errorOccurred(QNetworkReply::NetworkError)),
                 this, SLOT(uploadError(QNetworkReply::NetworkError)));
         // -- DEAL WITH UPLOAD EVENTS
         connect(http_reply, SIGNAL(uploadProgress(qint64,qint64)), this,
                 SLOT(uploadProgress(qint64,qint64)));
     } else {
         // -- DEAL WITH ERRORS
-        connect(http_reply, SIGNAL(error(QNetworkReply::NetworkError)),
+        connect(http_reply, SIGNAL(errorOccurred(QNetworkReply::NetworkError)),
                 this, SLOT(downloadError(QNetworkReply::NetworkError)));
     }
 
@@ -267,7 +267,7 @@ bool CM_WebRequest::DownloadFile(QString url, QString local_path)
             this, SLOT(downloadProgress(qint64,qint64)));
     connect(&download_manager, SIGNAL(finished(QNetworkReply*)),
             this, SLOT(downloadReplyFinished(QNetworkReply*)));
-    connect(reply, SIGNAL(error(QNetworkReply::NetworkError)),
+    connect(reply, SIGNAL(errorOccurred(QNetworkReply::NetworkError)),
             this, SLOT(downloadError(QNetworkReply::NetworkError)));
     connect(reply, SIGNAL(sslErrors(QList<QSslError>)),
             this, SLOT(downloadSSLError(QList<QSslError>)));

@@ -82,14 +82,16 @@ Page {
             Rectangle {
                 width: parent.width
                 height: childrenRect.height
-                color: App.section_bg_color;
+                //color: App.section_bg_color;
+                color: App.module_bg_color;
                 radius: 3
                 Text {
                     height: 30
                     text: section
                     font.bold: true
                     font.pixelSize: 17
-                    color: App.section_text_color;
+                    //color: App.section_text_color;
+                    color: App.module_text_color;
                     padding: 4;
                     leftPadding: 12;
                 }
@@ -111,7 +113,8 @@ Page {
                 width: modulesList.width
                 height: 30
                 implicitHeight: height
-                color: App.bg_color;
+                //color: App.bg_color;
+                color: App.module_item_bg_color;
                 radius: 3
                 //opacity: 0.5
                 property int indexOfThisDelegate: index;
@@ -123,8 +126,10 @@ Page {
                         verticalAlignment: Text.AlignVCenter
                         text: title
                         font.pixelSize: 14
-                        color: App.text_color;
+                        //color: App.text_color;
+                        color: App.module_item_text;
                         padding: 3;
+                        leftPadding: 24;
                     }
                 }
                 MouseArea {

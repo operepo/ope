@@ -3,14 +3,17 @@ rem
 rem To allow MP4 videos in app, need to rebuild webengine
 rem
 
-echo NOTE - This needs to run from a clean command prompt - NOT the QT command prompt
+echo NOTE - This needs to run from a clean command prompt
+echo - OPEN NEW QT MSVC COMMAND PROMPT (for the right version)
+echo - COPY/PASTE these commands - doesn't seem to work from the bat file
 echo Also this needs to run with an unconfigured source tree - it will configure the qtwebengine module only
 pause
+exit
 
 REM Updated for QT 6.5
 
 rem NOTE - Set appropriate paths here
-set QT_PATH=C:\Qt\6.5.0
+set QT_PATH=C:\Qt\6.5.1
 set PYTHONPATH=C:\Program Files\Python39
 set VC_EDITION=Community
 set MSVC_VER=14.29.30133
@@ -59,8 +62,10 @@ rem call configure.bat -no-feature-vulkan
 
 echo Configuring qtwebengine with proprietary codecs
 rem Move to webengine folder
-cd %QT_PATH%\Src\qtwebengine
-CALL qt-configure-module . -webengine-proprietary-codecs -webengine-pepper-plugins -webengine-printing-and-pdf -webengine-spellchecker
+rem cd %QT_PATH%\Src\qtwebengine
+cd %QT_PATH%\Src\
+rem CALL qt-configure-module . -webengine-proprietary-codecs -webengine-pepper-plugins -webengine-printing-and-pdf -webengine-spellchecker
+CALL qt-configure-module qtwebengine -webengine-proprietary-codecs -webengine-pepper-plugins -webengine-printing-and-pdf -webengine-spellchecker
 rem doesn't work to disable vulkan? -no-feature-vulkan
 rem change back to original directory
 cd %~dp0

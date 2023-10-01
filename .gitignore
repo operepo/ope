@@ -101,3 +101,5 @@ exported_gpo
 /media_files_tool/media_files/media
 /media_files_tool/ssh.log
 /client_tools/svc/mgmt.dist
+/media_files_tool/sync_media_files.build
+/media_files_tool/sync_media_files.dist

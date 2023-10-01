@@ -19,12 +19,24 @@
 #include <QtConcurrent/QtConcurrent>
 #include <QProcessEnvironment>
 
+#include <QtNetwork>
 #include <QNetworkAccessManager>
 #include <QQmlNetworkAccessManagerFactory>
 #include <QNetworkReply>
 #include <QSslError>
 
+#include <QLockFile>
+#include <QAccessible>
+#include <QAccessibleObject>
+#include <QAccessibleWidget>
+#include <QAccessibleInterface>
+#include <QAccessiblePlugin>
+#include <QQuickItem>
+#include <QQuickWindow>
+
 #include <QSslConfiguration>
+#include <QApplication>
+#include <QMessageBox>
 
 #ifdef ANDROID
 #include <QAndroidJniObject>
@@ -44,6 +56,54 @@
 #include "external/ex_canvas.h"
 
 
+/**
+ * Custom accessible interface - plugin for creating accessible interface, then Accessible object returned if matching
+ */
+//class OPECustomAccessibleItem: public QAccessibleWidget
+//{
+//public:
+//    explicit OPECustomAccessibleItem(QQuickItem* item): QAccessibleWidget(item)
+//    {
+
+//    }
+//};
+
+//class OPECustomAccessibleFactory: public QAccessibleFac
+//{
+//public:
+//    QAccessibleInterface *create(const QString& key, QObject* object) override
+//    {
+//        Q_UNUSED(key);
+
+//        QQuickItem* item = qobject_cast<QQuickItem*>(object);
+//        if (item && item->objectName() == "CustomItem") {
+//            return new OPECustomAccessibleItem(item);
+//        }
+
+//        return nullptr;
+//    }
+//};
+
+//QAccessibleInterface *OPEAccessibleItemFactory(const QString &classname, QObject *object) {
+//    QAccessibleInterface *interface = nullptr;
+
+//    if (classname == QLatin1String("CUSTOMOBJ") && object && object->isQuickItemType()) {
+//        interface = qobject_cast<QAccessibleInterface*>(new OPECustomAccessibleItem(static_cast<QQuickItem*>(object)));
+//    }
+//    return interface;
+//}
+
+//void registerOPEAccessibilityComponents() {
+//    QAccessible::installFactory(OPEAccessibleItemFactory);
+////    QAccessible::registerAccessibleInterface([](QObject* object) {
+////        QQuickItem* item = qobject_cast<QQuickItem*>(object);
+////        if (item && item->objectName() == "CustomItem") {
+////            return new QAccessibleQuickItem(item);
+////        }
+
+////        return nullptr;
+////    });
+//}
 
 /**
  * @brief The AppModule class is the main class that runs the app.
@@ -57,6 +117,12 @@ class AppModule : public QObject
 private:
     // Main qml engine object
     QQmlApplicationEngine *engine;
+
+    // Lock file - to keep app from running multiple times
+    QLockFile *_lf;
+
+    // Where to store files
+    QString data_path;
 
     // NAM Factory
     OPENetworkAccessManagerFactory *nam_factory;
@@ -84,7 +150,7 @@ private:
 
 public:
 
-    explicit AppModule(QQmlApplicationEngine *parent = nullptr);
+    explicit AppModule(QQmlApplicationEngine *parent = nullptr, QString program_data_path = "");
     ~AppModule();
 
     Q_PROPERTY(QString wwwRoot READ wwwRoot WRITE setwwwRoot NOTIFY wwwRootChanged)
@@ -110,6 +176,7 @@ public slots:
     bool desktopLaunch(QString url);
 
     // User folder where data can be stored
+    QString appStudentDataFolder();
     QString appDataFolder();
     QString dataFolder();
     QString fileCacheFolder();
@@ -165,6 +232,8 @@ public slots:
     void sslErrorHandler(QNetworkReply *reply, QList<QSslError> errors);
 
     QString get_current_student_user();
+
+    void sendAccessibilityEvent(QQuickItem *item, QAccessible::Event event_reason);
 
 };
 

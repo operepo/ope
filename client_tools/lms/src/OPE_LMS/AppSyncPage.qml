@@ -250,7 +250,7 @@ ColumnLayout {
         Layout.preferredHeight: 48;
         Button {
             id: syncButton
-            text: "Sync with Canvas";
+            text: qsTr("Sync with Canvas");
             font.family: "Courier"
             Layout.fillHeight: false
             Layout.fillWidth: false
