@@ -163,6 +163,7 @@ RUN cd ${APP_HOME} \
     && git checkout ${CANVAS_RELEASE}
 
 
+LABEL rebuild=1
 # NOTE - Need some dummy config files in place - these should get overwritten later
 RUN cd ${APP_HOME}/config \
   && cp amazon_s3.yml.example amazon_s3.yml \

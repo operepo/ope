@@ -3,7 +3,7 @@ MAINTAINER Ray Pulspher <ray@cmagic.biz>
 LABEL Author="Ray Pulspher <ray@cmagic.biz>"
 LABEL Description="Student Management Console - Image for Open Prison Education"
 LABEL Vendor="openprisoneducation.com"
-LABEL Version="1.4"
+LABEL Version="1.5"
 
 # install base
 RUN apk update \
@@ -61,7 +61,7 @@ RUN apk update \
 #RUN pip install git+https://github.com/nficano/pytube.git@refs/pull/701/head
 # Install 9.7.0
 #RUN pip install git+https://github.com/nficano/pytube.git@refs/tags/v9.7.0
-LABEL pytube_version=15.0.0.0
+LABEL pytube_version=15.0.0.0.0
 RUN python -m pip install --upgrade pytube
 
 # Set ENV Vars
@@ -110,9 +110,13 @@ LABEL rebuild_smc=12
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE v1.9.84
+ENV SMC_RELEASE v1.9.86
+# Errors with http2? Use http 1
 
 RUN cd $W2P_DIR \
+#    && git config --global http.version HTTP/1.1 \
+#    && git config --global http.postBuffer 524288000 \
+    && git config --global --add safe.directory /home/www-data/smc \
     && git init \
     && git remote add origin https://github.com/operepo/smc \
     && git fetch origin --no-tags --depth 1 refs/tags/${SMC_RELEASE}:refs/tags/${SMC_RELEASE}  \

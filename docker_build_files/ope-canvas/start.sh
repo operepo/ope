@@ -82,6 +82,7 @@ sed -i -- "s/<IT_PW>/$ESC_IT_PW/g" config/database.yml
 
 cp config/security.yml.tmpl config/security.yml
 sed -i -- "s/<CANVAS_SECRET>/$CANVAS_SECRET/g" config/security.yml
+sed -i -- "s/<CANVAS_DEFAULT_DOMAIN>/$CANVAS_DEFAULT_DOMAIN/g" config/security.yml
 
 cp config/dynamic_settings.yml.tmpl config/dynamic_settings.yml
 sed -i -- "s/<CANVAS_ENC_SECRET>/$CANVAS_ENC_SECRET/g" config/dynamic_settings.yml
