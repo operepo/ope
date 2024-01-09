@@ -28,13 +28,14 @@ RUN apk update \
     && python -m pip install --upgrade setuptools ldap3 pycryptodome requests \
         paramiko ecdsa isodate pywinrm crypto PyMySQL \
         psycopg2-binary uwsgi uwsgitop psutil redis pycanvas lz4 \ 
-        webvtt-py langcodes language_data bs4 lxml openpyxl Pillow WeasyPrint uwsgitop \
+        webvtt-py langcodes language_data bs4 lxml openpyxl Pillow WeasyPrint uwsgitop pydantic pylti1p3
 #    && python -m pip install xlrd==1.2.0 \
 # pytube3 - use fix 701 for now
 #pip install git+https://github.com/nficano/pytube.git@refs/pull/701/head
 # matplotlib reportlab ldap pycrypto changed to pycryptodome  python-ldap changed to ldap3
-    && FFMPEG_VER=3.4.2 \ 
-    && curl -s http://ffmpeg.org/releases/ffmpeg-${FFMPEG_VER}.tar.gz | tar zxvf - -C . \
+# FFMPEG_VER=3.4.9
+RUN FFMPEG_VER=3.4.9 \ 
+    && curl -s https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VER}.tar.gz | tar zxvf - -C . \
     && cd ffmpeg-${FFMPEG_VER} \
     && ./configure \
         --disable-debug --enable-version3 --enable-small --enable-gpl \
