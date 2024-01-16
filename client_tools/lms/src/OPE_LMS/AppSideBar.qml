@@ -2,7 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Controls.Material 2.15
 import QtQuick.Controls.Universal 2.15
-import QtQuick.Controls.Styles 1.4
+////import QtQuick.Controls.Styles 1.4
 import QtQuick.Controls.Imagine 2.15
 import QtQuick.Layouts 1.15
 
@@ -12,9 +12,10 @@ import com.openprisoneducation.ope 1.0
 import "App.js" as App
 
 
-Item {
+Rectangle {
     id: appSideBarRoot
     anchors.fill: parent;
+    color: App.course_sidebar_bg_color;
 
     signal clicked(string tab_name);
 
@@ -105,11 +106,11 @@ Item {
             ListElement { name: "Modules"; order: 1; enabled: true }
             ListElement { name: "Pages"; order: 2; enabled: true }
             ListElement { name: "Assignments"; order: 3; enabled: true }
-            //ListElement { name: "Quizzes"; order: 4; enabled: true }
-            ListElement { name: "Inbox"; order: 5; enabled: true }
+            ListElement { name: "Quizzes"; order: 4; enabled: true }
+            //ListElement { name: "Inbox"; order: 5; enabled: true }
             //ListElement { name: "Calendar"; order: 6; enabled: false }
             ListElement { name: "Announcements"; order: 7; enabled: false }
-            //ListElement { name: "Discussions"; order: 8; enabled: false }
+            ListElement { name: "Discussions"; order: 8; enabled: false }
             //ListElement { name: "Grades"; order: 9; enabled: false }
             ListElement { name: "Files"; order: 10; enabled: true }
             ListElement { name: "Syllabus"; order: 11; enabled: true }

@@ -26,6 +26,13 @@
         <file>StyledButton.qml</file>
         <file>ReplyPopup.qml</file>
         <file>NewMessagePopup.qml</file>
+        <file>QQ_TrueFalseAnswer.qml</file>
+        <file>QuizQuestion.qml</file>
+        <file>QQ_MultipleChoiceAnswer.qml</file>
+        <file>AppQuizzes.qml</file>
+        <file>AppDiscussions.qml</file>
+        <file>translations_en.qm</file>
+        <file>AppDashboardPage.qml</file>
     </qresource>
     <qresource prefix="/images">
         <file>blue-folder.png</file>
@@ -42,5 +49,15 @@
         <file>default_avatar.png</file>
         <file>reply.png</file>
         <file>new_message.png</file>
+        <file>global_nav_canvas.png</file>
+        <file>global_nav_avatar-50.png</file>
+        <file>global_nav_sync.png</file>
+        <file>global_nav_dashboard.png</file>
+        <file>global_nav_courses.png</file>
+        <file>global_nav_calendar.png</file>
+        <file>global_nav_help.png</file>
+        <file>global_nav_inbox.png</file>
+        <file>global_nav_minimize.png</file>
+        <file>global_nav_maximize.png</file>
     </qresource>
 </RCC>

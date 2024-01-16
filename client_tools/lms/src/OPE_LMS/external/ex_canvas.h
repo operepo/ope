@@ -1,6 +1,8 @@
 #ifndef EX_CANVAS_H
 #define EX_CANVAS_H
 
+#include <windows.h>
+
 #include <QObject>
 #include <QString>
 #include <QJsonDocument>
@@ -141,7 +143,7 @@ public slots:
     bool setCurrentItem(QString item_text);
 
     // Get the appdata folder where we should put stuff
-    QString appDataFolder();
+    QString appStudentDataFolder();
 
 private:
     // ?? Still needed?? Only if using full OAUTH cycle

@@ -42,6 +42,7 @@ client_tools/svc/build
 client_tools/svc/dist
 client_tools/sshot/build
 client_tools/sshot/dist
+client_tools/lms/src/OPE_LMS/.qtc_clangd
 
 
 .enabled
@@ -99,3 +100,6 @@ exported_gpo
 /media_files_tool/media_files/documents
 /media_files_tool/media_files/media
 /media_files_tool/ssh.log
+/client_tools/svc/mgmt.dist
+/media_files_tool/sync_media_files.build
+/media_files_tool/sync_media_files.dist

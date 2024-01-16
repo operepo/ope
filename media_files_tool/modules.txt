@@ -1,0 +1,4 @@
+prompt_toolkit
+paramiko
+colorama
+nuitka # for building

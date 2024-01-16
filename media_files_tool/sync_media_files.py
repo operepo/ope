@@ -188,7 +188,11 @@ def sync_folder(sftp, local_folder, remote_folder):
         remote_path = os.path.join(remote_folder, item).replace("\\", "/")
         if os.path.isdir(local_path):
             #p("}}cn Folder: %s -> %s}}xx" % (local_path, remote_path))
-            sftp.chdir(remote_folder)
+            try:
+                sftp.chdir(remote_folder)
+            except Exception as ex:
+                p("\t ERROR - Invalid remote path! " + remote_folder + "\n" + ex)
+                return
             try:
                 sftp.mkdir(item)
             except:
@@ -213,10 +217,10 @@ def push_main():
     p("")
     smc_server = get_input_value("Enter SMC server IP or name", default="smc.ed", min_length=5)
     p("}}gn - Using " + smc_server)
-    smc_user = get_input_value("Enter SMC SSH User (usually root)", default="root", min_length=3)
+    smc_user = get_input_value("Enter SMC SSH User (ope for ubuntu, root or opensuse)", default="ope", min_length=3)
     p("}}gn - using " + smc_user)
     smc_password = get_input_value("Enter SMC SSH Password }}cn(characters will be masked)}}yn", default="", min_length=5, is_password=True)
-    remote_smc_folder = get_input_value("Enter SMC Volumes Folder", default="/ope/volumes/smc", min_length=9)
+    remote_smc_folder = get_input_value("Enter SMC Volumes Folder [/home/ope/ope/volumes/smc (ubuntu - default) or /ope/volumes/smc (old opensuse)]", default="/home/ope/ope/volumes/smc", min_length=9)
     remote_media_folder = os.path.join(remote_smc_folder, "media").replace("\\", "/")
     remote_documents_folder = os.path.join(remote_smc_folder, "documents").replace("\\", "/")
     p("}}gn - using %s}}xx" % remote_smc_folder)
@@ -239,6 +243,18 @@ def push_main():
     
     # Connect to sftp server
     sftp = ssh.open_sftp()
+
+    # Make sure the remote paths exist
+    try:
+        sftp.chdir(remote_media_folder)
+    except IOError as ex:
+        p("}}rbERROR!!! - Remote folder does not exist " + remote_media_folder + "}}xx")
+        sys.exit(-1)
+    try:
+        sftp.chdir(remote_documents_folder)
+    except IOError as ex:
+        p("}}rbERROR!!! - Remote folder does not exist " + remote_documents_folder + "}}xx")
+        sys.exit(-1)
     
     p("}}gnSyncing Media Files...}}xx")
     if sync_folder(sftp, local_media_folder, remote_media_folder) is False:

@@ -1,14 +1,44 @@
 #include "appmodule.h"
 
-AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
+AppModule::AppModule(QQmlApplicationEngine *parent, QString program_data_path) : QObject(parent)
 {
     HTTP_SERVER_PORT = 65525;
     exit_early = false;
     engine = parent;
+
+    //registerOPEAccessibilityComponents();
+
+    // Show SSL info
+    qDebug() << "SSL Library Info: " << QSslSocket::supportsSsl() << QSslSocket::sslLibraryBuildVersionString() << QSslSocket::sslLibraryVersionString();
+    // Relax ssl config as we will be running through test certs
+    QSslConfiguration sslconf = QSslConfiguration::defaultConfiguration();
+    QList<QSslCertificate> cert_list = sslconf.caCertificates();
+    QList<QSslCertificate> cert_new = QSslCertificate::fromData("CaCertificates");
+    cert_list += cert_new;
+    sslconf.setCaCertificates(cert_list);
+    sslconf.setProtocol(QSsl::AnyProtocol);
+    sslconf.setPeerVerifyMode(QSslSocket::VerifyNone);
+    sslconf.setSslOption(QSsl::SslOptionDisableServerNameIndication,true);
+    QSslConfiguration::setDefaultConfiguration(sslconf);
+
+
     nam_factory = new OPENetworkAccessManagerFactory;
+    if (program_data_path == "") {
+        // Get the standard program data folder to store things in.
+        program_data_path = QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1); // grab 2nd item
+        // Remove app name (c:/programdata/ope/opelms -> c:/programdata/ope)
+        program_data_path = program_data_path.replace("/OPELMS", "");
+    }
+    this->data_path = program_data_path;
 
     parent->setNetworkAccessManagerFactory(nam_factory);
     parent->rootContext()->engine()->setNetworkAccessManagerFactory(nam_factory);
+
+    // Expose this object to the QML engine
+    parent->rootContext()->setContextProperty("mainWidget", this);
+
+    // Add our websocket transport so we can communicate with web pages in a webview
+    qmlRegisterType<CM_WebSocketTransport>("cm.WebSocketTransport", 1, 0, "WebSocketTransport");
 
     //QObject *root = engine->rootObjects().first();
     //root->setParent("networkAccess", parent->networkAccessManager());
@@ -37,17 +67,38 @@ AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
     _app_settings->sync();
     //qDebug() << "App Settings: " << _app_settings->fileName();
 
+    // Prevent app from running twice
+    QString tmp_dir = this->appStudentDataFolder(); //QDir::tempPath();
+    qDebug() << tmp_dir;
+    if (tmp_dir.endsWith("/student_data") == true) {
+        // Should end with the current student (e.g. c:\programdata\ope\student_data\s77777) - if not, then not credentialed?
+        qDebug() << "Invalid student folder! Run credential and retry." << Qt::endl;
+//        QMessageBox msgbox;
+//        msgbox.setText("Invalid Student Folder!");
+//        msgbox.setInformativeText("Student username not detected - you must run the credential app to link this app to the student's Canvas account.");
+//        msgbox.setStandardButtons(QMessageBox::Ok);
+//        msgbox.exec();
 
-    // Expose this object to the QML engine
-    //qmlRegisterType<EX_Canvas>("com.openprisoneducation.ope", 1, 0, "Canvas");
-    parent->rootContext()->setContextProperty("mainWidget", this);
+        QApplication::exit(-1);
+        return;
+    }
 
-    // Add our websocket transport so we can communicate with web pages in a webview
-    qmlRegisterType<CM_WebSocketTransport>("cm.WebSocketTransport", 1, 0, "WebSocketTransport");
+    _lf = new QLockFile(tmp_dir + "/ope_lms.lock");
+    if (!_lf->tryLock(100))
+    {
+        qDebug() << "=====================================================\n" <<
+            "WARNING - App already running, exiting...\n" <<
+            "only one instance allowed to run. If this is an " <<
+            " error, remove the temp/ope_lms.lock file and try again" <<
+            "=====================================================\n";
+        out << "App already running..." << Qt::endl;
+        QApplication::exit(-1);
+        return;
+    }
 
     // Figure out the database path
     QDir d;
-    d.setPath(this->appDataFolder());
+    d.setPath(this->appStudentDataFolder());
     d.mkpath(d.path());
     QString db_file = d.path() + "/lms.db";
 
@@ -66,7 +117,10 @@ AppModule::AppModule(QQmlApplicationEngine *parent) : QObject(parent)
 
     // Copy the www resources over in a different thread
     //copyWebResourcesToWebFolder();
-    QFuture<void> future = QtConcurrent::run(this, &AppModule::copyWebResourcesToWebFolder);
+    // Changes for qt6
+    //QFuture<void> future = QtConcurrent::run(this, &AppModule::copyWebResourcesToWebFolder);
+    // Send object as the first arg
+    QFuture<void> future = QtConcurrent::run(&AppModule::copyWebResourcesToWebFolder, this);
 
     // Setup canvas object
     _canvas = new EX_Canvas(this, _database, _app_settings, getLocalServerURL());
@@ -99,6 +153,10 @@ AppModule::~AppModule()
         _app_settings->setValue("app/running", false);
         _app_settings->sync();
         _app_settings->deleteLater();
+    }
+
+    if (_lf) {
+        _lf->unlock();
     }
 
 }
@@ -136,8 +194,11 @@ bool AppModule::desktopLaunch(QString url)
     }
 
     // Make a new local file url
-    QUrl local_url = QUrl::fromUserInput("file:///" + content_folder + old_url.path(),
-                                         content_folder, QUrl::AssumeLocalFile);
+    //QUrl local_url = QUrl::fromUserInput("file:///" + content_folder + old_url.path(),
+    //                                     content_folder, QUrl::AssumeLocalFile);
+    // Fix - PDF's with # symbol #75 (https://github.com/operepo/ope/issues/75)
+    // QUrl::fromLocalFile shouuld encode # as %23 - urlencoded path
+    QUrl local_url = QUrl::fromLocalFile(content_folder + old_url.path());
 
     qDebug() << " >>>>> " << local_url << " - " << local_url.toLocalFile();
 
@@ -159,14 +220,36 @@ bool AppModule::desktopLaunch(QString url)
     return ret;
 }
 
-QString AppModule::appDataFolder()
+QString AppModule::appStudentDataFolder()
 {
+
+    QString path = this->appDataFolder();
+    QString curr_student = this->get_current_student_user();
+
+    path += "/student_data";
+
+    if (curr_student == "") {
+        return path;
+    }
+
+    path += "/" + curr_student;
+
+    QDir d;
+    d.setPath(path);
+    if (!d.exists()) {
+        d.mkpath(d.path());
+    }
+
+    return path;
+
+    /*
     // Find the appdata folder
     // NOTE - if no user set in registry (not credentialed?), then grab dir for current user.
     QString curr_student = this->get_current_student_user();
     if (curr_student == "") {
         // Return the standard path for the current logged in user.
-        QString p = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+        //QString p = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        QString p = this->data_path;
         QDir d;
         d.setPath(p);
         d.mkpath(d.path());
@@ -200,6 +283,21 @@ QString AppModule::appDataFolder()
     d.mkpath(d.path());
 
     return app_data_path;
+    */
+}
+
+QString AppModule::appDataFolder()
+{
+    // Should return something like c:/programdata/ope
+
+    // Make sure folder exists
+    QDir d;
+    d.setPath(data_path);
+    if (!d.exists()) {
+        d.mkpath(d.path());
+    }
+
+    return this->data_path;
 }
 
 QString AppModule::dataFolder()
@@ -222,10 +320,12 @@ QString AppModule::dataFolder()
         d.setPath(dataAbsPath);
     #else
         //d.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/content");
-        d.setPath(this->appDataFolder() + "/content");
+        d.setPath(this->appStudentDataFolder() + "/content");
     #endif
 
-    d.mkpath(d.path());
+    if (!d.exists()) {
+        d.mkpath(d.path());
+    }
 
     return d.path();
 }
@@ -234,8 +334,10 @@ QString AppModule::fileCacheFolder()
 {
     QDir base_dir;
     //base_dir.setPath(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/content/www_root/canvas_file_cache/");
-    base_dir.setPath(this->appDataFolder() + "/content/www_root/canvas_file_cache/");
-    base_dir.mkpath(base_dir.path());
+    base_dir.setPath(this->appStudentDataFolder() + "/content/www_root/canvas_file_cache/");
+    if (!base_dir.exists()) {
+        base_dir.mkpath(base_dir.path());
+    }
     return base_dir.path();
 }
 
@@ -477,10 +579,11 @@ bool AppModule::canvasAuthenticateUser(QString /*user_name*/, QString /*password
         }
     });
 
-    canvas_auth.setModifyParametersFunction([&](QAbstractOAuth::Stage stage, QVariantMap *parameters) {
-        if (stage == QAbstractOAuth::Stage::RequestingAuthorization && isPermanent())
-            parameters->insert("duration", "permanent");
-    });
+    //TODO - Broken from upgrade to qt6
+//    canvas_auth.setModifyParametersFunction([&](QAbstractOAuth::Stage stage, QVariantMap *parameters) {
+//        if (stage == QAbstractOAuth::Stage::RequestingAuthorization && isPermanent())
+//            parameters->insert("duration", "permanent");
+//    });
 
     //connect(&canvas_auth, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser,
     //        &QDesktopServices::openUrl);
@@ -675,5 +778,62 @@ void AppModule::sslErrorHandler(QNetworkReply *reply, QList<QSslError> errors)
 QString AppModule::get_current_student_user()
 {
     return _app_settings->value("student/user_name", "").toString();
+}
+
+void AppModule::sendAccessibilityEvent(QQuickItem *item, QAccessible::Event event_reason)
+{
+    QAccessibleEvent event(item, event_reason); // event(this, QAccessible::TextUpdated);
+
+    //event.accessibleInterface()-(QAccessible::TextUpdated);
+    //event.accessibleInterface()->setText(QAccessible::Description, QLatin1String("Hello WOrld!"));
+    QAccessible::updateAccessibility(&event);
+
+
+    // Find the root window so we can get the accessibility tree
+//    for (QObject *o: this->engine->rootObjects()) {
+//        qDebug() << "... > " << o;
+//    }
+//    QObject *rootObject = this->engine->rootObjects().first();
+//    QQuickItem *accessible_root = nullptr;
+//    //qDebug() << "RootObject: " << rootObject;
+//    if (rootObject->objectName() == "appPage") {
+//        // Root object IS the main window
+//        accessible_root = qobject_cast<QQuickItem*>(rootObject);
+//        qDebug() << "Casting: " << accessible_root;
+//    } else {
+//        accessible_root = rootObject->findChild<QQuickItem*>("appPage");
+//    }
+
+//    if (accessible_root == nullptr) {
+//        qDebug() << "No QML object found with object_name: appPage";
+//        return;
+//    }
+
+//    // Setup the update handler
+//    //QAccessible::installUpdateHandler(new OPECustomAccessibleItem(item));
+
+//    QAccessibleEvent event(this, QAccessible::Event::SoundPlayed);
+//    QObject *accessible_iface = dynamic_cast<QObject *>(QAccessible::queryAccessibleInterface(item));
+//    qDebug() << "Accessible Iface: " << accessible_iface;
+
+//    QAccessibleInterface *iface = event.accessibleInterface();
+//    qDebug() << "IFACe: " << iface;
+//    iface->setText(QAccessible::Text::Name, QStringLiteral("Hey WOrld"));
+//    QCoreApplication::sendEvent(accessible_iface, dynamic_cast<QEvent *>(&event));
+//    accessible_iface->deleteLater();
+
+//    // Send an accessibilty event from the QML system.
+//    QAccessibleInterface *iface = QAccessible::queryAccessibleInterface(item);
+//    //iface->item()
+
+//    iface->setText(QAccessible::Name, "TEst 1235");
+
+//    QString accessibleName = iface->text(QAccessible::Name);
+//    qDebug() << "A Name";
+//    //QAccessibleEvent event(iface, QAccessible::Focus);
+//    //qDebug() << "Accessibility Event " << event;
+//    QAccessibleEvent event(iface, QAccessible::NameChanged);
+//    QAccessible::updateAccessibility(&event.object());
+
 }
 

@@ -16,6 +16,7 @@
 #include <QTextStream>
 
 // Socket Includes
+#include <QtNetwork>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QSslSocket>
@@ -28,6 +29,8 @@
 #include <QSslConfiguration>
 
 #include "cm_mimetypes.h"
+
+QT_REQUIRE_CONFIG(ssl);
 
 namespace cm_pem_certs {
     extern char pemdata_cert[];

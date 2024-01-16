@@ -4,7 +4,8 @@
 #include <QObject>
 #include <QNetworkAccessManager>
 #include <QQmlNetworkAccessManagerFactory>
-#include <QNetworkConfiguration>
+// Deprecated in QT6
+//#include <QNetworkConfiguration>
 #include <QNetworkReply>
 #include <QSslError>
 
@@ -16,6 +17,8 @@ public:
     virtual QNetworkReply *get(const QNetworkRequest &request);
     virtual QNetworkReply *createRequest(Operation op, const QNetworkRequest &request, QIODevice *outgoingData);
 
+    // If no bytes sent by this time, timeout
+    int transfer_timeout = 60;
 protected:
 
 public slots:

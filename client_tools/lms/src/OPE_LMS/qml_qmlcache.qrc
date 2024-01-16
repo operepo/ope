@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<RCC>
+    <qresource prefix="/">
+        <file alias="qtquickcontrols2.conf">qtquickcontrols2.conf</file>
+        <file alias="lms.qml">lms.qml</file>
+        <file alias="App.js">App.js</file>
+        <file alias="dropTest.qml">dropTest.qml</file>
+        <file alias="AppSideBar.qml">AppSideBar.qml</file>
+        <file alias="AppCourseSelector.qml">AppCourseSelector.qml</file>
+        <file alias="AppSyncPage.qml">AppSyncPage.qml</file>
+        <file alias="AppAssignments.qml">AppAssignments.qml</file>
+        <file alias="AppHomePage.qml">AppHomePage.qml</file>
+        <file alias="AppWikiPage.qml">AppWikiPage.qml</file>
+        <file alias="AppAssignmentPage.qml">AppAssignmentPage.qml</file>
+        <file alias="AppModules.qml">AppModules.qml</file>
+        <file alias="AppPages.qml">AppPages.qml</file>
+        <file alias="AppFiles.qml">AppFiles.qml</file>
+        <file alias="AppAnnouncements.qml">AppAnnouncements.qml</file>
+        <file alias="not_credentialed.qml">not_credentialed.qml</file>
+        <file alias="websockettest.qml">websockettest.qml</file>
+        <file alias="qwebchannel.js">qwebchannel.js</file>
+        <file alias="wc_index.html">wc_index.html</file>
+        <file alias="AppInbox.qml">AppInbox.qml</file>
+        <file alias="AppConversation.qml">AppConversation.qml</file>
+        <file alias="AppMessage.qml">AppMessage.qml</file>
+        <file alias="moment-with-locales-2.26.0.js">moment-with-locales-2.26.0.js</file>
+        <file alias="StyledButton.qml">StyledButton.qml</file>
+        <file alias="ReplyPopup.qml">ReplyPopup.qml</file>
+        <file alias="NewMessagePopup.qml">NewMessagePopup.qml</file>
+        <file alias="QQ_TrueFalseAnswer.qml">QQ_TrueFalseAnswer.qml</file>
+        <file alias="QuizQuestion.qml">QuizQuestion.qml</file>
+        <file alias="QQ_MultipleChoiceAnswer.qml">QQ_MultipleChoiceAnswer.qml</file>
+        <file alias="AppQuizzes.qml">AppQuizzes.qml</file>
+        <file alias="AppDiscussions.qml">AppDiscussions.qml</file>
+    </qresource>
+    <qresource prefix="/images">
+        <file alias="blue-folder.png">blue-folder.png</file>
+        <file alias="blue_sync.png">blue_sync.png</file>
+        <file alias="upload_file.png">upload_file.png</file>
+        <file alias="sync.png">sync.png</file>
+        <file alias="logo_icon.png">logo_icon.png</file>
+        <file alias="logo_icon.ico">logo_icon.ico</file>
+        <file alias="up_arrow.png">up_arrow.png</file>
+        <file alias="down_arrow.png">down_arrow.png</file>
+        <file alias="mail.png">mail.png</file>
+        <file alias="mail_open.png">mail_open.png</file>
+        <file alias="box.png">box.png</file>
+        <file alias="default_avatar.png">default_avatar.png</file>
+        <file alias="reply.png">reply.png</file>
+        <file alias="new_message.png">new_message.png</file>
+    </qresource>
+</RCC>

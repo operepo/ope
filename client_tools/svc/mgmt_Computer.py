@@ -643,8 +643,8 @@ class Computer:
                 0
             )
             if ss_timeout < 300:
-                ss_timeout = 300
-            ss_timeout = 1800
+                ss_timeout = 300 # 5 mins
+            ss_timeout = 7200 # 2 hrs
             
             r = win32gui.SystemParametersInfo(
                 win32con.SPI_SETSCREENSAVETIMEOUT,
@@ -654,6 +654,7 @@ class Computer:
 
             )
         except Exception as ex:
+            print(ex)
             pass
 
         #print("Ret Code: " + str(r))
@@ -661,8 +662,9 @@ class Computer:
 
 
 if __name__ == "__main__":
+    pass
     # Do tests
-    #Computer.test_code()
+    Computer.test_code()
 
     # while True:
     #     #Computer.set_lock_screen_image()

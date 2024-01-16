@@ -19,6 +19,8 @@ rem --experimental=use_pefile_recurse --experimental=use_pefile_fullrecurse   --
 
 rem python -m nuitka --python-arch=x86 --standalone  mgmt.py
 
+rem --noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow ^
+rem --nofollow-import-to=tkinter --nofollow-import-to=pyqt5 --nofollow-import-to=numpy ^
 
 python -m nuitka ^
     --python-arch=x86 ^
@@ -29,5 +31,7 @@ python -m nuitka ^
     --windows-file-version=%VERSION% ^
     --windows-product-version=%VERSION% ^
     --windows-file-description="MGMT Tool - used to run system commands for credentialing laptops" ^
+    --enable-plugin=anti-bloat ^
+    --disable-plugin=numpy --disable-plugin=tk-inter --disable-plugin=pyqt5 --disable-plugin=pyside2 ^
     mgmt.py
 
