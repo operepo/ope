@@ -2,6 +2,7 @@ pywin32
 wmi
 pillow
 pyscreenshot
+wmi
 psutil
 firmware_variables
 pyaes

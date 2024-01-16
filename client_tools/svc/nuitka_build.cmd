@@ -1,5 +1,21 @@
 
-set VERSION=1.0.65
+@echo off
+set VERSION=1.0.109
+@REM rem read version file from mgmt.version
+@REM for /f "delims=" %%a in (mgmt.version) do (
+@REM     rem strip off extra characters
+@REM     echo %%a
+@REM     set s=a
+@REM     call set s=%%a:version=test%%
+@REM     rem call set s=%%s::=%%
+@REM     rem call set s=%%s:"=%%
+@REM     echo %s%
+@REM     if not "%%s"=="" (
+@REM         set VERSION=%%s
+@REM     )
+@REM )
+@REM echo Building mgmt.exe - %VERSION%
+@REM exit
 rem build mgmt
 rem --windows-disable-console   - if running gui
 rem --windows-icon-from-ico=logo_icon.ico
@@ -23,7 +39,6 @@ rem --noinclude-pytest-mode=nofollow --noinclude-setuptools-mode=nofollow ^
 rem --nofollow-import-to=tkinter --nofollow-import-to=pyqt5 --nofollow-import-to=numpy ^
 
 python -m nuitka ^
-    --python-arch=x86 ^
     --standalone ^
     --windows-icon-from-ico=logo_icon.ico ^
     --windows-company-name=OPE_PROJECT ^

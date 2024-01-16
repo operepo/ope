@@ -692,4 +692,4 @@ if __name__ == "__main__":
     #     Computer.set_lock_screen_image()
     #     Computer.set_desktop_image()
     #     time.sleep(10)
-    
+    pass
