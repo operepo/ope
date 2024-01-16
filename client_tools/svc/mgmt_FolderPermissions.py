@@ -312,6 +312,8 @@ class FolderPermissions:
         # Make sure folders exits
         if not os.path.isdir(util.ROOT_FOLDER):
             os.makedirs(util.ROOT_FOLDER, exist_ok=True)
+        if not os.path.isdir(util.CONFIG_FOLDER):
+            os.makedirs(util.CONFIG_FOLDER, exist_ok=True)
         if not os.path.isdir(util.TMP_FOLDER):
             os.makedirs(util.TMP_FOLDER, exist_ok=True)
         if not os.path.isdir(util.LOCK_SCREEN_WIDGET_FOLDER):
@@ -326,6 +328,12 @@ class FolderPermissions:
             os.makedirs(util.GIT_FOLDER, exist_ok=True)
         if not os.path.isdir(util.STUDENT_DATA_FOLDER):
             os.makedirs(util.STUDENT_DATA_FOLDER, exist_ok=True)
+        
+        # ---- ope-config.json ----
+        # Make sure the log file exists so we can set permissions on it later
+        if not os.path.isfile(os.path.join(util.CONFIG_FOLDER, "ope-config.json")):
+            f = open(os.path.join(util.CONFIG_FOLDER, "ope-config.json"), "w")
+            f.close()
         
         # ---- ope-sshot.log ----
         # Make sure the log file exists so we can set permissions on it later
@@ -367,11 +375,13 @@ class FolderPermissions:
         # r - read/execute, n - none, c - create/append, a - appendonly, f - full
         app_folders = {
             util.ROOT_FOLDER: "r",
+            util.CONFIG_FOLDER: "n",
             util.BINARIES_FOLDER: "r",
             util.STUDENT_DATA_FOLDER: "r",
             util.TMP_FOLDER: "r",
             util.GIT_FOLDER: "r",  # TODO - change to n when we can avoid security prompts
             util.LOG_FOLDER: "c",
+            os.path.join(util.CONFIG_FOLDER, "ope-config.json"): "n",
             os.path.join(util.LOG_FOLDER, "ope-sshot.log"): "a",
             os.path.join(util.LOG_FOLDER, "ope-mgmt.log"): "a",
             os.path.join(util.LOG_FOLDER, "ope-lockscreen.log"): "a",
