@@ -36,7 +36,8 @@ ENV BUNDLER_VERSION 2.2.33
 #ENV BUNDLER_VERSION 2.2.17
 
 
-ENV CANVAS_RELEASE prod
+#ENV CANVAS_RELEASE prod
+ENV CANVAS_RELEASE release/2022-07-06.145
 #ENV CANVAS_RELEASE release/2022-05-25.135
 #ENV CANVAS_RELEASE release/2022-01-19.127
 #ENV CANVAS_RELEASE release/2021-12-15.42
@@ -158,8 +159,8 @@ RUN cd ${APP_HOME} \
     && git config --global --add safe.directory ${APP_HOME} \
     && git init \
     && git remote add origin https://github.com/instructure/canvas-lms \
-    #&& git fetch origin --no-tags --depth 1 refs/tags/${CANVAS_RELEASE}:refs/tags/${CANVAS_RELEASE} \
-    && git fetch --no-tags --depth 1 origin ${CANVAS_RELEASE} \
+    && git fetch origin --no-tags --depth 1 refs/tags/${CANVAS_RELEASE}:refs/tags/${CANVAS_RELEASE} \
+    #&& git fetch --no-tags --depth 1 origin ${CANVAS_RELEASE} \
     && git checkout ${CANVAS_RELEASE}
 
 
@@ -193,7 +194,7 @@ RUN cd build/vendor \
 
 
 # INSTALL QTIMigrationTool
-RUN mkdir ${APP_HOME}/vendor \
+RUN #mkdir ${APP_HOME}/vendor \
 	&& cd ${APP_HOME}/vendor \
 	&& git clone https://github.com/instructure/QTIMigrationTool.git QTIMigrationTool \
 	&& chmod +x QTIMigrationTool/migrate.py
@@ -375,6 +376,10 @@ RUN echo "Settings file permissions..." \
     && chmod 755 /usr/src/*.sh \
     && dos2unix /usr/src/*.sh
 
+
+# Fix migration error where singleton column added too late
+RUN mv /usr/src/app/db/migrate/20210812210129_add_singleton_column.rb \
+    /usr/src/app/db/migrate/20111111214311_add_singleton_column.rb
 
 
 USER root
