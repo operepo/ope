@@ -1,35 +1,45 @@
 #include <QGuiApplication>
+#include <QApplication>
 #include <QCoreApplication>
 #include <QQmlApplicationEngine>
 // #include <QMessageBox>
 #include <QTextCodec>
 #include <QtWebView/QtWebView>
-#include <QtWebEngine/qtwebengineglobal.h>
+//#include <QtWebEngine/qtwebengineglobal.h>
+#include <QtWebEngineCore>
+#include <QWebEngineProfile>
 #include <QWebEngineSettings>
+
 #include <QIcon>
 
 #include <QtGlobal>
 #include <QtDebug>
 #include <QTextStream>
-#include <QTextCodec>
 #include <QLocale>
 #include <QTime>
 #include <QFile>
-#include <QLockFile>
 #include <QOperatingSystemVersion>
+
+//#include <QTranslator>
 
 #include <windows.h>
 
-#include "openetworkaccessmanagerfactory.h"
+//#include "openetworkaccessmanagerfactory.h"
 #include "appmodule.h"
 #include "customlogger.h"
 
 // Needed to pull in windows functions
 #pragma comment(lib,"user32.lib")
 
+QT_REQUIRE_CONFIG(ssl);
+
+QString pgdata_path = "";
 
 int main(int argc, char *argv[])
 {
+    // Dummy variable to force rebuild
+#define rebuilding 19;
+
     // Hide the console window
 #if defined( Q_OS_WIN )
         ShowWindow( GetConsoleWindow(), SW_HIDE ); //hide console window
@@ -47,10 +57,25 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationDomain("openprisoneducation.com");
     QCoreApplication::setApplicationName("OPELMS");
 
+    // Change cache/local data paths to point to programdata folder instead of user account - allows syncing/usage before user has logged in
+#if defined( Q_OS_WIN )
+    // Set environment so that it uses the new path
+    pgdata_path = QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1); // grab 2nd item
+    // Remove app name (c:/programdata/ope/opelms -> c:/programdata/ope)
+    pgdata_path = pgdata_path.replace("/OPELMS", "");
+    //qDebug() << "PG Data Path: " << pgdata_path;
+    QString cache_path = qEnvironmentVariable("QML_DISK_CACHE_PATH", pgdata_path + "/tmp/qmlcache/");
+    //qDebug() << "Cache Path: " << cache_path;
+    qputenv("QML_DISK_CACHE_PATH", cache_path.toStdString());
+
+#endif
+
     //QTextCodec::setCodecForLocale(QTextCodec::codecForName("UTF-8"));
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    // Not needed in qt6
+    //QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     // Possible help for high contrast refresh?
-    QGuiApplication::setAttribute(Qt::AA_UseOpenGLES);
+    // Not available in qt6
+    //QGuiApplication::setAttribute(Qt::AA_UseOpenGLES);
     QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
     //QApplication::setAttribute(Qt::AA_DisableWindowContextHelpButton);
 
@@ -58,15 +83,16 @@ int main(int argc, char *argv[])
     //QtWebEngine::initialize();
     //QtWebView::initialize();
 
-    log_file_path = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/lms_app_debug.log";
+    log_file_path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/lms_app_debug.log";
     // In windows - put it in programdata/ope/tmp/logs/debug.log
     if (QOperatingSystemVersion::currentType() == QOperatingSystemVersion::Windows) {
         // returns ("c:/users/<USER>/AppData/Local/<APPNAME>", "c:/programdata/<APPNAME>")
         // NOTE - Will need to adjust this if
-        QDir d = QDir(QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1));
+        //QDir d = QDir(QStandardPaths::standardLocations(QStandardPaths::AppConfigLocation).at(1));
         //qDebug() << "AppConfigLocation: " << d.path();
-        d.cdUp(); // Move back to c:/programdata
-        log_file_path = d.path() + "/tmp/log/lms_app_debug.log";
+        //d.cdUp(); // Move back to c:/programdata
+        //log_file_path = d.path() + "/tmp/log/lms_app_debug.log";
+        log_file_path = pgdata_path + "/tmp/log/lms_app_debug.log";
     }
     qDebug() << "Logging to: " << log_file_path;
 
@@ -85,35 +111,6 @@ int main(int argc, char *argv[])
         log_to_file = false;
     }
 
-    // Prevent app from running twice
-    QString tmp_dir = QDir::tempPath();
-    QLockFile lf(tmp_dir + "/ope_lms.lock");
-
-    if (!lf.tryLock(100))
-    {
-        qDebug() << "=====================================================\n" <<
-                    "WARNING - App already running, exiting...\n" <<
-                    "only one instance allowed to run. If this is an " <<
-                    " error, remove the temp/ope_lms.lock file and try again" <<
-                    "=====================================================\n";
-        out << "App already running..." << Qt::endl;
-        return 1;
-    }
-
-
-    // Show SSL info
-    //qDebug() << "SSL Library Info: " << QSslSocket::supportsSsl() << QSslSocket::sslLibraryBuildVersionString() << QSslSocket::sslLibraryVersionString();
-
-    // Relax ssl config as we will be running through test certs
-    QSslConfiguration sslconf = QSslConfiguration::defaultConfiguration();
-    QList<QSslCertificate> cert_list = sslconf.caCertificates();
-    QList<QSslCertificate> cert_new = QSslCertificate::fromData("CaCertificates");
-    cert_list += cert_new;
-    sslconf.setCaCertificates(cert_list);
-    sslconf.setProtocol(QSsl::AnyProtocol);
-    sslconf.setPeerVerifyMode(QSslSocket::VerifyNone);
-    sslconf.setSslOption(QSsl::SslOptionDisableServerNameIndication,true);
-    QSslConfiguration::setDefaultConfiguration(sslconf);
 
     QString last_arg = ""; //QCoreApplication::arguments().last();
     last_arg = argv[argc-1];
@@ -135,7 +132,7 @@ int main(int argc, char *argv[])
         QQmlApplicationEngine cmd_engine;
 
         // -- Setup our app module which deals with QML/C++ integration
-        AppModule *cmd_appModule = new AppModule(&cmd_engine);
+        AppModule *cmd_appModule = new AppModule(&cmd_engine, pgdata_path);
 
         // Sync from command line, then exit.
         if (cmd_appModule->isAppCredentialed() != true) {
@@ -150,9 +147,14 @@ int main(int argc, char *argv[])
         return cmd_app.exec();
     }
 
-    QGuiApplication app(argc, argv);
+    //QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
+//    QTranslator translator;
+//    bool translator_ret = translator.load(":/translations_en.qm");
+//    app.installTranslator(&translator);
 
-    // Put our local folder as first path to look at for dlls
+    // Put our local folders as first path to look at for dlls
+    QCoreApplication::addLibraryPath(QCoreApplication::applicationDirPath() + "/lib");
     QCoreApplication::addLibraryPath(QCoreApplication::applicationDirPath());
     qDebug() << "Library Paths: " << QCoreApplication::libraryPaths();
 
@@ -164,16 +166,31 @@ int main(int argc, char *argv[])
     QLoggingCategory::setFilterRules(QStringLiteral("qt.qml.binding.removal.info=true"));
 
     // Init webview settings
-    QWebEngineSettings::defaultSettings()->setAttribute(QWebEngineSettings::PluginsEnabled, true);
-    QWebEngineSettings::defaultSettings()->setAttribute(QWebEngineSettings::FullScreenSupportEnabled, true);
-    QWebEngineSettings::defaultSettings()->setAttribute(QWebEngineSettings::AllowWindowActivationFromJavaScript, true);
-    QWebEngineSettings::defaultSettings()->setAttribute(QWebEngineSettings::PdfViewerEnabled, true);
+    // Changed in qt6
+//    QWebEngineSettings::defaultSettings()->setAttribute(QWebEngineSettings::PluginsEnabled, true);
+//    QWebEngineSettings::defaultSettings()->setAttribute(QWebEngineSettings::FullScreenSupportEnabled, true);
+//    QWebEngineSettings::defaultSettings()->setAttribute(QWebEngineSettings::AllowWindowActivationFromJavaScript, true);
+//    QWebEngineSettings::defaultSettings()->setAttribute(QWebEngineSettings::PdfViewerEnabled, true);
+
+    QWebEngineProfile::defaultProfile()->settings()->setAttribute(QWebEngineSettings::PluginsEnabled, true);
+    QWebEngineProfile::defaultProfile()->settings()->setAttribute(QWebEngineSettings::FullScreenSupportEnabled, true);
+    QWebEngineProfile::defaultProfile()->settings()->setAttribute(QWebEngineSettings::AllowWindowActivationFromJavaScript, true);
+    QWebEngineProfile::defaultProfile()->settings()->setAttribute(QWebEngineSettings::PdfViewerEnabled, true);
+    QWebEngineProfile::defaultProfile()->settings()->setAttribute(QWebEngineSettings::DnsPrefetchEnabled, true);
+    // Disable accessibility in debug mode to prevent crash
+/*#if defined( QT_DEBUG )
+    qDebug() << "Disabling accessibility in debug mode...";
+    QWebEngineProfile::defaultProfile()->setHttpUserAgent(
+        QWebEngineProfile::defaultProfile()->httpUserAgent() + " QTWEBENGINE_DISABLE_ACCESSIBILITY/1.0"
+    );
+    QWebEngineProfile::defaultProfile()->setSpellCheckEnabled(false);
+#endif*/
 
 
     QQmlApplicationEngine engine;
 
     // -- Setup our app module which deals with QML/C++ integration
-    AppModule *appModule = new AppModule(&engine);
+    AppModule *appModule = new AppModule(&engine, pgdata_path);
 
     QString loadPage = "qrc:/lms.qml";
     //loadPage = "qrc:/websockettest.qml";
@@ -184,7 +201,6 @@ int main(int argc, char *argv[])
         // Load the error page for non credentialed apps
         loadPage = "qrc:/not_credentialed.qml";
     }
-
 
     bool need_sync = false;
     if (last_arg == "sync" || appModule->hasAppSycnedWithCanvas() != true)

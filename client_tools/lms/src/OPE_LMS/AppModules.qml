@@ -2,14 +2,15 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Controls.Material 2.15
 import QtQuick.Controls.Universal 2.15
-import QtQuick.Controls.Styles 1.4
+//import QtQuick.Controls.Styles 1.4
 import QtQuick.Controls.Imagine 2.15
 import QtQuick.Layouts 1.15
 
 import QtWebView 1.1
 
-
-import QtQuick.Dialogs 1.2
+//import QtQuick.Dialogs 1.3
+// Dialog under here in qt6
+import Qt.labs.platform 1.1
 
 import com.openprisoneducation.ope 1.0
 import "App.js" as App
@@ -81,14 +82,16 @@ Page {
             Rectangle {
                 width: parent.width
                 height: childrenRect.height
-                color: App.section_bg_color;
+                //color: App.section_bg_color;
+                color: App.module_bg_color;
                 radius: 3
                 Text {
                     height: 30
                     text: section
                     font.bold: true
                     font.pixelSize: 17
-                    color: App.section_text_color;
+                    //color: App.section_text_color;
+                    color: App.module_text_color;
                     padding: 4;
                     leftPadding: 12;
                 }
@@ -110,7 +113,8 @@ Page {
                 width: modulesList.width
                 height: 30
                 implicitHeight: height
-                color: App.bg_color;
+                //color: App.bg_color;
+                color: App.module_item_bg_color;
                 radius: 3
                 //opacity: 0.5
                 property int indexOfThisDelegate: index;
@@ -122,8 +126,10 @@ Page {
                         verticalAlignment: Text.AlignVCenter
                         text: title
                         font.pixelSize: 14
-                        color: App.text_color;
+                        //color: App.text_color;
+                        color: App.module_item_text;
                         padding: 3;
+                        leftPadding: 24;
                     }
                 }
                 MouseArea {

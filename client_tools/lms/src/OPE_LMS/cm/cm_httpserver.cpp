@@ -126,7 +126,7 @@ void CM_HTTPServer::incomingConnection(qintptr socket)
         connect(s, SIGNAL(disconnected()), this, SLOT(slot_clientDisconnected()));
         connect(s, SIGNAL(encrypted()), this, SLOT(slot_clientEncrypted()));
         connect(s, SIGNAL(encryptedBytesWritten(qint64)), this, SLOT(slot_clientEncryptedBytesWritten(qint64)));
-        connect(s, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(slot_clientError(QAbstractSocket::SocketError)));
+        connect(s, SIGNAL(errorOcurred(QAbstractSocket::SocketError)), this, SLOT(slot_clientError(QAbstractSocket::SocketError)));
         connect(s, SIGNAL(hostFound()), this, SLOT(slot_clientHostFound()));
         connect(s, SIGNAL(modeChanged(QSslSocket::SslMode)), this, SLOT(slot_clientModeChanged(QSslSocket::SslMode)));
         // Not available??
@@ -140,10 +140,12 @@ void CM_HTTPServer::incomingConnection(qintptr socket)
 
         // Set the server cert/key
         // Set CA Cert on each socket during connection too
-        s->addDefaultCaCertificate(ca_cert);
+        //s->addDefaultCaCertificate(ca_cert);  // Deprecated in QT6
+        s->sslConfiguration().addCaCertificate(ca_cert);
         s->setLocalCertificate(server_cert);
         s->setPrivateKey(server_key);
         //s->setPeerVerifyMode(QSslSocket::VerifyNone);
+
 
         // Some SSL Options for tuning security/connections
         //s->setCiphers(QSslSocket::supportedCiphers());
@@ -167,7 +169,8 @@ void CM_HTTPServer::incomingConnection(qintptr socket)
         connect(s, SIGNAL(destroyed()), this, SLOT(slot_clientDestroyed()));
         connect(s, SIGNAL(destroyed(QObject*)), this, SLOT(slot_clientDestroyed(QObject*)));
         connect(s, SIGNAL(disconnected()), this, SLOT(slot_clientDisconnected()));
-        connect(s, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(slot_clientError(QAbstractSocket::SocketError)));
+        //connect(s, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(slot_clientError(QAbstractSocket::SocketError)));
+        connect(s, SIGNAL(errorOccurred(QAbstractSocket::SocketError)), this, SLOT(slot_clientError(QAbstractSocket::SocketError)));
         connect(s, SIGNAL(hostFound()), this, SLOT(slot_clientHostFound()));
         //connect(s, SIGNAL(objectNameChanged(QString,QPrivateSignal)), this, SLOT(slot_clientObjectNameChanged(QString, QPrivateSignal)));
         connect(s, SIGNAL(proxyAuthenticationRequired(QNetworkProxy,QAuthenticator*)), this, SLOT(slot_clientProxyAuthenticationRequest(QNetworkProxy, QAuthenticator*)));
@@ -196,7 +199,7 @@ void CM_HTTPServer::setCACert(char pem_data[])
             p+="-----END CERTIFICATE-----\n";
             //qDebug() << "Cert Found: " << p;
             QByteArray ba;
-            ba.append(p);
+            ba.append(p.toStdString());
             ca_certs += QSslCertificate(ba, QSsl::Pem);
         }
     }
@@ -296,12 +299,14 @@ void CM_HTTPServer::slot_clientEncryptedBytesWritten(qint64 bytes)
 }
 #endif
 
-void CM_HTTPServer::slot_clientError(QAbstractSocket::SocketError /*error*/)
+void CM_HTTPServer::slot_clientError(QAbstractSocket::SocketError error)
 {
     //QTcpSocket *s = (QTcpSocket *)sender();
-    //QTcpSocket *s = static_cast<QTcpSocket*>(sender());
-    //qDebug() << "slot_clientError: " << s;
-    //qDebug() << "\t" << error;
+    QTcpSocket *s = static_cast<QTcpSocket*>(sender());
+    if (error != QAbstractSocket::RemoteHostClosedError) {
+        qDebug() << "slot_clientError: " << s;
+        qDebug() << "\t" << error;
+    }
 }
 
 void CM_HTTPServer::slot_clientHostFound()
@@ -393,12 +398,12 @@ void CM_HTTPServer::slot_clientReadyRead()
 }
 
 #ifndef CM_DISABLE_SSL
-void CM_HTTPServer::slot_clientSslErrors(QList<QSslError> /*errors*/)
+void CM_HTTPServer::slot_clientSslErrors(QList<QSslError> errors)
 {
     //QTcpSocket *s = (QTcpSocket *)sender();
     //QTcpSocket *s = static_cast<QTcpSocket*>(sender());
-    //qDebug() << "slot_clientSslErrors: " << s;
-    //qDebug() << "SSL Error!" << errors.first().errorString();
+    qDebug() << "slot_clientSslErrors: "; // << s;
+    qDebug() << "SSL Error!" << errors.first().errorString();
 }
 #endif
 

@@ -17,7 +17,7 @@ if remove_spec_file and os.path.exists(spec_file):
 #--noconsole
 CUSTOM_EVENT_LOG_DLL="" # " --add-data mgmt_EventLogMessages.dll;. "
 build_params = "python -m PyInstaller " + clean + \
-    "--hidden-import sip --hidden-import win32timezone --noupx " + \
+    "--hidden-import sip --hidden-import win32timezone --hidden-import servicemanager --hidden-import simplejson --noupx " + \
     " --add-data logo_icon.ico;. " + CUSTOM_EVENT_LOG_DLL + " --noconfirm --icon logo_icon.ico "
 # == Build the app for windows using pyinstaller ==
 

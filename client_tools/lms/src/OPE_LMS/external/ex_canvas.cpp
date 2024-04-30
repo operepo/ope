@@ -753,7 +753,7 @@ QString EX_Canvas::pullDiscussionTopics()
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
 
-    ret = true;
+    ret = "";
     int rowCount = courses_model->rowCount();
     for (int i=0; i<rowCount; i++) {
         // Get modules for this course
@@ -972,7 +972,7 @@ QString EX_Canvas::pullQuizzes()
     // NOTE - Make sure to fetch all or we may only get 256 records
     while(courses_model->canFetchMore()) { courses_model->fetchMore(); }
 
-    ret = true;
+    ret = "";
     int rowCount = courses_model->rowCount();
     for (int i=0; i<rowCount; i++) {
         // Get quizzes for this course
@@ -1229,7 +1229,7 @@ QString EX_Canvas::pullQuizQuestions()
     QString smc_url = _app_settings->value("student/smc_url", "https://smc.ed").toString();
     if (!smc_url.endsWith("/")){ smc_url += "/"; }
 
-    ret = true;
+    ret = "";
     int rowCount = quizzes_model->rowCount();
     for (int i=0; i<rowCount; i++) {
         // Get quiz questions for this quiz
@@ -1963,7 +1963,7 @@ bool EX_Canvas::pullCourseFilesBinaries()
 
     // Get the local cache folder
     QDir base_dir;
-    base_dir.setPath(this->appDataFolder() +
+    base_dir.setPath(this->appStudentDataFolder() +
                      "/content/www_root/canvas_file_cache/");
     base_dir.mkpath(base_dir.path());
 
@@ -2010,6 +2010,21 @@ bool EX_Canvas::pullCourseFilesBinaries()
             // Download the file
             qDebug() << "Downloading file " << local_path;
             progressCurrentItem = f_filename;
+
+            // https://github.com/operepo/ope/issues/144
+            // Have to clear readonly flag or new download will fail.
+            QString fname = base_dir.path() + local_path;
+            DWORD fAttrs;
+            fAttrs = GetFileAttributes(fname.toStdWString().c_str());
+            if (fAttrs == INVALID_FILE_ATTRIBUTES) {
+                qDebug() << "Error getting file attributes: " << fname << " -> " << GetLastError();
+            } else {
+                if (SetFileAttributes(fname.toStdWString().c_str(), fAttrs ^ FILE_ATTRIBUTE_READONLY) == 0) {
+                    // Error setting the attribute
+                    qDebug() << "Error setting file attributes: " << fname << " " << int(fAttrs ^ FILE_ATTRIBUTE_READONLY) <<  " -> " << GetLastError();
+                }
+            }
+
             bool r = DownloadFile(f_url, base_dir.path() + local_path, "Canvas File: " + f_filename);
 
             if (!r) {
@@ -2017,6 +2032,23 @@ bool EX_Canvas::pullCourseFilesBinaries()
             } else {
                 // Makre the file as present
                 f.setValue("local_copy_present", "1");
+
+                // https://github.com/operepo/ope/issues/144
+                // Files that are downloaded in windows need to be marked as readonly so that word/excel/etc...
+                // require a save as rather then letting them open and save files in the cache folder which will be overwritten
+                // Mark file as readonly
+                QString fname = base_dir.path() + local_path;
+                DWORD fAttrs;
+                fAttrs = GetFileAttributes(fname.toStdWString().c_str());
+                if (fAttrs == INVALID_FILE_ATTRIBUTES) {
+                    qDebug() << "Error getting file attributes: " << fname << " -> " << GetLastError();
+                } else {
+                    if (SetFileAttributes(fname.toStdWString().c_str(), fAttrs | FILE_ATTRIBUTE_READONLY) == 0) {
+                        // Error setting the attribute
+                        qDebug() << "Error setting file attributes: " << fname << " " << int(fAttrs | FILE_ATTRIBUTE_READONLY) <<  " -> " << GetLastError();
+                    }
+                }
+
 
                 // Make sure we save the content header
                 /*QHash<QString, QString> headers = web_request->GetAllDownloadHeaders();
@@ -2077,7 +2109,7 @@ bool EX_Canvas::pullCourseFilesBinaries()
 
     // Clear old file cache folder
     QDir old_cache_path;
-    old_cache_path.setPath(this->appDataFolder() + "/file_cache");
+    old_cache_path.setPath(this->appStudentDataFolder() + "/file_cache");
     foreach(QString f_name, old_cache_path.entryList()) {
         if (f_name == "." || f_name == ".." || f_name == "assignment_files") {
             // Skip these
@@ -2868,7 +2900,7 @@ QString EX_Canvas::pushAssignments()
             int order = 65; // Start at ascii a - need this to sort the keys later
             // or canvas will have a problem
             foreach(QString key, params.keys()) {
-                p["___" + QString(order) + "_" + key] = params[key].toString();
+                p["___" + QString::number(order) + "_" + key] = params[key].toString();
                 order++;
             }
             // Do the actual file upload - NOTE - this will send back a redirect?
@@ -3016,7 +3048,7 @@ bool EX_Canvas::queueAssignmentFile(QString course_id, QString assignment_id, QS
 
             // Get the temp path for saving assignments
             QDir cache_path;
-            cache_path.setPath(this->appDataFolder() + "/file_cache/assignment_files");
+            cache_path.setPath(this->appStudentDataFolder() + "/file_cache/assignment_files");
             // Make sure the base folder exists
             cache_path.mkpath(cache_path.path());
 
@@ -3250,6 +3282,8 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
     //QByteArray bin_ret = web_request->NetworkCall(url, method, p, headers);
     //ret = QString::fromUtf8(bin_ret);
 
+    // TODO - Detect 500 or other errors and try again?
+
     // If this is a file push - canvas needs us to follow the 301. 201 response is just done
     // that should be set in the location header
     QString location_header = web_request->GetHeader("Location");
@@ -3288,13 +3322,13 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
         // TODO - Need to keep following link until we run out of pages!!!
         //qDebug() << "Link header: " << link_header;
         QString next_url = "";
-        QStringList parts = link_header.split(",", QString::SkipEmptyParts);
+        QStringList parts = link_header.split(",", Qt::SkipEmptyParts);
         foreach (QString item, parts)
         {
             if(item.contains("rel=\"next\""))
             {
                 // Get the link
-                QStringList parts2 = item.split(";", QString::SkipEmptyParts);
+                QStringList parts2 = item.split(";", Qt::SkipEmptyParts);
                 next_url = parts2[0]; // Should be the first item.
                 next_url = next_url.replace("<", "").replace(">", ""); // strip off the <> tags
             }
@@ -3836,7 +3870,7 @@ bool EX_Canvas::pullSMCVideos()
     // Make sure our cache path exists
     // Get the local cache folder
     QDir base_dir;
-    base_dir.setPath(this->appDataFolder() + "/content/www_root/smc_video_cache/");
+    base_dir.setPath(this->appStudentDataFolder() + "/content/www_root/smc_video_cache/");
     base_dir.mkpath(base_dir.path());
 
     // Get list of video IDs
@@ -3933,7 +3967,7 @@ bool EX_Canvas::pullSMCDocuments()
 
     // Make sure our cache path exists
     QDir base_dir;
-    base_dir.setPath(this->appDataFolder() + "/content/www_root/smc_document_cache/");
+    base_dir.setPath(this->appStudentDataFolder() + "/content/www_root/smc_document_cache/");
     base_dir.mkpath(base_dir.path());
 
     // Get the list of document ids
@@ -4104,12 +4138,12 @@ bool EX_Canvas::setCurrentItem(QString item_text)
     return true;
 }
 
-QString EX_Canvas::appDataFolder()
+QString EX_Canvas::appStudentDataFolder()
 {
     // Cast appmodule back to its class
     AppModule *app_module = qobject_cast<AppModule*>(this->parent());
 
-    return app_module->appDataFolder();
+    return app_module->appStudentDataFolder();
 }
 
 QSqlRecord EX_Canvas::pullSinglePage(QString course_id, QString page_url)
