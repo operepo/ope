@@ -183,7 +183,7 @@ valid_commands = {
         "function": NetworkDevices.approve_nic,
         "help": "Add a nic to the approved list - params include nic name (OR ID) and network subnet it is approved on\n" +
             "NOTE: Subnet should be first part of address - it is a simple match (e.g. 202.5.222 for 202.5.222.34)\n" +
-            "mgmt.exe add_nic \"Intel(R) 82579LM Gigabit Network Connection\" 202.5.222",
+            "mgmt.exe approve_nic \"Intel(R) 82579LM Gigabit Network Connection\" 202.5.222",
     },
     "remove_nic": {
         "function": NetworkDevices.remove_nic,
