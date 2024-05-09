@@ -378,6 +378,7 @@ RUN echo "Settings file permissions..." \
 
 
 # Fix migration error where singleton column added too late
+# https://groups.google.com/g/canvas-lms-users/c/pk6pzDb0-Gw
 RUN mv /usr/src/app/db/migrate/20210812210129_add_singleton_column.rb \
     /usr/src/app/db/migrate/20111111214311_add_singleton_column.rb
 
