@@ -9,14 +9,14 @@ LABEL rebuild=8
 LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
 LABEL description="Web Gateway for Open Prison Education - source files at https://github.com/operepo"
 LABEL vendor="openprisoneducation.com"
-LABEL version="0.8"
+LABEL version="0.9"
 
 ARG VERSION=dev
 
 RUN apk add nano openssl
 
 
-LABEL rebuild=139
+LABEL rebuild=141
 # public_certs moved under /usr/share/nginx/html
 # Make public_certs folder so we can make it easy to grab crt file
 #RUN mkdir -p /public_certs \

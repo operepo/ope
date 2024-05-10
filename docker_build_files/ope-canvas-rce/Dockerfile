@@ -4,7 +4,7 @@ FROM instructure/node-passenger:12
 LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
 LABEL description="Canvas LMS by Instructure - Image for Open Prison Education"
 LABEL vendor="openprisoneducation.com"
-LABEL version="1.2"
+LABEL version="1.3"
 
 USER root
 
@@ -16,15 +16,16 @@ LABEL rebuild=7
 # Pull the RCE server
 ENV RCE_APP_HOME /usr/src/rce/
 WORKDIR $RCE_APP_HOME
-ENV RCE_RELEASE master
+#ENV RCE_RELEASE master
+ENV RCE_RELEASE v1.21
 RUN mkdir -p ${RCE_APP_HOME} \
     && cd ${RCE_APP_HOME} \
     && git init \
     && git remote add origin https://github.com/instructure/canvas-rce-api \
-    && git fetch origin master --no-tags --depth 1 \
-    && git checkout master \
-    #&& git fetch origin --no-tags --depth 1 refs/tags/${RCE_RELEASE}:refs/tags/${RCE_RELEASE} \
-    #&& git checkout ${RCE_RELEASE} \
+    #&& git fetch origin master --no-tags --depth 1 \
+    #&& git checkout master \
+    && git fetch origin --no-tags --depth 1 refs/tags/${RCE_RELEASE}:refs/tags/${RCE_RELEASE} \
+    && git checkout ${RCE_RELEASE} \
     && npm install --production \
     && echo Checkout done.
 
