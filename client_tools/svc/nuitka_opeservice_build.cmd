@@ -40,15 +40,14 @@ rem --nofollow-import-to=tkinter --nofollow-import-to=pyqt5 --nofollow-import-to
 
 python -m nuitka ^
     --standalone ^
-    --file-reference-choice=runtime ^
     --mingw64 ^
     --windows-icon-from-ico=logo_icon.ico ^
     --windows-company-name=OPE_PROJECT ^
-    --windows-product-name=MGMT_TOOL ^
+    --windows-product-name=OPEService ^
     --windows-file-version=%VERSION% ^
     --windows-product-version=%VERSION% ^
-    --windows-file-description="MGMT Tool - used to run system commands for credentialing laptops" ^
+    --windows-file-description="OPEService - OPE Service Utility" ^
     --disable-plugin=numpy --disable-plugin=tk-inter --disable-plugin=pyqt5 --disable-plugin=pyside2 ^
-    mgmt.py
+    OPEService.py
 
- xcopy /y .\mgmt.version .\mgmt.dist\
+ rem xcopy /y .\mgmt.version .\mgmt.dist\

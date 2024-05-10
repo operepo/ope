@@ -69,29 +69,12 @@ class GroupPolicy:
     def apply_group_policy():
         ret = True
 
+        laptop_network_type = RegistrySettings.get_reg_value(app="OPEService",
+            value_name="laptop_network_type", default="Standalone", value_type="REG_SZ")
+
         if RegistrySettings.is_debug():
             p("}}rbDEBUG MODE ON - Skipping apply group policy}}xx")
             return True
-
-        # Disable Secure Time seeding which causes random jumps in time when offline
-        #HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\w32time\Config /v UtilizeSslTimeData /t REG_DWORD /d 0 /f
-        RegistrySettings.set_reg_value(
-            root="HKLM",
-            app="SYSTEM\\CurrentControlSet\\Services\\w32time",
-            subkey="Config",
-            value_name="UtilizeSslTimeData",
-            value=0,
-            value_type="REG_DWORD"
-        )
-        # Tell w32tm to update
-        # w32tm.exe /config /update
-        cmd = "w32tm.exe /config /update"
-        returncode, output = ProcessManagement.run_cmd(cmd, attempts=1,
-                require_return_code=0, cmd_timeout=15)
-        if returncode == -2:
-            # Unable to restore gpo?
-            p("}}rnERROR - Unable to update w32tm config!}}xx")
-            #errors = True
         
         # Lock out browser games
         # https://github.com/operepo/ope/issues/111
@@ -116,7 +99,10 @@ class GroupPolicy:
         # Command that is run to start this function
         only_for = "apply_group_policy"
 
-        gpo_name = util.get_param(2, "gpo", only_for=only_for)
+        default_gpo = "gpo"
+        if laptop_network_type != "Standalone":
+            default_gpo = "ad_gpo"
+        gpo_name = util.get_param(2, default_gpo, only_for=only_for)
         gpo_name_pre = gpo_name + "_pre"
         gpo_name_post = gpo_name + "_post"
 

@@ -231,6 +231,18 @@ class RegistrySettings:
             elif value_type == "REG_DWORD":
                 value = int(value)
                 reg_type = registry.REGISTRY_VALUE_TYPE.REG_DWORD
+            elif value_type == "REG_BINARY":
+                value = value
+                reg_type = registry.REGISTRY_VALUE_TYPE.REG_BINARY
+            elif value_type == "REG_QWORD":
+                value = value
+                reg_type = registry.REGISTRY_VALUE_TYPE.REG_QWORD
+            elif value_type == "":
+                # Try to guess
+                if type(value) is float:
+                    reg_type = registry.REGISTRY_VALUE_TYPE.REG_QWORD
+                    value = int(value)
+                
             
             # Open the key
             key = registry.registry(path, 
@@ -245,6 +257,7 @@ class RegistrySettings:
             p("}}rbException! - Error setting registry value!}}xx\n\t(" +
                 path + ":" + value_name + "=" + str(value)+")")
             p("\t" + str(ex))
+            traceback.print_stack()
             pass
 
         return ret
@@ -278,7 +291,8 @@ class RegistrySettings:
 
     @staticmethod
     def store_credential_info(canvas_access_token, canvas_url, smc_url,
-            student_user, student_name, admin_user):
+            student_user, student_name, admin_user,
+            laptop_network_type, laptop_domain_name, laptop_domain_ou):
         # Store credential info in the proper places
         RegistrySettings.set_reg_value(app="", value_name="canvas_access_token",
             value=canvas_access_token, value_type="REG_SZ")
@@ -304,6 +318,15 @@ class RegistrySettings:
             value_type="REG_SZ")
 
         RegistrySettings.set_reg_value(app="OPEService", value_name="admin_user", value=admin_user,
+            value_type="REG_SZ")
+        
+        RegistrySettings.set_reg_value(app="OPEService", value_name="laptop_network_type", value=laptop_network_type,
+            value_type="REG_SZ")
+        
+        RegistrySettings.set_reg_value(app="OPEService", value_name="laptop_domain_name", value=laptop_domain_name,
+            value_type="REG_SZ")
+        
+        RegistrySettings.set_reg_value(app="OPEService", value_name="laptop_domain_ou", value=laptop_domain_ou,
             value_type="REG_SZ")
 
         return True

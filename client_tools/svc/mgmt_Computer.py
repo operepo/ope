@@ -365,7 +365,11 @@ class Computer:
         if header is None or header == "":
             header = "OPE MAINTENANANCE LOG"
         
-        txt_w, txt_h = log_draw.textsize(header, font_large)
+        # textsize deprecated
+        #txt_w, txt_h = log_draw.textsize(header, font_large)
+        txt_w = log_draw.textlength(header, font_large)
+        (left, top, right, bottom) = font_large.getbbox("A")
+        txt_h = bottom - top
         draw_x = (log_width/2) - (txt_w / 2)
         #draw_y = (h/2) - (txt_h / 2)
         draw_y = 10
@@ -375,7 +379,10 @@ class Computer:
         dt_string = "Refreshed: " + datetime.now().strftime("%b %d, %Y    %I:%M %p") # %-I:%-M %p")
         import mgmt_CredentialProcess
         dt_string += " -- version " + mgmt_CredentialProcess.CredentialProcess.get_mgmt_version()
-        dt_w, dt_h = draw.textsize(dt_string, font_xsmall)
+        #dt_w, dt_h = draw.textsize(dt_string, font_xsmall)
+        dt_w = draw.textlength(dt_string, font_xsmall)
+        (left, top, right, bottom) = font_xsmall.getbbox("A")
+        dt_h = bottom - top
         dt_x = log_left + (log_width - dt_w - log_margin)
         dt_y = log_top - dt_h - log_margin
         draw.text((dt_x, dt_y), dt_string, text_color, font=font_xsmall)
@@ -387,7 +394,10 @@ class Computer:
         log_draw.line((0, log_start_top, w, log_start_top), fill="black", width=2)
 
         # Get the text height for log entries
-        log_text_width, log_text_height = draw.textsize("|", font_small)
+        #log_text_width, log_text_height = draw.textsize("|", font_small)
+        log_text_width = draw.textlength("|", font_small)
+        (left, top, right, bottom) = font_small.getbbox("|")
+        log_text_height = bottom - top
 
         # Calculate number of log lines based on this height w a small margin
         log_space_h = log_bottom - log_top - (log_margin*2)

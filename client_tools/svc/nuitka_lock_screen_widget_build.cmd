@@ -23,9 +23,9 @@ rem python -m nuitka --python-arch=x86 --standalone  mgmt.py
 rem --plugin-enable=tk-inter ^
 
 python -m nuitka ^
-    --python-arch=x86 ^
     --standalone ^
-    --plugin-enable=qt-plugins ^
+    --mingw64 ^
+    --plugin-enable=pyqt5 ^
     --plugin-enable=numpy ^
     --windows-disable-console ^
     --windows-icon-from-ico=logo_icon.ico ^

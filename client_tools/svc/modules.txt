@@ -9,7 +9,6 @@ pyaes
 pyasn1
 colorama
 Click
-colorama
 paramiko
 msgpack
 docutils

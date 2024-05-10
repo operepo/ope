@@ -169,6 +169,9 @@ class RestClient:
         laptop_admin_password = ""
         student_full_name = ""
         smc_version = ""
+        laptop_network_type = "Standalone"
+        laptop_domain_name = ""
+        laptop_domain_ou = ""
         
         p("\n}}gnChecking user status in SMC tool...}}xx")
         
@@ -198,6 +201,9 @@ class RestClient:
             student_full_name = util.get_dict_value(json_response, "student_full_name")
             laptop_admin_user = util.get_dict_value(json_response, "laptop_admin_user")
             smc_version = util.get_dict_value(json_response, "smc_version")
+            laptop_network_type = util.get_dict_value(json_response, "laptop_network_type")
+            laptop_domain_name = util.get_dict_value(json_response, "laptop_domain_name")
+            laptop_domain_ou = util.get_dict_value(json_response, "laptop_domain_ou")
             # Password moved to credential step
             #laptop_admin_password = util.get_dict_value(json_response, "laptop_admin_password")
         except Exception as ex:
@@ -216,8 +222,7 @@ class RestClient:
 
         
         #return (laptop_admin_user, laptop_admin_password, student_full_name)
-        return (laptop_admin_user, student_full_name, smc_version)
-
+        return (laptop_admin_user, student_full_name, smc_version, laptop_network_type, laptop_domain_name, laptop_domain_ou)
 
     @staticmethod
     def ping_smc(smc_url):

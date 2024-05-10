@@ -24,6 +24,9 @@
 # import wmi
 # import traceback
 
+# Required imports - helps nuitka
+import simplejson
+
 import win32trace
 import win32api
 import sys
