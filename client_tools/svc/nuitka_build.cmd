@@ -51,4 +51,6 @@ python -m nuitka ^
     --disable-plugin=numpy --disable-plugin=tk-inter --disable-plugin=pyqt5 --disable-plugin=pyside2 ^
     mgmt.py
 
- xcopy /y .\mgmt.version .\mgmt.dist\
+echo Copying mgmt.version and rc files to dist folder
+xcopy /y .\mgmt.version .\mgmt.dist\
+xcopy /y .\rc .\mgmt.dist\rc\
