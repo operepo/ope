@@ -90,7 +90,7 @@ class GroupPolicy:
         #HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Google\Chrome" /v "AllowDinosaurEasterEgg" /t REG_DWORD /d 0"
         RegistrySettings.set_reg_value(
             root="HKLM",
-            app="Software\\Policies\Google",
+            app="Software\\Policies\\Google",
             subkey="Chrome",
             value_name="AllowDinosaurEasterEgg",
             value=0,

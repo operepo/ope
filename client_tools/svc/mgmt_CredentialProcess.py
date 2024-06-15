@@ -48,6 +48,17 @@ class CredentialProcess:
         return ret
 
     @staticmethod
+    def get_credentialed_network_type():
+        # Return the name of the current credentialed student or None if missing
+        return RegistrySettings.get_reg_value(app="OPEService", value_name="laptop_network_type", default=None)
+    
+    @staticmethod
+    def get_credentialed_domain_name():
+        # Return the name of the current credentialed student or None if missing
+        return RegistrySettings.get_reg_value(app="OPEService", value_name="laptop_domain_name", default=None)
+    
+
+    @staticmethod
     def get_credentialed_student():
         # Return the name of the current credentialed student or None if missing
         return RegistrySettings.get_reg_value(value_name="student_user", default=None)
@@ -443,6 +454,10 @@ class CredentialProcess:
         # maintenance/etc...
         ret = True
 
+        laptop_network_type = CredentialProcess.get_credentialed_network_type()
+        laptop_domain_name = CredentialProcess.get_credentialed_domain_name()
+
+
         # Make sure mgmt is in the system path
         RegistrySettings.add_mgmt_utility_to_path()
 
@@ -457,11 +472,16 @@ class CredentialProcess:
             return False
         
         # Reset group policy
-        GroupPolicy.reset_group_policy_to_default()
+        if laptop_network_type == "Standalone":
+            GroupPolicy.reset_group_policy_to_default()
+        else:
+            p("}}ybRunning in Domain Mode, not resetting gpol to default.}}xx")
 
         # Reset firewall
-        GroupPolicy.reset_firewall_policy()
-
+        if laptop_network_type == "Standalone":
+            GroupPolicy.reset_firewall_policy()
+        else:
+            p("}}ybRunning in Domain Mode, not resetting firewall to default.}}xx")
 
         return ret
 
@@ -505,6 +525,9 @@ class CredentialProcess:
         if admin_user_name is None:
             p("}}rbNot Credentiled! - Unable to find credentialed admin account - not locking machine!}}xx")
             return False
+        
+        laptop_network_type = CredentialProcess.get_credentialed_network_type()
+        laptop_domain_name = CredentialProcess.get_credentialed_domain_name()
 
         # Log out the student
         if not UserAccounts.log_out_user(student_user_name):
@@ -512,9 +535,12 @@ class CredentialProcess:
             return False
 
         # Apply firewall rules
-        if not GroupPolicy.apply_firewall_policy():
-            p("}}rbError - Could Not apply firewall policy!\nStudent Account NOT unlocked!}}xx")
-            return False
+        if laptop_network_type == "Standalone":
+            if not GroupPolicy.apply_firewall_policy():
+                p("}}rbError - Could Not apply firewall policy!\nStudent Account NOT unlocked!}}xx")
+                return False
+        else:
+            p("}}ybRunning in Domain Mode, not applying firewall policy.}}xx")
 
         # Apply group policy
         if not GroupPolicy.apply_group_policy():
@@ -564,9 +590,13 @@ class CredentialProcess:
         #     return False
 
         # Enable student account
-        if not UserAccounts.enable_account(student_user_name):
-            p("}}rbError - Failed to enable student account: " + str(student_user_name) + "}}xx")
-            return False
+        if laptop_network_type == "Standalone":
+            if not UserAccounts.enable_account(student_user_name):
+                p("}}rbError - Failed to enable student account: " + str(student_user_name) + "}}xx")
+                return False
+        else:
+            # TODO - list student account in allowed users to login
+            p("}}ybRunning in Domain Mode, not enabling student account.}}xx")
 
         return ret
 
@@ -936,6 +966,8 @@ class CredentialProcess:
         #UserAccounts.disable_student_accounts()
 
         p(CredentialProcess.get_mgmt_version())
+        p(CredentialProcess.get_credentialed_network_type())
+        p(CredentialProcess.get_credentialed_domain_name())
         #RegistrySettings.set_reg_value(value_name="upgrade_started", value=time.time()-9*60)
         # p("Test")
         # p(str(RegistrySettings.get_reg_value(value_name="student_user", default=None)))

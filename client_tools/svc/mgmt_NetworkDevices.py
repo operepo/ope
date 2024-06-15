@@ -398,7 +398,7 @@ class NetworkDevices:
         strComputer = "."
         # Setup WMI connection
         objWMIService = win32com.client.Dispatch("WbemScripting.SWbemLocator")
-        objSWbemServices = objWMIService.ConnectServer(strComputer,"root\cimv2")
+        objSWbemServices = objWMIService.ConnectServer(strComputer,"root\\cimv2")
 
         # Get the list of adapters
         #colItems = objSWbemServices.ExecQuery("Select * from Win32_NetworkAdapter")

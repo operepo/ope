@@ -1,5 +1,4 @@
 pywin32
-wmi
 pillow
 pyscreenshot
 wmi
@@ -14,7 +13,7 @@ msgpack
 docutils
 wheel
 pycanvas
-pycryptdome
+pycryptodome
 pywinrm
 pywinusb
 setuptools
@@ -24,6 +23,7 @@ virtualenv
 websocket
 websocket-client
 winsys
+pyad
 
 simplejson
 # Don't Install these - use versions that come with base python

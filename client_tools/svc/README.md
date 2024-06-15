@@ -1,11 +1,16 @@
 
 # Build Instructions
 
-Use Python3 w pyinstaller
+Use nuitka for all but OPEService. Using python 3.11 for all builds (3.12 has issue with opeservice)
+Nuitka doesn't work for services unless you pay for commercial packages.
 
-Build using by using the makeexe.cmd file - final app is in dist folder.
+.\nuitka_build.cmd (for mgmt) - copy over mgmt.dist folder
+.\nuitka_lock_screen_widget_build.cmd - for lock screen widget - copy over lock_screen_widget.dist folder
+.\nuitka_sshot_build.cmd - copy over sshot.dist folder
 
-Copy dist folder to laptop binaries under sshot folder to release.
+For OPEService - (use python 3)
+python .\build_svc.py - copy over dist/opeservice folder
+
 
 
 
@@ -13,44 +18,27 @@ Copy dist folder to laptop binaries under sshot folder to release.
 https://python.plainenglish.io/pyinstaller-exe-false-positive-trojan-virus-resolved-b33842bd3184
 Need to do a custom build for pyinstaller due to antivirus issues.
 
-### Clone Pyinstaller - GCC
+After cloning - add variables to functions in bootloader/src/pyi_main.c 
+Adding something like - int ope_custom=1; in each function is enough to change binary signatures so they don't trip antivirus as a known bad actor.
+
+
+### Clone Pyinstaller
 
 https://github.com/pyinstaller/pyinstaller 
 
-Clone to c:\pyinstaller  choose v4 branch
-Checkout current version/tag (e.g. 4.10)
-
-Open Command Prompt as admin
-cd C:\Qt\6.2.0\mingw81_64\bin
-qtenv2.bat
-
+Clone to c:\pyinstaller
 cd c:\pyinstaller\bootloader
 
 pip uninstall pyinstaller
-python ./waf distclean all --target-arch=64bit --gcc
-cd ..
-python setup.py install
 
-In OPE code folder, delete __pycache__, dist, build folders
-Run makeexe.cmd file to build
-Test with virustotal.com
+Use chocolaty to install stuff as stated on pyinstaller page
+https://pyinstaller.org/en/stable/bootloader-building.html
 
+Switch back to python 311 (chocolaty installs py3.12 - remove from paths and re-open command prompts)
 
+In the bootloader folder - run waf...
+python .\waf distclean all --target-arch=64bit
 
-### Clone Pyinstaller - MSVC
-
-https://github.com/pyinstaller/pyinstaller 
-
-Clone to c:\pyinstaller  choose v4 branch
-Checkout current version/tag (e.g. 4.10)
-
-Open MSVC Command prompt (x64 right now) and cd to c:\pyinstaller\bootloader
-
-pip uninstall pyinstaller
-python ./waf distclean all --target-arch=64bit
-cd ..
-python setup.py install
-
-In OPE code folder, delete __pycache__, dist, build folders
-Run makeexe.cmd file to build
-Test with virustotal.com
+Install the built pyinstaller
+cd c:\pyinstaller
+pip install .

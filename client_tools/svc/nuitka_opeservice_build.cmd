@@ -1,5 +1,8 @@
 
 @echo off
+echo Use pyinstaller or opeservice - nuitka doesn't work with services w/out commercial license.
+exit
+
 set VERSION=1.0.109
 @REM rem read version file from mgmt.version
 @REM for /f "delims=" %%a in (mgmt.version) do (
@@ -48,6 +51,10 @@ python -m nuitka ^
     --windows-product-version=%VERSION% ^
     --windows-file-description="OPEService - OPE Service Utility" ^
     --disable-plugin=numpy --disable-plugin=tk-inter --disable-plugin=pyqt5 --disable-plugin=pyside2 ^
+    --include-module="win32timezone" ^
     OPEService.py
 
- rem xcopy /y .\mgmt.version .\mgmt.dist\
+rem Need pythoservice in the folder for this to work
+rem xcopy /y C:\Python311\Lib\site-packages\win32\pythonservice.exe .\OPEService.dist\
+
+rem xcopy /y .\mgmt.version .\mgmt.dist\

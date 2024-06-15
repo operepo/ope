@@ -53,4 +53,4 @@ python -m nuitka ^
 
 echo Copying mgmt.version and rc files to dist folder
 xcopy /y .\mgmt.version .\mgmt.dist\
-xcopy /y .\rc .\mgmt.dist\rc\
+xcopy /EQy .\rc .\mgmt.dist\rc\

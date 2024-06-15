@@ -8,6 +8,11 @@ import win32event
 import servicemanager
 import socket
 
+import win32evtlog
+import win32ts
+
+import win32timezone
+
 import win32traceutil
 import traceback
 import threading
@@ -27,6 +32,8 @@ import random
 from collections import OrderedDict
 
 import util
+
+import mgmt_UserAccounts
 
 # Pull in logger first and set it up!
 from mgmt_EventLog import EventLog
@@ -68,6 +75,9 @@ class OPEService(win32serviceutil.ServiceFramework):
     _COMMAND_QUEUE = OrderedDict()
     # Thread that grabs and runs commands (created in __init__)
     _COMMAND_QUEUE_THREAD = None
+
+    # Thread that monitors login events from windows
+    _MONITOR_LOGIN_THREAD = None
 
     # Threads that are currently running
     #_RUNNING_COMMAND_THREADS = {}
@@ -291,6 +301,129 @@ class OPEService(win32serviceutil.ServiceFramework):
             # Shouldn't be scheduling a command that doesn't exist?
             p("Trying to schedule a bad command to run? " + command_name, log_level=1)
 
+    def monitor_login_events_thread(self):
+        server = 'localhost'  # Can be 'localhost' or the name of a remote computer
+        logtype = 'Security'
+        event_id = 4624  # Event ID for successful login
+
+        # Open a handle to the Security event log
+        handle = win32evtlog.OpenEventLog(server, logtype)
+        #p(f"Thread Handle: {handle}", log_level=3)
+        # Make sure to flush logs to the win event log system
+        #LOGGER.flush_win_logs()
+        flags = win32evtlog.EVENTLOG_BACKWARDS_READ | win32evtlog.EVENTLOG_SEQUENTIAL_READ
+
+        p("Monitor login thread running....", log_level=3)
+        while self.isAlive is True:
+            try:
+                events = win32evtlog.ReadEventLog(handle, flags, 0)
+                for event in events:
+                    #p(f"got login event...{event}", log_level=3)
+
+                    event_info = {}
+                    event_info["TimeGenerated"] = event.TimeGenerated
+                    event_info["SourceName"] = event.SourceName
+                    event_info["EventID"] = event.EventID
+                    event_info["EventType"] = event.EventType
+                    event_info["RecordNumber"] = event.RecordNumber
+                    event_info["Sid"] = event.Sid
+                    event_info["StringInserts"] = event.StringInserts
+                    event_info["Category"] = event.EventCategory
+                    event_info["ComputerName"] = event.ComputerName
+                    event_info["Data"] = event.Data
+                    event_info["EventID"] = event.EventID
+                    event_info["EventCategory"] = event.EventCategory
+                    event_info["LogonType"] = "2"
+
+                    string_inserts = event.StringInserts
+
+
+                    if len(string_inserts) >= 20:
+                        # If LogonType == 5 - it is a service logon - ignore it
+                        # 2 - interactive, 7 - unlock, 10 - remote, 11 - cachedinteractive
+                        # LogonType 2: Interactive (A user logged on to this computer locally)
+                        # LogonType 3: Network (A user or computer logged on to this computer from the network)
+                        # LogonType 4: Batch (Batch logon type is used by batch servers, where processes may be executing on behalf of a user without their direct intervention)
+                        # LogonType 5: Service (A service was started by the Service Control Manager)
+                        # LogonType 7: Unlock (This workstation was unlocked)
+                        # LogonType 8: NetworkCleartext (A user logged on to this computer from the network using a cleartext password)
+                        # LogonType 9: NewCredentials (A caller has cloned its current token and specified new credentials for outbound connections)
+                        # LogonType 10: RemoteInteractive (A user logged on to this computer remotely using Terminal Services or Remote Desktop)
+                        # LogonType 11: CachedInteractive (A user logged on to this computer with network credentials that were stored locally on the computer)
+                        #p(f"SubjectUserSid: {string_inserts[0]}")
+                        event_info["SubjectUserSid"] = string_inserts[0]
+                        #p(f"SubjectUserName: {string_inserts[1]}")
+                        event_info["SubjectUserName"] = string_inserts[1]
+                        #p(f"SubjectDomainName: {string_inserts[2]}")
+                        event_info["SubjectDomainName"] = string_inserts[2]
+                        #p(f"SubjectLogonId: {string_inserts[3]}")
+                        event_info["SubjectLogonId"] = string_inserts[3]
+                        #p(f"TargetUserSid: {string_inserts[4]}")
+                        event_info["TargetUserSid"] = string_inserts[4]
+                        #p(f"TargetUserName: {string_inserts[5]}")
+                        event_info["TargetUserName"] = string_inserts[5]
+                        #p(f"TargetDomainName: {string_inserts[6]}")
+                        event_info["TargetDomainName"] = string_inserts[6]
+                        #p(f"TargetLogonId: {string_inserts[7]}")
+                        event_info["TargetLogonId"] = string_inserts[7]
+                        #p(f"LogonType: {string_inserts[8]}")
+                        event_info["LogonType"] = string_inserts[8]
+                        #p(f"LogonProcessName: {string_inserts[9]}")
+                        event_info["LogonProcessName"] = string_inserts[9]
+                        #p(f"AuthenticationPackageName: {string_inserts[10]}")
+                        event_info["AuthenticationPackageName"] = string_inserts[10]
+                        #p(f"WorkstationName: {string_inserts[11]}")
+                        event_info["WorkstationName"] = string_inserts[11]
+                        #p(f"LogonGuid: {string_inserts[12]}")
+                        event_info["LogonGuid"] = string_inserts[12]
+                        #p(f"TransmittedServices: {string_inserts[13]}")
+                        event_info["TransmittedServices"] = string_inserts[13]
+                        #p(f"LmPackageName: {string_inserts[14]}")
+                        event_info["LmPackageName"] = string_inserts[14]
+                        #p(f"KeyLength: {string_inserts[15]}")
+                        event_info["KeyLength"] = string_inserts[15]
+                        #p(f"ProcessId: {string_inserts[16]}")
+                        event_info["ProcessId"] = string_inserts[16]
+                        #p(f"ProcessName: {string_inserts[17]}")
+                        event_info["ProcessName"] = string_inserts[17]
+                        #p(f"IpAddress: {string_inserts[18]}")
+                        event_info["IpAddress"] = string_inserts[18]
+                        #p(f"IpPort: {string_inserts[19]}")
+                        event_info["IpPort"] = string_inserts[19]
+                    else:
+                        p("Event does not contain all expected fields.")
+
+                    if event.EventID == event_id and (event_info["LogonType"] != "5"):
+                        p(f"* Interactive Login event detected.\n{event_info}", log_level=3)
+                        mgmt_UserAccounts.ProcessLogonEvent(event_info)
+                        # if username.lower() in [s.lower() for s in event.StringInserts if s]:
+                        #     print(f"Login attempt detected for user: {username}")
+                        #     disable_user_account(username)
+                        #     return
+                        #print(f"Event Category: {event.EventCategory}")
+                        # print(f"Time Generated: {event.TimeGenerated}")
+                        # print(f"Source Name: {event.SourceName}")
+                        # print(f"Event ID: {event.EventID}")
+                        # print(f"Event Type: {event.EventType}")
+                        # print(f"Event Record: {event.RecordNumber}")
+                        # print(f"User SID: {event.Sid}")
+                        # print(f"Event Data: {event.StringInserts}")
+                        # print("="*50)
+                        #
+                        
+            except Exception as e:
+                p("}}rbAn error occurred trying to check for login events: " + f"{e}" + "}}xx")
+        
+            # Slight pause to slow the loop down
+            time.sleep(0.5)
+
+        if not handle is None:
+            p("Closing event log handle...", log_level=3)
+            win32evtlog.CloseEventLog(handle)
+            handle = None
+        p("Monitor login thread exiting...", log_level=3)
+        return True
+
     def command_queue_thread(self):
         # Pick commands off the queue and run them.
         p("Command queue thread running...", log_level=3)
@@ -482,6 +615,14 @@ class OPEService(win32serviceutil.ServiceFramework):
                 name="OPECommandQueueThread"
                 )
             t.start()
+        
+        # Make sure our thread to monitor logins is running
+        if OPEService._MONITOR_LOGIN_THREAD is None:
+            t = threading.Thread(target=self.monitor_login_events_thread,
+                daemon=True,  # Make sure thread ends when service stops
+                name="MonitorLoginThread"
+                )
+            t.start()
 
         try:
             # The signal that "stop" has been hit on the service
@@ -546,11 +687,18 @@ class OPEService(win32serviceutil.ServiceFramework):
             # data is a single elt tuple, but this could potentially grow
             # in the future if the win32 struct does
             msg = "Session event: type=%s, data=%s" % (event_type, data)
+            if event_type == win32ts.WTS_SESSION_LOGON:
+                # Logon event
+                p(f"SvcOtherEx - Login event detected - {data}", log_level=3)
+            elif event_type == win32ts.WTS_SESSION_LOGOFF:
+                # Logoff event
+                p(f"SvcOtherEx - Logoff event detected - {data}", log_level=3)
+                
         else:
             msg = "Other event: code=%d, type=%s, data=%s" \
                   % (control, event_type, data)
 
-        p("-- Other Event " + msg, log_level=2)
+        p("-- SvcOtherEx - Other Event " + msg, log_level=2)
         
 
     def SvcStop(self):
@@ -666,11 +814,13 @@ if __name__ == '__main__':
             servicemanager.StartServiceCtrlDispatcher()
         except Exception as ex:
             p("}}rbUnknown Exception! }}xx\n" + str(ex))
-            sys.exit(2)
+            #sys.exit(2)
+            os._exit(2)
     else:
         try:
             win32serviceutil.HandleCommandLine(OPEService)
         except Exception as ex:
             p("}}rbUnknown Exception! }}xx\n" + str(ex))
-            sys.exit(2)
+            #sys.exit(2)
+            os._exit(2)
 

@@ -488,14 +488,23 @@ if __name__ == "__main__":
         util.CMD_FUNCTION = cmd
         p("}}gnRunning " + cmd + "}}xx", log_level=4)
         ret = f()
+        # Convert ret to a proper exit code
         #p("}}ynReturn Code: " + str(ret) + "}}xx")
-        if ret is not None and ret != True:
-            exit_code = -1
+        if ret is True:
+            exit_code = 0
+        else:
+            exit_code = 1
+        
+        # if ret is not None and ret != True:
+        #     exit_code = -1
     except Exception as ex:
         p("}}rnERROR: " + str(ex) + "}}xx", log_level=1)
         
         exit_code = 1
         
     # Clean exit
-    sys.exit(exit_code)
+    #p("}}ynExit Code: " + str(exit_code) + "}}xx")
+    #Nuitka or python 3.12 doing proper exit code? Is it because sys.exit fires an exception?
+    #sys.exit(exit_code)
+    os._exit(exit_code)
     
