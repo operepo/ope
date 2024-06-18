@@ -36,6 +36,10 @@ https://pyinstaller.org/en/stable/bootloader-building.html
 
 Switch back to python 311 (chocolaty installs py3.12 - remove from paths and re-open command prompts)
 
+Set this flag to disable telemetry
+setx VSCMD_SKIP_SENDTELEMETRY 1
+
+
 In the bootloader folder - run waf...
 python .\waf distclean all --target-arch=64bit
 

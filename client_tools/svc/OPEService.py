@@ -391,10 +391,11 @@ class OPEService(win32serviceutil.ServiceFramework):
                         #p(f"IpPort: {string_inserts[19]}")
                         event_info["IpPort"] = string_inserts[19]
                     else:
-                        p("Event does not contain all expected fields.")
+                        p(f"Event does not contain all expected fields. \n{string_inserts}", log_level=3)
+                        continue
 
                     if event.EventID == event_id and (event_info["LogonType"] != "5"):
-                        p(f"* Interactive Login event detected.\n{event_info}", log_level=3)
+                        p(f"*** Interactive Login event detected.\n{event_info}", log_level=3)
                         mgmt_UserAccounts.ProcessLogonEvent(event_info)
                         # if username.lower() in [s.lower() for s in event.StringInserts if s]:
                         #     print(f"Login attempt detected for user: {username}")

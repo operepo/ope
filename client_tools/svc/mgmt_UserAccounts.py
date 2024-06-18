@@ -1034,6 +1034,11 @@ class UserAccounts:
     def ProcessLogonEvent(event_info):
         # Decide if we need to logout this user
 
+        # event_info - user_name, domain_name, full_name, user_sid, event_type, event_time, event_source, event_id, event_data
+        # SubjectUserSid, SubjectUserName, SubjectDomainName, SubjectLogonId, TargetUserSid, TargetUserName, TargetDomainName,
+        # TargetLogonId, LogonType, LogonProcessName, AuthenticationPackageName, WorkstationName,
+        # LogonGuid, TransmittedServices, LmPackageName, KeyLength, ProcessId, ProcessName, IpAddress, IpPort
+
         # Get the user name
         user_name = event_info["user_name"]
         user_domain = event_info["domain_name"]
@@ -1044,53 +1049,21 @@ class UserAccounts:
         event_source = event_info["event_source"]
         event_id = event_info["event_id"]
         event_data = event_info["event_data"]
+
+        # If user is not an admin and is isn't in the OPESStudents group, log them out.
+        if UserAccounts.is_user_in_group(user_name, "administrators") or UserAccounts.is_user_in_group(user_name, "OPEAdmins"):
+            p("User is an admin logging in - allowing login: " + str(user_name))
+            return True
         
-event_info["SubjectUserSid"] = string_inserts[0]
-                        #p(f"SubjectUserName: {string_inserts[1]}")
-                        event_info["SubjectUserName"] = string_inserts[1]
-                        #p(f"SubjectDomainName: {string_inserts[2]}")
-                        event_info["SubjectDomainName"] = string_inserts[2]
-                        #p(f"SubjectLogonId: {string_inserts[3]}")
-                        event_info["SubjectLogonId"] = string_inserts[3]
-                        #p(f"TargetUserSid: {string_inserts[4]}")
-                        event_info["TargetUserSid"] = string_inserts[4]
-                        #p(f"TargetUserName: {string_inserts[5]}")
-                        event_info["TargetUserName"] = string_inserts[5]
-                        #p(f"TargetDomainName: {string_inserts[6]}")
-                        event_info["TargetDomainName"] = string_inserts[6]
-                        #p(f"TargetLogonId: {string_inserts[7]}")
-                        event_info["TargetLogonId"] = string_inserts[7]
-                        #p(f"LogonType: {string_inserts[8]}")
-                        event_info["LogonType"] = string_inserts[8]
-                        #p(f"LogonProcessName: {string_inserts[9]}")
-                        event_info["LogonProcessName"] = string_inserts[9]
-                        #p(f"AuthenticationPackageName: {string_inserts[10]}")
-                        event_info["AuthenticationPackageName"] = string_inserts[10]
-                        #p(f"WorkstationName: {string_inserts[11]}")
-                        event_info["WorkstationName"] = string_inserts[11]
-                        #p(f"LogonGuid: {string_inserts[12]}")
-                        event_info["LogonGuid"] = string_inserts[12]
-                        #p(f"TransmittedServices: {string_inserts[13]}")
-                        event_info["TransmittedServices"] = string_inserts[13]
-                        #p(f"LmPackageName: {string_inserts[14]}")
-                        event_info["LmPackageName"] = string_inserts[14]
-                        #p(f"KeyLength: {string_inserts[15]}")
-                        event_info["KeyLength"] = string_inserts[15]
-                        #p(f"ProcessId: {string_inserts[16]}")
-                        event_info["ProcessId"] = string_inserts[16]
-                        #p(f"ProcessName: {string_inserts[17]}")
-                        event_info["ProcessName"] = string_inserts[17]
-                        #p(f"IpAddress: {string_inserts[18]}")
-                        event_info["IpAddress"] = string_inserts[18]
-                        #p(f"IpPort: {string_inserts[19]}")
-                        event_info["IpPort"] = string_inserts[19]
+        if UserAccounts.is_user_in_group(user_name, "OPEStudents"):
+            p("User is a student logging in - allowing login: " + str(user_name))
+            return True
+        
+        # All other instances, force the logout.
+        p("User is not an admin or student or account is locked - logging out: " + str(user_name))
+        return UserAccounts.log_out_user(user_name)
 
-
-
-        TODO 
-        UserAccounts.log_out_user("?")
-
-if __name__ == "__main__":  
+if __name__ == "__main__": 
     #ret = UserAccounts.create_local_students_group()
     #ret = UserAccounts.create_local_student_account("s999999", "Test Student", "Sid999999!")
     #print("RET: " + str(ret))
