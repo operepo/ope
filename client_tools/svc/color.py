@@ -1,5 +1,6 @@
 import os
 import util
+import psutil
 #import logging
 from mgmt_EventLog import EventLog
 
@@ -138,6 +139,13 @@ color_codes = {
     "}}wu": CSI + UNDERLINE_ONLY + WHITE_COLOR,
 
 }
+
+# POWERSHELL FIXES - Adjust colors when running in powershell to make them more readable
+# Get parent process name
+parent_proc_name = psutil.Process(os.getppid()).name()
+if 'pwsh' in parent_proc_name or 'powershell' in parent_proc_name:
+    # Make red only use bold so it is readable
+    color_codes["}}rn"] = color_codes["}}rb"]
 
 markup_color_codes = {
 

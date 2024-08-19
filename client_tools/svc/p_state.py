@@ -24,11 +24,12 @@ def p_state(txt="", end=True, state="WORKING", title="UPDATING", kill_logon=Fals
     l.info(txt)
     l.flush()
     
-    try:
-        mgmt_Computer.Computer.render_lock_screen(None, header=title, state=state)
-    except Exception as ex:
-        import color
-        color.p("Error rendering lockscreen in p_state: " + str(ex))
+    # Stop rendering lock screen
+    # try:
+    #     mgmt_Computer.Computer.render_lock_screen(None, header=title, state=state)
+    # except Exception as ex:
+    #     import color
+    #     color.p("Error rendering lockscreen in p_state: " + str(ex))
     
     # try:
     #     mgmt_Computer.Computer.set_lock_screen_image(kill_logon=kill_logon)

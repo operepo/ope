@@ -6,8 +6,8 @@ project_name = "OPEService"
 main_file = "OPEService.py"
 
 # If you get corrupted errors, use this
-clean = " "  # " --clean "
-remove_spec_file = False
+clean = " --clean "
+remove_spec_file = True
 
 spec_file = project_name + ".spec"
 

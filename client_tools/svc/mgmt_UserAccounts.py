@@ -1,3 +1,4 @@
+import pyad.pyad
 import win32api
 import win32con
 import win32security
@@ -13,6 +14,7 @@ import traceback
 import shutil
 import random
 import os
+import pyad
 
 # Need this for winsys exceptions
 import winsys
@@ -131,6 +133,7 @@ class UserAccounts:
             pass
         
         for session in sessions:
+            # or session['State'] == UserAccounts.WTSConnected
             if session['State'] == UserAccounts.WTSActive:
                 # Found the active session
                 active_session = session['SessionId']
@@ -529,6 +532,7 @@ class UserAccounts:
         except Exception as ex:
             if ex.args[2] == "The specified local group already exists.":
                 ret = True
+                #print(f"Group already exists - {UserAccounts.STUDENTS_GROUP}")
                 pass
             else:
                 # Unexpected error
@@ -553,9 +557,12 @@ class UserAccounts:
             #win32netcon.UF_SCRIPT | win32netcon.UF_ACCOUNTDISABLE
             win32net.NetUserSetInfo(None, account_name, 1008, user_data)
         except Exception as ex:
-            p("}}rnError - Unable to disable account: " + str(account_name) + "}}xx\n" + \
-                str(ex))
-            return False
+            if not "The user name could not be found." in str(ex):
+                p("}}rnError - Unable to disable account: " + str(account_name) + "}}xx\n" + \
+                    str(ex))
+                return False
+            else:
+                p("}}ynLocal user not found  - skipping disable account (" + account_name + ").}}xx")
         return True
     
     @staticmethod
@@ -575,6 +582,70 @@ class UserAccounts:
                     user_name + "/" + group_name + "\n}}xx" + str(ex))
                 return False
         return True
+
+    @staticmethod
+    def add_ad_user_to_local_group(username, domain, group_name):
+        """
+        Add a user to a local group on a Windows machine
+
+        Usage:
+        add_ad_user_to_local_group("user", "group")
+        """
+        try:
+
+            # # Query Active Directory for user
+            # pyad.pyad.BASE_DN = "DC=openelevators,DC=local"
+            # q = pyad.adquery.ADQuery()
+            # q.execute_query(
+            #     attributes=["distinguishedName"],
+            #     where_clause="sAMAccountName = '{}'".format(username),
+            #     base_dn=domain
+            # )
+
+            # # Check if user exists
+            # if len(list(q.get_results())) == 0:
+            #     print(f"User {username} not found in Active Directory")
+            #     return
+
+            # # Get distinguished name
+            # user_dn = q.get_single_result()["distinguishedName"]
+
+            # Parse user information
+            #ad_user = pyad.aduser.ADUser.from_sam_account(username)
+            #ad_user = pyad.pyad.from_cn(username)
+
+            # Get the group
+            grp = accounts.LocalGroup(accounts.group(group_name).sid)
+            # Get the user
+            user = accounts.user(f"{domain}\\{username}")
+
+            grp.add(user)
+            print(f"ad_user: {user_dn} - {username}")
+
+            # Get distinguished name
+            #user_dn = user_dn
+
+            # Format needed for win32net.NetLocalGroupAddMembers
+            # user_info = {'domainandname': user_dn}
+            
+            # # Add to group
+            # # win32netcon.LOCALGROUP_MEMBERS_INFO_3 - not found - value is 3
+            # win32net.NetLocalGroupAddMembers(None, group_name, 3, [user_info])
+
+            print(f"Added {UserWarning} to {group_name}")
+        except Exception as ex:
+            if ex.args[2] == "The specified account name is already a member of the group.":
+                p("}}rbAlready A Member}}xx")
+                pass
+            else:
+                p("}}rbERROR - Unexpected exception trying to add user to group (" + \
+                    username + "/" + group_name + "\n}}xx" + str(ex))
+                return False
+            # print(f"Error adding {username} to {group_name} - {ex}")
+            # return False
+
+        return True
+
 
     @staticmethod
     def set_default_groups_for_admin(account_name = None):
@@ -958,12 +1029,49 @@ class UserAccounts:
                 return False
         
         return True
-  
 
-if __name__ == "__main__":
+    @staticmethod
+    def ProcessLogonEvent(event_info):
+        # Decide if we need to logout this user
+
+        # event_info - user_name, domain_name, full_name, user_sid, event_type, event_time, event_source, event_id, event_data
+        # SubjectUserSid, SubjectUserName, SubjectDomainName, SubjectLogonId, TargetUserSid, TargetUserName, TargetDomainName,
+        # TargetLogonId, LogonType, LogonProcessName, AuthenticationPackageName, WorkstationName,
+        # LogonGuid, TransmittedServices, LmPackageName, KeyLength, ProcessId, ProcessName, IpAddress, IpPort
+
+        # Get the user name
+        user_name = event_info["user_name"]
+        user_domain = event_info["domain_name"]
+        user_full_name = event_info["full_name"]
+        user_sid = event_info["user_sid"]
+        event_type = event_info["event_type"]
+        event_time = event_info["event_time"]
+        event_source = event_info["event_source"]
+        event_id = event_info["event_id"]
+        event_data = event_info["event_data"]
+
+        # If user is not an admin and is isn't in the OPESStudents group, log them out.
+        if UserAccounts.is_user_in_group(user_name, "administrators") or UserAccounts.is_user_in_group(user_name, "OPEAdmins"):
+            p("User is an admin logging in - allowing login: " + str(user_name))
+            return True
+        
+        if UserAccounts.is_user_in_group(user_name, "OPEStudents"):
+            p("User is a student logging in - allowing login: " + str(user_name))
+            return True
+        
+        # All other instances, force the logout.
+        p("User is not an admin or student or account is locked - logging out: " + str(user_name))
+        return UserAccounts.log_out_user(user_name)
+
+if __name__ == "__main__": 
     #ret = UserAccounts.create_local_students_group()
     #ret = UserAccounts.create_local_student_account("s999999", "Test Student", "Sid999999!")
     #print("RET: " + str(ret))
-    print("Log out all students...")
+    #print("Log out all students...")
     #print(UserAccounts.get_active_user_name())
-    UserAccounts.log_out_all_students()
+    #UserAccounts.log_out_all_students()
+    ret = UserAccounts.create_local_students_group()
+    print("RET: " + str(ret))
+    #UserAccounts.add_ad_user_to_local_group("s777777", "osn.local", "OPEStudents")
+    #UserAccounts.add_user_to_group("osn.local\\s777777", "OPEStudents")
+    UserAccounts.disable_account("s777778")

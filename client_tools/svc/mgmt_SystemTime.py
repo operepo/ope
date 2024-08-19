@@ -57,6 +57,26 @@ class SystemTime:
             p("}}gnNot time to sync w NTP servers yet, skipping.}}xx", log_level=4)
             return True
         
+        # Disable Secure Time seeding which causes random jumps in time when offline
+        #HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\w32time\Config /v UtilizeSslTimeData /t REG_DWORD /d 0 /f
+        RegistrySettings.set_reg_value(
+            root="HKLM",
+            app="SYSTEM\\CurrentControlSet\\Services\\w32time",
+            subkey="Config",
+            value_name="UtilizeSslTimeData",
+            value=0,
+            value_type="REG_DWORD"
+        )
+        # Tell w32tm to update
+        # w32tm.exe /config /update
+        cmd = "w32tm.exe /config /update"
+        returncode, output = ProcessManagement.run_cmd(cmd, attempts=1,
+                require_return_code=0, cmd_timeout=15)
+        if returncode == -2:
+            # Unable to restore gpo?
+            p("}}rnERROR - Unable to update w32tm config!}}xx")
+            #errors = True
+        
         p_state("Syncing with NTP servers...", title="NTP Update", kill_logon=False)
 
         RegistrySettings.set_reg_value(value_name="last_ntp_sync", value=time.time())

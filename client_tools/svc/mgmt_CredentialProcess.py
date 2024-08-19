@@ -48,6 +48,17 @@ class CredentialProcess:
         return ret
 
     @staticmethod
+    def get_credentialed_network_type():
+        # Return the name of the current credentialed student or None if missing
+        return RegistrySettings.get_reg_value(app="OPEService", value_name="laptop_network_type", default=None)
+    
+    @staticmethod
+    def get_credentialed_domain_name():
+        # Return the name of the current credentialed student or None if missing
+        return RegistrySettings.get_reg_value(app="OPEService", value_name="laptop_domain_name", default=None)
+    
+
+    @staticmethod
     def get_credentialed_student():
         # Return the name of the current credentialed student or None if missing
         return RegistrySettings.get_reg_value(value_name="student_user", default=None)
@@ -78,6 +89,10 @@ class CredentialProcess:
 
         laptop_admin_user = ""
         laptop_admin_password = ""
+
+        laptop_network_type = "Standalone"
+        laptop_domain_name = ""
+        laptop_domain_ou = "" 
 
         loop_running = True
         while loop_running:
@@ -158,8 +173,44 @@ class CredentialProcess:
                 continue
             
             # If not None - result will be a tuple of information
-            laptop_admin_user, student_full_name, smc_version = result
-                        
+            laptop_admin_user, student_full_name, smc_version, \
+            laptop_network_type, laptop_domain_name, laptop_domain_ou = result
+
+            ad_info = laptop_network_type
+            ad_note = ""
+
+            if laptop_network_type == "Domain Member":
+                ad_info = f"{laptop_domain_name}"
+
+            # Are we in a domain?
+            if laptop_network_type == "Standalone":
+                # Config says no domain, make sure that is true.
+                if CredentialProcess.COMPUTER_INFO["cs_part_of_domain"] is True:
+                    p("}}rbSystem is joined to an Active Directory Domain!\n" +
+                        "Please remove this from the domain and try again or adjust laptop configuration in SMC.}}xx")
+                    return None
+            else:
+                if not CredentialProcess.COMPUTER_INFO["cs_part_of_domain"] is True:
+                    # Supposed to be in domain but not!?
+                    p("}}rbSystem needs to be joined to an Active Directory Domain!\n" +
+                        "Please add this machine to the }}yb" + laptop_domain_name + "}}rb domain and try again.}}xx")
+                    return None
+                
+                if CredentialProcess.COMPUTER_INFO["cs_domain"].lower() != laptop_domain_name.lower():
+                    # Part of domain, but name doesn't match - wrong domain?
+                    p("}}rbSystem needs to be joined to an Active Directory Domain!\n" +
+                        "Please add this machine to the }}yb" + laptop_domain_name + "}}rb domain and try again.}}xx")
+                    return None
+                
+                ad_note = "}}rbWARNING - Make sure laptop is in the proper OU (" + laptop_domain_ou + ")}}xx"
+                
+            # TODO - Need to check laptop name - make sure it is correct
+            #    cs_caption - machin name?
+            #    cs_dns_host_name - full name?
+            # TODO - Need to see if machine is in the right OU
+                           
+            
+                
             # Verify that the info is correct
             txt = """
 }}mn======================================================================
@@ -167,16 +218,19 @@ class CredentialProcess:
 }}mn| }}ynCredential Version:    }}cn<mgmt_version>}}mn|
 }}mn| }}ynSMC URL:               }}cn<smc_url>}}mn|
 }}mn| }}ynSMC Version:           }}cn<smc_version>}}mn|
+}}mn| }}ynActive Directory Info: }}cn<ad_info>}}mn|
 }}mn| }}ynLaptop Admin User:     }}cn<admin_user>}}mn|
 }}mn| }}ynStudent Username:      }}cn<student_user>}}mn|
 }}mn| }}ynSystem Serial Number:  }}cn<bios_serial_number>}}mn|
 }}mn| }}ynDisk Serial Number:    }}cn<disk_serial_number>}}mn|
 }}mn======================================================================}}xx
+<ad_note>
             """
             col_size = 44
             txt = txt.replace("<mgmt_version>", mgmt_version.ljust(col_size))
             txt = txt.replace("<smc_url>", smc_url.ljust(col_size))
             txt = txt.replace("<smc_version>", smc_version.ljust(col_size))
+            txt = txt.replace("<ad_info>", ad_info.ljust(col_size))
             txt = txt.replace("<admin_user>", laptop_admin_user.ljust(col_size))
             txt = txt.replace("<admin_pass>", "******".ljust(col_size))
             student_text = student_user + " (" + student_full_name + ")"
@@ -185,6 +239,7 @@ class CredentialProcess:
                 str(CredentialProcess.COMPUTER_INFO['bios_serial_number']).ljust(col_size))
             txt = txt.replace("<disk_serial_number>", 
                 str(CredentialProcess.COMPUTER_INFO['disk_boot_drive_serial_number']).ljust(col_size))
+            txt = txt.replace("<ad_note>", ad_note)
 
             p(txt)
             p("}}ybPress Y to continue: }}xx", False)
@@ -239,7 +294,8 @@ class CredentialProcess:
             loop_running = False
 
         ret = (student_user, student_full_name, student_password, laptop_admin_user,
-            laptop_admin_password, canvas_access_token, canvas_url, smc_url)
+            laptop_admin_password, canvas_access_token, canvas_url, smc_url,
+            laptop_network_type, laptop_domain_name, laptop_domain_ou)
 
         return ret
 
@@ -258,12 +314,13 @@ class CredentialProcess:
         CredentialProcess.COMPUTER_INFO = Computer.get_machine_info(print_info=False)
 
         # Are we in a domain?
-        if CredentialProcess.COMPUTER_INFO["cs_part_of_domain"] is True:
-            #p("}}rbSystem is joined to an Active Directory Domain - NOT SUPPORTED!\n" +
-            #    "Please remove this from the domain as it might interfere with security settings.}}xx")
-            #return False
-            p("}}rbSystem is joined to an Active Directory Domain - BETA!!\n" +
-              "Only continue if testing.}}xx")
+        # NOTE - Moved until later - we now can be in a domain if configured.
+        # if CredentialProcess.COMPUTER_INFO["cs_part_of_domain"] is True:
+        #     #p("}}rbSystem is joined to an Active Directory Domain - NOT SUPPORTED!\n" +
+        #     #    "Please remove this from the domain as it might interfere with security settings.}}xx")
+        #     #return False
+        #     p("}}rbSystem is joined to an Active Directory Domain - BETA!!\n" +
+        #       "Only continue if testing.}}xx")
         
         # Are we using a proper edition win 10? (Home not supported, ed, pro, enterprise ok?)
         # OK - win 10 - pro, ed, enterprise
@@ -302,25 +359,36 @@ class CredentialProcess:
             # Unable to verify?
             return False
         (student_user, student_name, student_password, admin_user, admin_password,
-        canvas_access_token, canvas_url, smc_url) = result
+            canvas_access_token, canvas_url, smc_url,
+            laptop_network_type, laptop_domain_name, laptop_domain_ou) = result
         
         # - Create local student account
-        p("}}gnCreating local student windows account...}}xx")
-        if not UserAccounts.create_local_student_account(student_user, student_name, student_password):
-            p("}}rbError setting up OPE Student Account}}xx\n " + str(student_user))
-            return False
+        if laptop_network_type == "Standalone":
+            p("}}gnCreating local student windows account...}}xx")
+            if not UserAccounts.create_local_student_account(student_user, student_name, student_password):
+                p("}}rbError setting up OPE Student Account}}xx\n " + str(student_user))
+                return False
 
-        # - Setup admin user
-        p("}}gnCreating local admin windows account...}}xx")
-        try:
-            UserAccounts.create_local_admin_account(admin_user, "OPE Laptop Admin", admin_password)
-        except Exception as ex:
-            p("}}rbError setting up OPE Laptop Admin Account}}xx\n " + str(ex))
-        admin_password = ""
+            # - Setup admin user
+            p("}}gnCreating local admin windows account...}}xx")
+            try:
+                UserAccounts.create_local_admin_account(admin_user, "OPE Laptop Admin", admin_password)
+            except Exception as ex:
+                p("}}rbError setting up OPE Laptop Admin Account}}xx\n " + str(ex))
+            admin_password = ""
+        else:
+            p("}}gnRunning as domain laptop, skipping create local student windows account...}}xx")
+            # if not UserAccounts.create_local_student_account(student_user, student_name, student_password):
+            #     p("}}rbError setting up OPE Student Account}}xx\n " + str(student_user))
+            #     return False
+            # TODO - Add student account to allowed users to login
+
+        
 
         # Store the credential information
         if not RegistrySettings.store_credential_info(canvas_access_token, canvas_url, smc_url,
-            student_user, student_name, admin_user):
+            student_user, student_name, admin_user,
+            laptop_network_type, laptop_domain_name, laptop_domain_ou):
             p("}}rbError saving registry info!}}xx")
             return False
         
@@ -386,6 +454,10 @@ class CredentialProcess:
         # maintenance/etc...
         ret = True
 
+        laptop_network_type = CredentialProcess.get_credentialed_network_type()
+        laptop_domain_name = CredentialProcess.get_credentialed_domain_name()
+
+
         # Make sure mgmt is in the system path
         RegistrySettings.add_mgmt_utility_to_path()
 
@@ -400,11 +472,16 @@ class CredentialProcess:
             return False
         
         # Reset group policy
-        GroupPolicy.reset_group_policy_to_default()
+        if laptop_network_type == "Standalone":
+            GroupPolicy.reset_group_policy_to_default()
+        else:
+            p("}}ybRunning in Domain Mode, not resetting gpol to default.}}xx")
 
         # Reset firewall
-        GroupPolicy.reset_firewall_policy()
-
+        if laptop_network_type == "Standalone":
+            GroupPolicy.reset_firewall_policy()
+        else:
+            p("}}ybRunning in Domain Mode, not resetting firewall to default.}}xx")
 
         return ret
 
@@ -448,6 +525,9 @@ class CredentialProcess:
         if admin_user_name is None:
             p("}}rbNot Credentiled! - Unable to find credentialed admin account - not locking machine!}}xx")
             return False
+        
+        laptop_network_type = CredentialProcess.get_credentialed_network_type()
+        laptop_domain_name = CredentialProcess.get_credentialed_domain_name()
 
         # Log out the student
         if not UserAccounts.log_out_user(student_user_name):
@@ -455,9 +535,12 @@ class CredentialProcess:
             return False
 
         # Apply firewall rules
-        if not GroupPolicy.apply_firewall_policy():
-            p("}}rbError - Could Not apply firewall policy!\nStudent Account NOT unlocked!}}xx")
-            return False
+        if laptop_network_type == "Standalone":
+            if not GroupPolicy.apply_firewall_policy():
+                p("}}rbError - Could Not apply firewall policy!\nStudent Account NOT unlocked!}}xx")
+                return False
+        else:
+            p("}}ybRunning in Domain Mode, not applying firewall policy.}}xx")
 
         # Apply group policy
         if not GroupPolicy.apply_group_policy():
@@ -507,9 +590,13 @@ class CredentialProcess:
         #     return False
 
         # Enable student account
-        if not UserAccounts.enable_account(student_user_name):
-            p("}}rbError - Failed to enable student account: " + str(student_user_name) + "}}xx")
-            return False
+        if laptop_network_type == "Standalone":
+            if not UserAccounts.enable_account(student_user_name):
+                p("}}rbError - Failed to enable student account: " + str(student_user_name) + "}}xx")
+                return False
+        else:
+            # TODO - list student account in allowed users to login
+            p("}}ybRunning in Domain Mode, not enabling student account.}}xx")
 
         return ret
 
@@ -879,6 +966,8 @@ class CredentialProcess:
         #UserAccounts.disable_student_accounts()
 
         p(CredentialProcess.get_mgmt_version())
+        p(CredentialProcess.get_credentialed_network_type())
+        p(CredentialProcess.get_credentialed_domain_name())
         #RegistrySettings.set_reg_value(value_name="upgrade_started", value=time.time()-9*60)
         # p("Test")
         # p(str(RegistrySettings.get_reg_value(value_name="student_user", default=None)))

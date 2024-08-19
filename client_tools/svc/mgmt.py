@@ -24,6 +24,9 @@
 # import wmi
 # import traceback
 
+# Required imports - helps nuitka
+import simplejson
+
 import win32trace
 import win32api
 import sys
@@ -183,7 +186,7 @@ valid_commands = {
         "function": NetworkDevices.approve_nic,
         "help": "Add a nic to the approved list - params include nic name (OR ID) and network subnet it is approved on\n" +
             "NOTE: Subnet should be first part of address - it is a simple match (e.g. 202.5.222 for 202.5.222.34)\n" +
-            "mgmt.exe add_nic \"Intel(R) 82579LM Gigabit Network Connection\" 202.5.222",
+            "mgmt.exe approve_nic \"Intel(R) 82579LM Gigabit Network Connection\" 202.5.222",
     },
     "remove_nic": {
         "function": NetworkDevices.remove_nic,
@@ -485,14 +488,23 @@ if __name__ == "__main__":
         util.CMD_FUNCTION = cmd
         p("}}gnRunning " + cmd + "}}xx", log_level=4)
         ret = f()
+        # Convert ret to a proper exit code
         #p("}}ynReturn Code: " + str(ret) + "}}xx")
-        if ret is not None and ret != True:
-            exit_code = -1
+        if ret is True:
+            exit_code = 0
+        else:
+            exit_code = 1
+        
+        # if ret is not None and ret != True:
+        #     exit_code = -1
     except Exception as ex:
         p("}}rnERROR: " + str(ex) + "}}xx", log_level=1)
         
         exit_code = 1
         
     # Clean exit
-    sys.exit(exit_code)
+    #p("}}ynExit Code: " + str(exit_code) + "}}xx")
+    #Nuitka or python 3.12 doing proper exit code? Is it because sys.exit fires an exception?
+    #sys.exit(exit_code)
+    os._exit(exit_code)
     

@@ -8,7 +8,7 @@ main_file = "mgmt.py"
 # If you get corrupted errors, use this
 clean = " "  # " --clean "
 debug = " --debug all " # --debug all
-remove_spec_file = False
+remove_spec_file = True
 
 spec_file = project_name + ".spec"
 

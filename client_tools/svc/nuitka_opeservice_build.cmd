@@ -1,5 +1,8 @@
 
 @echo off
+echo Use pyinstaller or opeservice - nuitka doesn't work with services w/out commercial license.
+exit
+
 set VERSION=1.0.109
 @REM rem read version file from mgmt.version
 @REM for /f "delims=" %%a in (mgmt.version) do (
@@ -40,17 +43,18 @@ rem --nofollow-import-to=tkinter --nofollow-import-to=pyqt5 --nofollow-import-to
 
 python -m nuitka ^
     --standalone ^
-    --file-reference-choice=runtime ^
     --mingw64 ^
     --windows-icon-from-ico=logo_icon.ico ^
     --windows-company-name=OPE_PROJECT ^
-    --windows-product-name=MGMT_TOOL ^
+    --windows-product-name=OPEService ^
     --windows-file-version=%VERSION% ^
     --windows-product-version=%VERSION% ^
-    --windows-file-description="MGMT Tool - used to run system commands for credentialing laptops" ^
+    --windows-file-description="OPEService - OPE Service Utility" ^
     --disable-plugin=numpy --disable-plugin=tk-inter --disable-plugin=pyqt5 --disable-plugin=pyside2 ^
-    mgmt.py
+    --include-module="win32timezone" ^
+    OPEService.py
 
-echo Copying mgmt.version and rc files to dist folder
-xcopy /y .\mgmt.version .\mgmt.dist\
-xcopy /EQy .\rc .\mgmt.dist\rc\
+rem Need pythoservice in the folder for this to work
+rem xcopy /y C:\Python311\Lib\site-packages\win32\pythonservice.exe .\OPEService.dist\
+
+rem xcopy /y .\mgmt.version .\mgmt.dist\

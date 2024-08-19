@@ -127,7 +127,7 @@ def grabScreenShot():
         size_multiplier = .5
         w = int(sshot_img.size[0] * size_multiplier)
         h = int(sshot_img.size[1] * size_multiplier)
-        sshot_img = sshot_img.resize((w, h), Image.ANTIALIAS)
+        sshot_img = sshot_img.resize((w, h), Image.Resampling.LANCZOS) #   Image.ANTIALIAS)
         
         # Build overlay graphic w user/time banner
         # Ends up w computer name when run from service?
