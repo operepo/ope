@@ -15,6 +15,7 @@ from mgmt_GroupPolicy import GroupPolicy
 from mgmt_ProcessManagement import ProcessManagement
 from mgmt_SystemTime import SystemTime
 from mgmt_LockScreen import LockScreen
+from mgmt_NetworkDevices import NetworkDevices
 
 from color import p
 from p_state import p_state
@@ -57,7 +58,6 @@ class CredentialProcess:
         # Return the name of the current credentialed student or None if missing
         return RegistrySettings.get_reg_value(app="OPEService", value_name="laptop_domain_name", default=None)
     
-
     @staticmethod
     def get_credentialed_student():
         # Return the name of the current credentialed student or None if missing
@@ -67,7 +67,81 @@ class CredentialProcess:
     def get_credentialed_admin():
         # Return the name of the current credentialed student or None if missing
         return RegistrySettings.get_reg_value(app="OPEService", value_name="admin_user", default=None)
+
+    @staticmethod
+    def config_mgmt_utility_once():
+        # Run the config mgmt utility once
+        if RegistrySettings.get_reg_value(value_name="smc_url", default="<NOT CONFIGURED>") == "<NOT CONFIGURED>":
+            # Never configured - run the config prompt
+            return CredentialProcess.config_mgmt_utility()
+
+        return True
         
+    @staticmethod
+    def config_mgmt_utility():
+        mgmt_version = CredentialProcess.get_mgmt_version()
+
+        smc_url = RegistrySettings.get_reg_value(value_name="smc_url", default="https://smc.ed")
+
+        p("\n}}gbOPE Management Utility - Version: " + mgmt_version + "}}xx")
+
+        # 4 - Ask for input (smc server, login, student name, etc...)
+        p("}}ynEnter URL for SMC Server }}cn[enter for " + smc_url + "]:}}xx ", False)
+        tmp = input()
+        tmp = tmp.strip()
+        if tmp == "":
+            tmp = smc_url
+        smc_url = tmp
+        # Make sure url has https or http in it
+        if "https://" not in smc_url.lower() and "http://" not in smc_url.lower():
+            smc_url = "https://" + smc_url
+
+        p("}}gnSetting SMC URL to " + smc_url + "}}xx")
+        RegistrySettings.set_reg_value(value_name="smc_url", value=smc_url) 
+
+        # Getting config from SMC
+        smc_config = RestClient.get_smc_config(smc_url)
+        if smc_config is None:
+            p("}}rbError - Unable to get SMC Config!}}xx")
+            return False
+        
+        #p("}}gnSMC Config: " + str(smc_config) + "}}xx")
+        RegistrySettings.store_smc_config(smc_config)
+        
+        # Start time sync
+        p("}}gnSyncing time with NTP servers...}}xx")
+        SystemTime.sync_time_w_ntp(force=True)
+        
+
+        # Check on list of nics and make sure the current IP is added if desired...
+        p("}}gnConfiguring Network Devices...}}xx")
+        NetworkDevices.configure_nics()
+
+        # Setup local groups for students and admins
+        UserAccounts.create_local_students_group()
+        UserAccounts.create_local_admins_group()
+
+        # Make sure OPEAdmins can logon locally
+        UserAccounts.allow_group_to_logon_locally("OPEAdmins")
+        # Remove the users group from logon locally
+        UserAccounts.remove_group_from_logon_locally("Users")
+
+        # Check if current user is in the OPEadmins group
+        active_user = UserAccounts.get_active_user_name()
+        if not active_user is None and active_user.lower() != "system" and not UserAccounts.is_user_in_group(active_user, "OPEAdmins"):
+            # Add active user to OPEAdmins group
+            p("}}gnAdding current user (" + active_user + ") to OPEAdmins group...}}xx")
+            UserAccounts.add_user_to_group(active_user, "OPEAdmins")
+
+
+        # Create registry entries and set permissions
+        RegistrySettings.set_default_ope_registry_permissions(force=True)
+
+        # Create programdata\ope folders and set permissions
+        FolderPermissions.set_default_ope_folder_permissions(force=True)
+
+        return True
+
     @staticmethod
     def credential_input_verify_loop():
         # Loop until we quit or get good stuff
@@ -306,6 +380,8 @@ class CredentialProcess:
         if not UserAccounts.is_uac_admin():
             p("}}rbNot Admin in UAC mode! - UAC Is required for credential process.}}xx")
             return False
+    
+        CredentialProcess.config_mgmt_utility()
 
         # Start time sync
         SystemTime.sync_time_w_ntp(force=True)
@@ -462,9 +538,11 @@ class CredentialProcess:
         RegistrySettings.add_mgmt_utility_to_path()
 
         # Make sure we disable student accounts!
-        if not UserAccounts.disable_student_accounts():
-            p("}}rbUnable to disable student accounts!}}xx")
-            return False
+        # if not UserAccounts.disable_student_accounts():
+        #     p("}}rbUnable to disable student accounts!}}xx")
+        #     return False
+        # Don't disable the account - just remove the OPEUsers group from the logon locally
+        UserAccounts.remove_group_from_logon_locally("OPEUsers")
 
         # Log out student accounts!
         if not UserAccounts.log_out_all_students():
@@ -475,13 +553,13 @@ class CredentialProcess:
         if laptop_network_type == "Standalone":
             GroupPolicy.reset_group_policy_to_default()
         else:
-            p("}}ybRunning in Domain Mode, not resetting gpol to default.}}xx")
+            p("}}ybRunning in Domain Mode, not resetting gpol.}}xx")
 
         # Reset firewall
         if laptop_network_type == "Standalone":
             GroupPolicy.reset_firewall_policy()
         else:
-            p("}}ybRunning in Domain Mode, not resetting firewall to default.}}xx")
+            p("}}ybRunning in Domain Mode, not resetting firewall.}}xx")
 
         return ret
 
@@ -590,13 +668,18 @@ class CredentialProcess:
         #     return False
 
         # Enable student account
-        if laptop_network_type == "Standalone":
-            if not UserAccounts.enable_account(student_user_name):
-                p("}}rbError - Failed to enable student account: " + str(student_user_name) + "}}xx")
-                return False
-        else:
-            # TODO - list student account in allowed users to login
-            p("}}ybRunning in Domain Mode, not enabling student account.}}xx")
+        # if laptop_network_type == "Standalone":
+        #     if not UserAccounts.enable_account(student_user_name):
+        #         p("}}rbError - Failed to enable student account: " + str(student_user_name) + "}}xx")
+        #         return False
+        # else:
+        #     # TODO - list student account in allowed users to login
+        #     p("}}ybRunning in Domain Mode, not enabling student account.}}xx")
+        # Use the logon locally attribute to enalble students to login.
+        if not UserAccounts.allow_group_to_logon_locally("OPEStudents"):
+            p("}}rbError - Unable to enable student account to logon locally! - Student account NOT unlocked!}}xx")
+            return False
+
 
         return ret
 

@@ -4,6 +4,7 @@ import sys
 import traceback
 import logging
 import time
+import json
 
 # try:
 #     import _winreg as winreg
@@ -29,6 +30,7 @@ import util
 class RegistrySettings:
     # Default registry path where settings are stored    
     ROOT_PATH = "HKLM\\Software\\OPE"
+
 
     @staticmethod
     def is_debug():
@@ -144,10 +146,10 @@ class RegistrySettings:
                 app="Control", subkey="Session Manager\\Environment",
                 value_name="Path", value=sys_path)
         
-            p("}}gnAdded to system path.")
+            p("}}gnmgmt.exe Added to system path.")
             p("}}gbYou will need to open a new command prompt for the change to take effect.}}xx")
         else:
-            p("}}gnAlready in the system path.")
+            p("}}gnmgmt.exe Already in the system path.")
     
         return True
 
@@ -290,6 +292,55 @@ class RegistrySettings:
             return True
 
     @staticmethod
+    def store_smc_config(config_dict):
+        # Example config_dict
+        # {"smc_version": "v1.9.41", "laptop_network_type": "Domain Member", "laptop_domain_name": "osn.local", "laptop_domain_ou": "laptops.osn.local", "laptop_time_servers": ["time.windows.com", "smc.ed", "osn.local"], "laptop_approved_nics": ["Realtek RTL8139C+ Fast Ethernet NIC==192.168.0.", "ZeroTier Virtual Port==192.168.222."]}
+
+        smc_version = config_dict.get("smc_version", "MISSING")
+        RegistrySettings.set_reg_value(app="", value_name="smc_version", value=smc_version, value_type="REG_SZ")
+
+        laptop_network_type = config_dict.get("laptop_network_type", "Stand Alone")
+        RegistrySettings.set_reg_value(app="OPEService", value_name="laptop_network_type", value=laptop_network_type, value_type="REG_SZ")
+
+        laptop_domain_name = config_dict.get("laptop_domain_name", "osn.local")
+        RegistrySettings.set_reg_value(app="OPEService", value_name="laptop_domain_name", value=laptop_domain_name, value_type="REG_SZ")
+
+        laptop_domain_ou = config_dict.get("laptop_domain_ou", "laptops.osn.local")
+        RegistrySettings.set_reg_value(app="OPEService", value_name="laptop_domain_ou", value=laptop_domain_ou, value_type="REG_SZ")
+
+        try:
+            laptop_time_servers = config_dict.get("laptop_time_servers", [])
+            laptop_time_servers_json = json.dumps(laptop_time_servers)
+            RegistrySettings.set_reg_value(app="OPEService", value_name="laptop_time_servers", value=laptop_time_servers_json)
+        except Exception as ex:
+            p("}}rbError storing time servers: " + str(ex) + "}}xx")
+
+        try:
+            laptop_approved_nics = config_dict.get("laptop_approved_nics", [])
+            # Convert nic==ip format to a array of tuples
+            current_nics_json = RegistrySettings.get_reg_value(app="OPEService", value_name="laptop_approved_nics", default="[]")
+            current_nics = json.loads(current_nics_json)
+            
+            for nic in laptop_approved_nics:
+                parts = nic.split("==")
+                #p("}}ynParts: " + str(parts) + "}}xx")
+                if len(parts) == 2:
+                    n = (parts[0], parts[1])
+                    if n not in current_nics:
+                        current_nics.append(n)
+                else:
+                    p("}}rnInvalid NIC format: " + str(nic) + "}}xx")
+                
+            
+            current_nics_json = json.dumps(current_nics)
+            #p("}}gnApproved NICs: " + str(current_nics_json) + "}}xx")
+            RegistrySettings.set_reg_value(app="OPEService", value_name="approved_nics", value=current_nics_json)
+        except Exception as ex:
+            p("}}rbError storing approved nics: " + str(ex) + "}}xx")
+            
+        return True
+
+    @staticmethod
     def store_credential_info(canvas_access_token, canvas_url, smc_url,
             student_user, student_name, admin_user,
             laptop_network_type, laptop_domain_name, laptop_domain_ou):
@@ -386,6 +437,8 @@ class RegistrySettings:
                     # Invalid student account
                     p("}}rbInvalid Student Account - skipping permissions for this account: " + str(student_user) + "}}xx")
                     student_user = None
+            # NOTE - Stop addding student user - add opestudent group instead
+            student_user = None
             
             # Make sure the admin user exists
             if laptop_admin_user is not None:
@@ -402,11 +455,13 @@ class RegistrySettings:
             base_dacl = [
                 ("Administrators", registry.Registry.ACCESS["F"], "ALLOW"),
                 ("SYSTEM", registry.Registry.ACCESS["F"], "ALLOW"),
+                ("OPEAdmins", registry.Registry.ACCESS["F"], "ALLOW"),
                 #("Users", registry.Registry.ACCESS["Q"], "ALLOW")
             ]
             service_base_dacl = [
                 ("Administrators", registry.Registry.ACCESS["F"], "ALLOW"),
                 ("SYSTEM", registry.Registry.ACCESS["F"], "ALLOW"),
+                ("OPEAdmins", registry.Registry.ACCESS["F"], "ALLOW"),
                 # Don't let regular users read OPEService key
                 #("Users", registry.Registry.ACCESS["Q"], "ALLOW")
             ]
@@ -454,6 +509,10 @@ class RegistrySettings:
                     registry.Registry.ACCESS["R"],
                     "ALLOW"
                 ))
+                s.dacl.append(("OPEStudents",
+                    registry.Registry.ACCESS["R"],
+                    "ALLOW"
+                ))
                 # s.dacl.dump()
             
             reg = registry.registry(r"HKLM\Software\OPE\OPELMS",
@@ -467,6 +526,10 @@ class RegistrySettings:
                     s.dacl.append((student_user, registry.Registry.ACCESS["C"],
                     "ALLOW"))
                 s.dacl.append(("Everyone",
+                    registry.Registry.ACCESS["R"],
+                    "ALLOW"
+                ))
+                s.dacl.append(("OPEStudents",
                     registry.Registry.ACCESS["R"],
                     "ALLOW"
                 ))
@@ -494,6 +557,10 @@ class RegistrySettings:
                     s.dacl.append((student_user, registry.Registry.ACCESS["C"],
                     "ALLOW"))
                 s.dacl.append(("Everyone",
+                    registry.Registry.ACCESS["R"],
+                    "ALLOW"
+                ))
+                s.dacl.append(("OPEStudents",
                     registry.Registry.ACCESS["R"],
                     "ALLOW"
                 ))

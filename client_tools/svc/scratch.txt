@@ -1,0 +1,164 @@
+
+OPE Laptop Changes
+
+DOC
+
+Add executable paths
+- \programdata\ope
+
+* Possible paths for school work if scripting (npm, python, etc..._)
+
+
+SBCTC
+
+Adjust firewall Rules
+- Rules were very strict, let OSN policy handle firewall settings
+
+Limit Logins to Admin/Student
+- Add group policy locally so that only the credentialed users can login
+
+
+
+
+
+# Change machin guide in win 10 (avoid full sysprep)
+Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Cryptography - MachineGuid
+
+# Device Hardware Data
+(Get-CimInstance -Namespace root/cimv2/mdm/dmmap -Class MDM_DevDetail_Ext01 -Filter "InstanceID='Ext' AND ParentID='./DevDetail'").DeviceHardwareData
+(Get-CimInstance -Class Win32_ComputerSystemProduct).UUID
+wmic DISKDRIVE get SerialNumber
+wmic csproduct get UUID
+
+
+
+PATHS
+
+c:/programdata/ope/tmp/qmlcache/
+
+
+Platform (tool consumers) - Canvas LMS
+Linked via deployment_id  and client_id - client_id may be re-used/shared - e.g. multple entry points from canvaslms?
+Tool (tool providers) - External app providing service to the platform
+
+Deployment_id - account identifier (e.g. canvas.ed_CBCC)
+Multi-tenant - Canvas can send from different points.
+e.g. oauth client_id - SMC_CBCC - deployment ids below all use same client id and public key
+deployment id - 001 = department deployment
+deployment id - 002 = Instructor deployment
+deployment id - 002 = Quiz engine?
+(single tenant means one client/deployment/security pair)
+
+
+OpenID Connect, signed JWTs, and OAuth2.0 workflows for authentication.
+
+
+
+
+- LMS - when clicking word/excel docs in lms app, it opens directly from the cache, saving work there then gets overwritten when syncing.
+- SMC - leading 0's in user id is removed during import (not smc? excel?
+- SMC - Allow parse name to only have 1 name - errors if not the right number of itemsk
+
+
+
+
+
+
+OSN Laptop OU - Education\Site\Enterprise Computers\Laptops
+
+
+
+
+
+School Setup
+
+School Name: SMC - Peninsula College/CBCC
+App Description: Student Management Console - Import/Enrollment for Active Directory and Canvas
+Base Domain: ope.pencol.local
+Location (Abbreviation): CBCC
+App Logo: <IMAGE>
+Prevent students from changing passwords in SMC: X (default allow)
+Prevent faculty from changing passwords in SMC: X (default allow)
+Disable auto play on media (can override with autoplay=true in the link)
+Prevent searching media library: X (default off)
+Prevent searching document library: X (default off)
+
+Student UserID Pattern: s<user_id>
+Student Password Pattern: Sid<user_id>!
+Faculty UserID Pattern: <user_id>
+Faculty Password Pattern: Fid<user_id>#
+Student Email Pattern: <user_name>@student.<BASE_DOMAIN>
+Faculty Email Pattern: <user_name>@<BASE_DOMAIN>
+
+
+AD Setup
+AD Integration Enabled: X
+Domain - Require Domain, Require Standalone, Any OK
+AD Server: osn.local
+
+Laptop OU: OU=<program>,OU=<location>,OU=OPELaptops,DC=osn,DC=local
+Faculty Group OU: OU=<location>,OU=FacultyGroups,DC=osn,DC=local
+Faculty User OU: OU=<location>,OU=Faculty,DC=osn,DC=local
+Student Group OU: OU=<location>,OU=StudentGroups,DC=osn,DC=local
+Student User OU: OU=<location>,OU=Students,DC=osn,DC=local
+
+Create Faculty Groups: X
+Create Student Groups: X
+Student Home Directory: \\files\\student\<USER_NAME>
+Faculty Home Directory: \\files\faculty\<USER_NAME>
+Student Home Drive: H:
+Faculty Home Drive: H:
+Student Profile Directory:
+Faculty Profile Directory:
+Student Login Script Path: 
+Faculty Login Script Path:
+Faculty Quota: 50Gig
+Student Quota: 50Meg
+
+
+
+AD Server Protocol: "LDAPS://"  (or "LDAP://")
+AD Service User: admin
+AD Service PW: ?>DFSDLJ
+
+File Server Setup
+File Server Import Enabled: X
+File server service user: administrator
+File server service password: D>KFJS
+File server address: files.<BASE_DOMAIN>
+File Server Quota Drives: ['d:', 'e:'] # Drives to setup quota
+
+
+
+OPE Laptop Setup
+Laptop Name: OPELT_<user_id>
+Add Local Admin Account: X
+Laptop Local Admin User: huskers
+Laptop Local Admin PW: LSDJF
+
+
+
+Canvas/LTI integration
+Integration Enabled: X
+Import Enabled:  X
+Auto Create Courses: X
+Client ID: OPE_LTI1_3_<SCHOOL_NAME> # ID from canvas?
+Deployment ID: ope-lti-1_3-smc
+Issuer: <CANVAS_URL>
+public_key:
+private_key: 
+Show Media Library via LTI: X
+Show Document Library via LTI: X
+Show Help Library via LTI: X
+
+
+Canvas Server: https://canvas<BASE_DOMAIN>
+Canvas Access Token: <ENV>  # Access Token set in the ENV
+Canvas Secret: <ENV>   # secret value set in the environment
+DB URL: postgresql  (internal docker connection)
+DB PW: <IT_PW>
+Student Quota: 1Meg
+Faculty Quota: 1Meg
+
+
+

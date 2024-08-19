@@ -35,12 +35,22 @@ class FolderPermissions:
     GROUP_ADMINISTRATORS = None
     CURRENT_USER = None
     SYSTEM_USER = None
+    OPE_STUDENTS = None
+    OPE_ADMINS = None
     
     @staticmethod
     def init_win_user_accounts():
         # Load account information for groups/users
         domain = None
         acct_type = None
+
+        if FolderPermissions.OPE_STUDENTS is None:
+            OPE_STUDENTS, domain, acct_type = win32security.LookupAccountName("", "OPEStudents")
+            FolderPermissions.OPE_STUDENTS = OPE_STUDENTS
+        
+        if FolderPermissions.OPE_ADMINS is None:
+            OPE_ADMINS, domain, acct_type = win32security.LookupAccountName("", "OPEAdmins")
+            FolderPermissions.OPE_ADMINS = OPE_ADMINS
         
         if FolderPermissions.GROUP_EVERYONE is None:
             EVERYONE, domain, acct_type = win32security.LookupAccountName("", "Everyone")
@@ -58,11 +68,6 @@ class FolderPermissions:
                     CURRENT_USER, domain, acct_type = win32security.LookupAccountName("", "huskers")
                 except:
                     CURRENT_USER = None
-                if CURRENT_USER is None:
-                    try:
-                        CURRENT_USER, domain, acct_type = win32security.LookupAccountName("", "ray")
-                    except:
-                        CURRENT_USER = None
             FolderPermissions.CURRENT_USER = CURRENT_USER
         
         if FolderPermissions.SYSTEM_USER is None:
@@ -81,7 +86,7 @@ class FolderPermissions:
             p(line)
     
     @staticmethod
-    def set_ope_folder_permissions(folder_path, everyone_rights="r", walk_files=True):
+    def set_ope_folder_permissions(folder_path, everyone_rights="r", walk_files=True, ope_students_rights="r", add_current_user=False):
         # everyone_rights: r - readonly, n - none, rw - readwrite, f - full, c - create/append
         # a - append (for files?)
     
@@ -100,6 +105,22 @@ class FolderPermissions:
         if everyone_rights == "a":
             everyone_perms = ntsecuritycon.FILE_APPEND_DATA | ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE
     
+        # Figure out OPE Students perms
+        ope_students_perms = ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE
+        if ope_students_rights == "r":
+            ope_students_perms = ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE
+        if ope_students_rights == "n":
+            ope_students_perms = 0
+        if ope_students_rights == "rw":
+            ope_students_perms = ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE | ntsecuritycon.FILE_GENERIC_WRITE
+        if ope_students_rights == "f":
+            ope_students_perms = ntsecuritycon.FILE_ALL_ACCESS
+        if ope_students_rights == "c":
+            ope_students_perms = ntsecuritycon.FILE_ADD_FILE | ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE
+        if ope_students_rights == "a":
+            ope_students_perms = ntsecuritycon.FILE_APPEND_DATA | ntsecuritycon.FILE_GENERIC_READ | ntsecuritycon.FILE_GENERIC_EXECUTE
+
+
         # Make sure our global accounts are available
         FolderPermissions.init_win_user_accounts()
         
@@ -114,8 +135,14 @@ class FolderPermissions:
         dacl = win32security.ACL()
         dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, FolderPermissions.GROUP_ADMINISTRATORS)
         dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, FolderPermissions.SYSTEM_USER)
+        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, FolderPermissions.OPE_ADMINS)
+
+        # Make OPE_Students get the same rights as everyone
+        if ope_students_perms != 0:
+            dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ope_students_perms, FolderPermissions.OPE_STUDENTS)
+
         # Make sure current user (admin running this) has rights too
-        if not FolderPermissions.CURRENT_USER is None:
+        if add_current_user is True and not FolderPermissions.CURRENT_USER is None:
             dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, FolderPermissions.CURRENT_USER)
         
         if everyone_perms != 0:
@@ -242,6 +269,8 @@ class FolderPermissions:
         dacl = win32security.ACL()
         dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, FolderPermissions.GROUP_ADMINISTRATORS)
         dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, FolderPermissions.SYSTEM_USER)
+        dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, FolderPermissions.OPE_ADMINS)
+
         # Make sure current user (admin running this) has rights too
         if not FolderPermissions.CURRENT_USER is None:
             dacl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, ntsecuritycon.FILE_ALL_ACCESS, FolderPermissions.CURRENT_USER)
@@ -373,30 +402,31 @@ class FolderPermissions:
         
         # App folder permissions are set based on this list 
         # r - read/execute, n - none, c - create/append, a - appendonly, f - full
+        # (everyone, ope_students, add_current_user)
         app_folders = {
-            util.ROOT_FOLDER: "r",
-            util.CONFIG_FOLDER: "n",
-            util.BINARIES_FOLDER: "r",
-            util.STUDENT_DATA_FOLDER: "r",
-            util.TMP_FOLDER: "r",
-            util.GIT_FOLDER: "r",  # TODO - change to n when we can avoid security prompts
-            util.LOG_FOLDER: "c",
-            os.path.join(util.CONFIG_FOLDER, "ope-config.json"): "n",
-            os.path.join(util.LOG_FOLDER, "ope-sshot.log"): "a",
-            os.path.join(util.LOG_FOLDER, "ope-mgmt.log"): "a",
-            os.path.join(util.LOG_FOLDER, "ope-lockscreen.log"): "a",
-            os.path.join(util.LOG_FOLDER, "ope-state.log"): "r",
-            os.path.join(util.LOG_FOLDER, "lms_app_debug.log"): "a",
-            os.path.join(util.LOG_FOLDER, "upgrade.log"): "r",
-            util.SCREEN_SHOTS_FOLDER: "c",
-            util.LOCK_SCREEN_WIDGET_FOLDER: "r",
+            util.ROOT_FOLDER: ("r", "r", False),
+            util.CONFIG_FOLDER: ("n", "r", False),
+            util.BINARIES_FOLDER: ("r", "r", False),
+            util.STUDENT_DATA_FOLDER: ("r", "r", False),
+            util.TMP_FOLDER: ("r", "r", False),
+            util.GIT_FOLDER: ("r", "r", False),  # TODO - change to n when we can avoid security prompts
+            util.LOG_FOLDER: ("c", "c", False),
+            os.path.join(util.CONFIG_FOLDER, "ope-config.json"): ("n", "n", False),
+            os.path.join(util.LOG_FOLDER, "ope-sshot.log"): ("a", "a", False),
+            os.path.join(util.LOG_FOLDER, "ope-mgmt.log"): ("a", "a", False),
+            os.path.join(util.LOG_FOLDER, "ope-lockscreen.log"): ("a", "a", False),
+            os.path.join(util.LOG_FOLDER, "ope-state.log"): ("r", "r", False),
+            os.path.join(util.LOG_FOLDER, "lms_app_debug.log"): ("a", "a", False),
+            os.path.join(util.LOG_FOLDER, "upgrade.log"): ("r", "r", False),
+            util.SCREEN_SHOTS_FOLDER: ("c", "c", False),
+            util.LOCK_SCREEN_WIDGET_FOLDER: ("r", "r", False),
             
         }
         
         for f in app_folders.keys():
-            everyone_rights = app_folders[f]
+            (everyone_rights, ope_student_rights, add_current_user) = app_folders[f]
             p("}}gnSetting permissions on " + f + " (rights for everyone " + \
-                everyone_rights + ")}}xx", log_level=5)
+                everyone_rights + ")(rights for ope students " + ope_student_rights + ")(add current user " + str(add_current_user) + ")}}xx", log_level=5)
             FolderPermissions.set_ope_folder_permissions(f, everyone_rights=everyone_rights)
 
         return True

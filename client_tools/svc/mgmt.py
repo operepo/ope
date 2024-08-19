@@ -134,6 +134,16 @@ valid_commands = {
     },
 
     ### SETTINGS ###
+    # Configure the mgmt utility only if it hasn't been configured before
+    "config_once": {
+        "function": CredentialProcess.config_mgmt_utility_once,
+        "help": "Configure the mgmt utility only if it hasn't been configured before",
+    },
+    # Configure the mgmt utility
+    "config": {
+        "function": CredentialProcess.config_mgmt_utility,
+        "help": "Configure the mgmt utility",
+    },
     # Add self to system path
     "add_mgmt_to_system_path": {
         "function": RegistrySettings.add_mgmt_utility_to_path,
@@ -174,11 +184,11 @@ valid_commands = {
     # Disable hostednetwork options on the wlan devices
     "disable_wlan_hosted_network": {
         "function": NetworkDevices.disable_wlan_hosted_network,
-        "help": "Turn off hosted network options (nework sharing with other devices)"
+        "help": "Turn off hosted network options (network sharing with other devices)"
     },
     "enable_wlan_hosted_network": {
         "function": NetworkDevices.enable_wlan_hosted_network,
-        "help": "Turn on hosted network options (nework sharing with other devices)"
+        "help": "Turn on hosted network options (network sharing with other devices)"
     },
 
     # Add/remove a nic from the approved list
@@ -433,7 +443,7 @@ if __name__ == "__main__":
     is_admin = ensure_admin()
 
     # Parse Arguments
-    cmd = util.get_param(1).lower()
+    cmd = util.get_param(1, "<none>").lower()
     
     if cmd not in valid_commands:
         # Unknown Command??
@@ -451,13 +461,15 @@ if __name__ == "__main__":
             commands = sorted(print_cmds.keys())
             p("}}yn Valid Commands: " + str(commands) + "}}xx")
             p("}}ybFor help - type mgmt.exe help (command)}}xx")
-        sys.exit(1)
+        #sys.exit(1)
+        os._exit(1)
     
     # Run the function associated w the command
     cmd_parts = valid_commands[cmd]
     if cmd_parts is None:
         p("}}rnERROR - Command not avaialable " + cmd + " - coming soon...}}xx", log_level=1)
-        sys.exit(1)
+        #sys.exit(1)
+        os._exit(1)
     
     cmd_requires_admin = util.get_dict_value(cmd_parts, "require_admin", True)
 
@@ -468,20 +480,24 @@ if __name__ == "__main__":
             # User is NOT in the administrators group
             p("}}rbINVALID USER - Must be in the administrators group to use this utility!\n" + 
                 "Attempt logged for user " + is_admin[2] + ".}}xx", log_level=1)
-            sys.exit(2)
+            #sys.exit(2)
+            os._exit(2)
             
         if is_admin[1] is not True:
             # User is NOT running with UAC enabled
             p("}}rbINVALID USER - Must be in UAC prompt to use this utility!\n" + 
                 "Attempt logged for user " + is_admin[2] + ".}}xx", log_level=1)
-            sys.exit(2)
-        sys.exit(2)
+            #sys.exit(2)
+            os._exit(2)
+        #sys.exit(2)
+        os._exit(2)
     
     # Get the function assigned to this command
     f = cmd_parts["function"]
     if f is None:
         p("}}rnERROR - No function assigned to command " + cmd + " - coming soon...}}xx", log_level=1)
-        sys.exit(1)
+        #sys.exit(1)
+        os._exit(1)
 
     exit_code = 0
     try:

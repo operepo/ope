@@ -3,6 +3,7 @@ import json
 #import win32com.client
 import wmi
 import os
+import psutil
 
 from color import p
 import util
@@ -60,7 +61,7 @@ class NetworkDevices:
 
     @staticmethod
     def init_device_list(refresh=False):
-        # Build up the nic list
+        # Build up the nic list (approved nics)
         if not refresh and len(NetworkDevices.NIC_LIST) > 0:
             # Don't rebuild it has been done
             return True
@@ -163,6 +164,39 @@ class NetworkDevices:
             
             p(m + item[0].ljust(col1) + ips.rjust(col2))
     
+    @staticmethod
+    def add_nic_to_approved_list(nic_name, nic_network):
+        # Strip off #? at the end of the name
+        t_nic = nic_name
+        removed_suffix = ""
+        for i in range(1,30):
+            suffix = " #" + str(i)
+            if suffix in t_nic:
+                t_nic = t_nic.replace(suffix, "")
+                removed_suffix = suffix
+        if removed_suffix != "":
+            p("}}ybNOTE - Stripped off " + removed_suffix + " from nic name\n - All instances of this nic approved with this network}}xx")
+            nic_name = t_nic
+
+        p("}}gnApproving " + nic_name + " on network " + nic_network, log_level=1)
+
+        # Get the list of approved nics
+        # Load the value from the registry
+        try:
+            approved_nics_json = RegistrySettings.get_reg_value(app="OPEService", value_name="approved_nics",
+                default="[]")
+            nic_list = json.loads(approved_nics_json)
+            # Add this nic to the list
+            nic_list.append((nic_name, nic_network))
+            # Write this back to the registry
+            approved_nics_json = json.dumps(nic_list)
+            RegistrySettings.set_reg_value(app="OPEService", value_name="approved_nics", value=approved_nics_json)
+        except Exception as ex:
+            p("}}rbUnable to write approved nics to the registry!}}xx", log_level=1)
+            return False
+
+        # Force a reload of the device list
+        NetworkDevices.init_device_list(refresh=True)
 
     @staticmethod
     def approve_nic():
@@ -196,38 +230,7 @@ class NetworkDevices:
                 #nic_name = iface.Name
                 # NOTE - Description will give us the driver name w/out the #2 after it
                 nic_name = iface.Description
-        
-        # Strip off #? at the end of the name
-        t_nic = nic_name
-        removed_suffix = ""
-        for i in range(1,30):
-            suffix = " #" + str(i)
-            if suffix in t_nic:
-                t_nic = t_nic.replace(suffix, "")
-                removed_suffix = suffix
-        if removed_suffix != "":
-            p("}}ybNOTE - Stripped off " + removed_suffix + " from nic name\n - All instances of this nic approved with this network}}xx")
-            nic_name = t_nic
-
-        p("}}gnApproving " + nic_name + " on network " + nic_network, log_level=1)
-
-        # Get the list of approved nics
-        # Load the value from the registry
-        try:
-            approved_nics_json = RegistrySettings.get_reg_value(app="OPEService", value_name="approved_nics",
-                default="[]")
-            nic_list = json.loads(approved_nics_json)
-            # Add this nic to the list
-            nic_list.append((nic_name, nic_network))
-            # Write this back to the registry
-            approved_nics_json = json.dumps(nic_list)
-            RegistrySettings.set_reg_value(app="OPEService", value_name="approved_nics", value=approved_nics_json)
-        except Exception as ex:
-            p("}}rbUnable to write approved nics to the registry!}}xx", log_level=1)
-            return False
-
-        # Force a reload of the device list
-        NetworkDevices.init_device_list(refresh=True)
+        NetworkDevices.add_nic_to_approved_list(nic_name, nic_network)
 
         # Force scan nics
         p("}}gnRescanning nics...}}xx", log_level=1)
@@ -709,6 +712,55 @@ class NetworkDevices:
     
         return True
     
+    @staticmethod
+    def configure_nics():
+        # Find nics with IP addresses that are active and see if they are approved - if not, ask if they should be.
+        # May need to call this before calling this function so that COM works
+        # pythoncom.CoInitialize() - called in the main function
+        
+        # Make sure device list is initialized
+        NetworkDevices.init_device_list()
+
+        #p("scanning for unauthorized nics...")
+
+        nic_list = NetworkDevices.get_nics_w32()
+
+        for nic in nic_list:
+            (nic_name, nic_network_name, nic_ip_addresses, nic_connected, nic_enabled, attribs, iface, nic_if_index) = nic
+            # Make sure we remove local link ips (169.254.?.?)
+            filtered_nic_ip_addresses = NetworkDevices.filter_local_link_ip_addresses(nic_ip_addresses)
+
+            # NOTE - nic_enabled - 0 = enabled, 22 = disabled, all others - ?? (not enabled)
+            # Use nic descrition to match - it doesn't have #2 etc.. at the end
+            nic_description = iface.Description
+            # Returns T/F for (matched_nic_name, matched_nic_ip)
+            r = NetworkDevices.is_nic_approved(nic_description, filtered_nic_ip_addresses)
+            num_ips = len(filtered_nic_ip_addresses)
+
+            # Possible scenarios,
+            # A - Nic has IP and is not approved - should we approve it?
+            # B - Nic is approved and has good IP - leave alone
+            # C - Nic has NO IP (e.g. unplugged/offline) - allow DHCP attempts (ignore for now)
+            #p("}}gnChecking " + nic_name + " - " + str(nic_ip_addresses) + "}}xx")
+
+            # A - Nic enabled and has IP - not approved
+            if r[0] is False or r[1] is False and nic_enabled == 0 and num_ips > 0:
+                # Good nic on bad network. Ask if we should approve it.
+                # Nic has IP and is not approved - should we approve it?
+                for ip in filtered_nic_ip_addresses:
+                    p("}}ynUnApproved NIC Detected (WITH IP) - " + \
+                        nic_name + " " + str(ip) + "}}xx", log_level=1)
+                    parts = ip.split(".")
+                    ip_network = parts[0] + "." + parts[1] + "." + parts[2] + "."
+                    p("}}ynWould you like to approve this NIC on " + ip_network + " (Y or N)? }}xx", False)
+                    tmp = str(input()).strip().lower()
+                    if tmp == "y":
+                        # Add this nic to the list
+                        NetworkDevices.add_nic_to_approved_list(nic_name, ip_network)
+                continue
+
+        return True
+
     @staticmethod
     def device_event():
         # A device event happened (device plugged in?)

@@ -4,6 +4,7 @@ import shutil
 
 from mgmt_ProcessManagement import ProcessManagement
 from mgmt_RegistrySettings import RegistrySettings
+from mgmt_Computer import Computer
 import util
 from color import p
 
@@ -129,7 +130,7 @@ class GroupPolicy:
         if gpo_count_post > 1:
             p("}}rbTOO MANY GPO FOLDERS FOUND AT: " + gpo_folder_post + "\nRemove all but the newest GPO to continue!}}xx")
             return False
-
+        
         # Make sure to reset to default before applying
         GroupPolicy.reset_group_policy_to_default()
 
@@ -181,15 +182,18 @@ class GroupPolicy:
     def reset_group_policy_to_default(force=False):
         ret = True
 
+        if Computer.is_domain_joined() == True:
+            p("}}rn - Domain joined, skipping gpo reset...}}xx")
+            return True
+
         # Use WMI to check if gpo is applied, if not, skip
         if force != True:
-            try:
-                from mgmt_Computer import Computer
+            try:                
                 w = Computer.get_wmi_connection(namespace="root\\rsop\\computer")
                 registry_policies = w.RSOP_RegistryPolicySetting()
                 policies = w.RSOP_PolicySetting()
                 if len(registry_policies) == 0 and len(policies) == 0:
-                    p("}}gn - No Group Policy Objects Dected, skipping gpo reset...}}xx")
+                    p("}}gn - No Group Policy Objects Detected, skipping gpo reset...}}xx")
                     return True
             except Exception as ex:
                 p("}}rb - Failed to check group policy objects! Falling to hard reset.}}xx")
@@ -240,6 +244,10 @@ class GroupPolicy:
             p("}}rbDEBUG MODE ON - Skipping apply firewall policy}}xx")
             return True
 
+        if Computer.is_domain_joined() == True:
+            p("}}rn - Domain joined, skipping apply firewall policy...}}xx")
+            return True
+
         # Command that is run to start this function
         only_for = "apply_firewall_policy"
 
@@ -267,6 +275,10 @@ class GroupPolicy:
         ret = True
         if RegistrySettings.is_debug():
             p("}}rbDEBUG MODE ON - Skipping reset firewall policy}}xx")
+            return True
+
+        if Computer.is_domain_joined() == True:
+            p("}}rn - Domain joined, skipping reset firewall policy...}}xx")
             return True
 
         cmd = "%SystemRoot%\\system32\\netsh advfirewall reset"

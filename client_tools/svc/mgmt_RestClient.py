@@ -25,6 +25,7 @@ from mgmt_Encryption import Encryption
 from mgmt_RegistrySettings import RegistrySettings
 
 class RestClient:
+    SMC_MIN_VERSION = "24.8.18.0"
 
     def __ini__(self):
         pass
@@ -102,6 +103,38 @@ class RestClient:
             return None
         
         return json_response
+
+    @staticmethod
+    def get_smc_config(smc_url):
+        json_response = RestClient.send_rest_call(server=smc_url,api_endpoint="lms/get_laptop_config.json")
+        if json_response is None:
+            p("}}rbUnable to get SMC config from server - ensure that you have SMC version " + RestClient.SMC_MIN_VERSION + " or higher.}}xx")
+
+            return None
+        
+        try:
+            # Example Response
+            # {"smc_version": "v1.9.41", "laptop_network_type": "Domain Member", "laptop_domain_name": "osn.local", "laptop_domain_ou": "laptops.osn.local", "laptop_time_servers": ["time.windows.com", "smc.ed", "osn.local"], "laptop_approved_nics": ["Realtek RTL8139C+ Fast Ethernet NIC==192.168.0.", "ZeroTier Virtual Port==192.168.222."]}
+
+            smc_version = util.get_dict_value(json_response, "smc_version", default="missing")
+            if smc_version == "missing":
+                p("}}rbUnable to interpret response from SMC - no smc_version parameter returned}}xx")
+                return None
+            
+            laptop_network_type = util.get_dict_value(json_response, "laptop_network_type", default="missing")
+            laptop_domain_name = util.get_dict_value(json_response, "laptop_domain_name", default="missing")
+            laptop_domain_ou = util.get_dict_value(json_response, "laptop_domain_ou", default="missing")
+            laptop_time_servers = util.get_dict_value(json_response, "laptop_time_servers", default=[])
+            laptop_approved_nics = util.get_dict_value(json_response, "laptop_approved_nics", default=[])
+        except Exception as ex:
+            p("}}rbUnable to interpret response from SMC - no smc_version parameter returned}}xx")
+            p("}}mn" + str(ex) + "}}xx")
+            return None
+
+        return dict(laptop_network_type=laptop_network_type, laptop_domain_name=laptop_domain_name,
+            laptop_domain_ou=laptop_domain_ou, laptop_time_servers=laptop_time_servers,
+            laptop_approved_nics=laptop_approved_nics, smc_version=smc_version)
+
 
     @staticmethod
     def credential_student_in_smc(student_user, smc_url, smc_admin_user, smc_admin_pw, ex_info):

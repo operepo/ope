@@ -258,6 +258,12 @@ class Computer:
         return ret
 
     @staticmethod
+    def is_domain_joined():
+        # Return True if the computer is joined to a domain
+        info = Computer.get_computer_system_info()
+        return info["cs_part_of_domain"]
+
+    @staticmethod
     def render_lock_screen(image_path=None, header="", log_text=None, state="IDLE"):
         if image_path is None:
             image_path = Computer.STATE_RENDER_IMAGE_PATH # "%programdata%/ope/tmp/LockScreen.jpg"

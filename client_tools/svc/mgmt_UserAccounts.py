@@ -30,6 +30,7 @@ class UserAccounts:
 
     # All student accounts get added to this group
     STUDENTS_GROUP = "OPEStudents"
+    ADMINS_GROUP = "OPEAdmins"
     
     GROUP_EVERYONE = None
     GROUP_ADMINISTRATORS = None
@@ -61,6 +62,61 @@ class UserAccounts:
 
 
     @staticmethod
+    def allow_group_to_logon_locally(group_name="OPEAdmins"):
+
+        try:
+            # Get the SID for the group
+            sid, domain, account_type = win32security.LookupAccountName(None, group_name)
+
+            # Get local security policy
+            lsa = win32security.LsaOpenPolicy(None, win32security.POLICY_ALL_ACCESS)
+
+            # We want to add the following right to the group
+            right = "SeInteractiveLogonRight"
+
+            # Add right
+            win32security.LsaAddAccountRights(lsa, sid, [right])
+
+            # Close the handle
+            win32security.LsaClose(lsa)
+
+            p("}}gb" + f"{group_name} has been granted the 'Allow logon locally' right." + "}}xx")
+        except Exception as ex:
+            p("}}rb" + f"Error granting 'Allow logon locally' right to {group_name} - {ex}" + "}}xx")
+            return False
+
+        return True
+
+    @staticmethod
+    def remove_group_from_logon_locally(group_name="OPEAdmins"):
+        try:
+            # Get the SID for the group
+            sid, domain, account_type = win32security.LookupAccountName(None, group_name)
+            #p("SID: " + str(sid))
+
+            # Get local security policy
+            lsa = win32security.LsaOpenPolicy(None, win32security.POLICY_ALL_ACCESS)
+
+            # We want to add the following right to the group
+            right = "SeInteractiveLogonRight"
+
+            # Add right
+            win32security.LsaRemoveAccountRights(lsa, sid, False, [right])  # True would remove all rights from object
+
+            # Close the handle
+            win32security.LsaClose(lsa)
+
+            p("}}gb" + f"{group_name} has been removed from the 'Allow logon locally' right." + "}}xx")
+        except Exception as ex:
+            if "lookupaccountname" in str(ex).lower():
+                p("}}yn" + f"Group '{group_name}' not in 'Allow Logon Locally' - skipping removal." + "}}xx")
+                return True
+            p("}}rb" + f"Error removing 'Allow logon locally' right from {group_name} - {ex}" + "}}xx")
+            return False
+
+        return True
+
+    @staticmethod
     def get_current_user():
         return win32api.GetUserName()
     
@@ -78,7 +134,8 @@ class UserAccounts:
         if sidObj:
             accountName, domainName, accountTypeInt = win32security.LookupAccountSid(".", sidObj)
             #p("}}gnRunning As: " + accountName + "}}xx", debug_level=2)
-            user_name = accountName
+            p("}}gnRunning As: " + domainName + "\\" + accountName + "}}xx")
+            user_name = domainName + "\\" + accountName
         else:
             p("}}rnUnable to get User Token! }}xx", debug_level=1)
             return ""
@@ -520,6 +577,29 @@ class UserAccounts:
             ret = False
 
         return ret
+    
+    @staticmethod
+    def set_group_description(group_name, description, server=None):
+        # Server - None for local computer, or domain controller
+        
+        # Fetch the current group information
+        try:
+            group_info = win32net.NetLocalGroupGetInfo(server, group_name, 1)
+        except win32net.error as e:
+            p("}}rbError fetching group info: " + group_name + " - " + str(e) + "}}xx")
+            return False
+
+        # Update the group description
+        group_info['comment'] = description
+
+        # Set the updated group information
+        try:
+            win32net.NetLocalGroupSetInfo(server, group_name, 1, group_info)
+        except win32net.error as e:
+            p("}}rbError setting group info: " + group_name + " - " + str(e) + "}}xx")
+            return False
+        
+        return True
 
     @staticmethod
     def create_local_students_group():
@@ -538,7 +618,37 @@ class UserAccounts:
                 # Unexpected error
                 p("}}rb" + str(ex) + "}}xx")
                 ret = False
+        
+        # Set the description
+        UserAccounts.set_group_description(UserAccounts.STUDENTS_GROUP, "OPE Students Group - Students in the group are allowed to login to this computer.")
 
+        if ret is True:
+            p("}}ynOPE students group ready: " + UserAccounts.STUDENTS_GROUP + "}}xx")
+        return ret
+    
+    @staticmethod
+    def create_local_admins_group():
+        # Make sure the group in question exists
+        ret = False
+
+        try:
+            accounts.LocalGroup.create(UserAccounts.ADMINS_GROUP)
+            ret = True
+        except Exception as ex:
+            if ex.args[2] == "The specified local group already exists.":
+                ret = True
+                #print(f"Group already exists - {UserAccounts.ADMINS_GROUP}")
+                pass
+            else:
+                # Unexpected error
+                p("}}rb" + str(ex) + "}}xx")
+                ret = False
+
+        # Set the description
+        UserAccounts.set_group_description(UserAccounts.ADMINS_GROUP, "OPE Admins Group - Users in this group have full control over this computer.")
+        
+        if ret is True:
+            p("}}ynOPE admins group ready: " + UserAccounts.ADMINS_GROUP + "}}xx")
         return ret
 
     @staticmethod

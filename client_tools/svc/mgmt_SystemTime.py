@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import json
 
 import wmi
 
@@ -103,10 +104,20 @@ class SystemTime:
         # Slight pause for time service to start
         time.sleep(10)
 
-        # Add our time servers to the list
-        returncode, output = ProcessManagement.run_cmd(
-            "w32tm /config /update /manualpeerlist:\"" + smc_host + " time.windows.com 202.5.222.1\""
-            )
+        try:
+            time_servers_json = RegistrySettings.get_reg_value(app="OPEService", value_name="laptop_time_servers", default="[]")
+            time_servers = json.loads(time_servers_json)
+            time_servers_string = " ".join(time_servers)
+
+            # Add our time servers to the list
+            returncode, output = ProcessManagement.run_cmd(
+                #"w32tm /config /update /manualpeerlist:\"" + smc_host + " time.windows.com 202.5.222.1\""
+                "w32tm /config /update /manualpeerlist:\"" + time_servers_string + "\""
+                )
+        except Exception as e:
+            p("}}rnError setting time servers: " + str(e) + "}}xx")
+            return False
+        
         # Force the update
         returncode, output = ProcessManagement.run_cmd(
             "w32tm /resync /nowait"

@@ -171,6 +171,9 @@ class ProcessManagement:
             branch = util.get_param(2, None, only_for=only_for)
         if branch is None:
             branch = RegistrySettings.get_git_branch()
+
+        smc_url = RegistrySettings.get_reg_value(value_name="smc_url", default="https://smc.ed")
+        smc_git = smc_url.replace("https", "git").replace("http", "git")
         
         app_path = util.get_app_folder()
 
@@ -202,7 +205,7 @@ class ProcessManagement:
             return False
                 
         ope_origin = "https://github.com/operepo/ope_laptop_binaries.git"
-        ope_smc_origin = "git://smc.ed/ope_laptop_binaries.git"
+        ope_smc_origin = smc_git + "/ope_laptop_binaries.git"
 
         # Clone the repo
         cmd = git_path + " clone --depth=1 --single-branch --branch " + branch + " " + ope_origin + " . "
@@ -264,6 +267,9 @@ class ProcessManagement:
             binaries_path = util.get_param(3, None, only_for=only_for)
         if binaries_path is None:
             binaries_path = "%programdata%\\ope\\tmp\\ope_laptop_binaries"
+
+        smc_url = RegistrySettings.get_reg_value(value_name="smc_url", default="https://smc.ed")
+        smc_git = smc_url.replace("https", "git").replace("http", "git")
         
         # Make sure we remove any extra "s that can be stuck on
         binaries_path = binaries_path.strip('"')
@@ -311,7 +317,7 @@ class ProcessManagement:
             git_path + " -C \"" + ope_laptop_binaries_path + "\" remote remove ope_origin",
             git_path + " -C \"" + ope_laptop_binaries_path + "\" remote remove ope_smc_origin",
             git_path + " -C \"" + ope_laptop_binaries_path + "\" remote add ope_origin https://github.com/operepo/ope_laptop_binaries.git",
-            git_path + " -C \"" + ope_laptop_binaries_path + "\" remote add ope_smc_origin git://smc.ed/ope_laptop_binaries.git"
+            git_path + " -C \"" + ope_laptop_binaries_path + "\" remote add ope_smc_origin " + smc_git + "/ope_laptop_binaries.git"
         ]
 
         for cmd in cmds:
