@@ -1,7 +1,7 @@
 #FROM nginx:1.11.3
 #
 FROM jwilder/nginx-proxy:alpine
-LABEL rebuild=8
+LABEL rebuild=9
 
 # ope-gateway  - Open Prison Education gateway device
 # Build: Follow instructions at https://github.com/operepo/ope
@@ -16,7 +16,7 @@ ARG VERSION=dev
 RUN apk add nano openssl
 
 
-LABEL rebuild=141
+LABEL rebuild=142
 # public_certs moved under /usr/share/nginx/html
 # Make public_certs folder so we can make it easy to grab crt file
 #RUN mkdir -p /public_certs \
@@ -45,7 +45,8 @@ RUN chmod +x /app/*.sh
 #ENV DOCKER_HOST unix:///tmp/docker.sock
 ENV DOCKER_HOST unix:///var/run/docker.sock
 
-VOLUME ["/etc/nginx/certs", "/tmp/docker.sock", "/etc/nginx/vhost.d", "/usr/share/nginx/html", "/etc/nginx/dhparam", "/etc/nginx/conf.d" ]
+VOLUME ["/etc/nginx/certs", "/var/run", "/etc/nginx/vhost.d", "/usr/share/nginx/html", "/etc/nginx/dhparam", "/etc/nginx/conf.d" ]
+# "/tmp/docker.sock"
 
 EXPOSE 80 443
 

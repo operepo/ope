@@ -1,0 +1,93 @@
+
+
+
+
+LTI Params: {'lti_message_type': 'basic-lti-launch-request', 'lti_version': 'LTI-1p0', 'resource_link_id': 'ef2abfbc5be7293b12dc24b828b3fa2a27552f26', 'user_id': '8b34d662610c65a5abecdd3e34a60756d27658c5', 'user_image': 'https://canvas.corrections.homeip.net/images/messages/avatar-50.png', 'roles': 'Instructor,urn:lti:instrole:ims/lis/Administrator,urn:lti:sysrole:ims/lis/SysAdmin', 'lis_person_name_full': 'admin@corrections.homeip.net', 'lis_outcome_service_url': None, 'selection_directive': None, 'lis_person_sourceid': None, 'lis_person_name_given': 'admin@corrections.homeip.net', 'lis_person_name_family': '', 'lis_person_contact_email_primary': 'admin@corrections.homeip.net', 'resource_link_title': 'OPE LTI - OPE Quizzes', 'resource_link_description': None, 'context_id': 'ef2abfbc5be7293b12dc24b828b3fa2a27552f26', 'context_type': None, 'context_title': 'TEST_COURSE', 'context_label': 'TEST_COURSE', 'launch_presentation_locale': 'en', 'launch_presentation_document_target': 'iframe', 'launch_presentation_css_url': None, 'launch_presentation_width': '800', 'launch_presentation_height': '400', 'launch_presentation_return_url': 'https://canvas.corrections.homeip.net/courses/345810000004092/external_content/success/external_tool_redirect', 'tool_consumer_info_product_family_code': 'canvas', 'tool_consumer_info_version': 'cloud', 'tool_consumer_instance_guid': 'jJ2u6lI5Qo8CoCCTSUn5koI1MQXnSfI0EaiYFKcy:canvas-lms', 'tool_consumer_instance_name': 'Open Prison Education', 'tool_consumer_instance_description': None, 'tool_consumer_instance_url': None, 'tool_consumer_instance_contact_email': 'admin@corrections.homeip.net', 'custom_canvas_user_id': '1', 'custom_canvas_user_login_id': 'admin@corrections.homeip.net', 'custom_canvas_course_id': '345810000004092', 'custom_canvas_workflow_state': 'available', 'custom_canvas_enrollment_state': 'active', 'custom_canvas_api_domain': 'canvas.corrections.homeip.net', 'oauth_nonce': '210cee9549a753f2a1f9400f692ea788', 'oauth_signature': 'keC3A0XkBDfdQDig2lyFYazTjLc=', 'oauth_version': '1.0', 'oauth_signature_method': 'HMAC-SHA1', 'oauth_consumer_key': 'OPE_LTI_OPE_Quizzes'}
+
+Raw Params: <Storage {'tool_consumer_info_product_family_code': 'canvas', 'launch_presentation_width': '800', 'oauth_timestamp': '1657150707', 'oauth_nonce': '210cee9549a753f2a1f9400f692ea788', 'context_title': 'TEST_COURSE', 'resource_link_title': 'OPE LTI - OPE Quizzes', 'oauth_callback': 'about:blank', 'custom_sis_section_ids': '', 'launch_presentation_return_url': 'https://canvas.corrections.homeip.net/courses/345810000004092/external_content/success/external_tool_redirect', 'lti_message_type': 'basic-lti-launch-request', 'custom_section_sourced_id': '', 'user_id': '8b34d662610c65a5abecdd3e34a60756d27658c5', 'custom_canvas_workflow_state': 'available', 'tool_consumer_instance_guid': 'jJ2u6lI5Qo8CoCCTSUn5koI1MQXnSfI0EaiYFKcy:canvas-lms', 'lis_person_name_given': 'admin@corrections.homeip.net', 'custom_membership_roles': 'TeacherEnrollment,Account Admin', 'lis_person_name_family': '', 'lis_person_contact_email_primary': 'admin@corrections.homeip.net', 'oauth_consumer_key': 'OPE_LTI_OPE_Quizzes', 'context_label': 'TEST_COURSE', 'custom_term_name': 'Default Term', 'custom_canvas_user_login_id': 'admin@corrections.homeip.net', 'tool_consumer_instance_contact_email': 'admin@corrections.homeip.net', 'launch_presentation_locale': 'en', 'launch_presentation_document_target': 'iframe', 'custom_section_ids': '345810000004091', 'tool_consumer_info_version': 'cloud', 'custom_section_name': 'TEST_COURSE', 'oauth_version': '1.0', 'resource_link_id': 'ef2abfbc5be7293b12dc24b828b3fa2a27552f26', 'custom_canvas_api_domain': 'canvas.corrections.homeip.net', 'lti_version': 'LTI-1p0', 'ext_roles': 'urn:lti:instrole:ims/lis/Administrator,urn:lti:instrole:ims/lis/Instructor,urn:lti:role:ims/lis/Instructor,urn:lti:sysrole:ims/lis/SysAdmin,urn:lti:sysrole:ims/lis/User', 'tool_consumer_instance_name': 'Open Prison Education', 'context_id': 'ef2abfbc5be7293b12dc24b828b3fa2a27552f26', 'roles': 'Instructor,urn:lti:instrole:ims/lis/Administrator,urn:lti:sysrole:ims/lis/SysAdmin', 'oauth_signature_method': 'HMAC-SHA1', 'launch_presentation_height': '400', 'user_image': 'https://canvas.corrections.homeip.net/images/messages/avatar-50.png', 'custom_canvas_user_id': '1', 'lis_person_name_full': 'admin@corrections.homeip.net', 'oauth_signature': 'keC3A0XkBDfdQDig2lyFYazTjLc=', 'custom_canvas_enrollment_state': 'active', 'custom_canvas_course_id': '345810000004092'}>
+
+
+
+
+
+session
+ namespaces["ui"] = [control_name][key_name]
+
+
+
+{'authTokens': [None], 'authorizationEndpoint': '', 'capabilities': [], 'clientId': '', 'creationTime': 1658256397310, 'dns': [], 'enableBroadcast': True, 'id': '0b8fc61acfdb3e43', 'ipAssignmentPools': [], 'mtu': 2800, 'multicastLimit': 32, 'name': '', 'nwid': '0b8fc61acfdb3e43', 'objtype': 'network', 'private': True, 'remoteTraceLevel': 0, 'remoteTraceTarget': None, 'revision': 1, 'routes': [], 'rules': [{'not': False, 'or': False, 'type': 'ACTION_ACCEPT'}], 'rulesSource': '', 'ssoEnabled': False, 'tags': [], 'v4AssignMode': {'zt': False}, 'v6AssignMode': {'6plane': False, 'rfc4193': False, 'zt': False}}
+
+
+
+
+{'lti_message_type': 'basic-lti-launch-request', 'lti_version': 'LTI-1p0', 'resource_link_id': 'ef2abfbc5be7293b12dc24b828b3fa2a27552f26', 'user_id': '8b34d662610c65a5abecdd3e34a60756d27658c5', 'user_image': 'https://canvas.corrections.homeip.net/images/messages/avatar-50.png', 'roles': 'Instructor,urn:lti:instrole:ims/lis/Administrator,urn:lti:sysrole:ims/lis/SysAdmin', 'lis_person_name_full': 
+'admin@corrections.homeip.net', 'lis_outcome_service_url': None, 'selection_directive': None, 'lis_person_sourceid': None, 'lis_person_name_given': 'admin@corrections.homeip.net', 'lis_person_name_family': '', 'lis_person_contact_email_primary': 'admin@corrections.homeip.net', 'resource_link_title': 'OPE LTI - OPE Quizzes', 'resource_link_description': None, 'context_id': 'ef2abfbc5be7293b12dc24b828b3fa2a27552f26', 'context_type': None, 'context_title': 'TEST_COURSE', 'context_label': 'TEST_COURSE', 'launch_presentation_locale': 'en', 'launch_presentation_document_target': 'iframe', 'launch_presentation_css_url': None, 'launch_presentation_width': '800', 'launch_presentation_height': '400', 'launch_presentation_return_url': 'https://canvas.corrections.homeip.net/courses/345810000004092/external_content/success/external_tool_redirect', 'tool_consumer_info_product_family_code': 'canvas', 'tool_consumer_info_version': 'cloud', 'tool_consumer_instance_guid': 'jJ2u6lI5Qo8CoCCTSUn5koI1MQXnSfI0EaiYFKcy:canvas-lms', 'tool_consumer_instance_name': 'Open Prison Education', 'tool_consumer_instance_description': None, 'tool_consumer_instance_url': None, 'tool_consumer_instance_contact_email': 'admin@corrections.homeip.net', 'custom_canvas_user_id': '1', 'custom_canvas_user_login_id': 'admin@corrections.homeip.net', 'custom_canvas_course_id': '345810000004092', 'custom_canvas_workflow_state': 'available', 'custom_canvas_enrollment_state': 'active', 'custom_canvas_api_domain': 'canvas.corrections.homeip.net', 'oauth_nonce': 'ea3a2e29bab4cded16b247547dd80394', 'oauth_signature': '0XF69G/1tRwjfOHip35t8FU7ocQ=', 'oauth_version': 
+'1.0', 'oauth_signature_method': 'HMAC-SHA1', 'oauth_consumer_key': 'OPE_LTI_OPE_Quizzes'}
+
+ {'custom_section_course_number': '$CourseSection.courseNumber', 'user_image': 'https://canvas.corrections.homeip.net/images/messages/avatar-50.png', 'tool_consumer_instance_guid': 'jJ2u6lI5Qo8CoCCTSUn5koI1MQXnSfI0EaiYFKcy:canvas-lms', 'oauth_nonce': 'ea3a2e29bab4cded16b247547dd80394', 'tool_consumer_instance_name': 'Open Prison Education', 'custom_section_section_id': '$CourseSection.sourceSectionId', 'ext_roles': 'urn:lti:instrole:ims/lis/Administrator,urn:lti:instrole:ims/lis/Instructor,urn:lti:role:ims/lis/Instructor,urn:lti:sysrole:ims/lis/SysAdmin,urn:lti:sysrole:ims/lis/User', 'custom_section_data_source': '$CourseSection.dataSource', 'user_id': '8b34d662610c65a5abecdd3e34a60756d27658c5', 'tool_consumer_info_version': 'cloud', 'custom_section_sourced_id': '', 'custom_section_name': 
+'TEST_COURSE', 'custom_section_ids': '345810000004091', 'custom_sis_section_ids': '', 'oauth_signature_method': 'HMAC-SHA1', 'lti_version': 'LTI-1p0', 'custom_canvas_user_login_id': 'admin@corrections.homeip.net', 'oauth_callback': 'about:blank', 'launch_presentation_document_target': 'iframe', 'oauth_version': '1.0', 'launch_presentation_width': '800', 'custom_section_title': '$CourseSection.title', 'context_label': 'TEST_COURSE', 'lti_message_type': 'basic-lti-launch-request', 'oauth_signature': '0XF69G/1tRwjfOHip35t8FU7ocQ=', 'launch_presentation_locale': 'en', 'custom_canvas_user_id': '1', 'context_id': 
+'ef2abfbc5be7293b12dc24b828b3fa2a27552f26', 'custom_canvas_course_id': '345810000004092', 'launch_presentation_height': '400', 'custom_term_name': 'Default Term', 'custom_canvas_api_domain': 'canvas.corrections.homeip.net', 'lis_person_name_family': '', 'custom_canvas_workflow_state': 'available', 'oauth_consumer_key': 'OPE_LTI_OPE_Quizzes', 'launch_presentation_return_url': 'https://canvas.corrections.homeip.net/courses/345810000004092/external_content/success/external_tool_redirect', 'lis_person_name_given': 'admin@corrections.homeip.net', 'custom_section_label': '$CourseSection.label', 'custom_canvas_enrollment_state': 'active', 'resource_link_title': 'OPE LTI - OPE Quizzes', 'tool_consumer_info_product_family_code': 'canvas', 'context_title': 'TEST_COURSE', 'oauth_timestamp': '1662701415', 'tool_consumer_instance_contact_email': 'admin@corrections.homeip.net', 'lis_person_name_full': 'admin@corrections.homeip.net', 'custom_membership_roles': 'TeacherEnrollment,Account Admin', 'custom_section_short_description': '$CourseSection.shortDescription', 'resource_link_id': 'ef2abfbc5be7293b12dc24b828b3fa2a27552f26', 'lis_person_contact_email_primary': 'admin@corrections.homeip.net', 'roles': 'Instructor,urn:lti:instrole:ims/lis/Administrator,urn:lti:sysrole:ims/lis/SysAdmin'}
+
+
+
+
+
+
+
+
+------------------------------------------
+
+# Don't send data back to instructure
+# CANVAS_LMS_STATS_COLLECTION=opt_out
+Setting.set("usage_statistics_collection", "opt_out")
+Setting.set("request_throttle.enabled", "false")
+Setting.set("login_attempts_per_ip", '1000')
+
+
+
+app/middleware/request_throttle.rb
+
+
+403 or 429 - Rate Limit Exceeded
+
+
+
+account = env["canvas.domain_root_account"]
+domain_root_account = ::LoadAccount.default_domain_root_account  (returns Open Prison Education account)
+
+Account.default
+
+
+settings:
+              {:admins_can_change_passwords=>"[FILTERED]",
+               :edit_institution_email=>false,
+               :admins_can_view_notifications=>true,
+               :allow_invitation_previews=>false,
+               :allow_sending_scores_in_emails=>false,
+               :author_email_in_notifications=>false,
+               :enable_alerts=>false,
+               :enable_portfolios=>false,
+               :enable_eportfolios=>false,
+               :enable_offline_web_export=>false,
+               :enable_profiles=>false,
+               :enable_gravatar=>false,
+               :enable_turnitin=>false,
+               :global_includes=>true,
+               :include_students_in_global_survey=>false,
+               :lock_all_announcements=>true,
+               :mfa_settings=>"disabled",
+               :no_enrollments_can_create_courses=>false,
+               :open_registration=>false,
+               :prevent_course_renaming_by_teachers=>false,
+               :restrict_quiz_questions=>true,
+               :restrict_student_future_listing=>false,
+               :restrict_student_future_view=>true,
+               :restrict_student_past_view=>true,
+               :show_scheduler=>false,
+               :students_can_create_courses=>false,
+               :sub_accunt_includes=>false,
+               :teachers_can_create_courses=>false,
+               :users_can_edit_name=>false,
+               :login_handle_name=>"Student ID (default is s + DOC number - s113412)",
+               :self_enrollment=>"Never",
+               :manually_created_courses_account_id=>345810000004032},

@@ -1,0 +1,59 @@
+    ope-hub:
+        build: ./ope-hub
+        image: operepo/ope-hub:release
+        container_name: ope-hub
+        command: python manage.py runserver 0.0.0.0:8100
+        network_mode: <NETWORK_MODE>
+        restart: always
+        ports:
+            - "8100"
+            #- "443"
+            # git daemon
+            #- "9418:9418"
+        volumes:
+            # Normal mounts, using smc app included in the container, can leave on during dev
+            - ../volumes/hub/git:/home/www-data/git:rw
+            - ../volumes/hub/code:/home/www-data/hub:rw
+            #- ../volumes/smc/cache:/home/www-data/smc/web2py/applications/smc/cache:rw
+            #- ../volumes/smc/databases:/home/www-data/smc/web2py/applications/smc/databases:rw
+            #- ../volumes/smc/errors:/home/www-data/smc/web2py/applications/smc/errors:rw
+            #- ../volumes/smc/private:/home/www-data/smc/web2py/applications/smc/private:rw
+            #- ../volumes/smc/media:/home/www-data/smc/web2py/applications/smc/static/media:rw
+            #- ../volumes/smc/documents:/home/www-data/smc/web2py/applications/smc/static/documents:rw
+            #- ../volumes/smc/uploads:/home/www-data/smc/web2py/applications/smc/uploads:rw
+            #- ../volumes/smc/sessions:/home/www-data/smc/web2py/applications/smc/sessions:rw
+            # Dev mounts, mount the whole thing from outside the container - turn this off for production servers
+            #- ../volumes/smc/src:/home/www-data/smc/web2py/applications/smc:rw
+            # Expose ca.crt file for other services
+            #- ../volumes/gateway/certs:/home/www-data/smc/web2py/applications/smc/static/certs:rw
+            - ../volumes/gateway/certs:/home/www-data/certs:rw
+        depends_on:
+            - ope-gateway
+            - ope-postgresql
+        env_file: .env
+        environment:
+            - IT_PW=${IT_PW}
+            - OFFICE_PW=${OFFICE_PW}
+            - CANVAS_SECRET=${CANVAS_SECRET}
+            - CANVAS_SERVER=https://canvas.<DOMAIN>
+            - VIRTUAL_HOST=hub.<DOMAIN>,<HUB_DEFAULT_DOMAIN>
+            - LETSENCRYPT_HOST=<HUB_DEFAULT_DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
+            - VIRTUAL_PORT=8100
+            # Share the default cert on the gateway
+            - CERT_NAME=<CERT_NAME>
+            #- VIRTUAL_PROTO=https
+            - VIRTUAL_PROTO=uwsgi
+            - HTTPS_METHOD=redirect
+            - IS_ONLINE=${IS_ONLINE}
+            - HUB_POSTGRES_NAME=ope_hub
+            - HUB_POSTGRES_USER=
+            - HUB_POSTGRES_PASSWORD=${IT_PW}
+            - HUB_POSTGRES_HOST=ope-postgresql
+            - HUB_POSTGRES_PORT=5432
+            - HUB_SECRET_KEY=${CANVAS_SECRET}
+        links:
+            - ope-postgresql:postgresql
+            # Send canvas connections through the gateway
+            - ope-gateway:canvas.<DOMAIN>
+            - ope-redis:redis
