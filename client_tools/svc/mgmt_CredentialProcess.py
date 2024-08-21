@@ -121,10 +121,11 @@ class CredentialProcess:
         UserAccounts.create_local_students_group()
         UserAccounts.create_local_admins_group()
 
+        # Doesn't work - group policy overwrites it every time it refreshes
         # Make sure OPEAdmins can logon locally
-        UserAccounts.allow_group_to_logon_locally("OPEAdmins")
+        #UserAccounts.allow_group_to_logon_locally("OPEAdmins")
         # Remove the users group from logon locally
-        UserAccounts.remove_group_from_logon_locally("Users")
+        #UserAccounts.remove_group_from_logon_locally("Users")
 
         # Check if current user is in the OPEadmins group
         active_user = UserAccounts.get_active_user_name()
@@ -541,8 +542,12 @@ class CredentialProcess:
         # if not UserAccounts.disable_student_accounts():
         #     p("}}rbUnable to disable student accounts!}}xx")
         #     return False
-        # Don't disable the account - just remove the OPEUsers group from the logon locally
-        UserAccounts.remove_group_from_logon_locally("OPEUsers")
+        # Don't disable the account - just remove the OPEStudents group from the logon locally
+        # Doesn't work - gpolicy overwrites it every time it refreshes
+        #UserAccounts.remove_group_from_logon_locally("OPEStudents")
+
+        # Mark machine as not locked
+        RegistrySettings.set_machine_locked(False)
 
         # Log out student accounts!
         if not UserAccounts.log_out_all_students():
@@ -607,9 +612,13 @@ class CredentialProcess:
         laptop_network_type = CredentialProcess.get_credentialed_network_type()
         laptop_domain_name = CredentialProcess.get_credentialed_domain_name()
 
-        # Log out the student
-        if not UserAccounts.log_out_user(student_user_name):
-            p("}}rbError - Unable to logout student: " + str(student_user_name) + "}}xx")
+        # # Log out the student
+        # if not UserAccounts.log_out_user(student_user_name):
+        #     p("}}rbError - Unable to logout student: " + str(student_user_name) + "}}xx")
+        #     return False
+        # Log out student accounts!
+        if not UserAccounts.log_out_all_students():
+            p("}}rbUnable to log out students!}}xx")
             return False
 
         # Apply firewall rules
@@ -676,10 +685,13 @@ class CredentialProcess:
         #     # TODO - list student account in allowed users to login
         #     p("}}ybRunning in Domain Mode, not enabling student account.}}xx")
         # Use the logon locally attribute to enalble students to login.
-        if not UserAccounts.allow_group_to_logon_locally("OPEStudents"):
-            p("}}rbError - Unable to enable student account to logon locally! - Student account NOT unlocked!}}xx")
-            return False
+        # Doesn't work - gpolicy overwrites it every time it refreshes
+        # if not UserAccounts.allow_group_to_logon_locally("OPEStudents"):
+        #     p("}}rbError - Unable to enable student account to logon locally! - Student account NOT unlocked!}}xx")
+        #     return False
 
+        # Mark machine as locked
+        RegistrySettings.set_machine_locked(True)
 
         return ret
 

@@ -220,6 +220,10 @@ class OPEService(win32serviceutil.ServiceFramework):
         "ping_smc": {
             "cmd": "%mgmt% ping_smc",
             "timer": 15 # See if we can hit the smc server
+        },
+        "log_out_all_students_if_not_locked": {
+            "cmd": "%mgmt% log_out_all_students_if_not_locked",
+            "timer": 30
         }
         
     }

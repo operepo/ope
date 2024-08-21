@@ -324,6 +324,10 @@ valid_commands = {
         "function": UserAccounts.log_out_user,
         "help": "Log out the specified user"
     },
+    "log_out_all_students_if_not_locked": {
+        "function": UserAccounts.log_out_all_students_if_not_locked,
+        "help": "Log out all student accounts if the machine is not locked."
+    },
 
     "lock_boot_settings": {
         "function": FolderPermissions.lock_boot_settings,

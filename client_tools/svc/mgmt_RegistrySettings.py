@@ -39,6 +39,22 @@ class RegistrySettings:
             return True
         
         return False
+    
+    @staticmethod
+    def is_machine_locked():
+        val = RegistrySettings.get_reg_value(app="OPEService", value_name="machine_locked", default="no")
+        if val == "yes":
+            return True
+        
+        return False
+
+    @staticmethod
+    def set_machine_locked(locked=False):
+        val = "no"
+        if locked is True:
+            val = "yes"
+        RegistrySettings.set_reg_value(app="OPEService", value_name="machine_locked", value=val)
+        return True
 
     @staticmethod
     def reset_timer(timer_name="default_timer"):

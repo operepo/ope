@@ -27,6 +27,7 @@ from color import p
 
 from mgmt_ProcessManagement import ProcessManagement
 from mgmt_RegistrySettings import RegistrySettings
+from mgmt_UserAccounts import UserAccounts
 
 class FolderPermissions:
     # Class to deal with folder permissions
@@ -43,6 +44,9 @@ class FolderPermissions:
         # Load account information for groups/users
         domain = None
         acct_type = None
+
+        UserAccounts.create_local_admins_group()
+        UserAccounts.create_local_students_group()
 
         if FolderPermissions.OPE_STUDENTS is None:
             OPE_STUDENTS, domain, acct_type = win32security.LookupAccountName("", "OPEStudents")

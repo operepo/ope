@@ -622,8 +622,8 @@ class UserAccounts:
         # Set the description
         UserAccounts.set_group_description(UserAccounts.STUDENTS_GROUP, "OPE Students Group - Students in the group are allowed to login to this computer.")
 
-        if ret is True:
-            p("}}ynOPE students group ready: " + UserAccounts.STUDENTS_GROUP + "}}xx")
+        # if ret is True:
+        #     p("}}ynOPE students group ready: " + UserAccounts.STUDENTS_GROUP + "}}xx", log_level=4)
         return ret
     
     @staticmethod
@@ -647,8 +647,8 @@ class UserAccounts:
         # Set the description
         UserAccounts.set_group_description(UserAccounts.ADMINS_GROUP, "OPE Admins Group - Users in this group have full control over this computer.")
         
-        if ret is True:
-            p("}}ynOPE admins group ready: " + UserAccounts.ADMINS_GROUP + "}}xx")
+        # if ret is True:
+        #     p("}}ynOPE admins group ready: " + UserAccounts.ADMINS_GROUP + "}}xx", log_level=4)
         return ret
 
     @staticmethod
@@ -770,8 +770,11 @@ class UserAccounts:
             p("}}rnInvalid User name - not adding default admin groups to account!}}xx")
             return False
 
-        # Make sure students group exists
-        ret = UserAccounts.create_local_students_group()
+        # Make sure admins group exists
+        ret = UserAccounts.create_local_admins_group()
+
+        if not UserAccounts.add_user_to_group(account_name, UserAccounts.ADMINS_GROUP):
+            ret = False
 
         if not UserAccounts.add_user_to_group(account_name, "Administrators"):
             ret = False
@@ -1011,6 +1014,20 @@ class UserAccounts:
     def lock_screen_for_current_user():
         # Locks the workstation of the current user
         return ctypes.windll.user32.LockWorkStation()
+    
+    @staticmethod
+    def log_out_all_students_if_not_locked():
+        # Log out all students if the machine isn't locked down.
+        if not RegistrySettings.is_machine_locked():
+            # Get a list of users who are in the students group and log them out.
+            students = UserAccounts.get_student_login_sessions()
+            if len(students) > 0:
+                p("}}cb-- Machine not locked, Logging out all student accounts...}}xx")
+            for student in students:
+                p("}}cn-" + student + "}}xx", log_level=1)
+                UserAccounts.log_out_user(student)
+        else:
+            p("}}ynMachine is locked - not logging out students!}}xx", log_level=4)
 
     @staticmethod
     def log_out_all_students():
