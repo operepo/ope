@@ -81,6 +81,15 @@ class CredentialProcess:
     def config_mgmt_utility():
         mgmt_version = CredentialProcess.get_mgmt_version()
 
+        # Make sure RDP RPC is allowed
+        RegistrySettings.set_reg_value(
+            root="HKLM",
+            app="System\\CurrentControlSet\\Control\\Terminal Server",
+            value_name="AllowRemoteRPC", value="1",
+            value_type="REG_DWORD")
+        
+
+
         smc_url = RegistrySettings.get_reg_value(value_name="smc_url", default="https://smc.ed")
 
         p("\n}}gbOPE Management Utility - Version: " + mgmt_version + "}}xx")
@@ -382,7 +391,7 @@ class CredentialProcess:
             p("}}rbNot Admin in UAC mode! - UAC Is required for credential process.}}xx")
             return False
     
-        CredentialProcess.config_mgmt_utility()
+        CredentialProcess.config_mgmt_utility_once()
 
         # Start time sync
         SystemTime.sync_time_w_ntp(force=True)
@@ -833,9 +842,12 @@ class CredentialProcess:
             curr_version + " --> " + git_version + "}}xx")
         
         # Lock user accounts
-        if not UserAccounts.disable_student_accounts():
-            p("}}rbERROR - Unable to disable student accounts prior to upgrade!}}xx")
-            return False
+        domain_joined = Computer.is_domain_joined()
+
+        if not domain_joined:
+            if not UserAccounts.disable_student_accounts():
+                p("}}rbERROR - Unable to disable student accounts prior to upgrade!}}xx")
+                return False
 
         # Make sure students are logged out
         if not UserAccounts.log_out_all_students():

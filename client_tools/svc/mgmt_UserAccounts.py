@@ -230,14 +230,15 @@ class UserAccounts:
         return ret
 
     @staticmethod
-    def get_student_login_sessions():
-        # Get a list of students that are logged in
+    def get_current_login_sessions():
+        # Get a list of users that are logged in
         ret = []
 
         # Get the current user name
-        curr_user = win32api.GetUserName()
-        if UserAccounts.is_user_in_group(curr_user, "OPEStudents"):
-            ret.append(curr_user)
+        # Shouldn't need this as WTSEnumerateSessions should get all users currently logged in
+        # curr_user = win32api.GetUserName()
+        # if UserAccounts.is_user_in_group(curr_user, "OPEStudents"):
+        #     ret.append((domain, curr_user))
 
         # Get the list of users from WTS
         wts_sessions = []
@@ -261,10 +262,25 @@ class UserAccounts:
         # Convert sessions to users and check their group membership
         for session in wts_sessions:
             user_name = win32ts.WTSQuerySessionInformation(None, session, win32ts.WTSUserName)
+            domain = win32ts.WTSQuerySessionInformation(None, session, win32ts.WTSDomainName)
+            #p("}}gnChecking Session: " + domain + "\\" + user_name + "}}xx", debug_level=4)
             if user_name is not None and user_name != "":
-                if UserAccounts.is_user_in_group(user_name, "OPEStudents"):
-                    ret.append(user_name)
+                ret.append((domain, user_name))
                 
+        return ret
+    
+    @staticmethod
+    def get_student_login_sessions():
+        # Get a list of students that are logged in
+        ret = []
+
+        sessions = UserAccounts.get_current_login_sessions()
+        for session in sessions:
+            user_name = session[0] + "\\" + session[1]
+            p("}}gnChecking Session: " + user_name + "}}xx", debug_level=4)
+            if UserAccounts.is_user_in_group(user_name, "OPEStudents"):
+                ret.append(session)
+
         return ret
 
     @staticmethod
@@ -316,7 +332,7 @@ class UserAccounts:
                     break   # Break out of loop
 
         except Exception as ex:
-            p("}}rnERROR - Unknown Error trying to get groups for user!]n}}xx" + \
+            p("}}rnERROR - Unknown Error trying to get groups for user! (" + user_name + "/" + group_name + ")}}xx" + \
                 str(ex))
             return None
         return ret
@@ -413,6 +429,52 @@ class UserAccounts:
             win32security.AdjustTokenPrivileges(proces_token, 0, new_privs)
         except Exception as ex:
             p("}}rbException - trying to elevate tcb privileges}}xx\n" +
+                str(ex))
+            return False
+
+        return True
+
+    @staticmethod
+    def elevate_process_privilege_to_shutdown():
+        try:
+            se_shutdown_value = win32security.LookupPrivilegeValue(None, ntsecuritycon.SE_SHUTDOWN_NAME)
+
+            flags = ntsecuritycon.TOKEN_ADJUST_PRIVILEGES \
+                | ntsecuritycon.TOKEN_QUERY
+            
+            proces_token = win32security.OpenProcessToken(win32api.GetCurrentProcess(), flags)
+
+            # Add backup/restore privileges
+            new_privs = [
+                (se_shutdown_value, ntsecuritycon.SE_PRIVILEGE_ENABLED),
+            ]
+
+            win32security.AdjustTokenPrivileges(proces_token, 0, new_privs)
+        except Exception as ex:
+            p("}}rbException - trying to elevate SE_SHUTDOWN privileges}}xx\n" +
+                str(ex))
+            return False
+
+        return True
+    
+    @staticmethod
+    def elevate_process_privilege_to_take_ownership():
+        try:
+            se_take_ownership_value = win32security.LookupPrivilegeValue(None, ntsecuritycon.SE_TAKE_OWNERSHIP_NAME)
+
+            flags = ntsecuritycon.TOKEN_ADJUST_PRIVILEGES \
+                | ntsecuritycon.TOKEN_QUERY
+            
+            proces_token = win32security.OpenProcessToken(win32api.GetCurrentProcess(), flags)
+
+            # Add backup/restore privileges
+            new_privs = [
+                (se_take_ownership_value, ntsecuritycon.SE_PRIVILEGE_ENABLED),
+            ]
+
+            win32security.AdjustTokenPrivileges(proces_token, 0, new_privs)
+        except Exception as ex:
+            p("}}rbException - trying to elevate SE_TAKE_OWNERSHIP privileges}}xx\n" +
                 str(ex))
             return False
 
@@ -1017,27 +1079,37 @@ class UserAccounts:
     
     @staticmethod
     def log_out_all_students_if_not_locked():
-        # Log out all students if the machine isn't locked down.
-        if not RegistrySettings.is_machine_locked():
-            # Get a list of users who are in the students group and log them out.
-            students = UserAccounts.get_student_login_sessions()
-            if len(students) > 0:
-                p("}}cb-- Machine not locked, Logging out all student accounts...}}xx")
-            for student in students:
-                p("}}cn-" + student + "}}xx", log_level=1)
-                UserAccounts.log_out_user(student)
-        else:
-            p("}}ynMachine is locked - not logging out students!}}xx", log_level=4)
+        # Allow users who are in OPEStudents or admin groups if the machine is locked down, and noone not admin if it isn't
+        users = UserAccounts.get_current_login_sessions()
+        is_locked = RegistrySettings.is_machine_locked()
+        #p("}}cb-- Logging out all student accounts if machine is not locked...}}xx")
+        for user in users:
+            user_name = user[0] + "\\" + user[1]
+            #p("}}cb-- Checking user: " + user_name + "}}xx")
+            if UserAccounts.is_user_in_group(user_name, "OPEStudents") and is_locked == True:
+                p("}}cn-" + user_name + " - allowed student and machine locked - leaving logged in.}}xx", log_level=4)
+            elif UserAccounts.is_user_in_group(user_name, "OPEStudents") and is_locked == False:
+                p("}}yn-" + user_name + " - allowed student and machine not locked - logging out.}}xx", log_level=2)
+                UserAccounts.log_out_user(user_name)
+            elif UserAccounts.is_user_in_group(user_name, "OPEAdmins") or UserAccounts.is_user_in_group(user_name, "Administrators") \
+                or UserAccounts.is_user_in_group(user_name, "Dommain Admins") or UserAccounts.is_user_in_group(user_name, "OSN-Elevated"):
+                p("}}cn-" + user_name + " - allowed admin - not logging out.}}xx", log_level=4)
+            else:
+                p("}}yn-" + user_name + " - not admin or OPEStudent - logging out.}}xx", log_level=2)
+                UserAccounts.log_out_user(user_name)
+
+        return True
 
     @staticmethod
     def log_out_all_students():
         # Get a list of users who are in the students group and log them out.
 
         students = UserAccounts.get_student_login_sessions()
-        p("}}cb-- Logging out all student accounts ...}}xx")
+        #p("}}cb-- Logging out all student accounts ...}}xx")
         for student in students:
-            p("}}cn-" + student + "}}xx", log_level=1)
-            UserAccounts.log_out_user(student)
+            user_name = student[0] + "\\" + student[1]
+            #p("}}cn-" + user_name + "}}xx", log_level=1)
+            UserAccounts.log_out_user(user_name)
 
         return True
 
@@ -1051,9 +1123,13 @@ class UserAccounts:
         if user_name is None:
             p("}}rn No User name provided - not logging out!}}xx")
             return False
+    
+        #UserAccounts.elevate_process_privilege_to_shutdown()
+        #UserAccounts.elevate_process_privilege_to_tcb()
+        #UserAccounts.elevate_process_privilege_to_take_ownership()
         
         # Get list of current sessions
-        sessions = win32ts.WTSEnumerateSessions(None, 1, 0)
+        sessions = win32ts.WTSEnumerateSessions(win32ts.WTS_CURRENT_SERVER_HANDLE)  #(None, 1, 0)
 
         logged_off = False
         
@@ -1061,21 +1137,34 @@ class UserAccounts:
             active_session = session['SessionId']
             station_name = session["WinStationName"]
 
+            #print(session)
+            #print(active_session)
+
             # Get the user for this session
-            logged_in_user_name = win32ts.WTSQuerySessionInformation(None, active_session,
+            logged_in_user_name = win32ts.WTSQuerySessionInformation(win32ts.WTS_CURRENT_SERVER_HANDLE, active_session,
                 win32ts.WTSUserName)
             
-            #p("}}ynComparing: " + str(user_name) + "/" + logged_in_user_name)
-            if user_name == logged_in_user_name:
+            if logged_in_user_name is None or logged_in_user_name == "":
+                # Set this so we know it won't match later - some of the service accounts don't have a name
+                logged_in_user_name = "<USERNAMEMISSING>"
+
+            #p("}}ynComparing: " + str(user_name) + "/" + logged_in_user_name + " - " + str(active_session) + "}}xx", debug_level=3)
+            # Do in comparison as doman users have the domain\user format
+            if logged_in_user_name in user_name:
                 # Log this one out
                 p("}}gnLogging off " + str(user_name) + " - typically takes 10-120 seconds...}}xx", debug_level=4)
-                win32ts.WTSLogoffSession(None, active_session, True)
-                logged_off = True
+                try:
+                    win32ts.WTSLogoffSession(win32ts.WTS_CURRENT_SERVER_HANDLE, active_session, True)
+                    logged_off = True
+                except Exception as ex:
+                    p("}}rbError - Unable to log off user: " + str(user_name) + " - " + str(active_session) + "}}xx\n" + str(ex))
+                    # Don't return false - just let it check the next session.
+                
 
-        if logged_off is not True:
-            p("}}ybUser not logged in - skipping log off! " + str(user_name) + "}}xx", debug_level=5)
-        else:
-            p("}}gnUser logged out! " + str(user_name) + "}}xx", debug_level=3)
+        # if logged_off is not True:
+        #     p("}}ybUser not logged in - skipping log off! " + str(user_name) + "}}xx", debug_level=5)
+        # else:
+        #     p("}}gnUser logged out! " + str(user_name) + "}}xx", debug_level=3)
 
         # shutup pylint
         if station_name is None: pass
