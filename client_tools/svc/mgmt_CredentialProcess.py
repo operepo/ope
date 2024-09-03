@@ -70,6 +70,7 @@ class CredentialProcess:
 
     @staticmethod
     def config_mgmt_utility_once():
+        
         # Run the config mgmt utility once
         if RegistrySettings.get_reg_value(value_name="smc_url", default="<NOT CONFIGURED>") == "<NOT CONFIGURED>":
             # Never configured - run the config prompt
@@ -80,6 +81,16 @@ class CredentialProcess:
     @staticmethod
     def config_mgmt_utility():
         mgmt_version = CredentialProcess.get_mgmt_version()
+
+        # Setup local groups for students and admins
+        UserAccounts.create_local_students_group()
+        UserAccounts.create_local_admins_group()
+
+        # Create registry entries and set permissions
+        RegistrySettings.set_default_ope_registry_permissions(force=True)
+
+        # Create programdata\ope folders and set permissions
+        FolderPermissions.set_default_ope_folder_permissions(force=True)
 
         # Make sure RDP RPC is allowed
         RegistrySettings.set_reg_value(
@@ -126,10 +137,6 @@ class CredentialProcess:
         p("}}gnConfiguring Network Devices...}}xx")
         NetworkDevices.configure_nics()
 
-        # Setup local groups for students and admins
-        UserAccounts.create_local_students_group()
-        UserAccounts.create_local_admins_group()
-
         # Doesn't work - group policy overwrites it every time it refreshes
         # Make sure OPEAdmins can logon locally
         #UserAccounts.allow_group_to_logon_locally("OPEAdmins")
@@ -142,13 +149,6 @@ class CredentialProcess:
             # Add active user to OPEAdmins group
             p("}}gnAdding current user (" + active_user + ") to OPEAdmins group...}}xx")
             UserAccounts.add_user_to_group(active_user, "OPEAdmins")
-
-
-        # Create registry entries and set permissions
-        RegistrySettings.set_default_ope_registry_permissions(force=True)
-
-        # Create programdata\ope folders and set permissions
-        FolderPermissions.set_default_ope_folder_permissions(force=True)
 
         return True
 
