@@ -140,8 +140,34 @@ HEADERS += \
 RC_ICONS = logo_icon.ico
 
 DISTFILES += \
+    Announcements.qml \
+    App.js \
+    AppAnnouncements.qml \
+    AppAssignmentPage.qml \
+    AppAssignments.qml \
+    AppConversation.qml \
+    AppCourseSelector.qml \
+    AppDashboardPage.qml \
+    AppDiscussions.qml \
+    AppFiles.qml \
+    AppHomePage.qml \
+    AppInbox.qml \
+    AppMessage.qml \
+    AppModules.qml \
+    AppPages.qml \
+    AppQuizzes.qml \
+    AppSideBar.qml \
+    AppSyncPage.qml \
+    AppWikiPage.qml \
+    BuildInstructions.md \
+    QQ_MultipleChoiceAnswer.qml \
+    QQ_TrueFalseAnswer.qml \
+    QuizQuestion.qml \
     WebEngineMP4Build_6.5.1.cmd \
     WebEngineMP4Build_6.5.2.cmd \
+    dropTest.qml \
+    lms.qml \
+    not_credentialed.qml \
     qt.conf \
     blue-folder.png \
     Scratch.txt \
