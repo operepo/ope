@@ -1141,7 +1141,7 @@ ApplicationWindow {
                 // Breadcrumb
                 Rectangle {
                     id: appBreadCrumb;
-                    height: 40;
+                    height: 43;
                     width: parent.width;
                     Layout.fillWidth: true;
                     Layout.preferredHeight: height;
@@ -1218,6 +1218,7 @@ ApplicationWindow {
 
                                 if (typeof val === 'undefined') {
                                     val = "(undefined)";
+                                    val = "";
                                 }
 
                                 // If this is the last item, then color should be black
@@ -1245,7 +1246,6 @@ ApplicationWindow {
                                     console.log("Clicked " + link);
                                     appBreadCrumb.itemClicked(link);
                                 }
-
                             }
 
 //                            MouseArea {

@@ -291,6 +291,9 @@ ColumnLayout {
 
             display: AbstractButton.TextOnly
             onClicked: {
+                // Clear text and Reset with the style rules
+                progressLabel.text = progressLabel.initial_style;
+
                 syncDrawer.close();
             }
 
