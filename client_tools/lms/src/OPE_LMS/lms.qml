@@ -1141,7 +1141,7 @@ ApplicationWindow {
                 // Breadcrumb
                 Rectangle {
                     id: appBreadCrumb;
-                    height: 43;
+                    height: 43; // TODO - Put this back when you want to see it 43;
                     width: parent.width;
                     Layout.fillWidth: true;
                     Layout.preferredHeight: height;
