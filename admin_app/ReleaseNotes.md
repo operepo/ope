@@ -2,8 +2,6 @@
 # OPE Project - Release Notes
 Important notifications and heads up on what has changed.
 
-## [color=ff3333]!!!SECURITY ADVISORY - 5/1/2020 !!![/color]
-Please make sure that laptops are all re-credentialed with the latest updates. Credential app now shows a version nubmer in green and needs to be v1.0.24 or higher. This is an urgent update and requires that all laptops be pulled ASAP and re-credentialed.
 
 ## [color=ff3333]!!!PASSWORD WARNING!!![/color]
 Short passwords no longer work! Please make sure you use proper password complexity (8 characters, 1 capital, 1 lower case, 1 number, 1 symbol) for admin/facuty/student accounts as weak passwords will be rejected. Short passwords have been known to cause the following problems:
@@ -11,9 +9,9 @@ Short passwords no longer work! Please make sure you use proper password complex
 - Canvas not properly starting up with admin/root password too short
 
 ## [color=33ff33]CURRENT VERSIONS[/color]
-- SyncApp 1.34
-- Laptop Credential 1.0.59
-- SMC 1.9.59
+- SyncApp 1.35
+- Laptop Credential 1.0.119
+- SMC 24.8.18.0
 
 ## 1/4/2021
 - SMC 1.9.59

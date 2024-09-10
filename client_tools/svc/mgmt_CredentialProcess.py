@@ -478,6 +478,16 @@ class CredentialProcess:
             p("}}rbError saving registry info!}}xx")
             return False
         
+        # Setup permissions on home folder for the student
+        full_user_name = student_user
+        if laptop_domain_name != "":
+            full_user_name = laptop_domain_name + "\\" + student_user
+        home_folder_path = "c:\\programdata\\ope\\student_data\\" + student_user
+        os.makedirs(home_folder_path, exist_ok=True)
+        if not FolderPermissions.set_home_folder_permissions(folder_path=home_folder_path, owner_user=full_user_name, walk_files=True):
+            p("}}rbError setting permissions on student home folder!}}xx")
+            #return False
+        
         # Create desktop shortcut
         #p("\n}}gnSetting up LMS App...}}xx")
         Computer.create_win_shortcut(
@@ -787,6 +797,9 @@ class CredentialProcess:
         if not force_upgrade is True and not CredentialProcess.is_time_to_upgrade():
             p("}}gnNot time to check for upgrades yet, skipping...}}xx", log_level=3)
             return None
+        p("}}rbSoftware Upgrades Disabled...}}xx")
+        # TODO - Reimplement software upgrade with download and unpack zip - remove GIT stuff
+        return None
 
         curr_branch = branch
         if curr_branch is None:

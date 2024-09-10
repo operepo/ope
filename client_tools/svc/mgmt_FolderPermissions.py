@@ -431,7 +431,7 @@ class FolderPermissions:
             (everyone_rights, ope_student_rights, add_current_user) = app_folders[f]
             p("}}gnSetting permissions on " + f + " (rights for everyone " + \
                 everyone_rights + ")(rights for ope students " + ope_student_rights + ")(add current user " + str(add_current_user) + ")}}xx", log_level=5)
-            FolderPermissions.set_ope_folder_permissions(f, everyone_rights=everyone_rights)
+            FolderPermissions.set_ope_folder_permissions(f, everyone_rights=everyone_rights, ope_students_rights=ope_student_rights, add_current_user=add_current_user)
 
         return True
     

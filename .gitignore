@@ -105,3 +105,5 @@ exported_gpo
 /media_files_tool/sync_media_files.dist
 /client_tools/svc/OPEService.dist
 /client_tools/svc/sshot.dist
+sync_gui.dist
+sync_gui.build

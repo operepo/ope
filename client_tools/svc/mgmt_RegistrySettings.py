@@ -33,6 +33,19 @@ class RegistrySettings:
 
 
     @staticmethod
+    def get_credentialed_student_username():
+        # Get credentialed student username
+        student_user = RegistrySettings.get_reg_value(app="OPELMS\\student", value_name="user_name", default="")
+        laptop_network_type = RegistrySettings.get_reg_value(app="OPEService", value_name="laptop_network_type", default="Stand Alone")
+        laptop_domain_name = RegistrySettings.get_reg_value(app="OPEService", value_name="laptop_domain_name", default="osn.local")
+
+        ret = student_user
+        if student_user != "" and laptop_network_type == "Domain Member" and laptop_domain_name != "":
+            ret = laptop_domain_name + "\\" + student_user
+        
+        return ret
+
+    @staticmethod
     def is_debug():
         val = RegistrySettings.get_reg_value(value_name="debug", default="off")
         if val == "on":

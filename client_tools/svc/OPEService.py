@@ -223,7 +223,7 @@ class OPEService(win32serviceutil.ServiceFramework):
         },
         "log_out_all_students_if_not_locked": {
             "cmd": "%mgmt% log_out_all_students_if_not_locked",
-            "timer": 30
+            "timer": 60
         }
         
     }
@@ -395,26 +395,13 @@ class OPEService(win32serviceutil.ServiceFramework):
                         #p(f"IpPort: {string_inserts[19]}")
                         event_info["IpPort"] = string_inserts[19]
                     else:
-                        p(f"Event does not contain all expected fields. \n{string_inserts}", log_level=3)
+                        p(f"Event does not contain all expected fields. \n{string_inserts}", log_level=5)
                         continue
 
-                    if event.EventID == event_id and (event_info["LogonType"] != "5"):
+                    if event.EventID == event_id and (event_info["LogonType"] in ["2", "7", "10", "11"]):
                         p(f"*** Interactive Login event detected.\n{event_info}", log_level=3)
                         mgmt_UserAccounts.ProcessLogonEvent(event_info)
-                        # if username.lower() in [s.lower() for s in event.StringInserts if s]:
-                        #     print(f"Login attempt detected for user: {username}")
-                        #     disable_user_account(username)
-                        #     return
-                        #print(f"Event Category: {event.EventCategory}")
-                        # print(f"Time Generated: {event.TimeGenerated}")
-                        # print(f"Source Name: {event.SourceName}")
-                        # print(f"Event ID: {event.EventID}")
-                        # print(f"Event Type: {event.EventType}")
-                        # print(f"Event Record: {event.RecordNumber}")
-                        # print(f"User SID: {event.Sid}")
-                        # print(f"Event Data: {event.StringInserts}")
-                        # print("="*50)
-                        #
+                        
                         
             except Exception as e:
                 p("}}rbAn error occurred trying to check for login events: " + f"{e}" + "}}xx")
@@ -692,10 +679,10 @@ class OPEService(win32serviceutil.ServiceFramework):
             # data is a single elt tuple, but this could potentially grow
             # in the future if the win32 struct does
             msg = "Session event: type=%s, data=%s" % (event_type, data)
-            if event_type == win32ts.WTS_SESSION_LOGON:
+            if event_type == 0x5: # WTS_SESSION_LOGON:
                 # Logon event
                 p(f"SvcOtherEx - Login event detected - {data}", log_level=3)
-            elif event_type == win32ts.WTS_SESSION_LOGOFF:
+            elif event_type == 0x6: # WTS_SESSION_LOGOFF:
                 # Logoff event
                 p(f"SvcOtherEx - Logoff event detected - {data}", log_level=3)
                 

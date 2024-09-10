@@ -1248,36 +1248,46 @@ class UserAccounts:
 
     @staticmethod
     def ProcessLogonEvent(event_info):
-        # Decide if we need to logout this user
+        # Log out all accounts that aren't an admin or approved student (if machine is locked)
+        UserAccounts.log_out_all_students_if_not_locked()
 
-        # event_info - user_name, domain_name, full_name, user_sid, event_type, event_time, event_source, event_id, event_data
-        # SubjectUserSid, SubjectUserName, SubjectDomainName, SubjectLogonId, TargetUserSid, TargetUserName, TargetDomainName,
-        # TargetLogonId, LogonType, LogonProcessName, AuthenticationPackageName, WorkstationName,
-        # LogonGuid, TransmittedServices, LmPackageName, KeyLength, ProcessId, ProcessName, IpAddress, IpPort
+        return True
+        # # Decide if we need to logout this user
 
-        # Get the user name
-        user_name = event_info["user_name"]
-        user_domain = event_info["domain_name"]
-        user_full_name = event_info["full_name"]
-        user_sid = event_info["user_sid"]
-        event_type = event_info["event_type"]
-        event_time = event_info["event_time"]
-        event_source = event_info["event_source"]
-        event_id = event_info["event_id"]
-        event_data = event_info["event_data"]
+        # # event_info - user_name, domain_name, full_name, user_sid, event_type, event_time, event_source, event_id, event_data
+        # # SubjectUserSid, SubjectUserName, SubjectDomainName, SubjectLogonId, TargetUserSid, TargetUserName, TargetDomainName,
+        # # TargetLogonId, LogonType, LogonProcessName, AuthenticationPackageName, WorkstationName,
+        # # LogonGuid, TransmittedServices, LmPackageName, KeyLength, ProcessId, ProcessName, IpAddress, IpPort
 
-        # If user is not an admin and is isn't in the OPESStudents group, log them out.
-        if UserAccounts.is_user_in_group(user_name, "administrators") or UserAccounts.is_user_in_group(user_name, "OPEAdmins"):
-            p("User is an admin logging in - allowing login: " + str(user_name))
-            return True
+        # # Get the user name
+        # user_name = event_info["user_name"]
+        # user_domain = event_info["domain_name"]
+        # user_full_name = event_info["full_name"]
+        # user_sid = event_info["user_sid"]
+        # event_type = event_info["event_type"]
+        # event_time = event_info["event_time"]
+        # event_source = event_info["event_source"]
+        # event_id = event_info["event_id"]
+        # event_data = event_info["event_data"]
+
+        # if user_domain is not None and not user_domain == "":
+        #     user_name = user_domain + "\\" + user_name
+
+        # # If user is not an admin and is isn't in the OPESStudents group, log them out.
+        # if UserAccounts.is_user_in_group(user_name, "administrators") or UserAccounts.is_user_in_group(user_name, "OPEAdmins"):
+        #     p("User is an admin logging in - allowing login: " + str(user_name))
+        #     return True
         
-        if UserAccounts.is_user_in_group(user_name, "OPEStudents"):
-            p("User is a student logging in - allowing login: " + str(user_name))
-            return True
+        # if UserAccounts.is_user_in_group(user_name, "OPEStudents") and RegistrySettings.is_machine_locked():
+        #     p("User is a valid student logging in and machine locked - allowing login: " + str(user_name))
+        #     return True
+        # elif UserAccounts.is_user_in_group(user_name, "OPEStudents") and not RegistrySettings.is_machine_locked():
+        #     p("User is a valid student logging in and machine not locked - logging out: " + str(user_name))
+        #     return UserAccounts.log_out_user(user_name)
         
-        # All other instances, force the logout.
-        p("User is not an admin or student or account is locked - logging out: " + str(user_name))
-        return UserAccounts.log_out_user(user_name)
+        # # All other instances, force the logout.
+        # p("}}rbNot a valid user - logging out: }}xx" + str(user_name))
+        # return UserAccounts.log_out_user(user_name)
 
 if __name__ == "__main__": 
     #ret = UserAccounts.create_local_students_group()
