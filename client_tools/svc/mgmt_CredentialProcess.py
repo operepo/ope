@@ -478,16 +478,6 @@ class CredentialProcess:
             p("}}rbError saving registry info!}}xx")
             return False
         
-        # Setup permissions on home folder for the student
-        full_user_name = student_user
-        if laptop_domain_name != "":
-            full_user_name = laptop_domain_name + "\\" + student_user
-        home_folder_path = "c:\\programdata\\ope\\student_data\\" + student_user
-        os.makedirs(home_folder_path, exist_ok=True)
-        if not FolderPermissions.set_home_folder_permissions(folder_path=home_folder_path, owner_user=full_user_name, walk_files=True):
-            p("}}rbError setting permissions on student home folder!}}xx")
-            #return False
-        
         # Create desktop shortcut
         #p("\n}}gnSetting up LMS App...}}xx")
         Computer.create_win_shortcut(
@@ -622,11 +612,12 @@ class CredentialProcess:
             p("}}rbNot Credentiled! - Unable to find credentialed student - not locking machine!}}xx")
             return False
         
-        # Get the current admin user name
-        admin_user_name = CredentialProcess.get_credentialed_admin()
-        if admin_user_name is None:
-            p("}}rbNot Credentiled! - Unable to find credentialed admin account - not locking machine!}}xx")
-            return False
+        # Discontinue use of credentialed admin account
+        # # Get the current admin user name
+        # admin_user_name = CredentialProcess.get_credentialed_admin()
+        # if admin_user_name is None:
+        #     p("}}rbNot Credentiled! - Unable to find credentialed admin account - not locking machine!}}xx")
+        #     return False
         
         laptop_network_type = CredentialProcess.get_credentialed_network_type()
         laptop_domain_name = CredentialProcess.get_credentialed_domain_name()
@@ -678,10 +669,11 @@ class CredentialProcess:
             p("}}rbError - Could not reset default groups for student!\nStudent Account NOT unlocked!}}xx")
             return False
         
-        # Reset admin users group memberships
-        if not UserAccounts.set_default_groups_for_admin(admin_user_name):
-            p("}}rbError - Could not reset default groups for the admin account!\nStudent Account NOT unlocked!}}xx")
-            return False
+        # Discontinue use of credentialed admin account
+        # # Reset admin users group memberships
+        # if not UserAccounts.set_default_groups_for_admin(admin_user_name):
+        #     p("}}rbError - Could not reset default groups for the admin account!\nStudent Account NOT unlocked!}}xx")
+        #     return False
         
         # Ensure the OPEService is running
         if not CredentialProcess.ensure_opeservice_running():
@@ -696,10 +688,10 @@ class CredentialProcess:
         #     return False
 
         # Enable student account
-        # if laptop_network_type == "Standalone":
-        #     if not UserAccounts.enable_account(student_user_name):
-        #         p("}}rbError - Failed to enable student account: " + str(student_user_name) + "}}xx")
-        #         return False
+        if laptop_network_type == "Standalone":
+            if not UserAccounts.enable_account(student_user_name):
+                p("}}rbError - Failed to enable student account: " + str(student_user_name) + "}}xx")
+                return False
         # else:
         #     # TODO - list student account in allowed users to login
         #     p("}}ybRunning in Domain Mode, not enabling student account.}}xx")

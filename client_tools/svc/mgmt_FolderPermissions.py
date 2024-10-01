@@ -349,6 +349,8 @@ class FolderPermissions:
             os.makedirs(util.CONFIG_FOLDER, exist_ok=True)
         if not os.path.isdir(util.TMP_FOLDER):
             os.makedirs(util.TMP_FOLDER, exist_ok=True)
+        if not os.path.isdir(util.QML_CACHE_FOLDER):
+            os.makedirs(util.QML_CACHE_FOLDER, exist_ok=True)
         if not os.path.isdir(util.LOCK_SCREEN_WIDGET_FOLDER):
             os.makedirs(util.LOCK_SCREEN_WIDGET_FOLDER, exist_ok=True)
         if not os.path.isdir(util.LOG_FOLDER):
@@ -424,6 +426,7 @@ class FolderPermissions:
             os.path.join(util.LOG_FOLDER, "upgrade.log"): ("r", "r", False),
             util.SCREEN_SHOTS_FOLDER: ("c", "c", False),
             util.LOCK_SCREEN_WIDGET_FOLDER: ("r", "r", False),
+            util.QML_CACHE_FOLDER: ("f", "c", False)
             
         }
         
@@ -433,8 +436,38 @@ class FolderPermissions:
                 everyone_rights + ")(rights for ope students " + ope_student_rights + ")(add current user " + str(add_current_user) + ")}}xx", log_level=5)
             FolderPermissions.set_ope_folder_permissions(f, everyone_rights=everyone_rights, ope_students_rights=ope_student_rights, add_current_user=add_current_user)
 
+        # Make sure the current credentialed students home folder permissions are set
+        FolderPermissions.set_students_home_folder_permissions()
+
         return True
     
+    @staticmethod
+    def set_students_home_folder_permissions():
+        laptop_domain_name = RegistrySettings.get_reg_value(value_name="laptop_domain_name", default="")
+        if laptop_domain_name is None:
+            laptop_domain_name = ""
+        
+        # Get the list of students
+        students = list()
+
+        p("}}gnSetting permissions on student home folders...}}xx", log_level=3)
+        
+        student_user = RegistrySettings.get_reg_value(app="OPELMS\\student", value_name="user_name", default="")
+        if student_user != "":
+            students.append(student_user)
+
+        for student in students:
+            full_user_name = student
+            if laptop_domain_name != "":
+                full_user_name = laptop_domain_name + "\\" + student
+            home_folder_path = "c:\\programdata\\ope\\student_data\\" + student
+            os.makedirs(home_folder_path, exist_ok=True)
+            p("}}gnSetting permissions on home folder for " + student + " -> " + home_folder_path + "}}xx", log_level=3)
+            if not FolderPermissions.set_home_folder_permissions(folder_path=home_folder_path, owner_user=full_user_name, walk_files=True):
+                p("}}rbERROR - Setting permissions on home folder for " + student + " -> " + home_folder_path + "}}xx", log_level=3)
+
+        return True
+
     @staticmethod
     def rebuild_bcd_data_wmi():
         GUID_WINDOWS_BOOTMGR = "{9dea862c-5cdd-4e70-acc1-f32b344d4795}"

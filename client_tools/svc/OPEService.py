@@ -223,7 +223,7 @@ class OPEService(win32serviceutil.ServiceFramework):
         },
         "log_out_all_students_if_not_locked": {
             "cmd": "%mgmt% log_out_all_students_if_not_locked",
-            "timer": 60
+            "timer": 30
         }
         
     }

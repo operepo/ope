@@ -15,6 +15,7 @@ import shutil
 import random
 import os
 import pyad
+import traceback
 
 # Need this for winsys exceptions
 import winsys
@@ -118,7 +119,8 @@ class UserAccounts:
 
     @staticmethod
     def get_current_user():
-        return win32api.GetUserName()
+        #return win32api.GetUserName()
+        return win32api.GetUserNameEx(win32con.NameSamCompatible)
     
     @staticmethod
     def get_active_user_name():
@@ -163,10 +165,15 @@ class UserAccounts:
         # Figure out the active user token we need to use to run the app as
         ret = None
 
-        # Get the current user name
-        user_name = win32api.GetUserName()
+        computer_name = win32api.GetComputerName()
 
-        if user_name != "SYSTEM":
+        # Get the current user name
+        #user_name = win32api.GetUserName()
+        user_name = win32api.GetUserNameEx(win32con.NameSamCompatible)
+        #p("}}gnCurrent User: " + user_name + "}}xx", debug_level=3)
+
+        # System account will either by SYSTEM or NT AUTHORITY\SYSTEM or DOMAIN\COMPUTERNAME$
+        if user_name != "SYSTEM" and user_name.upper().endswith(f"{computer_name}$") is False:
             # Running as a logged in user, get the current users token
             current_process = win32process.GetCurrentProcess()
             token = win32security.OpenProcessToken(current_process,
@@ -237,6 +244,7 @@ class UserAccounts:
         # Get the current user name
         # Shouldn't need this as WTSEnumerateSessions should get all users currently logged in
         # curr_user = win32api.GetUserName()
+        # curr_user = win32api.GetUserNameEx(win32api.NameSamCompatible)
         # if UserAccounts.is_user_in_group(curr_user, "OPEStudents"):
         #     ret.append((domain, curr_user))
 
@@ -300,7 +308,8 @@ class UserAccounts:
         try:
             server_name = None  # None for local machine
             if user_name is None:
-                user_name = win32api.GetUserName()
+                #user_name = win32api.GetUserName()
+                user_name = win32api.GetUserNameEx(win32con.NameSamCompatible)
             if user_name == "SYSTEM":
                 # SYSTEM user counts!
                 return True
@@ -427,6 +436,11 @@ class UserAccounts:
             ]
 
             win32security.AdjustTokenPrivileges(proces_token, 0, new_privs)
+            err = win32api.GetLastError()
+            if err != 0:
+                p("}}rbError - trying to elevate tcb privileges - Only works from OPEService (LocalSystem)}}xx\n" +
+                    str(err))
+                return False
         except Exception as ex:
             p("}}rbException - trying to elevate tcb privileges}}xx\n" +
                 str(ex))
@@ -751,7 +765,7 @@ class UserAccounts:
                 pass
             else:
                 p("}}rbERROR - Unexpected exception trying to add user to group (" + \
-                    user_name + "/" + group_name + "\n}}xx" + str(ex))
+                    user_name + " -> " + group_name + "\n}}xx" + str(ex))
                 return False
         return True
 
@@ -1077,29 +1091,7 @@ class UserAccounts:
         # Locks the workstation of the current user
         return ctypes.windll.user32.LockWorkStation()
     
-    @staticmethod
-    def log_out_all_students_if_not_locked():
-        # Allow users who are in OPEStudents or admin groups if the machine is locked down, and noone not admin if it isn't
-        users = UserAccounts.get_current_login_sessions()
-        is_locked = RegistrySettings.is_machine_locked()
-        #p("}}cb-- Logging out all student accounts if machine is not locked...}}xx")
-        for user in users:
-            user_name = user[0] + "\\" + user[1]
-            #p("}}cb-- Checking user: " + user_name + "}}xx")
-            if UserAccounts.is_user_in_group(user_name, "OPEStudents") and is_locked == True:
-                p("}}cn-" + user_name + " - allowed student and machine locked - leaving logged in.}}xx", log_level=4)
-            elif UserAccounts.is_user_in_group(user_name, "OPEStudents") and is_locked == False:
-                p("}}yn-" + user_name + " - allowed student and machine not locked - logging out.}}xx", log_level=2)
-                UserAccounts.log_out_user(user_name)
-            elif UserAccounts.is_user_in_group(user_name, "OPEAdmins") or UserAccounts.is_user_in_group(user_name, "Administrators") \
-                or UserAccounts.is_user_in_group(user_name, "Dommain Admins") or UserAccounts.is_user_in_group(user_name, "OSN-Elevated"):
-                p("}}cn-" + user_name + " - allowed admin - not logging out.}}xx", log_level=4)
-            else:
-                p("}}yn-" + user_name + " - not admin or OPEStudent - logging out.}}xx", log_level=2)
-                UserAccounts.log_out_user(user_name)
-
-        return True
-
+    
     @staticmethod
     def log_out_all_students():
         # Get a list of users who are in the students group and log them out.
@@ -1289,6 +1281,197 @@ class UserAccounts:
         # p("}}rbNot a valid user - logging out: }}xx" + str(user_name))
         # return UserAccounts.log_out_user(user_name)
 
+    @staticmethod
+    def get_token_for_logged_in_user(user_name):
+        # Get the token for the logged in user by going through the WTS sessions
+        ret_token = None
+
+        UserAccounts.elevate_process_privilege_to_tcb()
+        # UserAccounts.elevate_process_privilege_to_take_ownership()
+        # UserAccounts.elevate_process_privilege_to_backup_restore()
+        # UserAccounts.elevate_process_privilege_assign_primary_token()
+        # UserAccounts.elevate_process_privilege_to_se_security_name()
+
+
+        sessions = win32ts.WTSEnumerateSessions(win32ts.WTS_CURRENT_SERVER_HANDLE)
+        for session in sessions:
+            session_id = session['SessionId']
+            session_username = win32ts.WTSQuerySessionInformation(win32ts.WTS_CURRENT_SERVER_HANDLE, session_id, win32ts.WTSUserName)
+            if session_username != "" and session_username.lower() in user_name.lower():
+                # Found the session
+                try:
+                    ret_token = win32ts.WTSQueryUserToken(session_id)
+                    break
+                except Exception as ex:
+                    p("}}rbError - Unable to get user token for " + str(session_username) + " - " + str(session_id) + " - only works under OPEService (LocalSystem)}}xx\n" + str(ex))
+                    #ret_token = None
+                
+        
+        return ret_token
+
+    @staticmethod
+    def get_groups_for_token(token):
+        ret_groups = list()
+        if token is None:
+            return ret_groups # Empty list
+        
+        # Get the list of group sids in the token
+        groups = win32security.GetTokenInformation(token, win32security.TokenGroups)
+        for group in groups:
+            try:
+                group_name = win32security.LookupAccountSid(None, group[0])[0]
+                # Store the group name and SID
+                ret_groups.append((group_name, group[0]))
+            except Exception as ex:
+                p("}}rbError - Unable to get group name for SID: " + str(group[0]) + "}}xx\n" + str(ex))
+                
+        
+        return ret_groups
+    
+    @staticmethod
+    def is_group_sid_in_token(token, group_sid):
+        groups = UserAccounts.get_groups_for_token(token)
+
+        for group in groups:
+            if group_sid == group[1]:
+                return True
+        
+        return False
+    
+    @staticmethod
+    def is_group_in_token(token, group_name):
+        group_sid = win32security.LookupAccountName(None, group_name)[0]
+        return UserAccounts.is_group_sid_in_token(token, group_sid)
+    
+    @staticmethod
+    def get_admin_groups():
+        # Get the list of groups that are considered admin groups        
+        domain_groups = ["OPEAdmins", "Domain Admins", "Schema Admins", "Enterprise Admins", "Administrators", "G-S-OSN-Edu-IT-Server-Managers"]
+        # Get SIDs for these groups.
+        group_list = list()
+        #print("a")
+        for group_name in domain_groups:
+            try:
+                group_sid = win32security.LookupAccountName(None, group_name)[0]
+                group_list.append((group_name, group_sid))
+            except Exception as ex:
+                p("}}rbError - Unable to get SID for domain group: " + group_name + " - not adding to the list.}}xx\n\t" + str(ex))
+
+        return group_list
+    
+    @staticmethod
+    def find_first_process_token_for_user(user_name, find_process_name=None):
+        try:
+            user_sid = win32security.LookupAccountName(None, user_name)[0]
+        except Exception as ex:
+            p("}}rbError - Unable to get SID for user: " + user_name + "}}xx\n" + str(ex))
+            return None
+        if user_sid is None:
+            p("}}rnUnable to find user sid for: " + user_name + "}}xx")
+            return None
+
+        # This gets the list of all processess in the system
+        global_process_list = win32ts.WTSEnumerateProcesses(win32ts.WTS_CURRENT_SERVER_HANDLE)
+
+        for process in global_process_list:
+            process_owner = process[3]
+            process_pid = int(process[1])
+            process_session_id = process[0]
+            process_name = process[2]
+            if (process_owner == user_sid and find_process_name is None) or (process_owner == user_sid and process_name.lower() == find_process_name.lower()):
+                p(f"Found {process_name} process owned by user: {user_name} {process}")
+                # Open the process and get its token
+                process_handle = win32api.OpenProcess(win32con.PROCESS_ALL_ACCESS, False, process_pid)
+                process_token = win32security.OpenProcessToken(process_handle, win32security.TOKEN_QUERY)
+
+                #win32api.CloseHandle(process_token)
+                win32api.CloseHandle(process_handle)
+                return process_token
+            
+        # If we get here, we didn't find the process for the user
+        return None
+    
+    @staticmethod
+    def is_process_in_group(process_token, domain_admin_groups, find_first=True):
+        found = False
+        # See if the process token has membership in one of the following groups
+        for admin_group in domain_admin_groups:
+            group_name = admin_group[0]
+            group_sid = admin_group[1]
+
+            if UserAccounts.is_group_sid_in_token(process_token, group_sid):
+                p("}}cbUser is in group: " + str(group_name) + "}}xx")
+                found = True
+                if find_first:
+                    return found
+        
+        return found
+    
+    @staticmethod
+    def log_out_all_students_if_not_locked():
+        # Allow users who are in OPEStudents or admin groups if the machine is locked down, and noone not admin if it isn't
+        users = UserAccounts.get_current_login_sessions()
+        is_locked = RegistrySettings.is_machine_locked()
+
+        # Get the list of admin groups
+        domain_admin_groups = list()
+        admin_group_list = UserAccounts.get_admin_groups()
+        for admin_group in admin_group_list:
+            # admin_group is (group_name, group_sid)
+            domain_admin_groups.append((admin_group[0], admin_group[1]))
+
+        #print("b")        
+        #p("}}cb-- Logging out all student accounts if machine is not locked...}}xx")
+        #users.append(("osn", "Administrator"))
+        for user in users:
+            try:
+                user_name = user[0] + "\\" + user[1]
+                #print("c")
+                #user_token = UserAccounts.get_token_for_logged_in_user(user_name)
+
+                process_token = UserAccounts.find_first_process_token_for_user(user_name)
+                if process_token is None:
+                    p("}}rnUnable to find process for user: " + user_name + "}}xx")
+                    continue
+
+                is_admin = False
+
+                # See if the process token has membership in one of the following groups
+                if UserAccounts.is_process_in_group(process_token, domain_admin_groups, find_first=True):
+                    p("}}cbUser is in admin group: " + user_name + "}}xx")
+                    is_admin = True
+                
+                win32api.CloseHandle(process_token)
+                    
+                if is_admin:
+                    p("}}cn-" + user_name + " - allowed admin - not logging out.}}xx", log_level=4)
+                    continue
+                
+                # If we get here, it isn't an admin user, lets see if it is a valid student (in the OPEStudents group)
+                if UserAccounts.is_user_in_group(user_name, "OPEStudents") and is_locked == True:
+                    p("}}cn-" + user_name + " - allowed student and machine locked - leaving logged in.}}xx", log_level=4)
+                    continue
+                # In this case, they are a valid student, but the machine isn't locked
+                elif UserAccounts.is_user_in_group(user_name, "OPEStudents") and is_locked == False:
+                    p("}}yn-" + user_name + " - allowed student and machine not locked - logging out.}}xx", log_level=2)
+                    UserAccounts.log_out_user(user_name)
+                    continue
+                
+                # None of the others apply, so must need to log them out
+                p("}}yn-" + user_name + " - not admin or OPEStudent - logging out.}}xx", log_level=2)
+                # TODO - Turn logout back on when debugging is done
+                #p("}}rb***** Logging out disabled for debugging! *****}}xx")
+                UserAccounts.log_out_user(user_name)
+            except Exception as ex:
+                p("}}rbError checking if we should logout the user: " + user_name + "}}xx\n" + str(ex))
+                st = traceback.format_exc()
+                p("}}rb" + str(st) + "}}xx", debug_level=4)
+
+                continue
+
+        return True
+    
+
 if __name__ == "__main__": 
     #ret = UserAccounts.create_local_students_group()
     #ret = UserAccounts.create_local_student_account("s999999", "Test Student", "Sid999999!")
@@ -1296,8 +1479,37 @@ if __name__ == "__main__":
     #print("Log out all students...")
     #print(UserAccounts.get_active_user_name())
     #UserAccounts.log_out_all_students()
-    ret = UserAccounts.create_local_students_group()
-    print("RET: " + str(ret))
+    #ret = UserAccounts.create_local_students_group()
+    #print("RET: " + str(ret))
     #UserAccounts.add_ad_user_to_local_group("s777777", "osn.local", "OPEStudents")
     #UserAccounts.add_user_to_group("osn.local\\s777777", "OPEStudents")
-    UserAccounts.disable_account("s777778")
+    #UserAccounts.disable_account("s777778")
+    
+    
+    UserAccounts.log_out_all_students_if_not_locked()
+    
+    
+    #thread_token = win32security.OpenProcessToken(win32api.GetCurrentProcess(), win32security.TOKEN_ALL_ACCESS)
+
+    # group_list = UserAccounts.get_admin_groups()
+    # for item in group_list:
+    #     group_name = item[0]
+    #     group_sid = item[1]
+
+    #     if UserAccounts.is_group_sid_in_token(thread_token, group_sid):
+    #         p("}}cbUser is in group: " + str(group_name) + "}}xx")
+    
+    # domain_admins_sid = win32security.LookupAccountName(None, "Domain Admins")[0]
+    # #user_token = UserAccounts.get_token_for_logged_in_user("huskers")
+    # thread_token = win32security.OpenProcessToken(win32api.GetCurrentProcess(), win32security.TOKEN_ALL_ACCESS)
+    # sid, attr = win32security.GetTokenInformation(thread_token, win32security.TokenUser)
+    # groups = win32security.GetTokenInformation(thread_token, win32security.TokenGroups)
+    # p("}}cbGroups: " + str(groups) + "}}xx")
+    # for g in groups:
+    #     group_name = win32security.LookupAccountSid(None, g[0])[0]
+    #     p("}}cbChecking Group: " + str(group_name) + "}}xx")
+    #     if domain_admins_sid == g[0]:
+    #         p("}}cbUser is in domain admins group! " + str(domain_admins_sid) + "}}xx")
+        
+    #is_in_group = win32security.CheckTokenMembership(user_token, domain_admins_sid)
+    pass

@@ -142,15 +142,17 @@ color_codes = {
 
 # POWERSHELL FIXES - Adjust colors when running in powershell to make them more readable
 # Get parent process name
-parent_proc_name = psutil.Process(os.getppid()).name()
-if 'pwsh' in parent_proc_name or 'powershell' in parent_proc_name:
-    # Make red only use bold so it is readable
-    color_codes["}}rn"] = color_codes["}}rb"]
-    # Change magenta to white as magenta doesn't show up
-    color_codes["}}mn"] = color_codes["}}wb"]
-    color_codes["}}mi"] = color_codes["}}wi"]
-    color_codes["}}md"] = color_codes["}}wd"]
-
+try:
+    parent_proc_name = psutil.Process(os.getppid()).name()
+    if 'pwsh' in parent_proc_name or 'powershell' in parent_proc_name:
+        # Make red only use bold so it is readable
+        color_codes["}}rn"] = color_codes["}}rb"]
+        # Change magenta to white as magenta doesn't show up
+        color_codes["}}mn"] = color_codes["}}wb"]
+        color_codes["}}mi"] = color_codes["}}wi"]
+        color_codes["}}md"] = color_codes["}}wd"]
+except Exception as ex:
+    pass
 
 markup_color_codes = {
 
