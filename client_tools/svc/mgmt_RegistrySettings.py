@@ -33,6 +33,19 @@ class RegistrySettings:
 
 
     @staticmethod
+    def get_credentialed_student_username():
+        # Get credentialed student username
+        student_user = RegistrySettings.get_reg_value(app="OPELMS\\student", value_name="user_name", default="")
+        laptop_network_type = RegistrySettings.get_reg_value(app="OPEService", value_name="laptop_network_type", default="Stand Alone")
+        laptop_domain_name = RegistrySettings.get_reg_value(app="OPEService", value_name="laptop_domain_name", default="osn.local")
+
+        ret = student_user
+        if student_user != "" and laptop_network_type == "Domain Member" and laptop_domain_name != "":
+            ret = laptop_domain_name + "\\" + student_user
+        
+        return ret
+
+    @staticmethod
     def is_debug():
         val = RegistrySettings.get_reg_value(value_name="debug", default="off")
         if val == "on":
@@ -456,17 +469,19 @@ class RegistrySettings:
             # NOTE - Stop addding student user - add opestudent group instead
             student_user = None
             
-            # Make sure the admin user exists
-            if laptop_admin_user is not None:
-                try:
-                    admin_p = accounts.principal(laptop_admin_user)
-                    if admin_p is None:
-                        # Get pylint to shutup
-                        pass
-                except Exception as ex:
-                    # Invalid admin account!
-                    p("}}rbInvalid Admin Account - skipping permissions for this account: " + str(laptop_admin_user) + "}}xx")
-                    laptop_admin_user = None
+            # Discontinue admin account creation
+            # # Make sure the admin user exists
+            # from mgmt_Computer import Computer
+            # if not Computer.is_domain_joined() and laptop_admin_user is not None:
+            #     try:
+            #         admin_p = accounts.principal(laptop_admin_user)
+            #         if admin_p is None:
+            #             # Get pylint to shutup
+            #             pass
+            #     except Exception as ex:
+            #         # Invalid admin account!
+            #         p("}}rbInvalid Admin Account - skipping permissions for this account: " + str(laptop_admin_user) + "}}xx")
+            #         laptop_admin_user = None
 
             base_dacl = [
                 ("Administrators", registry.Registry.ACCESS["F"], "ALLOW"),
@@ -482,15 +497,17 @@ class RegistrySettings:
                 #("Users", registry.Registry.ACCESS["Q"], "ALLOW")
             ]
 
-            logged_in_user = win32api.GetUserName()
-            if logged_in_user.upper() != "SYSTEM" and logged_in_user != "":
+            #logged_in_user = win32api.GetUserName()
+            logged_in_user = win32api.GetUserNameEx(win32api.NameSamCompatible)
+            if not "SYSTEM" in logged_in_user.upper() and logged_in_user != "":
                 base_dacl.append((logged_in_user, registry.Registry.ACCESS["F"], "ALLOW"))
                 service_base_dacl.append((logged_in_user, registry.Registry.ACCESS["F"], "ALLOW"))
 
-            if laptop_admin_user is not None and laptop_admin_user != "":
-                # Make sure this admin has registry access
-                base_dacl.append((laptop_admin_user, registry.Registry.ACCESS["F"], "ALLOW"))
-                service_base_dacl.append((laptop_admin_user, registry.Registry.ACCESS["F"], "ALLOW"))
+            # Discontinue admin account creation
+            # if not Computer.is_domain_joined() and laptop_admin_user is not None and laptop_admin_user != "":
+            #     # Make sure this admin has registry access
+            #     base_dacl.append((laptop_admin_user, registry.Registry.ACCESS["F"], "ALLOW"))
+            #     service_base_dacl.append((laptop_admin_user, registry.Registry.ACCESS["F"], "ALLOW"))
 
             try:
                 # Make sure the logging registry key has proper permissions

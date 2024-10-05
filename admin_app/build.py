@@ -1,4 +1,6 @@
 # NOTE - VENV Below specifies which python to use for this app - currently 3.6
+print("Use Nuitka build to compile instead.")
+sys.exit(0)
 
 import os
 import sys

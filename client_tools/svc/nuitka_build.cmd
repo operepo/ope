@@ -1,21 +1,66 @@
-
 @echo off
-set VERSION=1.0.109
-@REM rem read version file from mgmt.version
-@REM for /f "delims=" %%a in (mgmt.version) do (
-@REM     rem strip off extra characters
-@REM     echo %%a
-@REM     set s=a
-@REM     call set s=%%a:version=test%%
-@REM     rem call set s=%%s::=%%
-@REM     rem call set s=%%s:"=%%
-@REM     echo %s%
-@REM     if not "%%s"=="" (
-@REM         set VERSION=%%s
-@REM     )
-@REM )
-@REM echo Building mgmt.exe - %VERSION%
-@REM exit
+setlocal enabledelayedexpansion
+
+:: Get today's date in yy.mm.dd format
+for /f "tokens=2-4 delims=/-. " %%A in ('date /t') do (
+    set year=%%C
+    set month=%%A
+    set day=%%B
+)
+
+:: Format the date as yy.mm.dd
+set year=%year:~2,2%
+set todayVersion=%year%.%month%.%day%
+
+:: Path to the mgmt.version file
+set jsonFile=mgmt.version
+
+:: Initialize version counter
+set versionSuffix=0
+
+:: Check if the version file exists
+if exist %jsonFile% (
+    :: Extract the current version from the JSON file
+    for /f "tokens=2 delims=:, " %%A in ('findstr /i "version" %jsonFile%') do (
+        set currentVersion=%%A
+        set currentVersion=!currentVersion:"=!
+    )
+    
+    :: Split the current version to get the suffix
+    for /f "tokens=1-4 delims=." %%A in ("!currentVersion!") do (
+        set lastDateVersion=%%A.%%B.%%C
+        set lastSuffix=%%D
+    )
+
+    :: If the last date version matches today, increment the suffix
+    if "!lastDateVersion!"=="!todayVersion!" (
+        set /a versionSuffix=!lastSuffix! + 1
+    ) else (
+        set versionSuffix=0
+    )
+)
+
+:: Format the new version
+set newVersion=%todayVersion%.%versionSuffix%
+
+:: Write the new version back to the mgmt.version file
+(
+    echo {
+    echo     "version": "%newVersion%"
+    echo }
+) > %jsonFile%
+
+
+set VERSION=!newVersion!
+
+:: Output the new version
+rem echo Updated version is: %VERSION%
+
+
+rem endlocal
+
+echo Building mgmt.exe - %VERSION%
+rem exit
 rem build mgmt
 rem --windows-disable-console   - if running gui
 rem --windows-icon-from-ico=logo_icon.ico

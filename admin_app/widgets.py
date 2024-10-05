@@ -12,6 +12,7 @@ from kivy.uix.label import Label
 from scrolllabel import ScrollLabel
 from kivy.uix.button import Button
 from kivy.uix.dropdown import DropDown
+from kivy.uix.recycleview import RecycleView
 
 
 class ThreadSafePopup:

@@ -8,7 +8,7 @@ Nuitka doesn't work for services unless you pay for commercial packages.
 .\nuitka_lock_screen_widget_build.cmd - for lock screen widget - copy over lock_screen_widget.dist folder
 .\nuitka_sshot_build.cmd - copy over sshot.dist folder
 
-For OPEService - (use python 3)
+For OPEService - (use python 3 - USE CUSTOM PYINSTALLER)
 python .\build_svc.py - copy over dist/opeservice folder
 
 
