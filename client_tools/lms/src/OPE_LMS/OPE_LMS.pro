@@ -221,7 +221,7 @@ CONFIG (debug, debug|release) {
 #OPENSSL_PREFIX = "C:/"
 OPEN_SSL_PATH = "C:/Qt/Tools/OpenSSL/Win_x64"
 OPEN_SSL_DLL_PATH = $${OPEN_SSL_PATH}/bin
-LIBS += -L"$${OPEN_SSL_PATH}/lib" #-llibcrypto -llibssl # -lcrypto -lssl
+LIBS += -L"$${OPEN_SSL_PATH}" #-llibcrypto -llibssl # -lcrypto -lssl
 INCLUDEPATH += "$${OPEN_SSL_PATH}/include"
 
 

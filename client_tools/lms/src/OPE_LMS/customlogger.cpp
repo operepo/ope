@@ -1,5 +1,17 @@
 #include "customlogger.h"
 
+
+// Values for custom log handler
+QString log_file_path = "/debug.log";
+bool log_to_file = true;
+bool is_in_IDE = false;
+QFile log_file;
+QTextStream &out = qStdout();
+QTextStream &err = qStderr();
+// Are we running in quiet mode?
+bool quiet_mode = false;
+
+
 QTextStream& qStdout()
 {
     static QTextStream r{stdout};
@@ -36,7 +48,9 @@ void customLogOutput(QtMsgType type, const QMessageLogContext &context,
                                                     msg, context.file);
         if (!log_file.isOpen()) {
             log_file.setFileName(log_file_path);
-            log_file.open(QIODevice::WriteOnly | QIODevice::Append);
+            if (!log_file.open(QIODevice::WriteOnly | QIODevice::Append)) {
+                err << "[ERROR OPENING LOG FILE] - " << log_file_path << " - " << log_file.errorString() << Qt::endl;
+            }
         }
 
         if (log_file.isOpen()) {
