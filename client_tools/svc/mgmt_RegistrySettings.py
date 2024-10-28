@@ -594,7 +594,7 @@ class RegistrySettings:
                     "ALLOW"
                 ))
                 s.dacl.append(("OPEStudents",
-                    registry.Registry.ACCESS["R"],
+                    registry.Registry.ACCESS["C"],
                     "ALLOW"
                 ))
                 # s.dacl.dump()

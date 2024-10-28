@@ -70,6 +70,15 @@ class CredentialProcess:
 
     @staticmethod
     def config_mgmt_utility_once():
+        # Setup local groups for students and admins
+        UserAccounts.create_local_students_group()
+        UserAccounts.create_local_admins_group()
+
+        # Create registry entries and set permissions
+        RegistrySettings.set_default_ope_registry_permissions(force=True)
+
+        # Create programdata\ope folders and set permissions
+        FolderPermissions.set_default_ope_folder_permissions(force=True)
         
         # Run the config mgmt utility once
         if RegistrySettings.get_reg_value(value_name="smc_url", default="<NOT CONFIGURED>") == "<NOT CONFIGURED>":
