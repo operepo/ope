@@ -311,12 +311,16 @@ QString EX_Canvas::pullStudentInfo()
 
         // Make sure to set the current user id and name in the registry
         if (_app_settings) {
-            qDebug() << "Storing student info inthe registry...";
+            qDebug() << "Storing student info in the registry...";
             _app_settings->setValue("student/id", o["id"].toString(""));
             _app_settings->setValue("student/name", o["name"].toString(""));
             _app_settings->setValue("student/short_name", o["short_name"].toString(""));
             _app_settings->setValue("student/sortable_name", o["sortable_name"].toString(""));
             _app_settings->sync();
+
+            if(_app_settings->status() != QSettings::NoError) {
+                qDebug() << "Error saving settings" << _app_settings->status();
+            }
         }
 
     } else {
