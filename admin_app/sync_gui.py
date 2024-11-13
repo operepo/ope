@@ -116,7 +116,7 @@ from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.recycleview import RecycleView
+#from kivy.uix.recycleview import RecycleView
 from kivy.config import ConfigParser
 from kivy.uix.settings import SettingsWithSidebar
 from kivy.uix.settings import SettingString

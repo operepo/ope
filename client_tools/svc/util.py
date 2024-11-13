@@ -14,6 +14,7 @@ BINARIES_FOLDER = os.path.join(ROOT_FOLDER, "Services")
 STUDENT_DATA_FOLDER = os.path.join(ROOT_FOLDER, "student_data")
 LOCK_SCREEN_WIDGET_FOLDER = os.path.join(TMP_FOLDER, "lock_screen_widget")
 CONFIG_FOLDER = os.path.join(ROOT_FOLDER, "config")
+QML_CACHE_FOLDER = os.path.join(TMP_FOLDER, "qmlcache")
 
 # The base function called
 CMD_FUNCTION = ""

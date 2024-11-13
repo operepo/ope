@@ -12,15 +12,14 @@ QTextStream& qStdout();
 
 QTextStream& qStderr();
 
-// Values for custom log handler
-static QString log_file_path = "/debug.log";
-static bool log_to_file = true;
-static bool is_in_IDE = false;
-static QFile log_file;
-static QTextStream &out = qStdout();
-static QTextStream &err = qStderr();
+extern QString log_file_path;
+extern bool log_to_file;
+extern bool is_in_IDE;
+extern QFile log_file;
+extern QTextStream &out;
+extern QTextStream &err;
 // Are we running in quiet mode?
-static bool quiet_mode = false;
+extern bool quiet_mode;
 
 void customLogOutput(QtMsgType type, const QMessageLogContext &context,
                      const QString &msg);

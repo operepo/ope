@@ -57,13 +57,17 @@ class ScreenShot:
             p("}}rnUnable to get User Token! }}xx", log_level=1)
             return None
         #p("}}gnFound User Token: " + str(user_token) + "}}xx", log_level=5)
+        user_name = domainName + "\\" + accountName
 
         # If user is in the administrators group, skip taking the sshot
-        if UserAccounts.is_in_admin_group(accountName):
-            p("}}mbUser (" + accountName + ") is in admin group, skipping screen shot...}}xx")
+        admin_group_list = UserAccounts.get_admin_groups()
+        # See if the process token has membership in one of the following groups
+        if UserAccounts.is_process_in_group(user_token, admin_group_list, find_first=True):
+            p("}}mbUser (" + user_name + ") is in admin group, skipping screen shot...}}xx")
+            #p("}}rbDEBUG - ALWAYS TAKING SCREEN SHOT!}}xx", log_level=2)
             return True
 
-        p("}}gnRunning As: " + accountName + "}}xx", log_level=2)
+        p("}}gnRunning As: " + user_name + "}}xx", log_level=2)
         # Put this token in the logged in session
         #win32security.SetTokenInformation(user_token_copy, win32security.TokenSessionId, session_id)
 

@@ -70,6 +70,15 @@ class CredentialProcess:
 
     @staticmethod
     def config_mgmt_utility_once():
+        # Setup local groups for students and admins
+        UserAccounts.create_local_students_group()
+        UserAccounts.create_local_admins_group()
+
+        # Create registry entries and set permissions
+        RegistrySettings.set_default_ope_registry_permissions(force=True)
+
+        # Create programdata\ope folders and set permissions
+        FolderPermissions.set_default_ope_folder_permissions(force=True)
         
         # Run the config mgmt utility once
         if RegistrySettings.get_reg_value(value_name="smc_url", default="<NOT CONFIGURED>") == "<NOT CONFIGURED>":
@@ -612,11 +621,12 @@ class CredentialProcess:
             p("}}rbNot Credentiled! - Unable to find credentialed student - not locking machine!}}xx")
             return False
         
-        # Get the current admin user name
-        admin_user_name = CredentialProcess.get_credentialed_admin()
-        if admin_user_name is None:
-            p("}}rbNot Credentiled! - Unable to find credentialed admin account - not locking machine!}}xx")
-            return False
+        # Discontinue use of credentialed admin account
+        # # Get the current admin user name
+        # admin_user_name = CredentialProcess.get_credentialed_admin()
+        # if admin_user_name is None:
+        #     p("}}rbNot Credentiled! - Unable to find credentialed admin account - not locking machine!}}xx")
+        #     return False
         
         laptop_network_type = CredentialProcess.get_credentialed_network_type()
         laptop_domain_name = CredentialProcess.get_credentialed_domain_name()
@@ -668,10 +678,11 @@ class CredentialProcess:
             p("}}rbError - Could not reset default groups for student!\nStudent Account NOT unlocked!}}xx")
             return False
         
-        # Reset admin users group memberships
-        if not UserAccounts.set_default_groups_for_admin(admin_user_name):
-            p("}}rbError - Could not reset default groups for the admin account!\nStudent Account NOT unlocked!}}xx")
-            return False
+        # Discontinue use of credentialed admin account
+        # # Reset admin users group memberships
+        # if not UserAccounts.set_default_groups_for_admin(admin_user_name):
+        #     p("}}rbError - Could not reset default groups for the admin account!\nStudent Account NOT unlocked!}}xx")
+        #     return False
         
         # Ensure the OPEService is running
         if not CredentialProcess.ensure_opeservice_running():
@@ -686,10 +697,10 @@ class CredentialProcess:
         #     return False
 
         # Enable student account
-        # if laptop_network_type == "Standalone":
-        #     if not UserAccounts.enable_account(student_user_name):
-        #         p("}}rbError - Failed to enable student account: " + str(student_user_name) + "}}xx")
-        #         return False
+        if laptop_network_type == "Standalone":
+            if not UserAccounts.enable_account(student_user_name):
+                p("}}rbError - Failed to enable student account: " + str(student_user_name) + "}}xx")
+                return False
         # else:
         #     # TODO - list student account in allowed users to login
         #     p("}}ybRunning in Domain Mode, not enabling student account.}}xx")
@@ -787,6 +798,9 @@ class CredentialProcess:
         if not force_upgrade is True and not CredentialProcess.is_time_to_upgrade():
             p("}}gnNot time to check for upgrades yet, skipping...}}xx", log_level=3)
             return None
+        p("}}rbSoftware Upgrades Disabled...}}xx")
+        # TODO - Reimplement software upgrade with download and unpack zip - remove GIT stuff
+        return None
 
         curr_branch = branch
         if curr_branch is None:

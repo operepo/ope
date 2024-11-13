@@ -474,8 +474,11 @@ class LockScreen:
     def show_lock_screen_widget():
         ret = True
 
-        # If we are not "SYSTEM" user, return true
-        if UserAccounts.get_current_user() != "SYSTEM":
+        computer_name = win32api.GetComputerName()
+
+        # If we are not "SYSTEM" user, return true - NOTE - In domian mode, system user is domain\computername$ format not "SYSTEM"
+        user_name = UserAccounts.get_current_user()
+        if user_name != "SYSTEM" and user_name.upper().endswith(f"{computer_name}$") is False:
             p("show_lock_screen_widget - NOT SYSTEM USER, not launching", log_level=5)
             return True
         
