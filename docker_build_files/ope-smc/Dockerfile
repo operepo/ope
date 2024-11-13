@@ -1,29 +1,30 @@
-FROM alpine:3.13
-MAINTAINER Ray Pulspher <ray@cmagic.biz>
-LABEL Author="Ray Pulspher <ray@cmagic.biz>"
+FROM alpine:3.18
+MAINTAINER Ray Pulsipher <ray@cmagic.biz>
+LABEL Author="Ray Pulsipher <ray@cmagic.biz>"
 LABEL Description="Student Management Console - Image for Open Prison Education"
 LABEL Vendor="openprisoneducation.com"
-LABEL Version="1.6"
+LABEL Version="1.7"
 
 # install base
 RUN apk update \
     && apk add --update --no-cache \
         bash musl musl-dev linux-headers pcre-dev coreutils build-base nasm ca-certificates curl tar \
-        libc-dev openssl-dev zlib-dev yasm-dev lame-dev freetype-dev opus-dev \
+        libc-dev zlib-dev yasm-dev lame-dev freetype-dev opus-dev \
         rtmpdump-dev x264-dev x265-dev xvidcore-dev libass-dev libwebp-dev \
         libvorbis-dev libogg-dev libtheora-dev libvpx-dev \
         python3 python3-dev py3-pip mysql-client libxml2-dev \
         py3-cairo py3-cairo-dev py3-cffi \
         unzip wget net-tools git git-daemon unzip \
-        openssl zip postgresql-dev openldap-dev \
+        openssl openssl-dev zip postgresql-dev openldap-dev \
         supervisor libffi-dev pcre  libxml2 libxslt-dev cargo \
         jpeg-dev zlib-dev libffi-dev cairo-dev pango-dev gdk-pixbuf-dev \
-        libressl-dev font-noto msttcorefonts-installer fontconfig nano \
+        font-noto msttcorefonts-installer fontconfig nano \
     && update-ms-fonts \
     && fc-cache -f \
+    # libressl-dev
 # py-pip
-# Make sure python3 runs under the python command
-    && ln -s /usr/bin/python3 /usr/bin/python \
+# Make sure python3 runs under the python command - Shouldn't need anymore
+    #&& ln -s /usr/bin/python3 /usr/bin/python \
     && python -m pip install --upgrade pip \
     && python -m pip install --upgrade setuptools ldap3 pycryptodome requests \
         paramiko ecdsa isodate pywinrm crypto PyMySQL \
@@ -62,8 +63,11 @@ RUN FFMPEG_VER=3.4.9 \
 #RUN pip install git+https://github.com/nficano/pytube.git@refs/pull/701/head
 # Install 9.7.0
 #RUN pip install git+https://github.com/nficano/pytube.git@refs/tags/v9.7.0
-LABEL pytube_version=15.0.0.0.0
-RUN python -m pip install --upgrade pytube
+LABEL yt_dlp=1.0
+RUN python -m pip install --upgrade yt_dlp
+#LABEL pytube_version=15.0.0.0.0
+#RUN python -m pip install --upgrade pytube
+RUN python -m pip install --upgrade pytubefix
 
 # Set ENV Vars
 ENV IT_PW changeme
@@ -80,8 +84,8 @@ RUN mkdir $W2P_DIR \
     && mkdir $INSTALL_DIR/git
 
 # Setup users
-RUN addgroup www-data \
-      && adduser -D -H -s /bin/bash git \
+RUN addgroup www-data; exit 0
+RUN adduser -D -H -s /bin/bash git \
       && adduser -D -s /bin/bash -G www-data www-data
 
 
@@ -111,7 +115,7 @@ LABEL rebuild_smc=12
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE 24.8.18.0
+ENV SMC_RELEASE 24.11.11.0
 # Errors with http2? Use http 1
 
 RUN cd $W2P_DIR \
@@ -138,7 +142,7 @@ COPY supervisord.conf /etc/supervisor/supervisord.conf
 
 # TEMP - Need this 7/24/23 - fix pytube error in current version
 # 8/30/23 Pulled from forked pytube, main repo not updated yet - https://github.com/oncename/pytube/blob/master/pytube/cipher.py
-COPY cipher.py /usr/lib/python3.8/site-packages/pytube/cipher.py
+# COPY cipher.py /usr/lib/python3.8/site-packages/pytube/cipher.py
 
 
 RUN chmod +x /start.sh \
