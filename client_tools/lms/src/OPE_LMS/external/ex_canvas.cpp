@@ -3225,7 +3225,7 @@ QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<Q
 
     QString call_url = api_call;
     // Don't append canvas server if full address is already present
-    if (!api_call.toLower().startsWith("http")) {
+    if (!api_call.startsWith("http", Qt::CaseInsensitive)) {
         call_url = canvas_url;
         if (call_url.endsWith("/") != true) {
             call_url += "/";
@@ -3253,7 +3253,7 @@ QJsonDocument EX_Canvas::CanvasAPICall(QString api_call, QString method, QHash<Q
     //QRegularExpression regex("(\"\\s*:\\s*)(\\d+\\.?\\d*)([^\"])|([\\[])(\\d+\\.?\\d*)|([,])(\\d+\\.?\\d*)"); //   ":\\s*(\\d+)\\s*,");
     //json = json.replace(regex, "\\1\\4\\6\"\\2\\5\\7\"\\3");  //  :\"\\1\",");
     //qDebug() << "===================================\nParsing http data: " << json;
-    QRegularExpression regex("(\\\"\\s*:\\s*)([0-9.]+)(\\s*[,])"); //   ":\\s*(\\d+)\\s*,");
+    static QRegularExpression regex("(\\\"\\s*:\\s*)([0-9.]+)(\\s*[,])"); //   ":\\s*(\\d+)\\s*,");
     json = json.replace(regex, "\\1\"\\2\"\\3");  //  :\"\\1\",");
 
     //if (call_url == "https://canvas.ed/api/v1/courses/21647000000049/pages/class-introduction") {
@@ -3295,7 +3295,7 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
     qDebug() << url << " - " << status_code << " " << location_header;
     if ((status_code == 201 || status_code >= 301 || status_code == 302 || status_code == 307 || status_code == 308 ) &&
             (method.toUpper() == "POST" || method.toUpper() == "PUT") &&
-            location_header != "" && location_header.toLower().contains("/create_success?") ) {
+            location_header != "" && location_header.contains("/create_success?", Qt::CaseInsensitive) ) {
         qDebug() << "### FOLLOWING Location Header from " << url << " to " <<  location_header;
         // Hit the next link
         headers->clear();
@@ -3353,7 +3353,7 @@ QString EX_Canvas::NetworkCall(QString url, QString method, QHash<QString, QStri
 
                 if (ret.trimmed().endsWith("]"))
                 {
-                    ret = ret.remove(ret.count()-1, 1);
+                    ret = ret.remove(ret.size()-1, 1);
                 }
                 if (next.trimmed().startsWith("["))
                 {
@@ -3435,7 +3435,8 @@ QString EX_Canvas::ProcessSMCVideos(QString content)
 
     QHash<QString, QStringList> replace_urls;
 
-    QRegExp rx;
+    //QRegExp rx;
+    QRegularExpression rx;
 
     // Find iframes
     // [\"']{1}\s?((https?:\/\/[a-zA-Z\.0-9:]*)\/media\/player(\.load)?\/([a-zA-Z0-9]+)(\/)?(\?)?(autoplay=(true|false))?)\s*[\"']{1}
@@ -3447,17 +3448,20 @@ QString EX_Canvas::ProcessSMCVideos(QString content)
     // 3 = if .load if present or empty if not
     // 4 = movie id
 
+    QRegularExpressionMatchIterator it = rx.globalMatch(ret);
+
     //"href=http(s)://.../media/player[.load]/???..."
-    int pos = 0;
-    while ((pos = rx.indexIn(ret, pos)) != -1) {
-        pos += rx.matchedLength();
+    while (it.hasNext()) {
+        QRegularExpressionMatch match = it.next();
+        //int index = match.capturedStart(0);
+        match.capturedLength();
 
         // Get the full URL for this item
-        QString full_url = rx.cap(1);
+        QString full_url = match.captured(1);
         // Get the host for this link
-        QString smc_host = rx.cap(2);
+        QString smc_host = match.captured(2);
         // Get the movie ID for this link
-        QString movie_id = rx.cap(4);
+        QString movie_id = match.captured(4);
         // Add to the list to be downloaded
         if (!_localhost_url.startsWith(smc_host)) {
             replace_urls[movie_id] = QStringList() << smc_host << full_url;
@@ -3465,8 +3469,30 @@ QString EX_Canvas::ProcessSMCVideos(QString content)
             // This link already points to a local host address?
             qDebug() << "-- Link found w localhost address? " << full_url;
         }
-
     }
+    // TODO - Test code - make sure regex conversion works
+
+
+    // //"href=http(s)://.../media/player[.load]/???..."
+    // int pos = 0;
+    // while ((pos = rx.indexIn(ret, pos)) != -1) {
+    //     pos += rx.matchedLength();
+
+    //     // Get the full URL for this item
+    //     QString full_url = rx.cap(1);
+    //     // Get the host for this link
+    //     QString smc_host = rx.cap(2);
+    //     // Get the movie ID for this link
+    //     QString movie_id = rx.cap(4);
+    //     // Add to the list to be downloaded
+    //     if (!_localhost_url.startsWith(smc_host)) {
+    //         replace_urls[movie_id] = QStringList() << smc_host << full_url;
+    //     } else {
+    //         // This link already points to a local host address?
+    //         qDebug() << "-- Link found w localhost address? " << full_url;
+    //     }
+
+    // }
 
     qDebug() << "Found SMC video links";
     qDebug() << replace_urls;
@@ -3504,7 +3530,8 @@ QString EX_Canvas::ProcessSMCDocuments(QString content)
 
     QHash<QString, QStringList> replace_urls;
 
-    QRegExp rx;
+    //QRegExp rx;
+    QRegularExpression rx;
 
     // Find URLS
     // "((https?:\\/\\/[a-zA-Z\\.0-9:]*)((\\/smc)?\\/static\\/ViewerJS\\/index.html#)?\\/media\\/dl_document\\/([a-zA-Z0-9]+))"
@@ -3517,16 +3544,17 @@ QString EX_Canvas::ProcessSMCDocuments(QString content)
     // 4 = /smc (if exists)
     // 5 = document id
 
-    int pos = 0;
-    while ((pos = rx.indexIn(ret, pos)) != -1) {
-        pos += rx.matchedLength();
+    QRegularExpressionMatchIterator it = rx.globalMatchView(ret);
+
+    while(it.hasNext()) {
+        QRegularExpressionMatch match = it.next();
 
         // Get the full URL for this item
-        QString full_url = rx.cap(1);
+        QString full_url = match.captured(1);
         // Get the host for this item
-        QString smc_host = rx.cap(2);
+        QString smc_host = match.captured(2);
         // Get the document id for this item
-        QString document_id = rx.cap(5);
+        QString document_id = match.captured(5);
 
         // Add to the list to be downloaded
         if (!_localhost_url.startsWith(smc_host)) {
@@ -3534,8 +3562,29 @@ QString EX_Canvas::ProcessSMCDocuments(QString content)
         } else {
             // Link already points to a local host address, don't mess with it
             qDebug() << "-- Link found w localhost address? " << full_url;
-         }
+        }
     }
+
+
+    // int pos = 0;
+    // while ((pos = rx.indexIn(ret, pos)) != -1) {
+    //     pos += rx.matchedLength();
+
+    //     // Get the full URL for this item
+    //     QString full_url = rx.cap(1);
+    //     // Get the host for this item
+    //     QString smc_host = rx.cap(2);
+    //     // Get the document id for this item
+    //     QString document_id = rx.cap(5);
+
+    //     // Add to the list to be downloaded
+    //     if (!_localhost_url.startsWith(smc_host)) {
+    //         replace_urls[full_url] = QStringList() << smc_host << document_id;
+    //     } else {
+    //         // Link already points to a local host address, don't mess with it
+    //         qDebug() << "-- Link found w localhost address? " << full_url;
+    //      }
+    // }
 
     qDebug() << "Found SMC Document links";
     qDebug() << replace_urls;
@@ -3578,7 +3627,8 @@ QString EX_Canvas::ProcessDownloadLinks(QString content)
     //replace_urls[full_url] = QStringList() << file_id << course_id << canvas_host;
     QHash<QString, QStringList> replace_urls;
 
-    QRegExp rx;
+    //QRegExp rx;
+    QRegularExpression rx;
 
     // // Example link of image file embedded in this page/text
     // <img src="https://canvas.ed/courses/21647000000303/files/21647000019197/preview" alt="Misleading Graphs_Page_01.jpg" data-api-endpoint="https://canvas.ed/api/v1/courses/21647000000303/files/21647000019197" data-api-returntype="File" />
@@ -3598,33 +3648,31 @@ QString EX_Canvas::ProcessDownloadLinks(QString content)
     // 7 = /download if present
     // 8 = ? full query string if present
 
-    int pos = 0;
-    while ((pos = rx.indexIn(ret, pos)) != -1) {
-        // Save the current match - use the position of the url, not the whole match
-        // This is important so we don't loose quotes or other whitespace if it exists
-        int start_pos = rx.pos(1);
-        int match_len = rx.cap(1).length();
+    QRegularExpressionMatchIterator it = rx.globalMatchView(ret);
 
-        //pos += rx.matchedLength();
-        // Use inline replacement later, so always start at pos 0
-        pos = 0;
+    while (it.hasNext()) {
+        QRegularExpressionMatch match = it.next();
+
+        int start_pos = match.capturedStart(1);
+        int match_len = match.captured(1).length();
 
         // Get the full URL for this item
-        QString full_url = rx.cap(1);
+        QString full_url = match.captured(1);
         qDebug() << "<<<<< FOUND URL " << full_url;
         // Get the host for this link
-        QString canvas_host = rx.cap(2);
+        QString canvas_host = match.captured(2);
         if (canvas_host == "") {
             // For relative links - fill in current host
             canvas_host = canvas_url;
         }
         // Get the course id for this link
-        QString course_id = rx.cap(4);
+        QString course_id = match.captured(4);
         // Get url type (files or modules/items)
-        QString canvas_types = rx.cap(5);
+        QString canvas_types = match.captured(5);
         // Get the file id
-        QString file_id = rx.cap(6);
+        QString file_id = match.captured(6);
         QString module_item_id = "";
+
 
         if (canvas_types == "modules/items") {
             // Need to lookup the file_id, this is the module item id
@@ -3669,6 +3717,78 @@ QString EX_Canvas::ProcessDownloadLinks(QString content)
             qDebug() << "-- Link found w localhost address? " << full_url;
         }
     }
+
+    // int pos = 0;
+    // while ((pos = rx.indexIn(ret, pos)) != -1) {
+    //     // Save the current match - use the position of the url, not the whole match
+    //     // This is important so we don't loose quotes or other whitespace if it exists
+    //     int start_pos = rx.pos(1);
+    //     int match_len = rx.cap(1).length();
+
+    //     //pos += rx.matchedLength();
+    //     // Use inline replacement later, so always start at pos 0
+    //     pos = 0;
+
+    //     // Get the full URL for this item
+    //     QString full_url = rx.cap(1);
+    //     qDebug() << "<<<<< FOUND URL " << full_url;
+    //     // Get the host for this link
+    //     QString canvas_host = rx.cap(2);
+    //     if (canvas_host == "") {
+    //         // For relative links - fill in current host
+    //         canvas_host = canvas_url;
+    //     }
+    //     // Get the course id for this link
+    //     QString course_id = rx.cap(4);
+    //     // Get url type (files or modules/items)
+    //     QString canvas_types = rx.cap(5);
+    //     // Get the file id
+    //     QString file_id = rx.cap(6);
+    //     QString module_item_id = "";
+
+    //     if (canvas_types == "modules/items") {
+    //         // Need to lookup the file_id, this is the module item id
+    //         module_item_id = file_id;
+    //         file_id = "";
+    //         QSqlQuery file_query;
+    //         file_query.prepare("SELECT content_id FROM module_items WHERE id=:item_id");
+    //         file_query.bindValue(":item_id", module_item_id);
+    //         if (!file_query.exec()) {
+    //             qDebug() << "SQL Error - file lookup " << file_query.lastError();
+    //         } else {
+    //             while(file_query.next()) {
+    //                 file_id = file_query.value("content_id").toString();
+    //             }
+    //         }
+
+    //         if (file_id == "") {
+    //             // didn't find file, move on.
+    //             qDebug() << " *** DB ERROR - couldn't pull module item for " << module_item_id << " " << file_query.lastError() << " - " << full_url;
+
+    //             // Replace with dummy link so we can move on or we will get stuck in a loop.
+    //             ret = ret.replace(start_pos, match_len, "<INVALID_MODULE_ITEM_" + module_item_id + ">");
+
+    //             // Jump to next item.
+    //             continue;
+    //         }
+    //     }
+
+    //     // Add to the list to be downloaded
+    //     if (!_localhost_url.startsWith(canvas_host)) {
+    //         // Add this to the download list later
+    //         QueueCanvasLinkForDownload(file_id, course_id, canvas_host, full_url);
+
+    //         // Replace this text with the place holder.
+    //         // <CANVAS_FILE_???>  ??? becomes the file id
+    //         QString new_url = "<CANVAS_FILE_" + file_id + ">";
+
+    //         qDebug() << "Replacing " << full_url << " with " << new_url;
+    //         ret = ret.replace(start_pos, match_len, new_url);
+    //     } else {
+    //         // This link already points to a local host address?
+    //         qDebug() << "-- Link found w localhost address? " << full_url;
+    //     }
+    // }
 
     return ret;
 }
