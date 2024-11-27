@@ -5,6 +5,7 @@
 #include <QString>
 #include <QEventLoop>
 #include <QNetworkAccessManager>
+#include <QNetworkProxy>
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QHttpMultiPart>
@@ -72,6 +73,7 @@ private slots:
 private:
     QNetworkAccessManager http_manager;
     QNetworkAccessManager download_manager;
+    QNetworkProxy proxy;
     QString download_local_path;
     QNetworkReply *http_reply;
     QNetworkReply *download_reply;

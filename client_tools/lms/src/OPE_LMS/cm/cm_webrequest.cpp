@@ -7,6 +7,15 @@ CM_WebRequest::CM_WebRequest(QObject *parent) :
     http_request_active = false;
     download_active = false;
 
+    // DEBUG - use proxy to view http traffic - comment out for release builds
+    // qDebug() << "**** DEBUG PROXY SETTINGS ACTIVE *****";
+    // proxy.setType(QNetworkProxy::HttpProxy);
+    // proxy.setHostName("127.0.0.1");
+    // proxy.setPort(6000);
+    // QNetworkProxy::setApplicationProxy(proxy);
+    // export QT_LOGGING_RULES="qt.network.ssl.warning=true;qt.network.ssl.error=true;qt.network.ssl.debug=true"
+
+
 
     // Setup signals for the network manager
     connect(&http_manager, SIGNAL(authenticationRequired(QNetworkReply*,QAuthenticator*)),
@@ -69,6 +78,9 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
     {
         wr.setUrl(url);
     }
+    if (parameters == nullptr) {
+        parameters = new QHash<QString, QString>();
+    }
 
     // Add the headers if they exist
     if (headers)
@@ -78,23 +90,27 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
             QString item = headers->value(key);
             if (item != "")
             {
+                qDebug() << "Setting Header: " << key << ": " << item;
                 wr.setRawHeader(key.toLocal8Bit(), item.toLocal8Bit());
             }
         }
     }
 
     // Start network timeout
+    qDebug() << "Starting http_timeout...";
     http_timeout.start(http_timeout_interval, this);
 
     if (content_type == "application/x-www-form-urlencoded" && (method.toUpper() == "POST" || method.toUpper() == "PUT"))
     {
         // Normal post with urlencoded values
+        qDebug() << "Sending application/x-www-form-urlencoded...";
         QString p = ConvertHashToQueryString(parameters);
-        //qDebug() << "Param String: " << p;
+        qDebug() << "Param String: " << p;
         http_reply = http_manager.post(wr, QByteArray(p.toLocal8Bit()));
     }
     else if  (content_type == "multipart/form-data" && (method.toUpper() == "POST" || method.toUpper() == "PUT"))
     {
+        qDebug() << "Multipart/Form-Data...";
         //QHttpMultiPart *parts = new QHttpMultiPart(QHttpMultiPart::MixedType);
         QHttpMultiPart *parts = new QHttpMultiPart(QHttpMultiPart::FormDataType);
         // Let it figure out its own boundary
@@ -102,9 +118,9 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
 
         // Make sure to setup a proper boundary
         QString boundary = parts->boundary(); // "-----------------------lksjfjLDSAkjfelwkjfkdjfslkjesahrAKHFD";
-        // Reset the header w the boundary
+        // Reset the header on the web request w the boundary we will use
         wr.setHeader(QNetworkRequest::ContentTypeHeader,
-                     "multipart/form-data; boundary=" + boundary);
+                      "multipart/form-data; boundary=" + boundary);
 
 
         // ORDERED PARAMETERS
@@ -118,12 +134,13 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
             // Strip off the ___A_ stuff now that we are sorted
             QString final_key = key;
             if (final_key.startsWith("___")) {
-                final_key = final_key.mid(5);
+                // looks like ___A_ - remove it all
+                final_key = final_key.mid(6);
             }
 
             QHttpPart part;
             part.setHeader(QNetworkRequest::ContentDispositionHeader,
-                           QVariant("form-data; name=\"" + final_key +"\""));
+                           QVariant("form-data; name=\"" + final_key.toLocal8Bit() +"\""));
             part.setBody(parameters->value(key).toLocal8Bit());
             parts->append(part);
         }
@@ -142,11 +159,16 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
         if (post_file != "" && QFile::exists(post_file)) {
             is_upload = true;
 
-            wr.setAttribute(QNetworkRequest::DoNotBufferUploadDataAttribute, 1);
+            //wr.setAttribute(QNetworkRequest::DoNotBufferUploadDataAttribute, 1);
 
             // Add the file
             file_io = new QFile(post_file);
-            file_io->open(QIODevice::ReadOnly);
+            if (!file_io->open(QIODevice::ReadOnly)) {
+                qDebug() << "Failed to open file for upload: " << post_file;
+                delete parts;
+                return "";
+            }
+
             QFileInfo fi = QFileInfo(post_file);
 
             // Set the name
@@ -157,21 +179,29 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
             file_part.setHeader(QNetworkRequest::ContentLengthHeader, QString::number(fi.size()));
 
             file_part.setBodyDevice(file_io);
+            file_io->setParent(parts); // Make sure it sticks around until it is done uploading
+
             parts->append(file_part);
         }
 
         qDebug() << "Posting Parts: " << parts;
+        qDebug() << "Headers: ";
+        foreach(QByteArray header, wr.rawHeaderList()) {
+            qDebug() << "\t" << header << ": " << wr.rawHeader(header);
+        }
+        //parts->dumpObjectTree();
         http_reply = http_manager.post(wr, parts);
 
         // Set parents that don't get deleted right away
         //if (file_part != nullptr) { file_part->setParent(http_reply); }
-        if (file_io != nullptr) { file_io->setParent(http_reply); }
+        //if (file_io != nullptr) { file_io->setParent(http_reply); }
         //textPart->setParent(http_reply);
         parts->setParent(http_reply);
 
     }
     else if (method.toUpper() == "GET")
     {
+        qDebug() << "Sending GET..." << wr.url();
         http_reply = http_manager.get(wr);
     }
     else
@@ -219,7 +249,7 @@ QByteArray CM_WebRequest::NetworkCall(QString url, QString method, QHash<QString
     //qDebug() << "---> NETWORK CALL DONE " << url;
 
     // Read in the reply
-    //qDebug() << "NetowrkCall - Got Data: " << http_reply_data;
+    qDebug() << "NetworkCall - Got Data: " << http_reply_data;
     //ret.append(http_reply_data);
     //ret = QString::fromUtf8(http_reply_data);
 

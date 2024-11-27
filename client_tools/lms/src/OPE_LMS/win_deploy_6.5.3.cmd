@@ -1,7 +1,7 @@
 @echo off
 
-set QT_VER=6.5.2
-set QT_VER_FOLDER=6_5_2
+set QT_VER=6.5.3
+set QT_VER_FOLDER=6_5_3
 
 set QT_PATH=C:\Qt\%QT_VER%
 

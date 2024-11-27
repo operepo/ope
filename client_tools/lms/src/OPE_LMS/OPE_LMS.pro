@@ -1,14 +1,45 @@
-QT += qml quick sql network quickcontrols2 webview networkauth webchannel webenginequick webenginecore webenginewidgets core5compat
+QT += quick sql network quickcontrols2 webview networkauth webchannel webenginequick webenginecore webenginewidgets
+#core5compat
 #graphicaleffects
 #webengine webenginewidgets
 # networkauth
 # webengine webenginewidgets quick-private webview-private webview
 
-CONFIG += c++11
+#CONFIG += c++20
+#CONFIG += lrelease
 # Hide -fms-compatibility-version warnings when using ms visual studio (D9002)
 #QMAKE_LFLAGS += /ignore:D9002
 
-TRANSLATIONS = translations_en.ts
+LANGUAGES = en
+# parameters: var, prepend, append
+defineReplace(prependAll) {
+for(a,$$1):result += $$2$${a}$$3
+return($$result)
+}
+
+TRANSLATIONS = $$prependAll(LANGUAGES, $$PWD/translations_, .ts)
+
+#TRANSLATIONS = translations_en.ts
+
+TRANSLATIONS_FILES =
+
+qtPrepareTool(LRELEASE, lrelease)
+for(tsfile, TRANSLATIONS) {
+ #message("TSFile: $$tsfile")
+ #qmfile = $$shadowed($$tsfile)
+ qmfile = $$tsfile
+ qmfile ~= s,.ts$,.qm,
+ !exists($$qmfile) {
+ qmdir = $$dirname(qmfile)
+ !exists($$qmdir) {
+ mkpath($$qmdir)|error("Aborting.")
+ }
+ command = $$LRELEASE -removeidentical $$tsfile -qm $$qmfile
+ message("Command: $$command")
+ system($$command)|error("Failed to run: $$command")
+ }
+ TRANSLATIONS_FILES += $$qmfile
+}
 
 # Enable console so we can print to stdout
 CONFIG += console
@@ -84,7 +115,7 @@ QML_IMPORT_PATH =
 QML_DESIGNER_IMPORT_PATH =
 
 # Hide duplicate include warnings - stupid ms c++...
-QMAKE_LFLAGS += /ignore:4042
+#QMAKE_LFLAGS += /ignore:4042
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings
@@ -165,6 +196,7 @@ DISTFILES += \
     QuizQuestion.qml \
     WebEngineMP4Build_6.5.1.cmd \
     WebEngineMP4Build_6.5.2.cmd \
+    WebEngineMP4Build_6.8.0.cmd \
     dropTest.qml \
     lms.qml \
     not_credentialed.qml \
@@ -194,7 +226,9 @@ DISTFILES += \
     StyledButton.qml \
     ReplyPopup.qml \
     NewMessagePopup.qml \
-    win_deploy_6.5.2.cmd
+    win_deploy_6.5.2.cmd \
+    win_deploy_6.5.3.cmd \
+    win_deploy_6.8.0.cmd
 
 
 
@@ -212,31 +246,40 @@ CONFIG (debug, debug|release) {
     VARIANT = release
 }
 
-#LIBS += -LC:/OpenSSL-Win64/lib # -lcrypto -lssl
-#INCLUDEPATH += C:/OpenSSL-Win64/include
-#OPEN_SSL_PATH = "C:/Program Files/OpenSSL-Win64"
-
-#OPEN_SSL_PATH = "C:/OpenSSL-Win64"
 
 #OPENSSL_PREFIX = "C:/"
-OPEN_SSL_PATH = "C:/Qt/Tools/OpenSSL/Win_x64"
+#OPEN_SSL_PATH = "C:/Qt/Tools/OpenSSL/Win_x64"
+OPEN_SSL_PATH = "C:/Qt/Tools/OpenSSLv3/Win_x64"
 OPEN_SSL_DLL_PATH = $${OPEN_SSL_PATH}/bin
-LIBS += -L"$${OPEN_SSL_PATH}" #-llibcrypto -llibssl # -lcrypto -lssl
+LIBS += -L"$${OPEN_SSL_PATH}/lib" -llibssl -llibcrypto #-llibcrypto -llibssl # -lcrypto -lssl
 INCLUDEPATH += "$${OPEN_SSL_PATH}/include"
+
+# # Optional: Copy DLLs to the output directory after build
+# win32: CONFIG(release, debug|release): \
+#     QMAKE_POST_LINK += copy /Y "$$OPENSSL_DIR\\bin\\libssl-3-x64.dll" "$$OUT_PWD\\" $$escape_expand(\\n\\t)
+#     QMAKE_POST_LINK += copy /Y "$$OPENSSL_DIR\\bin\\libcrypto-3-x64.dll" "$$OUT_PWD\\" $$escape_expand(\\n\\t)
+
+# win32: CONFIG(debug, debug|release): \
+#     QMAKE_POST_LINK += copy /Y "$$OPENSSL_DIR\\bin\\libssl-3-x64.dll" "$$OUT_PWD\\debug" $$escape_expand(\\n\\t)
+#     QMAKE_POST_LINK += copy /Y "$$OPENSSL_DIR\\bin\\libcrypto-3-x64.dll" "$$OUT_PWD\\debug" $$escape_expand(\\n\\t)
+
 
 
 # Make sure we have files copied to the build folder
 copy_files.commands = $(COPY_DIR) \"$$shell_path($$PWD\\www_content)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\web_content)\" && \
-    $(COPY_DIR) \"$$shell_path($$PWD\\logo_icon.ico)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
-    $(COPY_DIR) \"$$shell_path($$PWD\\favicon.ico)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\web_content\\)\" && \
-    $(COPY_DIR) \"$$shell_path($$PWD\\qwebchannel.js)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\web_content\\)\" && \
-    $(COPY_DIR) \"$$shell_path($$PWD\\opeWebViewClient.js)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\web_content\\)\" && \
-    $(COPY_DIR) \"$$shell_path($$PWD\\mime_types.csv)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
-    $(COPY_DIR) \"$$shell_path($$PWD\\qt.conf)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
-    $(COPY_DIR) \"$$shell_path($$PWD\\qtquickcontrols2.conf)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
-    $(COPY_DIR) \"$$shell_path($${OPEN_SSL_DLL_PATH}\\*.dll)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\lib\\)\"
+    $(COPY_FILE) \"$$shell_path($$PWD\\logo_icon.ico)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
+    $(COPY_FILE) \"$$shell_path($$PWD\\favicon.ico)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\web_content\\)\" && \
+    $(COPY_FILE) \"$$shell_path($$PWD\\qwebchannel.js)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\web_content\\)\" && \
+    $(COPY_FILE) \"$$shell_path($$PWD\\opeWebViewClient.js)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\web_content\\)\" && \
+    $(COPY_FILE) \"$$shell_path($$PWD\\mime_types.csv)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
+    $(COPY_FILE) \"$$shell_path($$PWD\\qt.conf)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\" && \
+    $(COPY_FILE) \"$$shell_path($$PWD\\qtquickcontrols2.conf)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\"
+
+    #$(COPY_DIR) \"$$shell_path($${OPEN_SSL_DLL_PATH}\\*.dll)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\lib\\)\"
 
 first.depends = $(first) copy_files
 export(first.depends)
 export(copy_files.commands)
 QMAKE_EXTRA_TARGETS += first copy_files
+#message("First Depends: $$first.depends")
+#message("Copy Files: $$copy_files.commands")

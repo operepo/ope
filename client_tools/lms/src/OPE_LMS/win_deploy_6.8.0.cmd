@@ -1,40 +1,30 @@
 @echo off
 
-set QT_VER=6.5.2
-set QT_VER_FOLDER=6_5_2
+set QT_VER=6.8.0
+set QT_VER_FOLDER=6_8_0
 
 set QT_PATH=C:\Qt\%QT_VER%
 
 set VC_EDITION=Community
-set MSVC_VER=14.29.30133
-set MSVC_MAJOR_VER=2019
+set MSVC_VER=14.41.34120
+set MSVC_MAJOR_VER=2022
+set PROGRAM_FILES=Program Files
+rem C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.41.34120\include
 
 rem WORKAROUND - qt 6.5 fails on windeployqt - should be fixed in 6.5.1
 set TRANSLATIONS=--no-translations
 
-set MSVC_BINARIES=C:\Program Files (x86)\Microsoft Visual Studio\%MSVC_MAJOR_VER%\%VC_EDITION%\VC\Redist\MSVC\%MSVC_VER%\x64\Microsoft.VC142.CRT
-rem set VC_DIR=C:\Program Files (x86)\Microsoft Visual Studio\\VC
-rem set VCINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio\%MSVC_MAJOR_VER%\%VC_EDITION%\VC
-
-rem IF NOT EXIST "%QT_PATH%" (
-rem     rem Try other QT path
-rem     set QT_PATH=C:\Qt\Qt5.12.0\5.12.0
-rem )
-
-
-rem IF NOT EXIST "%VCINSTALLDIR%" (
-rem     rem Not pro-try enterprise
-rem     set VC_EDITION=Enterprise
-rem     set VCINSTALLDIR="C:\Program Files (x86)\Microsoft Visual Studio\%MSVC_MAJOR_VER%\%VC_EDITION%\VC"
-rem )
-
+rem set MSVC_BINARIES=C:\%PROGRAM_FILES%\Microsoft Visual Studio\%MSVC_MAJOR_VER%\%VC_EDITION%\VC\Redist\MSVC\%MSVC_VER%\x64\Microsoft.VC142.CRT
+rem set MSVC_BINARIES=C:\%PROGRAM_FILES%\Microsoft Visual Studio\%MSVC_MAJOR_VER%\Community\VC\Redist\MSVC\%MSVC_VER%\x64\Microsoft.VC143.CRT
+set MSVC_BINARIES=C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.40.33807\x64\Microsoft.VC143.CRT
+rem C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.40.33807
 
 rem set VCToolsRedistDir="%VCINSTALLDIR%\Redist\MSVC\%MSVC_VER%\"
 rem echo QT ENV - %QT_ENV_SETUP%
 if "%QT_ENV_SETUP%" NEQ "1" (
     call "%QT_PATH%/msvc%MSVC_MAJOR_VER%_64/bin/qtenv2.bat"
-    rem call "C:\Program Files (x86)\Microsoft Visual Studio\%MSVC_MAJOR_VER%\%VC_EDITION%\VC\Auxiliary\Build\vcvarsall.bat" x64
-    call "C:\Program Files (x86)\Microsoft Visual Studio\%MSVC_MAJOR_VER%\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64
+    rem call "C:\%PROGRAM_FILES%\Microsoft Visual Studio\%MSVC_MAJOR_VER%\%VC_EDITION%\VC\Auxiliary\Build\vcvarsall.bat" x64
+    call "C:\%PROGRAM_FILES%\Microsoft Visual Studio\%MSVC_MAJOR_VER%\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
     set QT_ENV_SETUP=1
     rem echo "SET ENV"
 )
@@ -81,7 +71,9 @@ rem cd ..\..\OPE_LMS
 
 Rem Copy in MSVC run time files
 rem concrt140.dll, msvcp140.dll, vccorlib140.dll, and vcruntime140.dll.
+echo "Copying MSVC Binaries from %MSVC_BINARIES% to %RELEASE_BUILD_DIR%"
 xcopy /YI "%MSVC_BINARIES%\*" "%RELEASE_BUILD_DIR%"
+echo "Copying MSVC Binaries from %MSVC_BINARIES% to %DEBUG_BUILD_DIR%"
 xcopy /YI "%MSVC_BINARIES%\*" "%DEBUG_BUILD_DIR%"
 
 echo Done Building!!!!

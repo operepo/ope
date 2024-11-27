@@ -16,6 +16,7 @@
 //#include <QWebEngineView>
 //#include <QWebEnginePage>
 #include <QSettings>
+//#include <QtConcurrent/QtConcurrent>
 #include <QtConcurrent/QtConcurrent>
 #include <QProcessEnvironment>
 
@@ -157,6 +158,8 @@ public:
     Q_PROPERTY(EX_Canvas* canvas READ canvas CONSTANT)
 
     bool isPermanent() { return false; }
+
+    bool exitEarly() { return exit_early; }
 
 signals:
     // notify when the root folder changes

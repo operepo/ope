@@ -10,17 +10,18 @@ echo Also this needs to run with an unconfigured source tree - it will configure
 pause
 exit
 
-REM Updated for QT 6.5
+REM Updated for QT 6.8.0
 
 rem NOTE - Set appropriate paths here
-set QT_PATH=C:\Qt\6.5.2
+set QT_PATH=C:\Qt\6.8.0
 set PYTHONPATH=C:\Python311
 set VC_EDITION=Community
-set MSVC_VER=14.29.30133
-set MSVC_MAJOR_VER=2019
+set MSVC_VER=14.41.34120
+set MSVC_MAJOR_VER=2022
+set PROGRAM_FILES=Program Files
 
-set VC_DIR=C:\Program Files (x86)\Microsoft Visual Studio\%MSVC_MAJOR_VER%\%VC_EDITION%\VC
-set VC_DIR=C:\Program Files (x86)\Microsoft Visual Studio\%MSVC_MAJOR_VER%\BuildTools\VC
+rem set VC_DIR=C:\%PROGRAM_FILES%\Microsoft Visual Studio\%MSVC_MAJOR_VER%\%VC_EDITION%\VC
+set VC_DIR=C:\%PROGRAM_FILES%\Microsoft Visual Studio\%MSVC_MAJOR_VER%\%VC_EDITION%\VC
 
 REM Set up Microsoft Visual Studio 2019, where <arch> is amd64, x86, etc.
 rem Setup VCVars Build
@@ -80,7 +81,13 @@ pause
 rem Move to webengine folder
 cd %QT_PATH%\Src\qtwebengine
 qt-configure-module . -webengine-proprietary-codecs -webengine-pepper-plugins -webengine-printing-and-pdf -webengine-spellchecker
-cmake --build . --parallel --fresh
+rem Up the timeout - especially if on a slow machine
+rem set MAKEJOBS_TIMEOUT=3600
+rem edit .cmake.conf and add: set(QT_CHROMIUM_ROLLUP_CONFIG_TIMEOUT 3600)
+rem -DGN_ROLLUP_CONFIG_TIMEOUT=3600
+rem Compiling on slow machine - need to add the timeout to .cmake.conf and possibly re-run several times
+rem timeout is on the rollup nodejs stuff that is launched via python/node.py script.
+cmake --build . --parallel --clean-first
 rem change back to original directory
 cd %~dp0
 
