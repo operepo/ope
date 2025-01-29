@@ -4,7 +4,7 @@ FROM instructure/core:focal
 LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
 LABEL description="Canvas LMS by Instructure - Image for Open Prison Education"
 LABEL vendor="openprisoneducation.com"
-LABEL version="1.4"
+LABEL version="1.5"
 
 # ope-canvas - Canvas LMS System
 # Build with docker build -t ope-canvas .
@@ -32,7 +32,7 @@ ENV RUBYGEMS_VERSION 3.1.3
 #ENV RUBYGEMS_VERSION 3.1.5
 ENV RUBY_VERSION $RUBY_MAJOR
 ENV YARN_VERSION 1.19.1-1
-ENV BUNDLER_VERSION 2.2.33
+ENV BUNDLER_VERSION 2.2.34
 #ENV BUNDLER_VERSION 2.2.17
 
 
@@ -194,7 +194,7 @@ RUN cd build/vendor \
 
 
 # INSTALL QTIMigrationTool
-RUN #mkdir ${APP_HOME}/vendor \
+RUN mkdir ${APP_HOME}/vendor \
 	&& cd ${APP_HOME}/vendor \
 	&& git clone https://github.com/instructure/QTIMigrationTool.git QTIMigrationTool \
 	&& chmod +x QTIMigrationTool/migrate.py
@@ -281,12 +281,14 @@ RUN set -eux; \
 # Runs as part of compile_assets  yarn:install
 #RUN yarn upgrade
 #RUN yarn postinstall
+# rm yarn.lock && yarn &&
 RUN touch Gemfile.lock \
+  #&& rm yarn.lock && yarn
   && yarn install --pure-lockfile
 
 USER docker
 ARG JS_BUILD_NO_UGLIFY=0
-#CANVAS_BUILD_CONCURRENCY=1
+#ARG CANVAS_BUILD_CONCURRENCY=1
 #DISABLE_HAPPYPACK=1
 #RUN COMPILE_ASSETS_NPM_INSTALL=0 bundle exec rake canvas:compile_assets
 #RUN COMPILE_ASSETS_NPM_INSTALL=0 JS_BUILD_NO_UGLIFY="$JS_BUILD_NO_UGLIFY" bundle exec rails canvas:compile_assets
@@ -328,7 +330,7 @@ RUN cd ${APP_HOME} \
 
 USER docker
 
-LABEL rebuild=93
+LABEL rebuild=109
 
 COPY amazon_s3.yml config/amazon_s3.yml
 COPY delayed_jobs.yml config/delayed_jobs.yml
@@ -386,7 +388,7 @@ RUN mv /usr/src/app/db/migrate/20210812210129_add_singleton_column.rb \
 USER root
     
 # Stay root at the end - supervisor will switch back to docker user
-VOLUME ["/usr/src/app/tmp", "/usr/src/app/log", "/tmp", "/usr/src/app/sendfile"]
+VOLUME ["/usr/src/app/tmp", "/usr/src/app/log", "/tmp", "/usr/src/app/sendfile", "/usr/src/app/keys"]
 EXPOSE 3000
 
 CMD ["/usr/src/start.sh"]

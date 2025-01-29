@@ -90,6 +90,7 @@ sed -i -- "s/<CANVAS_SIGN_SECRET>/$CANVAS_SIGN_SECRET/g" config/dynamic_settings
 sed -i -- "s/<CANVAS_RCE_DEFAULT_DOMAIN>/$CANVAS_RCE_DEFAULT_DOMAIN/g" config/dynamic_settings.yml
 sed -i -- "s/<CANVAS_MATHMAN_DEFAULT_DOMAIN>/$CANVAS_MATHMAN_DEFAULT_DOMAIN/g" config/dynamic_settings.yml
 sed -i -- "s/<CANVAS_DEFAULT_DOMAIN>/$CANVAS_DEFAULT_DOMAIN/g" config/dynamic_settings.yml
+# NOTE: <CANVAS_JWK_KEYS> is replaced later by the ope:startup rake task
 
 # This sets secure option on cookies
 cp config/session_store.yml.tmpl config/session_store.yml
@@ -150,7 +151,8 @@ sed -i -- "s/Account.root_accounts.active.where.not(id: Account.site_admin.id)/#
 count=`psql -d canvas_$RAILS_ENV -U postgres -h postgresql -tqc "select count(tablename) as count from pg_tables where tablename='versions'"`
 psql -d canvas_$RAILS_ENV -U postgres -h postgresql -tc "select 1 from pg_tables where tablename='versions'" | grep -q 1 || $BUNDLE exec rake db:initial_setup
 if [ $count == '1' ]; then
-    # Make sure the key is setup or things fail later. 
+    # Make sure the key is setup or things fail later.
+    echo "=== Running db:reset_encryption_key_hash ==="
     $GEM_HOME/bin/rake db:reset_encryption_key_hash
     #$GEM_HOME/bin/rake db:migrate
 fi

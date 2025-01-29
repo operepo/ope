@@ -4,7 +4,7 @@ namespace :ope do
   # Make startup the default task
   task :default => ["startup"]
   
-  task :startup => [:environment, "startup_init_env", "startup_db_init", "startup_db_migrate", "db:reset_encryption_key_hash", 'ope:init_auditing', 'ope:set_sequence_range', 'ope:enable_auditing', "startup_apply_admin_settings"] do
+  task :startup => [:environment, "startup_init_env", "startup_db_init", "startup_db_migrate", "db:reset_encryption_key_hash", 'ope:init_auditing', 'ope:set_sequence_range', 'ope:enable_auditing', "startup_apply_admin_settings", "ensure_jwk_key"] do
   
    
     # Startup itmes are set as pre-requisites so when we get here, it should be done
@@ -898,6 +898,69 @@ SQLSTRING
     puts "====== OPE INIT_AUDITING END ======"
   end
   
-  
+  task :ensure_jwk_key => :environment do
+    puts "====== OPE ENSURE_JWK_KEY BEGIN ======"
+    # Create a JWK key for the system if it doesn't exist
+    # Look in keys folder for a .key file
+    keys_folder = Rails.root.join("keys")
+    puts "Using keys folder: #{keys_folder}"
+
+    # Check if the keys folder exists, if not create it
+    unless Dir.exists?(keys_folder)
+        puts "Keys folder not found. Creating keys folder..."
+        Dir.mkdir(keys_folder)
+    end
+
+    # Get the count of .jwk files in the keys folder
+    jwk_files = Dir[keys_folder.join("*.jwk")]
+    jwk_count = jwk_files.count
+    puts "Number of .jwk files: #{jwk_count}"
+
+    if jwk_count < 1
+        puts "No JWK keys found. Generating a new key..."
+        key_id = Time.now.utc.iso8601
+        key = OpenSSL::PKey::RSA.generate(2048)
+        jwk = key.to_jwk(kid: key_id)
+        puts "Generated JWK key: #{jwk}"
+        File.write(keys_folder.join("#{key_id}.jwk"), jwk.to_json)
+    #else
+    #    puts "JWK key found. Skipping generation..."
+    end
+    
+    # Load the keys into the dynamic settings.yml template
+    jwk_files = Dir[keys_folder.join("*.jwk")]
+
+    puts "Found keys: #{jwk_files}"
+    jwk_keys = {} #Struct.new(:key, :value)
+
+    jwk_files.each do |key_file|
+        puts "====> Found JWK key: #{key_file}"
+        #jwk_keys.add(JSON.parse(File.read(key_file)))
+        key = File.basename(key_file, ".jwk")
+        # Need to store in "{\"key\":\"value\"}" format
+        jwk_keys[key] = JSON.parse(File.read(key_file))
+    end
+
+    # Build the string for the dynamic settings.yml file
+    canvas_jwk_keys = ""
+    # Needs to be past, present, future keys - just save the last one for now
+    for key in jwk_keys.keys
+        # Yes - clear it so we only keep the last key we load
+        canvas_jwk_keys = ""
+        key_str = jwk_keys[key].to_json.gsub('"', '\"')
+        #safe_key = key.gsub("-", "_").gsub(".", "_").gsub(":", "_")
+        #canvas_jwk_keys += "        jwk-#{safe_key}.json: \"#{key_str}\"\n"
+        canvas_jwk_keys += "        jwk-past.json: \"#{key_str}\"\n"
+        canvas_jwk_keys += "        jwk-present.json: \"#{key_str}\"\n"
+        canvas_jwk_keys += "        jwk-future.json: \"#{key_str}\"\n"
+    end
+    
+    #replace <CANVAS_JWK_KEYS> dynamic_settings value with key array
+    dynamic_settings = File.read(Rails.root.join("config", "dynamic_settings.yml"))
+    dynamic_settings = dynamic_settings.gsub("#<CANVAS_JWK_KEYS>", canvas_jwk_keys)
+    File.write(Rails.root.join("config", "dynamic_settings.yml"), dynamic_settings)
+    
+    puts "====== OPE ENSURE_JWK_KEY END ======"
+  end
     
 end
