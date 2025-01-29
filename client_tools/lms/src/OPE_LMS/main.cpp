@@ -1,9 +1,11 @@
+// Make sure to include windows.h first so it doesn't cause conflicts
+#include <windows.h>
+
 #include <QGuiApplication>
 #include <QApplication>
 #include <QCoreApplication>
 #include <QQmlApplicationEngine>
 // #include <QMessageBox>
-#include <QTextCodec>
 #include <QtWebView/QtWebView>
 //#include <QtWebEngine/qtwebengineglobal.h>
 #include <QtWebEngineCore>
@@ -22,7 +24,6 @@
 
 //#include <QTranslator>
 
-#include <windows.h>
 
 //#include "openetworkaccessmanagerfactory.h"
 #include "appmodule.h"
@@ -191,6 +192,12 @@ int main(int argc, char *argv[])
 
     // -- Setup our app module which deals with QML/C++ integration
     AppModule *appModule = new AppModule(&engine, pgdata_path);
+    if (appModule->exitEarly()) {
+        // Exit early - already running? Should quit now.
+        qDebug() << "Exiting early.";
+        delete appModule;
+        return -1;
+    }
 
     QString loadPage = "qrc:/lms.qml";
     //loadPage = "qrc:/websockettest.qml";

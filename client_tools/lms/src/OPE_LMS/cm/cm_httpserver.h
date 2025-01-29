@@ -2,7 +2,7 @@
 #define CM_HTTPSERVER_H
 
 #include <QObject>
-#include <QRegExp>
+#include <QRegularExpression>
 #include <QStringList>
 #include <QDateTime>
 #include <QList>

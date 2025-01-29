@@ -107,3 +107,4 @@ exported_gpo
 /client_tools/svc/sshot.dist
 sync_gui.dist
 sync_gui.build
+/client_tools/lms/src/OPE_LMS/build/

@@ -92,6 +92,7 @@ AppModule::AppModule(QQmlApplicationEngine *parent, QString program_data_path) :
             " error, remove the temp/ope_lms.lock file and try again" <<
             "=====================================================\n";
         out << "App already running..." << Qt::endl;
+        exit_early = true;
         QApplication::exit(-1);
         return;
     }
