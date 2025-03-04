@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# If having trouble migrating and getting a PG::UniqueViolation Error  - duplicate key value violates constraint index_role_overrides_on_context_role_permission
-# https://github.com/instructure/canvas-lms/issues/1806
-# Then run this command to drop the index on that table, then the migration can finish.
+# This script can be added to contab (crontab -e) to take daily backups of the databases.
+# Add the following line to crontab to run this script daily at 2:00 AM:
+# 0 2 * * * /path/to/export_databases.sh
 
 
 compose=`which docker-compose`
@@ -27,7 +27,6 @@ fi
 # Calculate the cutoff date
 cutoff_date=$(date -d "-${DAYS_TO_KEEP} days" +"%Y%m%d")
 
-#$compose exec ope-postgresql bash -c "psql -U postgres -d canvas_production -c 'drop index index_role_overrides_on_context_role_permission;'"
 # Dump postgresql databases - canvas_production, canvas_queue, postgres
 PG_BACKUP_DIR=/var/lib/postgresql/data/backups
 $compose exec ope-postgresql bash -c "mkdir -p ${PG_BACKUP_DIR}"
@@ -55,8 +54,6 @@ $compose exec ope-fog bash -c "mysqldump --all-databases > ${MYSQL_BACKUP_DIR}/a
 echo .
 echo .
 echo "Cleaning up old database backup files older than ${DAYS_TO_KEEP} days..."
-#$compose exec ope-fog bash -c "find ${MYSQL_BACKUP_DIR} -type f -name '*.sql' | awk -v cutoff_date=${cutoff_date} -F'[_|.]' '{if ($NF < cutoff_date) print $0}' | xargs rm -f"
-#$compose exec ope-postgresql bash -c "find ${PG_BACKUP_DIR} -type f -name '*.sql' | awk -v cutoff_date=${cutoff_date} -F'[_|.]' '{if ($NF < cutoff_date) print $0}' | xargs rm -f"
 $compose exec ope-fog bash -c "find ${MYSQL_BACKUP_DIR} -type f -name '*.sql' | while read file; do
   file_date=\$(basename \$file | awk -F'[_|.]' '{print \$(NF-1)}')
   if [[ \$file_date < ${cutoff_date} ]]; then
