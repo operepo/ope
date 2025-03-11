@@ -900,6 +900,8 @@ SQLSTRING
   
   task :ensure_jwk_key => :environment do
     puts "====== OPE ENSURE_JWK_KEY BEGIN ======"
+    JWK_KEY_LENGTH = 2048
+
     # Create a JWK key for the system if it doesn't exist
     # Look in keys folder for a .key file
     keys_folder = Rails.root.join("keys")
@@ -911,49 +913,136 @@ SQLSTRING
         Dir.mkdir(keys_folder)
     end
 
-    # Get the count of .jwk files in the keys folder
-    jwk_files = Dir[keys_folder.join("*.jwk")]
-    jwk_count = jwk_files.count
-    puts "Number of .jwk files: #{jwk_count}"
+    # 3 keys should be present - jwk-past.jwk, jwk-present.jwk, and jwk-future.jwk
+    # If they are not present, generate a new key and save it to the keys folder
 
-    if jwk_count < 1
-        puts "No JWK keys found. Generating a new key..."
-        key_id = Time.now.utc.iso8601
-        key = OpenSSL::PKey::RSA.generate(2048)
+    # Check if jwk-past exists
+    jwk_past = keys_folder.join("jwk-past.jwk")
+    if File.exist?(jwk_past)
+        puts "Found jwk-past.jwk"
+    else
+        puts "jwk-past.jwk not found. Generating a new key..."
+        key_id = "#{Time.now.utc.iso8601}_#{SecureRandom.uuid}"
+        key = OpenSSL::PKey::RSA.generate(JWK_KEY_LENGTH)
         jwk = key.to_jwk(kid: key_id)
-        puts "Generated JWK key: #{jwk}"
-        File.write(keys_folder.join("#{key_id}.jwk"), jwk.to_json)
-    #else
-    #    puts "JWK key found. Skipping generation..."
+        puts "Generated JWK PAST key: #{jwk}"
+        File.write(jwk_past, jwk.to_json)
+    end
+
+    # Check if jwk-present exists
+    jwk_present = keys_folder.join("jwk-present.jwk")
+    if File.exist?(jwk_present)
+        puts "Found jwk-present.jwk"
+    else
+        puts "jwk-present.jwk not found. Generating a new key..."
+        key_id = "#{Time.now.utc.iso8601}_#{SecureRandom.uuid}"
+        key = OpenSSL::PKey::RSA.generate(JWK_KEY_LENGTH)
+        jwk = key.to_jwk(kid: key_id)
+        puts "Generated JWK PRESENT key: #{jwk}"
+        File.write(jwk_present, jwk.to_json)
+    end
+
+    # Check if jwk-future exists
+    jwk_future = keys_folder.join("jwk-future.jwk")
+    if File.exist?(jwk_future)
+        puts "Found jwk-future.jwk"
+    else
+        puts "jwk-future.jwk not found. Generating a new key..."
+        key_id = "#{Time.now.utc.iso8601}_#{SecureRandom.uuid}"
+        key = OpenSSL::PKey::RSA.generate(JWK_KEY_LENGTH)
+        jwk = key.to_jwk(kid: key_id)
+        puts "Generated JWK FUTURE key: #{jwk}"
+        File.write(jwk_future, jwk.to_json)
     end
     
-    # Load the keys into the dynamic settings.yml template
-    jwk_files = Dir[keys_folder.join("*.jwk")]
+    # At this point, all 3 keys should be created.
+    jwk_past_string = ""
+    jwk_present_string = ""
+    jwk_future_string = ""
 
-    puts "Found keys: #{jwk_files}"
-    jwk_keys = {} #Struct.new(:key, :value)
-
-    jwk_files.each do |key_file|
-        puts "====> Found JWK key: #{key_file}"
-        #jwk_keys.add(JSON.parse(File.read(key_file)))
-        key = File.basename(key_file, ".jwk")
-        # Need to store in "{\"key\":\"value\"}" format
-        jwk_keys[key] = JSON.parse(File.read(key_file))
+    # Load past key
+    if File.exist?(jwk_past)
+        puts "Loading jwk-past.jwk"
+        jwk_past_string = File.read(jwk_past)
+    else
+        puts "ERROR - JWK PAST KEY (jwk-past.jwk) NOT FOUND"
     end
+
+    # Load present key
+    if File.exist?(jwk_present)
+        puts "Loading jwk-present.jwk"
+        jwk_present_string = File.read(jwk_present)
+    else
+        puts "ERROR - JWK PRESENT KEY (jwk-present.jwk) NOT FOUND"
+    end
+
+    # Load future key
+    if File.exist?(jwk_future)
+        puts "Loading jwk-future.jwk"
+        jwk_future_string = File.read(jwk_future)
+    else
+        puts "ERROR - JWK FUTURE KEY (jwk-future.jwk) NOT FOUND"
+    end
+
+
+
+    # # Get the count of .jwk files in the keys folder
+    # jwk_files = Dir[keys_folder.join("*.jwk")]
+    # jwk_count = jwk_files.count
+    # puts "Number of .jwk files: #{jwk_count}"
+
+    # if jwk_count < 1
+    #     puts "No JWK keys found. Generating a new key..."
+    #     key_id = Time.now.utc.iso8601
+    #     key = OpenSSL::PKey::RSA.generate(2048)
+    #     jwk = key.to_jwk(kid: key_id)
+    #     puts "Generated JWK key: #{jwk}"
+    #     File.write(keys_folder.join("#{key_id}.jwk"), jwk.to_json)
+    # #else
+    # #    puts "JWK key found. Skipping generation..."
+    # end
+    
+    # # Load the keys into the dynamic settings.yml template
+    # jwk_files = Dir[keys_folder.join("*.jwk")]
+
+    # puts "Found keys: #{jwk_files}"
+    # jwk_keys = {} #Struct.new(:key, :value)
+
+    # jwk_files.each do |key_file|
+    #     puts "====> Found JWK key: #{key_file}"
+    #     #jwk_keys.add(JSON.parse(File.read(key_file)))
+    #     key = File.basename(key_file, ".jwk")
+    #     # Need to store in "{\"key\":\"value\"}" format
+    #     jwk_keys[key] = JSON.parse(File.read(key_file))
+    # end
 
     # Build the string for the dynamic settings.yml file
     canvas_jwk_keys = ""
-    # Needs to be past, present, future keys - just save the last one for now
-    for key in jwk_keys.keys
-        # Yes - clear it so we only keep the last key we load
-        canvas_jwk_keys = ""
-        key_str = jwk_keys[key].to_json.gsub('"', '\"')
-        #safe_key = key.gsub("-", "_").gsub(".", "_").gsub(":", "_")
-        #canvas_jwk_keys += "        jwk-#{safe_key}.json: \"#{key_str}\"\n"
-        canvas_jwk_keys += "        jwk-past.json: \"#{key_str}\"\n"
-        canvas_jwk_keys += "        jwk-present.json: \"#{key_str}\"\n"
-        canvas_jwk_keys += "        jwk-future.json: \"#{key_str}\"\n"
-    end
+    
+    # # Needs to be past, present, future keys - just save the last one for now
+    # for key in jwk_keys.keys
+    #     # Yes - clear it so we only keep the last key we load
+    #     canvas_jwk_keys = ""
+    #     key_str = jwk_keys[key].to_json.gsub('"', '\"')
+    #     #safe_key = key.gsub("-", "_").gsub(".", "_").gsub(":", "_")
+    #     #canvas_jwk_keys += "        jwk-#{safe_key}.json: \"#{key_str}\"\n"
+    #     canvas_jwk_keys += "        jwk-past.json: \"#{key_str}\"\n"
+    #     canvas_jwk_keys += "        jwk-present.json: \"#{key_str}\"\n"
+    #     canvas_jwk_keys += "        jwk-future.json: \"#{key_str}\"\n"
+    # end
+
+    # JWK Strings have "s in them - need to escape quotes and adjust a few special characters
+    jwk_past_string = jwk_past_string.gsub('"', '\"')
+    jwk_present_string = jwk_present_string.gsub('"', '\"')
+    jwk_future_string = jwk_future_string.gsub('"', '\"')
+    
+    # Add the past key
+    canvas_jwk_keys += "        jwk-past.json: \"#{jwk_past_string}\"\n"
+    # Add the present key
+    canvas_jwk_keys += "        jwk-present.json: \"#{jwk_present_string}\"\n"
+    # Add the future key
+    canvas_jwk_keys += "        jwk-future.json: \"#{jwk_future_string}\"\n"
+
     
     #replace <CANVAS_JWK_KEYS> dynamic_settings value with key array
     dynamic_settings = File.read(Rails.root.join("config", "dynamic_settings.yml"))
