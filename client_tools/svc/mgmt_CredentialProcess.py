@@ -417,22 +417,22 @@ class CredentialProcess:
         #     p("}}rbSystem is joined to an Active Directory Domain - BETA!!\n" +
         #       "Only continue if testing.}}xx")
         
-        # Are we using a proper edition win 10? (Home not supported, ed, pro, enterprise ok?)
+        # Are we using a proper edition win 10 or 11? (Home not supported, ed, pro, enterprise ok?)
         # OK - win 10 - pro, ed, enterprise
         # NOT OK - non win 10, win 10 home
-        is_win10 = False
-        is_win10_home = True
+        is_win10_plus = False
+        is_win_home = True
         os_caption = CredentialProcess.COMPUTER_INFO["os_caption"].lower()
-        if "microsoft windows 10" in os_caption:
-            is_win10 = True
+        if "microsoft windows 10" in os_caption or "microsoft windows 11" in os_caption:
+            is_win10_plus = True
         if "enterprise" in os_caption or "pro" in os_caption or "professional" in os_caption or "education" in os_caption or "workstation" in os_caption:
-            is_win10_home = False
+            is_win_home = False
         
-        if is_win10 is not True:
-            p("}}rbNOT RUNNING ON WINDOWS 10!!!\nThis software is designed to work win windows 10 ONLY!\n (Enterprise, Professional, or Education OK, Home edition NOT supported)}}xx")
+        if is_win10_plus is not True:
+            p("}}rbNOT RUNNING ON WINDOWS 10 or 11!!!\nThis software is designed to work win windows 10 or 11 ONLY!\n (Enterprise, Professional, or Education OK, Home edition NOT supported)}}xx")
             return False
-        if is_win10_home is True:
-            p("}}rbWIN10 HOME EDITION DETECTED!\nThis software is designed to work win windows 10 ONLY!\n (Enterprise, Professional, or Education OK, Home edition NOT supported)}}xx")
+        if is_win_home is True:
+            p("}}rbWIN10 or 11 HOME EDITION DETECTED!\nThis software is designed to work win windows 10 or 11 ONLY!\n (Enterprise, Professional, or Education OK, Home edition NOT supported)}}xx")
             return False
 
         # Disable guest account
