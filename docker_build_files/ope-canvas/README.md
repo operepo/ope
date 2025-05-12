@@ -1,8 +1,10 @@
-
+## Overview
 Open Prison Education - Canvas Server
+Provides basic functionality to students and teachers to explore courses and learn basic Canvas LMS features. 
+LMS is set up to run offline and integrate with OPE project.
 
 
-Tech Notes - 
+## Tech Notes
 SHARDING CHANGES
 The gem for switchman (/opt/canvas/.gems/gems/switchman-1.8.0/app/models/switchman/shard_internal.rb) sets
 10 trillion to seperate shard ids and local ids. We move this 10_000_000_000_000 ==> 1_000_000_000_000_000_000
