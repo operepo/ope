@@ -3,13 +3,14 @@ MAINTAINER Ray Pulsipher <ray@cmagic.biz>
 LABEL Author="Ray Pulsipher <ray@cmagic.biz>"
 LABEL Description="Student Management Console - Image for Open Prison Education"
 LABEL Vendor="openprisoneducation.com"
-LABEL Version="1.7"
+LABEL Version="1.9"
 
+LABEL rebuild=1
 # install base
-RUN apk update \
+RUN apk update  \
     && apk add --update --no-cache \
         bash musl musl-dev linux-headers pcre-dev coreutils build-base nasm ca-certificates curl tar \
-        libc-dev zlib-dev yasm-dev lame-dev freetype-dev opus-dev \
+        libc-dev zlib-dev yasm-dev lame-dev lame-libs freetype-dev opus-dev \
         rtmpdump-dev x264-dev x265-dev xvidcore-dev libass-dev libwebp-dev \
         libvorbis-dev libogg-dev libtheora-dev libvpx-dev \
         python3 python3-dev py3-pip mysql-client libxml2-dev \
@@ -54,7 +55,7 @@ RUN FFMPEG_VER=3.4.9 \
         libvorbis-dev libogg-dev libtheora-dev libvpx-dev \
         python3-dev \
     && apk add --no-cache \
-        zlib lame freetype faac opus xvidcore libass libwebp libvorbis libogg \
+        zlib lame lame-libs freetype faac opus xvidcore libass libwebp libvorbis libogg \
         libtheora libvpx \
     && rm -rf /var/cache/apk/* \
     && echo "FFMPEG Build complete"
