@@ -1,0 +1,22 @@
+    ope-mysql:
+        build: ./ope-mysql
+        image: operepo/ope-mysql:release
+        container_name: ope-mysql
+        network_mode: <NETWORK_MODE>
+        restart: always
+        ports:
+            - "3306:3306"
+        labels:
+            - "name=mysql"
+        volumes:
+            - ../volumes/mysql/data:/var/lib/mysql:rw
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        env_file: .env
+        environment:
+            - IT_PW=${IT_PW}
+            - MYSQL_ROOT_PASSWORD=${IT_PW}
+            - OFFICE_PW=${OFFICE_PW}
+            #- VIRTUAL_PROTO=http
+            #- VIRTUAL_PORT=9000

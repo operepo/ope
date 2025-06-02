@@ -1,0 +1,22 @@
+    ope-clamav:
+        build: ./ope-clamav
+        image: operepo/ope-clamav:release
+        container_name: ope-clamav
+        network_mode: <NETWORK_MODE>
+        restart: always
+        ports:
+            - "80"
+        volumes:
+            - ../volumes/clamav/www:/usr/share/nginx/html:rw
+        depends_on:
+            - ope-gateway
+            - ope-dns
+        env_file: .env
+        environment:
+            - VIRTUAL_HOST=clamav.<DOMAIN>
+            - VIRTUAL_PORT=80
+            - CERT_NAME=<CERT_NAME>
+            - VIRTUAL_PROTO=http
+            - LETSENCRYPT_HOST=gcf.<DOMAIN>
+            - LETSENCRYPT_EMAIL=<ALERT_EMAIL>
+
