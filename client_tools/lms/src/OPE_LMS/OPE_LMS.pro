@@ -197,6 +197,7 @@ DISTFILES += \
     WebEngineMP4Build_6.5.1.cmd \
     WebEngineMP4Build_6.5.2.cmd \
     WebEngineMP4Build_6.8.0.cmd \
+    WebEngineMP4Build_6.8.3.cmd \
     dropTest.qml \
     lms.qml \
     not_credentialed.qml \
@@ -228,7 +229,8 @@ DISTFILES += \
     NewMessagePopup.qml \
     win_deploy_6.5.2.cmd \
     win_deploy_6.5.3.cmd \
-    win_deploy_6.8.0.cmd
+    win_deploy_6.8.0.cmd \
+    win_deploy_6.8.3.cmd
 
 
 
