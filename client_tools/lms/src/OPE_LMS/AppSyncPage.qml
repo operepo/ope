@@ -51,6 +51,7 @@ ColumnLayout {
     function toggleRunning(is_running, txt) {
         closeButton.enabled = !is_running;
         syncButton.enabled = !is_running;
+        clearCacheAndSyncButton.enabled = !is_running;
         syncingIndicator.running = is_running;
 
         // Set current item through C++ object which will propagate back
@@ -239,7 +240,35 @@ ColumnLayout {
         mainWidget.markAsSyncedWithCanvas();
 
     }
+    function startClearCacheAndSyncProcess()
+    {
+        confirmDialog.open();
+    }
 
+    function clearCacheAndSync()
+    {
+        mainWidget.canvas.clearCache();
+        startSyncProcess();
+    }
+
+    Dialog {
+        id: confirmDialog
+        title: "Confirm Clear Cache and Sync"
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        anchors.centerIn: parent
+        width: 400
+
+        Label {
+            text: "This will remove all synced data before starting the sync process. Are you sure you want to continue?"
+            wrapMode: Text.WordWrap
+            width: parent.width
+        }
+
+        onAccepted: {
+            clearCacheAndSync();
+        }
+    }
 
     // Header Buttons
     RowLayout {
@@ -280,6 +309,38 @@ ColumnLayout {
                     elide: Text.ElideRight
                 }
         }
+
+        Button {
+            id: clearCacheAndSyncButton
+            text: qsTr("Clear Cache and Sync")
+            font.family: "Courier"
+            Layout.fillHeight: false
+            Layout.fillWidth: false
+            Layout.preferredWidth: -1
+            Layout.minimumWidth: 140
+            property string text_color: App.text_color;
+            property string text_down_color: App.text_color;
+            spacing: 1
+            display: AbstractButton.TextOnly
+            onClicked: {
+                syncPage.startClearCacheAndSyncProcess();
+            }
+            contentItem:
+                Text {
+                    font.capitalization: Font.AllUppercase
+                    color: parent.down ? parent.text_color : parent.text_down_color;
+                    text: parent.text
+                    font.bold: true
+                    font.pointSize: 10
+                    opacity: enabled ? 1.0 : 0.3
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                }
+        }
+
+
+
         Button {
             id: closeButton
             text: "Close"
