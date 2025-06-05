@@ -195,6 +195,8 @@ int main(int argc, char *argv[])
     if (appModule->exitEarly()) {
         // Exit early - already running? Should quit now.
         qDebug() << "Exiting early.";
+        MessageBoxW(NULL, L"Another instance of the LMS is running! It could be either LMS desktop or LMS background service. Closing this instance.", L"LMS app is already running", MB_OK | MB_ICONSTOP);
+
         delete appModule;
         return -1;
     }
