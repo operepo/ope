@@ -38,6 +38,9 @@ public slots:
     bool markItemsAsInactive();
     bool clearInactiveItems();
 
+    // clear synced up data
+    bool clearCache();
+
     // Get the info for the current student
     QString pullStudentInfo();
     // Auto accept courses students have been added to

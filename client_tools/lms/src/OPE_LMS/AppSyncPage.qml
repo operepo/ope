@@ -51,7 +51,7 @@ ColumnLayout {
     function toggleRunning(is_running, txt) {
         closeButton.enabled = !is_running;
         syncButton.enabled = !is_running;
-        clearCacheAndSyncButton.enabled = !is_running;
+        clearCacheButton.enabled = !is_running;
         syncingIndicator.running = is_running;
 
         // Set current item through C++ object which will propagate back
@@ -240,33 +240,32 @@ ColumnLayout {
         mainWidget.markAsSyncedWithCanvas();
 
     }
-    function startClearCacheAndSyncProcess()
+    function startClearCacheProcess()
     {
         confirmDialog.open();
     }
 
-    function clearCacheAndSync()
+    function clearCache()
     {
         mainWidget.canvas.clearCache();
-        startSyncProcess();
     }
 
     Dialog {
         id: confirmDialog
-        title: "Confirm Clear Cache and Sync"
+        title: "Confirm Clear Cache"
         modal: true
         standardButtons: Dialog.Ok | Dialog.Cancel
         anchors.centerIn: parent
         width: 400
 
         Label {
-            text: "This will remove all synced data before starting the sync process. Are you sure you want to continue?"
+            text: "This will remove all synced data. Are you sure you want to continue?"
             wrapMode: Text.WordWrap
             width: parent.width
         }
 
         onAccepted: {
-            clearCacheAndSync();
+            clearCache();
         }
     }
 
@@ -311,8 +310,8 @@ ColumnLayout {
         }
 
         Button {
-            id: clearCacheAndSyncButton
-            text: qsTr("Clear Cache and Sync")
+            id: clearCacheButton
+            text: qsTr("Clear Cache")
             font.family: "Courier"
             Layout.fillHeight: false
             Layout.fillWidth: false
@@ -323,7 +322,7 @@ ColumnLayout {
             spacing: 1
             display: AbstractButton.TextOnly
             onClicked: {
-                syncPage.startClearCacheAndSyncProcess();
+                syncPage.startClearCacheProcess();
             }
             contentItem:
                 Text {
