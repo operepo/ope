@@ -245,8 +245,68 @@ ColumnLayout {
         confirmDialog.open();
     }
 
-    function clearCache()
-    {
+    // Add property to track signal connections
+    property bool cacheSignalsConnected: false
+
+    // Add property to store accumulated messages
+    property string cacheProgressMessages: ""
+
+    // Add Connections object for cache signals
+    Connections {
+        target: mainWidget.canvas
+        enabled: cacheSignalsConnected
+
+        function onCacheClearStatus(message, type) {
+            var formattedMessage = message;
+            if (type === "error") {
+                formattedMessage = "<span class='error'>" + message + "</span>";
+            } else if (type === "success") {
+                formattedMessage = "<span class='success'>" + message + "</span>";
+            } else if (type === "warning") {
+                formattedMessage = "<span class='warning'>" + message + "</span>";
+            } else if (type === "info") {
+                formattedMessage = "<span class='info'>" + message + "</span>";
+            }
+            cacheProgressMessages += formattedMessage + "<br>";
+            progressLabel.text = progressLabel.initial_style + cacheProgressMessages;
+        }
+
+        function onCacheClearProgress(step, total, operation) {
+            var progressMessage = operation + " (" + step + "/" + total + ")";
+            cacheProgressMessages += "<span class='info'>" + progressMessage + "</span><br>";
+            progressLabel.text = progressLabel.initial_style + cacheProgressMessages;
+        }
+
+        function onCacheClearComplete(success, errorMessage) {
+            if (success) {
+                cacheProgressMessages += "<span class='success'>Cache cleared successfully</span><br>";
+            } else {
+                cacheProgressMessages += "<span class='error'>Failed to clear cache</span><br>";
+                if (errorMessage) {
+                    cacheProgressMessages += "<span class='error-details'>" + errorMessage + "</span><br>";
+                }
+            }
+            progressLabel.text = progressLabel.initial_style + cacheProgressMessages;
+            toggleRunning(false, success ? "<span class='finished'>Cache cleared successfully</span>" : 
+                                        "<span class='error'>Failed to clear cache</span>");
+        }
+    }
+
+    function clearCache() {
+        // Reset accumulated messages
+        cacheProgressMessages = "";
+        
+        // Connect signals if not already connected
+        if (!cacheSignalsConnected) {
+            console.log("Connecting cache signals");
+            cacheSignalsConnected = true;
+        }
+
+        toggleRunning(true, "<span class='running'>Running Clear Cache Process...</span>");
+        progressLabel.text = progressLabel.initial_style + "<h1>Starting Cache Clearing Process</h1>";
+        
+        // Start the cache clearing process
+        console.log("Calling mainWidget.canvas.clearCache()");
         mainWidget.canvas.clearCache();
     }
 
@@ -480,11 +540,15 @@ ColumnLayout {
 <style>
  h1 { color: '#032569'; font-size: x-large; }
  h2 { color: '#032569'; font-size: medium; }
- .error {color: 'red'; font-size: 24px; }
+ .error { color: 'red'; font-size: 24px; }
+ .warning { color: 'orange'; font-size: 24px; }
+ .info { color: 'blue'; font-size: 24px; }
+ .success { color: '#1f8e44'; font-size: 24px; }
  .finished { color: '#1f8e44'; font-size: 24px; }
  .running { color: '#6b8574'; font-size: 24px; }
- .failed {color: 'red'; }
+ .failed { color: 'red'; }
  .accepted { color: '#1f8e44'; }
+ .error-details { color: '#666'; font-family: monospace; font-size: 14px; white-space: pre-wrap; }
  body { color: '#3e4c5f'; }
 </style>
 

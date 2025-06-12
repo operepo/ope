@@ -4501,6 +4501,7 @@ bool EX_Canvas::clearCache()
     QSqlQuery query;
     qDebug() << "_app_db->_tables" << _app_db->_tables;
     bool success = true;
+    QString errorMessage;
 
     QStringList tablesToClear = {
         "canvas_dl_queue",
@@ -4517,48 +4518,68 @@ bool EX_Canvas::clearCache()
         "canvas_file_cache"
     };
 
+    int totalSteps = tablesToClear.length() + dirsToRemove.length();
+    int currentStep = 0;
 
     try {
         qDebug() << "Clearing database tables " << tablesToClear;
+        emit cacheClearStatus("Starting cache clearing process...", "info");
+        
+        // Clear database tables
         foreach(QString tableName, tablesToClear) {
+            currentStep++;
+            emit cacheClearProgress(currentStep, totalSteps, "Clearing table: " + tableName);
+            
             query.prepare(QString("DELETE FROM %1").arg(tableName));
             if(!query.exec()) {
-                qDebug() << "Error clearing table " << tableName << ":" << query.lastError().text();
+                errorMessage = QString("Error clearing table %1: %2").arg(tableName).arg(query.lastError().text());
+                qDebug() << errorMessage;
+                emit cacheClearStatus(errorMessage, "error");
                 success = false;
                 break;
             }
-        }
-
-        qDebug() << "Removing cache content directories " << dirsToRemove;
-        qDebug() << "cacheContentDir " << cacheContentDir;
-        foreach (QString dirName, dirsToRemove) {
-            QString dirPath = cacheContentDir + dirName;
-            QDir dir(dirPath);
-            if (dir.exists()) {
-                if (!dir.removeRecursively()) { // remove would fail as directory is being used.
-                    qDebug() << "Failed to remove cache directory.";
-                    success = false;
-                }
-            } else {
-                qDebug() << "Directory " << dirPath << " dosen't exsist";
-            }
+            emit cacheClearStatus("Successfully cleared table: " + tableName, "success");
         }
 
         if (success) {
-            _app_db->commit();
-            qDebug() << "Cache cleared successfully";
+            qDebug() << "Committing database changes";
+            emit cacheClearStatus("Database tables cleared successfully", "success");
         } else {
             _app_db->rollback();
-            qDebug() << "Failed to clear cache";
+            qDebug() << "Failed to clear database tables";
+            emit cacheClearStatus("Failed to clear database tables", "error");
         }
 
-    }
-    catch (const std::exception& e) {
+        // Clear cache directories
+        if (success) {
+            foreach (QString dirName, dirsToRemove) {
+                currentStep++;
+                QString dirPath = cacheContentDir + dirName;
+                emit cacheClearProgress(currentStep, totalSteps, "Removing directory: " + dirPath);
+                
+                QDir dir(dirPath);
+                if (dir.exists()) {
+                    if (!dir.removeRecursively()) {
+                        errorMessage = QString("Failed to remove cache directory: %1").arg(dirPath);
+                        qDebug() << errorMessage;
+                        emit cacheClearStatus(errorMessage, "error");
+                        break;
+                    }
+                    emit cacheClearStatus("Successfully removed directory: " + dirName, "success");
+                } else {
+                    emit cacheClearStatus("Directory does not exist: " + dirPath, "warning");
+                }
+            }
+        }
+
+    } catch (const std::exception& e) {
         _app_db->rollback();
-        qDebug() << "Exception while clearing cache: " << e.what();
+        errorMessage = QString("Exception while clearing cache: %1").arg(e.what());
+        emit cacheClearStatus(errorMessage, "error");
         success = false;
     }
 
+    emit cacheClearComplete(success, errorMessage);
     return success;
 }
 
