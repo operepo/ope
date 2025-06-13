@@ -540,12 +540,12 @@ ColumnLayout {
 <style>
  h1 { color: '#032569'; font-size: x-large; }
  h2 { color: '#032569'; font-size: medium; }
- .error { color: 'red'; font-size: 24px; }
- .warning { color: 'orange'; font-size: 24px; }
- .info { color: 'blue'; font-size: 24px; }
- .success { color: '#1f8e44'; font-size: 24px; }
- .finished { color: '#1f8e44'; font-size: 24px; }
- .running { color: '#6b8574'; font-size: 24px; }
+ .error { color: 'red'; font-size: 18px; }
+ .warning { color: 'orange'; font-size: 18px; }
+ .info { color: 'blue'; font-size: 18px; }
+ .success { color: '#1f8e44'; font-size: 18px; }
+ .finished { color: '#1f8e44'; font-size: 18px; }
+ .running { color: '#6b8574'; font-size: 18px; }
  .failed { color: 'red'; }
  .accepted { color: '#1f8e44'; }
  .error-details { color: '#666'; font-family: monospace; font-size: 14px; white-space: pre-wrap; }
