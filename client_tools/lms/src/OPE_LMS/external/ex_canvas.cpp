@@ -4555,6 +4555,7 @@ bool EX_Canvas::clearCache()
             foreach (QString dirName, dirsToRemove) {
                 currentStep++;
                 QString dirPath = cacheContentDir + dirName;
+                qDebug() << "Removing directory: " << dirPath;
                 emit cacheClearProgress(currentStep, totalSteps, "Removing directory: " + dirPath);
                 
                 QDir dir(dirPath);
@@ -4565,9 +4566,11 @@ bool EX_Canvas::clearCache()
                         emit cacheClearStatus(errorMessage, "error");
                         break;
                     }
+                    qDebug() << "Successfully removed directory: " << dirName;
                     emit cacheClearStatus("Successfully removed directory: " + dirName, "success");
                 } else {
-                    emit cacheClearStatus("Directory does not exist: " + dirPath, "warning");
+                    qDebug() << "Directory does not exist: " << dirName;
+                    emit cacheClearStatus("Directory does not exist: " + dirName, "warning");
                 }
             }
         }
