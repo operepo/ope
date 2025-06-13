@@ -51,6 +51,7 @@ ColumnLayout {
     function toggleRunning(is_running, txt) {
         closeButton.enabled = !is_running;
         syncButton.enabled = !is_running;
+        clearCacheButton.enabled = !is_running;
         syncingIndicator.running = is_running;
 
         // Set current item through C++ object which will propagate back
@@ -239,7 +240,94 @@ ColumnLayout {
         mainWidget.markAsSyncedWithCanvas();
 
     }
+    function startClearCacheProcess()
+    {
+        confirmDialog.open();
+    }
 
+    // Add property to track signal connections
+    property bool cacheSignalsConnected: false
+
+    // Add property to store accumulated messages
+    property string cacheProgressMessages: ""
+
+    // Add Connections object for cache signals
+    Connections {
+        target: mainWidget.canvas
+        enabled: cacheSignalsConnected
+
+        function onCacheClearStatus(message, type) {
+            var formattedMessage = message;
+            if (type === "error") {
+                formattedMessage = "<span class='error'>" + message + "</span>";
+            } else if (type === "success") {
+                formattedMessage = "<span class='success'>" + message + "</span>";
+            } else if (type === "warning") {
+                formattedMessage = "<span class='warning'>" + message + "</span>";
+            } else if (type === "info") {
+                formattedMessage = "<span class='info'>" + message + "</span>";
+            }
+            cacheProgressMessages += formattedMessage + "<br>";
+            progressLabel.text = progressLabel.initial_style + cacheProgressMessages;
+        }
+
+        function onCacheClearProgress(step, total, operation) {
+            var progressMessage = operation + " (" + step + "/" + total + ")";
+            cacheProgressMessages += "<span class='info'>" + progressMessage + "</span><br>";
+            progressLabel.text = progressLabel.initial_style + cacheProgressMessages;
+        }
+
+        function onCacheClearComplete(success, errorMessage) {
+            if (success) {
+                cacheProgressMessages += "<span class='success'>Cache cleared successfully</span><br>";
+            } else {
+                cacheProgressMessages += "<span class='error'>Failed to clear cache</span><br>";
+                if (errorMessage) {
+                    cacheProgressMessages += "<span class='error-details'>" + errorMessage + "</span><br>";
+                }
+            }
+            progressLabel.text = progressLabel.initial_style + cacheProgressMessages;
+            toggleRunning(false, success ? "<span class='finished'>Cache cleared successfully</span>" : 
+                                        "<span class='error'>Failed to clear cache</span>");
+        }
+    }
+
+    function clearCache() {
+        // Reset accumulated messages
+        cacheProgressMessages = "";
+        
+        // Connect signals if not already connected
+        if (!cacheSignalsConnected) {
+            console.log("Connecting cache signals");
+            cacheSignalsConnected = true;
+        }
+
+        toggleRunning(true, "<span class='running'>Running Clear Cache Process...</span>");
+        progressLabel.text = progressLabel.initial_style + "<h1>Starting Cache Clearing Process</h1>";
+        
+        // Start the cache clearing process
+        console.log("Calling mainWidget.canvas.clearCache()");
+        mainWidget.canvas.clearCache();
+    }
+
+    Dialog {
+        id: confirmDialog
+        title: "Confirm Clear Cache"
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        anchors.centerIn: parent
+        width: 400
+
+        Label {
+            text: "This will remove all synced data. Are you sure you want to continue?"
+            wrapMode: Text.WordWrap
+            width: parent.width
+        }
+
+        onAccepted: {
+            clearCache();
+        }
+    }
 
     // Header Buttons
     RowLayout {
@@ -280,6 +368,38 @@ ColumnLayout {
                     elide: Text.ElideRight
                 }
         }
+
+        Button {
+            id: clearCacheButton
+            text: qsTr("Clear Cache")
+            font.family: "Courier"
+            Layout.fillHeight: false
+            Layout.fillWidth: false
+            Layout.preferredWidth: -1
+            Layout.minimumWidth: 140
+            property string text_color: App.text_color;
+            property string text_down_color: App.text_color;
+            spacing: 1
+            display: AbstractButton.TextOnly
+            onClicked: {
+                syncPage.startClearCacheProcess();
+            }
+            contentItem:
+                Text {
+                    font.capitalization: Font.AllUppercase
+                    color: parent.down ? parent.text_color : parent.text_down_color;
+                    text: parent.text
+                    font.bold: true
+                    font.pointSize: 10
+                    opacity: enabled ? 1.0 : 0.3
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                }
+        }
+
+
+
         Button {
             id: closeButton
             text: "Close"
@@ -420,11 +540,15 @@ ColumnLayout {
 <style>
  h1 { color: '#032569'; font-size: x-large; }
  h2 { color: '#032569'; font-size: medium; }
- .error {color: 'red'; font-size: 24px; }
- .finished { color: '#1f8e44'; font-size: 24px; }
- .running { color: '#6b8574'; font-size: 24px; }
- .failed {color: 'red'; }
+ .error { color: 'red'; font-size: 18px; }
+ .warning { color: 'orange'; font-size: 18px; }
+ .info { color: 'blue'; font-size: 18px; }
+ .success { color: '#1f8e44'; font-size: 18px; }
+ .finished { color: '#1f8e44'; font-size: 18px; }
+ .running { color: '#6b8574'; font-size: 18px; }
+ .failed { color: 'red'; }
  .accepted { color: '#1f8e44'; }
+ .error-details { color: '#666'; font-family: monospace; font-size: 14px; white-space: pre-wrap; }
  body { color: '#3e4c5f'; }
 </style>
 

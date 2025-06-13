@@ -38,6 +38,9 @@ public slots:
     bool markItemsAsInactive();
     bool clearInactiveItems();
 
+    // clear synced up data
+    bool clearCache();
+
     // Get the info for the current student
     QString pullStudentInfo();
     // Auto accept courses students have been added to
@@ -202,6 +205,10 @@ private slots:
 signals:
     void progress(qint64 bytesRead, qint64 totalBytes, QString currentItem);
     void dlProgressChanged();
+    // Add new signals for cache clearing status
+    void cacheClearStatus(QString message, QString type); // type: "error", "warning", "info", "success"
+    void cacheClearProgress(int step, int total, QString currentOperation);
+    void cacheClearComplete(bool success, QString errorMessage);
 
 public slots:
 
