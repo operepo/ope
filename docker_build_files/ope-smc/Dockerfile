@@ -64,6 +64,7 @@ RUN FFMPEG_VER=3.4.9 \
 #RUN pip install git+https://github.com/nficano/pytube.git@refs/pull/701/head
 # Install 9.7.0
 #RUN pip install git+https://github.com/nficano/pytube.git@refs/tags/v9.7.0
+LABEL REBUILD_PYTUBE=2
 LABEL yt_dlp=1.0
 RUN python -m pip install --upgrade yt_dlp
 #LABEL pytube_version=15.0.0.0.0
@@ -116,7 +117,7 @@ LABEL rebuild_smc=12
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE 24.11.11.0
+ENV SMC_RELEASE 25.6.23.0
 # Errors with http2? Use http 1
 
 RUN cd $W2P_DIR \
