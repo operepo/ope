@@ -5,3 +5,7 @@ kivy[base]
 pyaes
 requests
 python-dateutil
+colorma
+
+# to build
+nuitka
