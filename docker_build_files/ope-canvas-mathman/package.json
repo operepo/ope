@@ -5,7 +5,7 @@
   "dependencies": {
     "mathjax": "2.7.4",
     "mathjax-node": "2.1.0",
-    "redis": "^2.8.0"
+    "redis": "^3.1.1"
   },
   "devDependencies": {
     "aws-sdk": "^2.1.27",
