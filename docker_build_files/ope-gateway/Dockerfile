@@ -1,7 +1,9 @@
 #FROM nginx:1.11.3
 #
-FROM jwilder/nginx-proxy:alpine
-LABEL rebuild=9
+# nginx-proxy moved from jwilder/ to the nginxproxy/ org - pin the version so rebuilds are repeatable
+# 1.11.6 = nginx 1.31.3, docker-gen 0.17.2, alpine 3.24
+FROM nginxproxy/nginx-proxy:1.11.6-alpine
+LABEL rebuild=10
 
 # ope-gateway  - Open Prison Education gateway device
 # Build: Follow instructions at https://github.com/operepo/ope
@@ -9,14 +11,14 @@ LABEL rebuild=9
 LABEL maintainer="Ray Pulsipher <ray@cmagic.biz>"
 LABEL description="Web Gateway for Open Prison Education - source files at https://github.com/operepo"
 LABEL vendor="openprisoneducation.com"
-LABEL version="0.9"
+LABEL version="1.0"
 
 ARG VERSION=dev
 
-RUN apk add nano openssl
+RUN apk add --no-cache nano openssl
 
 
-LABEL rebuild=142
+LABEL rebuild=143
 # public_certs moved under /usr/share/nginx/html
 # Make public_certs folder so we can make it easy to grab crt file
 #RUN mkdir -p /public_certs \

@@ -223,7 +223,8 @@ describe('server', function () {
       server.ts.calledOnce.should.be.true;
       let typesetArgs = server.ts.lastCall.args;
       typesetArgs.should.have.lengthOf(2);
-      typesetArgs[0].should.equal(tex);
+      typesetArgs[0].tex.should.equal(tex);
+      typesetArgs[0].scale.should.equal(1);
       typesetArgs[1].should.be.a('function');
       server.sendBadRequest.calledOnce.should.be.true;
       server.sendResponse.called.should.be.false;
@@ -240,16 +241,39 @@ describe('server', function () {
       server.ts.calledOnce.should.be.true;
       let typesetArgs = server.ts.lastCall.args;
       typesetArgs.should.have.lengthOf(2);
-      typesetArgs[0].should.equal(tex);
+      typesetArgs[0].tex.should.equal(tex);
+      typesetArgs[0].scale.should.equal(1)
       typesetArgs[1].should.be.a('function');
       server.sendBadRequest.called.should.be.false;
       server.sendResponse.calledOnce.should.be.true;
       server.redisCli.mset.called.should.be.false;
       let sendResponseArgs = server.sendResponse.lastCall.args;
-      sendResponseArgs.should.have.lengthOf(3);
+      sendResponseArgs.should.have.lengthOf(4);
       sendResponseArgs[0].should.be.equal(res);
       sendResponseArgs[1].should.equal(type);
       sendResponseArgs[2].should.equal(typesetData[type]);
+      sendResponseArgs[3].should.equal(1);
+    });
+
+    it('should send a scaled response on typeset success', function () {
+      const scale = 2
+      server.ts.callsArgWith(1, null, typesetData);
+      server.sendTypesetResponse(res, type, tex, scale);
+      server.ts.calledOnce.should.be.true;
+      let typesetArgs = server.ts.lastCall.args;
+      typesetArgs.should.have.lengthOf(2);
+      typesetArgs[0].tex.should.equal(tex);
+      typesetArgs[0].scale.should.equal(scale)
+      typesetArgs[1].should.be.a('function');
+      server.sendBadRequest.called.should.be.false;
+      server.sendResponse.calledOnce.should.be.true;
+      server.redisCli.mset.called.should.be.false;
+      let sendResponseArgs = server.sendResponse.lastCall.args;
+      sendResponseArgs.should.have.lengthOf(4);
+      sendResponseArgs[0].should.be.equal(res);
+      sendResponseArgs[1].should.equal(type);
+      sendResponseArgs[2].should.equal(typesetData[type]);
+      sendResponseArgs[3].should.equal(scale);
     });
 
     it('should cache response on typeset success', function () {
@@ -259,7 +283,8 @@ describe('server', function () {
       server.ts.calledOnce.should.be.true;
       let typesetArgs = server.ts.lastCall.args;
       typesetArgs.should.have.lengthOf(2);
-      typesetArgs[0].should.equal(tex);
+      typesetArgs[0].tex.should.equal(tex);
+      typesetArgs[0].scale.should.equal(1);
       typesetArgs[1].should.be.a('function');
       server.sendBadRequest.called.should.be.false;
       server.sendResponse.calledOnce.should.be.true;
@@ -268,7 +293,29 @@ describe('server', function () {
       msetArgs.should.have.lengthOf(4);
       msetArgs[0].should.equal('mml:' + tex);
       msetArgs[1].should.equal(typesetData['mml']);
-      msetArgs[2].should.equal('svg:' + tex);
+      msetArgs[2].should.equal('svg:' + tex + ':1');
+      msetArgs[3].should.equal(typesetData['svg']);
+    });
+
+    it('should cache scaled response on typeset success', function () {
+      const scale = 2
+      server.ts.callsArgWith(1, null, typesetData);
+      server.useRedis = true;
+      server.sendTypesetResponse(res, type, tex, scale);
+      server.ts.calledOnce.should.be.true;
+      let typesetArgs = server.ts.lastCall.args;
+      typesetArgs.should.have.lengthOf(2);
+      typesetArgs[0].tex.should.equal(tex);
+      typesetArgs[0].scale.should.equal(scale);
+      typesetArgs[1].should.be.a('function');
+      server.sendBadRequest.called.should.be.false;
+      server.sendResponse.calledOnce.should.be.true;
+      server.redisCli.mset.calledOnce.should.be.true;
+      let msetArgs = server.redisCli.mset.lastCall.args;
+      msetArgs.should.have.lengthOf(4);
+      msetArgs[0].should.equal('mml:' + tex);
+      msetArgs[1].should.equal(typesetData['mml']);
+      msetArgs[2].should.equal('svg:' + tex + ':' + scale);
       msetArgs[3].should.equal(typesetData['svg']);
     });
   });
@@ -291,10 +338,11 @@ describe('server', function () {
       server.sendTypesetResponse.calledOnce.should.be.true;
       server.sendResponse.called.should.be.false;
       let args = server.sendTypesetResponse.lastCall.args;
-      args.should.have.lengthOf(3);
+      args.should.have.lengthOf(4);
       args[0].should.equal(res);
       args[1].should.equal(type);
       args[2].should.equal(tex);
+      args[3].should.equal(1);
     });
 
     it('defers to sendTypesetResponse on redis error', function () {
@@ -305,14 +353,15 @@ describe('server', function () {
       server.redisCli.get.calledOnce.should.be.true;
       let getArgs = server.redisCli.get.lastCall.args;
       getArgs.should.have.lengthOf(2);
-      getArgs[0].should.equal(type + ':' + tex);
+      getArgs[0].should.equal(type + ':' + tex + ':1');
       server.sendTypesetResponse.calledOnce.should.be.true;
       server.sendResponse.called.should.be.false;
       let sendArgs = server.sendTypesetResponse.lastCall.args;
-      sendArgs.should.have.lengthOf(3);
+      sendArgs.should.have.lengthOf(4);
       sendArgs[0].should.equal(res);
       sendArgs[1].should.equal(type);
       sendArgs[2].should.equal(tex);
+      sendArgs[3].should.equal(1);
     });
 
     it('defers to sendTypesetResponse on empty redis reply', function () {
@@ -323,14 +372,15 @@ describe('server', function () {
       server.redisCli.get.calledOnce.should.be.true;
       let getArgs = server.redisCli.get.lastCall.args;
       getArgs.should.have.lengthOf(2);
-      getArgs[0].should.equal(type + ':' + tex);
+      getArgs[0].should.equal(type + ':' + tex + ':1');
       server.sendTypesetResponse.calledOnce.should.be.true;
       server.sendResponse.called.should.be.false;
       let sendArgs = server.sendTypesetResponse.lastCall.args;
-      sendArgs.should.have.lengthOf(3);
+      sendArgs.should.have.lengthOf(4);
       sendArgs[0].should.equal(res);
       sendArgs[1].should.equal(type);
       sendArgs[2].should.equal(tex);
+      sendArgs[3].should.equal(1);
     });
 
     it('defers to sendResponse on cache hit', function () {
@@ -341,14 +391,15 @@ describe('server', function () {
       server.redisCli.get.calledOnce.should.be.true;
       let getArgs = server.redisCli.get.lastCall.args;
       getArgs.should.have.lengthOf(2);
-      getArgs[0].should.equal(type + ':' + tex);
+      getArgs[0].should.equal(type + ':' + tex + ':1');
       server.sendTypesetResponse.called.should.be.false;
       server.sendResponse.calledOnce.should.be.true;
       let sendArgs = server.sendResponse.lastCall.args;
-      sendArgs.should.have.lengthOf(3);
+      sendArgs.should.have.lengthOf(4);
       sendArgs[0].should.equal(res);
       sendArgs[1].should.equal(type);
       sendArgs[2].should.equal(reply);
+      sendArgs[3].should.equal(1);
     });
   });
 
@@ -431,6 +482,20 @@ describe('server', function () {
       args[1].should.equal("no LaTeX provided.");
     });
 
+    it('should send bad request on invalid scale parameter', function () {
+      let req = {
+        url: `http://localhost/svg/?tex=${escapedTex}&scale=foo`,
+        method: 'GET',
+        headers: {}
+      };
+      server.handleRequest(req, res);
+      server.sendBadRequest.calledOnce.should.be.true;
+      let args = server.sendBadRequest.lastCall.args;
+      args.should.have.lengthOf(2);
+      args[0].should.equal(res);
+      args[1].should.equal("invalid scale provided.");
+    });
+
     it('should send not modified header on if-modified-since', function () {
       let req = {
         url: `http://localhost/svg/?tex=${escapedTex}`,
@@ -453,10 +518,11 @@ describe('server', function () {
       server.handleRequest(req, res);
       server.sendCachedResponse.calledOnce.should.be.true;
       let args = server.sendCachedResponse.lastCall.args;
-      args.should.have.lengthOf(3);
+      args.should.have.lengthOf(4);
       args[0].should.equal(res);
       args[1].should.equal('svg');
       args[2].should.equal(decodeURIComponent(escapedTex));
+      args[3].should.equal(1);
     });
   });
 });

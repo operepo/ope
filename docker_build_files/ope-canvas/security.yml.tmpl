@@ -2,6 +2,9 @@
 production:
   # replace this with a random string of at least 20 characters
   encryption_key: <CANVAS_SECRET>
+  # Required by newer canvas (64 chars) - start.sh derives it from CANVAS_SECRET
+  jwt_encryption_keys:
+    - <CANVAS_JWT_ENCRYPTION_KEY>
   # lti_iss: 'https://canvas.instructure.com'
   lti_iss: 'https://<CANVAS_DEFAULT_DOMAIN>'
 

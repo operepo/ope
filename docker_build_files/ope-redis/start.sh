@@ -10,8 +10,8 @@ TOTAL_MEM=`awk '/MemTotal/ {printf "%.0f \n", $2/1024/1024 }' /proc/meminfo`
 # TOTAL_MEM should be in gigs
 REDIS_MEM="128m"
 if [ $TOTAL_MEM -gt 1 ]; then REDIS_MEM="256m"; fi
-if [ $TOTAL_MEM -gt 3 ]; then REDIS_MEM="512g"; fi
-if [ $TOTAL_MEM -gt 5 ]; then REDIS_MEM="768g"; fi
+if [ $TOTAL_MEM -gt 3 ]; then REDIS_MEM="512m"; fi
+if [ $TOTAL_MEM -gt 5 ]; then REDIS_MEM="768m"; fi
 if [ $TOTAL_MEM -gt 7 ]; then REDIS_MEM="1g"; fi
 if [ $TOTAL_MEM -gt 8 ]; then REDIS_MEM="2g"; fi
 if [ $TOTAL_MEM -gt 10 ]; then REDIS_MEM="3g"; fi
@@ -21,9 +21,13 @@ if [ $TOTAL_MEM -gt 22 ]; then REDIS_MEM="6g"; fi
 if [ $TOTAL_MEM -gt 30 ]; then REDIS_MEM="8g"; fi
 
 # Copy the redis conf and set the memory value
-echo "=== Applying config settings ==="
-cp /etc/redis.conf.tmpl /etc/redis.conf
-sed -i "s/<REDIS_MEM>/${REDIS_MEM}/" /etc/redis.conf
+# Config lives in its own folder so the official entrypoint can make it readable by the redis user
+REDIS_CONF=/usr/local/etc/redis/redis.conf
+echo "=== Applying config settings (total mem ${TOTAL_MEM}G -> maxmemory ${REDIS_MEM}) ==="
+mkdir -p "$(dirname "$REDIS_CONF")"
+cp /etc/redis.conf.tmpl "$REDIS_CONF"
+sed -i "s/<REDIS_MEM>/${REDIS_MEM}/" "$REDIS_CONF"
 
 echo "=== Launching redis ==="
-exec redis-server /etc/redis.conf
+# Hand off to the official entrypoint - it fixes /data permissions and drops root to the redis user
+exec docker-entrypoint.sh redis-server "$REDIS_CONF"

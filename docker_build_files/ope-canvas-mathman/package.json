@@ -3,9 +3,14 @@
   "version": "1.0.0",
   "description": "Microservice for converting LaTeX to MathML and SVG",
   "dependencies": {
-    "mathjax": "2.7.4",
-    "mathjax-node": "2.1.0",
+    "mathjax": "^2.7.9",
+    "mathjax-node": "^2.1.1",
     "redis": "^2.8.0"
+  },
+  "overrides": {
+    "ajv": "^6.14.0",
+    "form-data": "^2.5.4",
+    "qs": "^6.14.2"
   },
   "devDependencies": {
     "aws-sdk": "^2.1.27",

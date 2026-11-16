@@ -14,12 +14,23 @@
             - ../volumes/canvas/sendfile:/usr/src/app/sendfile:rw
             - ../volumes/canvas/keys:/usr/src/app/keys:rw
         depends_on:
-            - ope-gateway
-            - ope-dns
-            - ope-redis
-            - ope-postgresql
-            - ope-canvas-rce
-            - ope-canvas-mathman
+            # ope-canvas-upgrade lines are only included when docker_build_files/ope-canvas-upgrade/.enabled
+            # exists (rebuild_compose.py). When enabled it runs on every "up" - a few seconds when the db is
+            # already current, otherwise it backs up + upgrades the db before canvas starts.
+            ope-canvas-upgrade:                                  # IF_ENABLED: ope-canvas-upgrade
+                condition: service_completed_successfully       # IF_ENABLED: ope-canvas-upgrade
+            ope-gateway:
+                condition: service_started
+            ope-dns:
+                condition: service_started
+            ope-redis:
+                condition: service_started
+            ope-postgresql:
+                condition: service_started
+            ope-canvas-rce:
+                condition: service_started
+            ope-canvas-mathman:
+                condition: service_started
         env_file: .env
         environment:
             - IT_PW=${IT_PW}
@@ -64,4 +75,6 @@
             # ${CANVAS_RCE_DEFAULT_DOMAIN}
             # Send links to rce server through the gateway
             - ope-gateway:${CANVAS_MATHMAN_DEFAULT_DOMAIN}
+            # Canvas fetches MathML server-side from https://<canvas domain>/mathman/ - make sure that goes to the gateway
+            - ope-gateway:${CANVAS_DEFAULT_DOMAIN}
             - ope-gateway:gateway.<DOMAIN>

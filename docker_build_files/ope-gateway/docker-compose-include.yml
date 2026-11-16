@@ -35,8 +35,8 @@
             - IT_PW=${IT_PW}
             - IS_DOCKER=true
             - DOMAIN=<DOMAIN>
-            # Need this to work w letsencrypt
-            - DHPARAM_GENERATION=false
+            # Need this to work w letsencrypt (DHPARAM_GENERATION=false is deprecated - use DHPARAM_SKIP)
+            - DHPARAM_SKIP=true
             # Default 2048 - need 1024 for compatibility/Mozilla-Old
             - DHPARAM_BITS=1024
             # Keep HSTS off if using self signed certs

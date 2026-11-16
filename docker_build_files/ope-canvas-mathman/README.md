@@ -1,9 +1,12 @@
 # MathMan by Instructure
+
 ## Introduction
+
 This is a simple microservice that converts LaTeX formulae to MathML and SVG.
 It can either be run locally via `docker-compose`, or on Amazon Lambda.
 
 ## Quick start (for Docker)
+
 1. Install docker and docker-compose.
 2. Run `cp docker-compose.dev.override.yml docker-compose.override.yml`
 3. Run `docker-compose build`.
@@ -13,9 +16,15 @@ It can either be run locally via `docker-compose`, or on Amazon Lambda.
 This will launch the microservice, along with a Redis cache. The service
 is available at `http://mathman.docker`.
 
-The API interface is `/mml?tex=<tex-string>` or `svg?tex=<tex-string>`.
+The API interface is `/mml?tex=<tex-string>` or `svg?tex=<tex-string>&scale=<scale-value>`
+
+where:
+
+- `<tex-string>` is the tex code for the equation
+- `<scale-value>` is how much to scale the result. defaults to 1. only valid for svg.
 
 ## Tests
+
 1. Run `docker-compose build` if you haven't already.
 2. Run `cp docker-compose.dev.override.yml docker-compose.override.yml`
 3. Run `docker-compose run --rm web npm install`.
@@ -26,8 +35,7 @@ The API interface is `/mml?tex=<tex-string>` or `svg?tex=<tex-string>`.
 ### Package the code for lambda
 
 1. Run `docker-compose run --rm web npm install`.
-2. Run `docker-compose run --rm web ./deploy/package $(git rev-parse
-   --short HEAD)`.
+2. Run `docker-compose run --rm web ./deploy/package $(git rev-parse --short HEAD)`.
 
 The result will be `build/lambda.zip` which can be uploaded to AWS as a
-lambda function.
+lambda function using the mathman-deploy deployer role.

@@ -27,7 +27,8 @@ RUN apk update  \
 # Make sure python3 runs under the python command - Shouldn't need anymore
     #&& ln -s /usr/bin/python3 /usr/bin/python \
     && python -m pip install --upgrade pip \
-    && python -m pip install --upgrade setuptools ldap3 pycryptodome requests \
+    # setuptools 81+ removed pkg_resources - alpine's supervisor 4.2.5 imports it (supervisord won't start)
+    && python -m pip install --upgrade "setuptools<81" ldap3 pycryptodome requests \
         paramiko ecdsa isodate pywinrm crypto PyMySQL \
         psycopg2-binary uwsgi uwsgitop psutil redis pycanvas lz4 \ 
         webvtt-py langcodes language_data bs4 lxml openpyxl Pillow WeasyPrint uwsgitop pydantic pylti1p3
@@ -113,11 +114,11 @@ WORKDIR $W2P_DIR
 
 
 # New clone smc which includes web2py already
-LABEL rebuild_smc=12
+LABEL rebuild_smc=13
 #RUN git clone --depth 1 https://github.com/operepo/smc.git $W2P_DIR/ \
 #      && chmod +x $W2P_DIR/web2py/applications/smc/set_admin_password.py
 
-ENV SMC_RELEASE 25.6.23.0
+ENV SMC_RELEASE 26.11.16.0
 # Errors with http2? Use http 1
 
 RUN cd $W2P_DIR \

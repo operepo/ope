@@ -4,6 +4,55 @@ Provides basic functionality to students and teachers to explore courses and lea
 LMS is set up to run offline and integrate with OPE project.
 
 
+## Canvas version / upgrading existing servers
+The image builds `CANVAS_RELEASE` (see Dockerfile) - currently `release/2026-04-22.394`, the tree that was on
+the canvas-lms `prod` branch when the public GitHub mirror stopped updating (2026-04-30).
+
+Canvas squashes old database migrations. Each release only migrates a database that already has its
+"last squashed" migration (`db/migrate/*_validate_migration_integrity.rb`), so a database from an older OPE
+image has to step through intermediate releases. start.sh checks this and stops with a message (without
+touching the database) if the database is too old.
+
+Upgrade chain from the previous OPE image (release/2022-07-06.145):
+
+| Step | Canvas release          | Needs migration (already applied) | Ruby / Rails |
+|------|-------------------------|-----------------------------------|--------------|
+| 0    | release/2022-07-06.145  | (previous OPE image)              | 2.7 / 6.1    |
+| 1    | release/2024-03-13.297  | 20180425185812                    | 3.1 / 7.0    |
+| 2    | release/2024-08-28.241  | 20231220155354                    | 3.1 / 7.1    |
+| 3    | release/2025-01-29.487  | 20240524142000                    | 3.3 / 7.1    |
+| 4    | release/2025-05-07.341  | 20240926011200                    | 3.3 / 7.1    |
+| 5    | release/2025-08-13.321  | 20241211152045                    | 3.4 / 7.2    |
+| 6    | release/2025-10-22.358  | 20250326180233                    | 3.4 / 7.2    |
+| 7    | release/2026-01-28.626  | 20250624000755                    | 3.4 / 8.0    |
+| 8    | release/2026-04-22.394  | 20250930000003                    | 3.4 / 8.0    |
+
+The chain was checked against the migration list of every release in between, not just the squash points:
+canvas sometimes adds a back-dated migration and squashes it a few releases later (e.g.
+`20241209133534_create_lti_assets` first appeared in 2025-03 and was squashed by 2025-06), so jumping
+straight from 2025-01 to 2025-08 would skip it. Steps always run in order.
+
+Steps 1-7 are packaged in the separate `ope-canvas-upgrade` image (ruby code + gems for each release, no
+assets). It backs up the database (pg_dump to `volumes/canvas-upgrade/`), then for each step runs
+`db:migrate` and the background job queue until the data fixup jobs are done, keeping new tables' id
+sequences in the server's OPE range. Fresh installs never need it.
+
+**Optional part of the stack.** When `docker_build_files/ope-canvas-upgrade/.enabled` exists,
+`rebuild_compose.py` adds it to the compose file and makes ope-canvas depend on it
+(`condition: service_completed_successfully` - the `# IF_ENABLED: ope-canvas-upgrade` lines in
+ope-canvas' `docker-compose-include.yml`). It then runs on every `docker compose up`:
+
+- nothing to do (new install, or db already upgraded) - exits in a few seconds, canvas starts
+- old database - backs up, runs the steps, then canvas starts (canvas stays down meanwhile; `up` waits)
+- upgrade fails - ope-canvas is not started; see `volumes/canvas-upgrade/logs/`
+
+Servers that don't need it (new installs, already upgraded): leave `.enabled` out, rebuild the compose
+file, and the upgrade image doesn't have to be on the server at all. To run it by hand instead:
+
+    docker compose stop ope-canvas
+    docker compose run --rm ope-canvas-upgrade
+    docker compose up -d ope-canvas      # normal ope-canvas startup migrates the rest
+
 ## Tech Notes
 SHARDING CHANGES
 The gem for switchman (/opt/canvas/.gems/gems/switchman-1.8.0/app/models/switchman/shard_internal.rb) sets

@@ -1,14 +1,21 @@
 'use strict';
 
-let typeset = require('./typeset');
+let typeset = require('./typeset')
 
 exports.handler = function(event, context, cb) {
-  console.log('>>> exports.handler');
-  console.log(event.tex);
+  console.log('>>> exports.handler')
+  console.log(event.tex)
+  console.log(event.scale)
 
-  if (event.tex) {
-    typeset(event.tex, cb);
+  const tex = event.tex
+  const scale = parseFloat(event.scale || 1)
+  if ( tex && scale ) {
+    typeset({tex, scale}, cb)
   } else {
-    cb("[BadRequest] Missing field `tex`");
-  };
-};
+    if ( !tex ) {
+        cb("[BadRequest] Missing field `tex`")
+    } else if ( !scale ) {
+        cb("[BadRequest] invalid scale provided")
+    }
+  }
+}

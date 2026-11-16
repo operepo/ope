@@ -1,15 +1,11 @@
 test:
-  servers:
-    - "redis://redis"
-  database: 1
+  url: redis://redis/1
 
 development:
-  servers:
-    - "redis://redis"
+  url: redis://redis
 
     
 production:
-  servers:
-    - "redis://redis"
+  url: redis://redis
 
     

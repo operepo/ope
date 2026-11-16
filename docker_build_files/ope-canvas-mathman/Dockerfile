@@ -1,7 +1,7 @@
-FROM instructure/node-passenger:12
-MAINTAINER Instructure
-
-LABEL rebuild=1
+FROM instructure/node-passenger:18
+#MAINTAINER Instructure
+LABEL maintainer=Instructure
+LABEL rebuild=2
 
 USER root
 

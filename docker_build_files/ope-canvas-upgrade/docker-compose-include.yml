@@ -1,0 +1,25 @@
+    ope-canvas-upgrade:
+        build: ./ope-canvas-upgrade
+        image: operepo/ope-canvas-upgrade:release
+        container_name: ope-canvas-upgrade
+        network_mode: <NETWORK_MODE>
+        # One-shot: ope-canvas waits for this to finish successfully on every "docker compose up".
+        # Exits in a few seconds when there's nothing to do (new install, or db already upgraded).
+        # If it fails, ope-canvas is not started - see ../volumes/canvas-upgrade/logs/.
+        # Servers that don't need it: remove ope-canvas-upgrade/.enabled and rebuild the compose file.
+        restart: "no"
+        volumes:
+            # db_sequence_range (OPE school id range) lives here
+            - ../volumes/canvas/tmp:/usr/src/app/tmp:ro
+            # pg_dump backup + step logs
+            - ../volumes/canvas-upgrade:/backups:rw
+        depends_on:
+            - ope-postgresql
+        env_file: .env
+        environment:
+            - IT_PW=${IT_PW}
+            - CANVAS_SECRET=${CANVAS_SECRET}
+            - CANVAS_DEFAULT_DOMAIN=${CANVAS_DEFAULT_DOMAIN}
+            - TIME_ZONE=${TIME_ZONE}
+        links:
+            - ope-postgresql:postgresql

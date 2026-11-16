@@ -92,7 +92,10 @@ namespace :ope do
   end
   
   # task :startup_db_migrate => [:environment, "startup_db_init"] do
-  task :startup_db_migrate => [:environment, "startup_db_init", "db:migrate:predeploy", "fix_null_root_account_ids"  ] do
+  # OPE: no separate db:migrate:predeploy pass - plain db:migrate runs every migration in version order.
+  # Predeploy-first only makes sense for zero-downtime deploys every 2 weeks; across a bigger jump it runs
+  # migrations out of order (e.g. dropping a foreign key on a table a later-tagged migration creates).
+  task :startup_db_migrate => [:environment, "startup_db_init", "fix_null_root_account_ids"  ] do
     puts "====== OPE STARTUP_DB_MIGRATE BEGIN ======"
     # ==== Init DB if not already done
     db_changed = 0
@@ -109,6 +112,9 @@ namespace :ope do
 		
     puts "==== Running db:migrate ===="
     Rake::Task['db:migrate'].invoke
+    # Some migrations leave root_account_id null on roles/role_overrides - fix again after migrating
+    Rake::Task['ope:fix_null_root_account_ids'].reenable
+    Rake::Task['ope:fix_null_root_account_ids'].invoke
     puts "==== END Running db:migrate ===="
     
     # Get the number after migrations
@@ -224,12 +230,16 @@ namespace :ope do
         # a.enable_feature!(:...) or disable_feature! or allow_feature!
 
         # Disable web services
-        admin_account.disable_service("google_docs_previews")
-        admin_account.disable_service("skype")
-        admin_account.disable_service("delicious")
-        site_admin_account.disable_service("google_docs_previews")
-        site_admin_account.disable_service("skype")
-        site_admin_account.disable_service("delicious")
+        # OPE: newer canvas removed some services (skype, delicious) and disable_service raises "Invalid Service"
+        # for unknown ones - only touch services this canvas version still has
+        %w[google_docs_previews skype delicious].each do |svc|
+            if AccountServices.allowable_services[svc.to_sym]
+                admin_account.disable_service(svc)
+                site_admin_account.disable_service(svc)
+            else
+                puts "^ service #{svc} not in this canvas version - skipping ^"
+            end
+        end
 
         # Enable the mathman plugin
         mathman = Canvas::Plugin.find(:mathman)
@@ -480,6 +490,32 @@ namespace :ope do
         admin_account.role_overrides.create(role: ta_role, enabled: false, permission: :read_reports)
 
 
+
+        # OPE: Newer canvas split/renamed some of the permissions above into granular ones. Carry the same
+        # setting over to the new names so the restrictions keep working (old-name rows are ignored by canvas).
+        renamed_permissions = {
+            "manage_assignments" => %w[manage_assignments_add manage_assignments_edit manage_assignments_delete],
+            "manage_groups" => %w[manage_groups_add manage_groups_manage manage_groups_delete],
+            "manage_content" => %w[manage_course_content_add manage_course_content_edit manage_course_content_delete],
+            "lti_add_edit" => %w[manage_lti_add manage_lti_edit manage_lti_delete],
+            "change_course_state" => %w[manage_courses_publish],
+        }
+        valid_permissions = RoleOverride.permissions.keys.map(&:to_s)
+        [student_role, ta_role].each do |role|
+            renamed_permissions.each do |old_perm, new_perms|
+                next if valid_permissions.include?(old_perm)  # still a real permission on this canvas version
+                old_ro = admin_account.role_overrides.where(role: role, permission: old_perm).first
+                next unless old_ro
+                new_perms.each do |new_perm|
+                    unless valid_permissions.include?(new_perm)
+                        puts "^ WARNING - permission #{new_perm} not found in this canvas version ^"
+                        next
+                    end
+                    admin_account.role_overrides.where(role: role, permission: new_perm).destroy_all
+                    admin_account.role_overrides.create(role: role, enabled: old_ro.enabled, permission: new_perm)
+                end
+            end
+        end
 
         admin_account.save
         site_admin_account.save
@@ -908,7 +944,7 @@ SQLSTRING
     puts "Using keys folder: #{keys_folder}"
 
     # Check if the keys folder exists, if not create it
-    unless Dir.exists?(keys_folder)
+    unless Dir.exist?(keys_folder)  # Dir.exists? was removed in ruby 3.2
         puts "Keys folder not found. Creating keys folder..."
         Dir.mkdir(keys_folder)
     end

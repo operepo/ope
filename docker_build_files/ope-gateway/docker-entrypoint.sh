@@ -1,8 +1,9 @@
 #!/bin/bash
 set -e
 
+# OPE: based on nginx-proxy 1.11.6 app/docker-entrypoint.sh - OPE changes marked with 'OPE:'
 echo "Starting OPE-Gateway..."
-# Make sure certs are setup
+# OPE: Make sure certs are setup (also copies OPE nginx.conf/proxy.conf/conf.d files into place)
 /app/init_certs.sh
 
 function _parse_true() {
@@ -57,6 +58,13 @@ function _check_unix_socket() {
 }
 
 function _resolvers() {
+	# Honor a user-provided RESOLVERS value and only autodetect the DNS resolvers
+	# from /etc/resolv.conf when it has not been set (see issue #2699).
+	if [[ -n ${RESOLVERS:-} ]]; then
+		export RESOLVERS
+		return
+	fi
+
 	# Compute the DNS resolvers for use in the templates - if the IP contains ":", it's IPv6 and must be enclosed in []
 	RESOLVERS=$(awk '$1 == "nameserver" {print ($2 ~ ":")? "["$2"]": $2}' ORS=' ' /etc/resolv.conf | sed 's/ *$//g'); export RESOLVERS
 
@@ -105,7 +113,7 @@ function _setup_dhparam() {
 }
 
 # Run the init logic if the default CMD was provided
-if [[ $* == 'forego start -r' ]]; then
+if [[ $* == 'forego start -r' ]] || [[ $* =~ 'docker-gen -watch' ]]; then
 	_print_version
 	
 	_check_unix_socket
@@ -113,11 +121,15 @@ if [[ $* == 'forego start -r' ]]; then
 	_resolvers
 
 	_setup_dhparam
+
+	# OPE: TRUST_DOWNSTREAM_PROXY warning removed - the OPE nginx.tmpl doesn't use it
+
+	# Replace $NGINX_CONTAINER_LABEL in the command line arguments with the actual value of the environment variable
+	for ((i=1; i<=$#; i++)); do
+		if [[ ${!i} =~ "\$NGINX_CONTAINER_LABEL" && -n "$NGINX_CONTAINER_LABEL" ]]; then
+			set -- "${@:1:i-1}" "${!i/\$NGINX_CONTAINER_LABEL/${NGINX_CONTAINER_LABEL}}" "${@:i+1}"
+		fi
+	done
 fi
 
 exec "$@"
-
-
-
-
-

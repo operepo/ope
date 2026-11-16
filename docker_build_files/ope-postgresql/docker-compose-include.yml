@@ -14,4 +14,4 @@
         env_file: .env
         environment:
             - POSTGRES_PASSWORD=${IT_PW}
-            - PGDATA=/var/lib/postgresql/data/pgdata-12.9
+            - PGDATA=/var/lib/postgresql/data/pgdata-18

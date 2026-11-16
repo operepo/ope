@@ -8,7 +8,9 @@ production:
         app-host: <CANVAS_DEFAULT_DOMAIN>/rce
         #app-host-old: <CANVAS_RCE_DEFAULT_DOMAIN>
       math-man:
-        base_url: 'https://<CANVAS_MATHMAN_DEFAULT_DOMAIN>'
+        # OPE: mathman is served from the canvas domain (gateway proxies /mathman/ to the mathman container)
+        base_url: 'https://<CANVAS_DEFAULT_DOMAIN>/mathman'
+        #base_url-old: 'https://<CANVAS_MATHMAN_DEFAULT_DOMAIN>'
         use_for_svg: 'true'
         use_for_mml: 'true'
   private:
