@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import os, sys
+import os, sys, re
 import socket
 import shutil
 import uuid
@@ -26,7 +26,7 @@ dc_out = """##### Open Prison Education - Docker Environment #####
 #        docker-compose down
 #
 # START OF docker-compose.yml
-version: '2'
+#version: '2'
 
 <VOLUMES>
 
@@ -128,6 +128,23 @@ def saveSetting(setting_name="", value=""):
     f.write(value)
     f.close()
 
+# Optional lines in a docker-compose-include.yml - a line ending with
+#     # IF_ENABLED: <folder>
+# is only kept when docker_build_files/<folder>/.enabled exists (e.g. ope-canvas only depends on
+# ope-canvas-upgrade on servers that have the upgrader enabled).
+IF_ENABLED_RE = re.compile(r"#\s*IF_ENABLED:\s*(\S+)\s*$")
+
+def filterIfEnabled(text, base_folder):
+    out = []
+    for line in text.splitlines(True):
+        m = IF_ENABLED_RE.search(line.rstrip("\r\n"))
+        if m and not os.path.isfile(os.path.join(base_folder, m.group(1), ".enabled")):
+            print("\tSkipping line (" + m.group(1) + " not enabled): " + line.strip())
+            continue
+        out.append(line)
+    return "".join(out)
+
+
 def processFolder(cwd=""):
     global volume_list
     
@@ -154,7 +171,9 @@ def processFolder(cwd=""):
     except:
         print("         Error reading " + dc_import)
         ret = ""
-    
+
+    ret = filterIfEnabled(ret, os.path.dirname(cwd))
+
     # Make sure to add some line feeds to the end in case the this has tabs on
     # the current line which messes up the yml format
     ret += "\n\n"
